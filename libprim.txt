@@ -1,0 +1,48 @@
+A ``primitive oriented'' scripting language core.
+
+I'm looking for an optimal way to write a scripting language for C.
+It is based on the following ideas.
+
+   * All C primitives are lightweight tasks useing a declarative
+     multitasking semantics.  (functional C)
+
+   * Intermediate data types are avoided and replaced with serial
+     channels and protocols.
+
+   * Linear memory model: C primitives use only atoms which are either
+     C primitives (integers and floats), or abstract objects whos
+     ownership is clearly indicated.
+
+This would allow to build a library of primitive operations and
+datatypes that can be linked with any kind of scripting language.
+
+The idea is that in a final application all ``scripting glue'' can be
+optimized away and replaced with a minimal scheduler and memory
+manager, or even a static scheduling.
+
+
+Entry: A bit less cryptic
+Date: Tue Aug  4 11:14:36 CEST 2009
+
+C is not going anywhere.  Instead of focussing on building new
+languages, I think it is worthwhile to do some semantics engineering
+on subsets of C itself, by providing an infrastructure that makes it
+easier to bootstrap `functional, concurrency oriented C code'
+
+Hopefully this will become easier to articulate once the
+implementation is done.
+
+The goal is this:
+
+   * Write a collection of primitives necessary to support a scripting
+     language.
+
+   * Write a couple of scripting languages (memory and control models)
+     on top of the primitives.  I'm thinking about two: a PF-like
+     concatenative linear stack language and a Scheme-like
+     CONS/CONT/GC based language.
+
+
+
+
+
