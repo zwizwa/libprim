@@ -14,7 +14,7 @@ match'' between the C side and the scripting language.  Is it possible
 to find a way to write C primitives such that it is easily
 (automatically) incorporated in the scripting side?
 
-If the answer is yes (and I think it is), than it is probably best to
+If the answer is yes (and I think it is), then it is probably best to
 build the _whole_ scripting language on such C primitives.
 
 This project is roughly based on the following ideas:
@@ -26,7 +26,7 @@ This project is roughly based on the following ideas:
 
    * Concurrency-oriented programming allows intermediate composite
      data types to be replaced with serial channels and protocols.
-     (``Premature deforestation'').
+     (``Pre-emptive Deforestation'').
 
    * Linear memory model: C primitives use only atoms which are either
      C primitives (integers and floats), or abstract objects whos
@@ -91,6 +91,8 @@ Javascript[3][4].
 It might be easier to start with the CEK machine, and add the store
 and GC later.
 
+Anyways..  I started with the GC.  Bottom up seems better.  It already
+gives a way to encode types.
 
 [1] http://www.cs.utah.edu/plt/publications/pllc.pdf
 [2] md5://3ab517a1167f86ef52caf3bf1a4fdb0c
@@ -131,4 +133,20 @@ language).
 
 Entry: Garbage Collector
 Date: Tue Aug  4 14:53:52 CEST 2009
+
+I've added a simple copying GC in ceks/gc.c for allocating vectors, as
+a memory model for implementing the Scheme interpreter.  It uses
+tagged objects: vectors, atoms, integers, and one available user tag.
+
+The vectors themselves can be tagged (i.e. to implement a couple of
+primitive structs) when the maximum vector size size is limited.
+
+
+Entry: Scheme
+Date: Tue Aug  4 17:58:47 CEST 2009
+
+NEXT: symbols.  Instead of using a hash table, a preliminary
+implementation could just use a stack.  This will make parsing slower,
+but can be easily changed later.
+
 
