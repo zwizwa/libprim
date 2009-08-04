@@ -1,7 +1,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 
-/* Simple copying GC for allocating vectors of pointers.
+/* Simple copying GC for allocating graphs of vectors and atoms.
 
    The GC uses the following annotations:
 
@@ -12,23 +12,28 @@
 
    2. whether a pointer is to another vector or an atom
 
-      LSB=0 Foreign pointer
-      LSB=1 Managed pointer 
-
    3. how to free() an atom
 
       An atom is a struct where the first element is a free() method.
 
    4. wheter a vector has moved to the other buffer
 
-      SIZE LSB=0  Active vector with object count
-      SIZE LSB=1  Reference to vector in other buffer
+      In this case the size field is replaced by a 01 pointer.
+
+*/
+
+/* LSbit TYPE TAGS:
+
+00 atom pointing to struct with free() method
+01 vector
+10 integer
+11 not used
 
 */
 
 
 typedef struct _atom atom;
-typedef void (*atom_free)(atom *);
+typedef void (*atom_free)(void *);
 typedef struct _vector vector;
 typedef long object;
 
@@ -54,13 +59,13 @@ typedef struct {
 
 // private data structure access
 static void vector_set_size(vector *v, long size) {
-    v->size = size << 2;
+    v->size = 2 + (size << 2);  // tagged int
 }
 static long vector_size(vector *v) {
     return v->size >> 2;
 }
 static vector *object_vector(object ob) {
-    if(ob & 1) return ((vector*)(ob&(-3)));
+    if(ob & 1) { ob &= 0xFFFFFFFFFFFFFFFCL; return ((vector*)ob); }
     else return NULL;
 }
 static object vector_to_object(vector *v) {
@@ -83,19 +88,15 @@ object object_vec_set(object obj, long offset, object x) {
     v->el[offset] = x;
 }
 atom *object_atom(object ob) {
-    if (ob & 1) return NULL;
+    if (ob & 3) return NULL;
     else return (atom*)ob;
 }
 
 
-
-
-
-
 void gc_collect(gc *gc);
 
-static vector *gc_alloc_vector(gc *gc, long size) {
-    int attempts = 1;
+object gc_alloc(gc *gc, long size) {
+    int attempts = 2;
     long slots, slot_index_new;
     slots = size + 1;
     while(attempts){
@@ -106,8 +107,9 @@ static vector *gc_alloc_vector(gc *gc, long size) {
         }
         else {
             vector *v = (vector *)(&gc->current[gc->slot_index]);
+            vector_set_size(v, size);
             gc->slot_index = slot_index_new;
-            return v;
+            return vector_to_object(v);
         }
     }
     /* grow pool */
@@ -126,18 +128,18 @@ static inline void vector_set_moved(vector *v, object o) {
 
 #define GC_ASSERT(x) if(!x) exit(1);
 
-object gc_mark_and_move(gc *gc, object o_old) {
-    object o_new;
+object gc_mark_and_copy(gc *gc, object o_old) {
     vector *v_old = object_vector(o_old);
     GC_ASSERT(v_old); // can't mark atoms
 
     long i,nb = vector_size(v_old); // size field used for
 
-    vector *v_new = gc_alloc_vector(gc, nb);
-    o_new = vector_to_object(v_new);
+    object o_new = gc_alloc(gc, nb);
+    vector *v_new = object_vector(o_new);
+
     vector_set_moved(v_old, o_new); // patch through to new location
 
-    for (i=0; i<nb; nb++) {
+    for (i=0; i<nb; i++) {
         object obj = v_old->el[i];
         object obj_moved;
         vector *v;
@@ -150,7 +152,7 @@ object gc_mark_and_move(gc *gc, object o_old) {
             v_new->el[i] = obj_moved;
         }
         else {
-            v_new->el[i] = gc_mark_and_move(gc, obj);
+            v_new->el[i] = gc_mark_and_copy(gc, obj);
         }
     }
     return o_new;                        
@@ -176,29 +178,35 @@ void gc_collect(gc *gc) {
     for (i=0; i<had; i++){
         atom *a;
         if ((a = object_atom(gc->old[i]))) {
+            printf("free(%p)\n", a);
             a->free(a);
         }
+        gc->old[i] = 0;
     }
 }
 
+
+
 gc *gc_new(long total) {
-    gc *gc = (gc*)malloc(sizeof(*gc));
-    gc->slot_total = total;
-    gc->current    = (object*)malloc(sizeof(object) * total);
-    gc->old        = (object*)malloc(sizeof(object) * total);
-    gc->slot_index = 0;
-    gc->roots      = gc_alloc_vector(gc, 1);
+    gc* x = (gc*)malloc(sizeof(gc));
+    x->slot_total = total;
+    x->current    = (object*)calloc(total, sizeof(object));
+    x->old        = (object*)calloc(total, sizeof(object));
+    x->slot_index = 0;
+    x->roots      = gc_alloc(x, 1);
+    return x;
 }
 
 #ifdef TEST
-void print_gc(gc *gc) {
-    int level;
-}
-
-void debug(void) {
-    gc *gc = gc_new(100);
+void debug(gc *gc) {
+    atom *a = malloc(sizeof(*a));
+    a->free = free;
+    object_vec_set(gc_alloc(gc, 1), 0, (object)a);
+    object_vec_set(gc->roots, 0, gc_alloc(gc, 1));
+    // gc_collect(gc);
 }
 int main(int argc, char **argv) {
-    for(;;) debug();
+    gc *gc = gc_new(20);
+    for(;;) debug(gc);
 }
 #endif
