@@ -3,7 +3,7 @@
 
 /* Simple copying GC for allocating vectors of pointers.
 
-   The GC make the following annotations necessary for its operation:
+   The GC uses the following annotations:
 
    1. how many elements a vector contains
 
@@ -181,5 +181,24 @@ void gc_collect(gc *gc) {
     }
 }
 
-void *gc_mark(void *old, size_t size) {
+gc *gc_new(long total) {
+    gc *gc = (gc*)malloc(sizeof(*gc));
+    gc->slot_total = total;
+    gc->current    = (object*)malloc(sizeof(object) * total);
+    gc->old        = (object*)malloc(sizeof(object) * total);
+    gc->slot_index = 0;
+    gc->roots      = gc_alloc_vector(gc, 1);
 }
+
+#ifdef TEST
+void print_gc(gc *gc) {
+    int level;
+}
+
+void debug(void) {
+    gc *gc = gc_new(100);
+}
+int main(int argc, char **argv) {
+    for(;;) debug();
+}
+#endif
