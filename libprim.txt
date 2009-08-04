@@ -1,48 +1,134 @@
 A ``primitive oriented'' scripting language core.
 
-I'm looking for an optimal way to write a scripting language for C.
-It is based on the following ideas.
+Is it possible to write a C application with an ``invisible''
+scripting language?  I.e. use a (dynamically typed) language during
+prototype development and debugging, but ``optimize it out''
+completely in the deployed application?
 
-   * All C primitives are lightweight tasks useing a declarative
-     multitasking semantics.  (functional C)
+This project should be understood in a background of embedded control
+programming problems.
 
-   * Intermediate data types are avoided and replaced with serial
-     channels and protocols.
+I've been using the C + scripting approach for a while, and the
+conclusion I make is that I spend too much time on the ``impedance
+match'' between the C side and the scripting language.  Is it possible
+to find a way to write C primitives such that it is easily
+(automatically) incorporated in the scripting side?
+
+If the answer is yes (and I think it is), than it is probably best to
+build the _whole_ scripting language on such C primitives.
+
+This project is roughly based on the following ideas:
+
+   * C primitives can take the semantics of _lightweight tasks_.
+     Along side other benefits of concurrency-oriented programming,
+     the property of interest is the ability to decouple the C side
+     from the scripting language's _memory_ and _control_ models.
+
+   * Concurrency-oriented programming allows intermediate composite
+     data types to be replaced with serial channels and protocols.
+     (``Premature deforestation'').
 
    * Linear memory model: C primitives use only atoms which are either
      C primitives (integers and floats), or abstract objects whos
      ownership is clearly indicated.
 
 This would allow to build a library of primitive operations and
-datatypes that can be linked with any kind of scripting language.
+datatypes that can be linked with any kind of scripting language
+during prototyping or debugging.
 
-The idea is that in a final application all ``scripting glue'' can be
-optimized away and replaced with a minimal scheduler and memory
-manager, or even a static scheduling.
+The idea is that by isolating the primitives from the memory and
+control models of the debugging code, in a final application all
+``scripting glue'' can be optimized away and replaced with a minimal
+scheduler and memory manager, possibly both static.
+
 
 
 Entry: A bit less cryptic
 Date: Tue Aug  4 11:14:36 CEST 2009
 
-C is not going anywhere.  Instead of focussing on building new
-languages, I think it is worthwhile to do some semantics engineering
-on subsets of C itself, by providing an infrastructure that makes it
-easier to bootstrap `functional, concurrency oriented C code'
+From a practical day-to-day problem solving pov, C is not going
+anywhere because next to a programming language, it is also an
+interface standard.  Anything that tries to incorporate modern
+language techniques in an embedded programming project needs to play
+nice with C.
 
-Hopefully this will become easier to articulate once the
+So, instead of focussing on building new languages, I think it is
+worthwhile to do some semantics engineering on subsets of C itself, by
+providing an infrastructure that makes it easier to bootstrap
+``functional, concurrency oriented C code''.
+
+Hopefully this idea will become easier to articulate once the
 implementation is done.
 
 The goal is this:
 
-   * Write a collection of primitives necessary to support a scripting
-     language.
+   * Write a re-usable collection of C primitives necessary to support
+     a dynamically typed scripting language, but do this in such a way
+     that it does _not_ depend on external memory or control models.
 
-   * Write a couple of scripting languages (memory and control models)
-     on top of the primitives.  I'm thinking about two: a PF-like
+   * To test the primitives and the programming method, write a couple
+     of dyntyped scripting languages (memory and control models) on
+     top of the primitives.  I'm thinking about two: a PF-like
      concatenative linear stack language and a Scheme-like
      CONS/CONT/GC based language.
 
+   * Write a compiler for static memory allocation and scheduling to
+     optimize away the scripting layer.
+
+Later this could be extended with an ML-style statically typed
+language.  Given that the goal of the project is _prototyping_ which
+is mainly _evolving specification_ I think it's better to stick to a
+simpler dynamically typed approach.
+
+
+Entry: CEKS machine
+Date: Tue Aug  4 11:25:38 CEST 2009
+
+Scheme implemented in terms of a CEKS[1] machine.  Focus on the
+evaluator first and ignore GC.  Some CEKS machine for
+Javascript[3][4].
+
+It might be easier to start with the CEK machine, and add the store
+and GC later.
+
+
+[1] http://www.cs.utah.edu/plt/publications/pllc.pdf
+[2] md5://3ab517a1167f86ef52caf3bf1a4fdb0c
+[3] http://wiki.ecmascript.org/doku.php?id=meetings:dave_herman_presentation
+[4] http://www.ccs.neu.edu/home/dherman/javascript/
 
 
 
+Entry: Lightweight tasks
+Date: Tue Aug  4 12:20:48 CEST 2009
+
+Based on the interface present in GNU PTH[1].
+
+[1] http://www.gnu.org/software/pth/
+
+
+
+Entry: Primitives and Composition, an OS?
+Date: Tue Aug  4 12:25:20 CEST 2009
+
+Any form of language design is based on building primitives (axioms)
+and composition mechanism (inference rules).
+
+Is is a stretch to say that an Operating System is actually a
+composition mechanism?  If tasks are primitives, gluing tasks together
+is what the OS does.
+
+
+Entry: Aspect oriented programming
+Date: Tue Aug  4 12:29:47 CEST 2009
+
+The idea I'm trying to encode is the addition of join points to a C
+program: make all these points available to an observer (scripting
+language).
+
+[1] http://en.wikipedia.org/wiki/Aspect_oriented_programming
+
+
+Entry: Garbage Collector
+Date: Tue Aug  4 14:53:52 CEST 2009
 
