@@ -253,18 +253,19 @@ object sc_interpreter_step(sc *sc, object o_state) {
 
     /* Fully reduced value */
     else {
-        object F   = CAR(s->K); // current continuation frame
-        object F_V = CAR(F);    // (reverse) list of reduced values
-        object F_C = CDR(F);    // list of closures to evaluate
+        pair *continuation = CAST(pair, s->K);
+        pair *frame = CAST(pair, continuation->car);
+
+        object F_V = frame->car;  // (reverse) list of reduced values
+        object F_C = frame->cdr;  // list of closures to evaluate
 
         F_V = CONS(X, F_V);
 
         /* If there are remaining closures to evaluate, pop the
            next one and update value list. */
         if (TRUE==sc_is_pair(sc, F_C)) {
-            object C;
-            C = CAR(F_C);
-            F = CONS(F_V, CDR(F_C));
+            object C = CAR(F_C);
+            object F = CONS(F_V, CDR(F_C));
             return STATE(C, F);
         }
         /* No more expressions to be reduced in the current frame:

@@ -33,6 +33,10 @@ object sc_make_state(sc*, object, object);
 
 void debug_scheme(sc *sc) {
     for (;;) {
+        object code =
+            CONS(SYMBOL("null?"), CONS(NIL, NIL));
+        object state =
+            sc_make_state(sc, code, NIL);
         sc_interpreter_step(sc, sc_make_state(sc, NIL, NIL));
     }
 }
