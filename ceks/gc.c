@@ -35,6 +35,8 @@
 */
 
 #include "gc.h"
+#include "gc_config.h"
+
 
 
 // private data structure access
@@ -62,10 +64,6 @@ object object_vec_ref(object obj, long offset) {
 object object_vec_set(object obj, long offset, object x) {
     vector *v = object_vector(obj);
     v->slot[offset] = x;
-}
-atom *object_atom(object ob) {
-    if (GC_ATOM == GC_TAG(ob)) return (atom*)ob;
-    else return NULL;
 }
 
 
@@ -163,7 +161,9 @@ void gc_collect(gc *gc) {
     for (i=0; i<had; i++){
         atom *a;
         if ((a = object_atom(gc->old[i]))) {
-            a->free(a);
+            if (a->op) {
+                a->op->free(a);
+            }
         }
         gc->old[i] = 0;
     }

@@ -1,6 +1,8 @@
 #ifndef _GC_H_
 #define _GC_H_
 
+#include "gc_config.h"
+
 #include <stdio.h>
 
 // GC type tagging
@@ -12,13 +14,18 @@
 #define GC_USER    3   /* unused by GC: user tag */
 
 typedef struct _atom atom;
+typedef struct _atom_class atom_class;
 typedef void (*atom_free)(void *);
 typedef struct _vector vector;
-typedef long object;
+typedef unsigned long object;
 typedef struct _gc gc;
 
-struct _atom {
+struct _atom_class {
     atom_free free;
+};
+
+struct _atom {
+    atom_class *op;
 };
 
 /* The size field in the _vector struct can be used to store
@@ -46,7 +53,7 @@ object gc_alloc(gc *gc, long slots);
 object gc_vector(gc *gc, long slots, ...);
 gc *gc_new(long total);
 
-static vector *object_vector(object ob) {
+static inline vector *object_vector(object ob) {
     if(GC_VECTOR == GC_TAG(ob)) { 
         ob &= 0xFFFFFFFFFFFFFFFCL; 
         return ((vector*)ob); 
@@ -54,5 +61,9 @@ static vector *object_vector(object ob) {
     else return NULL;
 }
 
+static inline atom *object_atom(object ob) {
+    if (GC_ATOM == GC_TAG(ob)) return (atom*)ob;
+    else return NULL;
+}
 
 #endif

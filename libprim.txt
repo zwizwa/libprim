@@ -98,8 +98,7 @@ gives a way to encode types.
 [2] md5://3ab517a1167f86ef52caf3bf1a4fdb0c
 [3] http://wiki.ecmascript.org/doku.php?id=meetings:dave_herman_presentation
 [4] http://www.ccs.neu.edu/home/dherman/javascript/
-
-
+[5] http://www.cs.utah.edu/~mflatt/past-courses/cs6520/public_html/s00/secd.ps
 
 Entry: Lightweight tasks
 Date: Tue Aug  4 12:20:48 CEST 2009
@@ -142,11 +141,54 @@ The vectors themselves can be tagged (i.e. to implement a couple of
 primitive structs) when the maximum vector size size is limited.
 
 
-Entry: Scheme
+Entry: Symbols
 Date: Tue Aug  4 17:58:47 CEST 2009
 
-NEXT: symbols.  Instead of using a hash table, a preliminary
-implementation could just use a stack.  This will make parsing slower,
-but can be easily changed later.
+Instead of using a hash table, a preliminary implementation could just
+use a stack.  This will make parsing slower, but can be easily changed
+later.
 
 
+Entry: Continuations
+Date: Tue Aug  4 20:32:34 CEST 2009
+
+So.. ISWIM uses n-ary primitive application, but unary abstraction and
+application.  Why is this?  It seems that it makes the extension of
+the environment on application easier: only a single variable has to
+be added.
+
+Maybe this isn't necessary for Scheme.  A multivalued application adds
+all variables at the same time.  Instead of arg,fun,opd as explained
+in PLLC, I needs just a single type that evaluates all variables in an
+application from left to right, starting with the function position,
+and then performs either an application (extending the environment) or
+a primitive evaluation (production of a value).
+
+So how to represent (x x x _ x x x) where "_" is the hole?
+
+In short: what does the CEKS machine do?
+
+   It converts the current expression and its continuation in a
+   simplified expression and an updated continuation.  It is
+   _application_ (triggered by the availability of the last argument)
+   that _pops_ the K stack.
+
+So.. Representing continuations.
+
+(((f a b) E) K) -> ( _ (((f E) (a E) (b E)) K))
+                -> ((f E) (((a E) (b E)) K))
+
+
+
+Entry: Objects and Lambdas
+Date: Wed Aug  5 09:43:14 CEST 2009
+
+What I'm trying to accomplish probably has a lot of parallells with
+COLA[1].  However, my concern is mostly interoperability with C.
+
+Anyways.  GC and objects.  It might be wise to require objects to
+exhibit a class structure: each object points to a record of methods,
+where the first couple are used by the GC.
+ 
+
+[1] http://piumarta.com/software/cola/
