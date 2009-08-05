@@ -192,3 +192,87 @@ where the first couple are used by the GC.
  
 
 [1] http://piumarta.com/software/cola/
+
+
+Entry: Confused about primitives
+Date: Wed Aug  5 13:14:07 CEST 2009
+
+This is ironic: the goal is to properly define primitives, but I'm
+already getting hosed!
+
+Once conclusion to draw: there is a set of C primitives that is best
+written directly in the required API (sc ,object, ...) -> object
+instead of in unwrapped C, because of the tight coupling with the data
+representation.  These _direct primitives_ are written manually.
+
+In short: to keep things simple, the interpreter is written in terms
+of primitive functions using all scheme datatypes (ala tinyscheme).
+
+What cannot be avoided however is functions that convert between
+scheme and C values (esp. strings<-> and ints).  it's best to limit
+the use however, and try to use as much as possible real scheme
+primitives to avoid duplication (don't give in to premature opti
+here!).
+
+So, let's try it:
+
+          All C functions used in the implementation of the Scheme
+          interpreter are Scheme primitives.
+
+This fixes the primitive calling convention to:
+
+object fn(sc*, object, ...)
+
+This will raise other problems since I'm not sure it's possible to
+have variable argument invokation (assumed from Pure Data source).
+
+
+Entry: Representing constants
+Date: Wed Aug  5 13:54:45 CEST 2009
+
+I might be useful to make it possible to directly cast non-managed
+objects, by assuming the class pointer is in the slot _before_ the
+pointer.  It is upto the user then to _never_ place them inside GC
+managed vectors, as they won't have a valid class pointer.
+
+Elaborate on this a bit..
+
+I.e. it would be nice for a (const char *) to be a valid object that
+can reside in a collected data structure.  I.e. the object itself
+should be recognizable as not requiring free().
+
+The problem then is that I'm running out of tags:
+
+00 non-managed pointer
+01 vector
+10 integer
+11 bool
+
+Using more than 2 tag bits places extra contstraints on pointer
+alignment.  Booleans are useful for predicate implementation in
+Scheme.
+
+It is possible however to use the 01 vector slot, since we know what
+that will point to:
+     - integer (it's a live vector, and the int = size)
+     - vector  (moved object)
+
+This could be a non-managed pointer to represent a class?
+
+Maybe another workaround is simpler: doubly wrapping all predicates
+and representing bools as integers.
+
+Let's stick to what we have and thing about this a bit more.. It looks
+like bools are more useful than constants.  
+
+Otoh: since bools require only two values, and are actually constants,
+the problem is solved:
+
+
+00 constant = non-managed pointer
+01 vector
+10 integer
+11 managed pointer
+
+
+Let's implement this first before rewriting everything to primitives.

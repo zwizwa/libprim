@@ -3,6 +3,9 @@
 
 #include "gc.h"
 
+/* The remaining tag is used to represent booleans, which makes it
+   possible to _only_ use Scheme primitives in the implementation of
+   the interpreter. */
 
 typedef struct _scheme sc;
 typedef object (*primitive)(sc *sc, object args);
@@ -66,9 +69,9 @@ OBJECT(lambda)
 
 
 // macros bound to the machine struct
-#define CONS(a,b)      make_pair(sc,a,b)
-#define STATE(c,k)     make_state(sc,c,k)
-#define LAMBDA(f,x)    make_lambda(sc,f,x)
+#define CONS(a,b)      sc_make_pair(sc,a,b)
+#define STATE(c,k)     sc_make_state(sc,c,k)
+#define LAMBDA(f,x)    sc_make_lambda(sc,f,x)
 
 #define CAR(o)  object_pair(o)->car
 #define CDR(o)  object_pair(o)->cdr
@@ -77,6 +80,11 @@ OBJECT(lambda)
 #define CAAR(o) CAR(CAR(o))
 #define CADR(o) CAR(CDR(o))
 
-static inline int object_null(object o) { (int)o; }
+#define BOOLVALUE(x) ((object)(((x)<<GC_TAG_SHIFT)|GC_TAG(GC_BOOL)))
+#define TRUE  BOOLVALUE(1)
+#define FALSE BOOLVALUE(0)
+
+static inline int object_null(object o) { return (int)o; }
+
 
 #endif

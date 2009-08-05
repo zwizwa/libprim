@@ -39,32 +39,6 @@
 
 
 
-// private data structure access
-static void vector_set_size(vector *v, long size) {
-    v->tag_size = GC_INTEGER + (size << 2);  // tagged int
-}
-static long vector_size(vector *v) {
-    return (v->tag_size >> 2) & GC_VECTOR_TAG_MASK;
-}
-static object vector_to_object(vector *v) {
-    return ((object)v) + GC_VECTOR;
-}
-
-
-// public access
-long object_vec_size(object obj) {
-    vector *v = object_vector(obj);
-    if (!v) return -1; // not a vector
-    return vector_size(v);
-}
-object object_vec_ref(object obj, long offset) {
-    vector *v = object_vector(obj);
-    return v->slot[offset];
-}
-object object_vec_set(object obj, long offset, object x) {
-    vector *v = object_vector(obj);
-    v->slot[offset] = x;
-}
 
 
 int gc_grow(gc *gc, long size) {
@@ -96,14 +70,14 @@ object gc_alloc(gc *gc, long size) {
         }
     }
     vector *v = (vector *)(&gc->current[gc->slot_index]);
-    vector_set_size(v, size);
+    v->tag_size = integer_to_object(size);
     gc->slot_index += slots;
     return vector_to_object(v);
 }
 
 /* The size field is used to store redirections during GC. */
 static inline object vector_moved(vector *v) {
-    if (object_vector(v->tag_size)) return v->tag_size;
+    if (object_to_vector(v->tag_size)) return v->tag_size;
     else return 0;
 }
 static inline void vector_set_moved(vector *v, object o) {
@@ -113,10 +87,10 @@ static inline void vector_set_moved(vector *v, object o) {
 object gc_mark(gc *gc, object o_old) {
 
     /* Allocate empty vector. */
-    vector *v_old = object_vector(o_old); 
-    long nb = vector_size(v_old);
+    vector *v_old = object_to_vector(o_old); 
+    long nb = object_to_vector_size(v_old->tag_size);
     object o_new = gc_alloc(gc, nb);
-    vector *v_new = object_vector(o_new);
+    vector *v_new = object_to_vector(o_new);
 
     /* Mark the old header as moved before recursing. */
     vector_set_moved(v_old, o_new); 
@@ -127,7 +101,7 @@ object gc_mark(gc *gc, object o_old) {
         object obj_moved;
         vector *v;
 
-        if (!(v = object_vector(obj))) {
+        if (!(v = object_to_vector(obj))) {
             v_new->slot[i] = obj; // copy ref
             v_old->slot[i] = 0;   // erase ref => no free()
         }
@@ -160,22 +134,27 @@ void gc_collect(gc *gc) {
     long i;
     for (i=0; i<had; i++){
         atom *a;
-        if ((a = object_atom(gc->old[i]))) {
+        if ((a = object_to_atom(gc->old[i]))) {
             if (a->op) {
                 a->op->free(a);
             }
         }
         gc->old[i] = 0;
     }
+    if (gc->notify_fn)  {
+        gc->notify_fn(gc->notify_ctx);
+    }
 }
 
-gc *gc_new(long total) {
+gc *gc_new(long total, gc_notify fn, void *ctx) {
     gc* x = (gc*)malloc(sizeof(gc));
     x->slot_total = total;
     x->current    = (object*)malloc(total * sizeof(object));
     x->old        = (object*)malloc(total * sizeof(object));
     x->slot_index = 0;
     x->roots      = gc_alloc(x, 1);
+    x->notify_fn  = fn;
+    x->notify_ctx = ctx;
     return x;
 }
 
@@ -185,14 +164,15 @@ gc *gc_new(long total) {
 
 object gc_vector(gc *gc, long slots, ...) {
     va_list ap;
-    object v = gc_alloc(gc, slots);
+    object o = gc_alloc(gc, slots);
+    vector *v = object_to_vector(o);
     long i = 0;
     va_start(ap, slots);
     for (i=0; i<slots; i++) {
-        object_vec_set(v, i, va_arg(ap, object));
+        v->slot[i] = va_arg(ap, object);
     }
     va_end(ap);
-    return v;
+    return o;
 }
 
 

@@ -13,16 +13,22 @@ struct _scheme {
     object s_if;
 };
 
-symbol sc_symbol(sc *sc, object o){
+
+/* To simplify the implementation _all_ functions are Scheme
+   primitives operating on tagged values. */
+
+object sc_is_symbol(sc *sc, object o) {
     atom *a;
-    if ((a = object_atom(o)) &&
-        atom_is_symbol(a, sc->syms)) {
-        return (symbol)a;
+    if ((a = object_atom(o)) && atom_is_symbol(a, sc->syms)) {
+        return TRUE;
     }
     else {
-        return NULL;
+        return FALSE;
     }
 }
+
+
+
 object sc_string_to_symbol(sc *sc, const char *str) {
     return (object)string_to_symbol(sc->syms, str);
 }
@@ -38,20 +44,80 @@ sc *scheme_new(void) {
     return sc;
 }
 
-object make_state(sc *sc, object C, object K) {
+/* Scheme primitives can be called directly in the interpreter.
+   Functions named sc_xxx are primitives and operate on scheme object.
+
+   Beware about using integers, since they are not type checked
+   properly: it's easy to get the tagging wrong.
+
+*/
+
+object sc_error(sc *sc, object sym) {
+    fprintf(stderr, "ERROR: %s\n", symbol_to_string(sc->syms, (symbol)sym));
+    exit(1);
+    return NIL;
+}
+// object do_error(sc *sc, const char *
+long obj_integer(sc *sc, obj o) {
+    if (!object_is_integer(o)) { 
+        return sc_error(sc, sc_string_to_symbol
+}
+
+object sc_make_vector(sc *sc, object slots) {
+            
+    return gc_vector(sc->gc, object_integer(slots));
+}
+object sc_make_state(sc *sc, object C, object K) {
     object o = gc_vector(sc->gc, 2, C, K);
     return o;
 }
-object make_pair(sc *sc, object car, object cdr) {
+object sc_make_pair(sc *sc, object car, object cdr) {
     object o = gc_vector(sc->gc, 2, car, cdr);
     vector_set_tag(o, tag_pair);
     return o;
 }
-object make_lambda(sc *sc, object car, object cdr) {
+object sc_make_lambda(sc *sc, object car, object cdr) {
     object o = gc_vector(sc->gc, 2, car, cdr);
     vector_set_tag(o, tag_lambda);
     return o;
 }
+object sc_close_args(sc *sc, object lst, object E) {
+    if (object_null(lst)) return NIL;
+    else return CONS(CONS(CAR(lst), E), sc_close_args(sc, lst, E)); 
+}
+object sc_reverse(sc *sc, object lst) {
+    object rlst = NIL;
+    while(!(object_null(lst))) {
+        rlst = CONS(CAR(lst), rlst);
+        lst  = CDR(lst);
+    }
+    return rlst;
+}
+object sc_list_length(sc *sc, object lst) {
+    int nb = 0;
+    while (object_pair(lst)) { nb++; lst = CDR(lst); }
+    return integer_object(nb);
+}
+object sc_list_to_vector(sc *sc, object lst){
+    long slots = object_integer(sc_list_length(sc, lst));
+    object vo = sc_make_vector(sc, integer_object(slots));
+    vector *v = object_vector(vo);
+    long i=0;
+    while (!(object_null(lst))) {
+        v->slot[i++] = CAR(lst);
+        lst = CDR(lst);
+    }
+    return vo;
+}
+object sc_find(sc *sc, object E, object var) {
+    if (object_null(E)) return NIL;  // FIXME: throw error
+    object slot = CAR(E);
+    object name = CAR(slot);
+    if (name == var) return CDR(slot);
+    else find(sc, CDR(E), var);
+}
+
+
 
 
 
@@ -85,25 +151,6 @@ object make_lambda(sc *sc, object car, object cdr) {
 */
 
 
-object close_args(sc *sc, object lst, object E) {
-    if (object_null(lst)) return NIL;
-    else return CONS(CONS(CAR(lst), E), close_args(sc, lst, E)); 
-}
-object sc_reverse(sc *sc, object lst) {
-    object rlst = NIL;
-    while(!(object_null(lst))) {
-        rlst = CONS(CAR(lst), rlst);
-        lst  = CDR(lst);
-    }
-}
-
-object find(sc *sc, object E, object var) {
-    if (object_null(E)) return NIL;  // FIXME: throw error
-    object slot = CAR(E);
-    object name = CAR(slot);
-    if (name == var) return CDR(slot);
-    else find(sc, CDR(E), var);
-}
 
 static object step(sc *sc, object _state) {
     state *s = object_state(_state);
@@ -118,8 +165,10 @@ static object step(sc *sc, object _state) {
         /* Special Form */
         if (sc_symbol(sc, X_f)) {
             if (X_f == sc->s_lambda) {
-                object l = LAMBDA(CAR(X_args), CADR(X_args));
-                return STATE(CONS(l,E), s->K);
+                object formals = sc_list_to_vector(sc, CAR(X_args));
+                object term = CADR(X_args);
+                return STATE(CONS(LAMBDA(formals, term),
+                                  E), s->K);
             }
             if (X_f == sc->s_if) {
                 // ...
@@ -132,7 +181,7 @@ static object step(sc *sc, object _state) {
                all (open) subterms, and binding them to the current
                environment. */
             object C_fn = CONS(X_f, E);
-            object C_args = close_args(sc, X_args, E);
+            object C_args = sc_close_args(sc, X_args, E);
             object K_frame = CONS(NIL, C_args);
             return STATE(C_fn, CONS(K_frame, s->K));
         }

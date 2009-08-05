@@ -29,7 +29,7 @@ symbol string_to_symbol(symstore *s, const char *str){
         if (!strcmp(s->syms[i]->name, str)) return s->syms[i];
     }
     // FIXME: grow store
-    if (s->nb_syms = s->total) exit(1);
+    if (s->nb_syms == s->total) exit(1);
 
     symbol sym = malloc(sizeof(*s));
     sym->s = s;
