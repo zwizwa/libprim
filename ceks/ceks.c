@@ -49,6 +49,12 @@ object sc_is_symbol(sc *sc, object o) {
     if(object_to_symbol(o, sc)) return TRUE;
     return FALSE;
 }
+object sc_is_prim(sc *sc, object o) {
+    if(object_to_prim(o,sc)) return TRUE;
+    return FALSE;
+}
+
+
 /* The empty list is the NULL pointer */
 object sc_is_null(sc *sc, object o) {
     if (!o) return TRUE; else return FALSE;
@@ -68,7 +74,6 @@ static object vector_type(object o, long tag) {
 }
 object sc_is_pair(sc *sc, object o)    { return vector_type(o, TAG_PAIR); }
 object sc_is_lambda(sc *sc, object o)  { return vector_type(o, TAG_LAMBDA); }
-object sc_is_prim(sc *sc, object o)    { return vector_type(o, TAG_PRIM); }
 object sc_is_closure(sc *sc, object o) { return vector_type(o, TAG_CLOSURE); }
 object sc_is_state(sc *sc, object o)   { return vector_type(o, TAG_STATE); }
 object sc_is_frame(sc *sc, object o)   { return vector_type(o, TAG_FRAME); }
@@ -93,11 +98,6 @@ object sc_make_closure(sc *sc, object C, object K) {
 object sc_make_lambda(sc *sc, object car, object cdr) {
     object o = gc_vector(sc->gc, 2, car, cdr);
     vector_set_tag(o, TAG_LAMBDA);
-    return o;
-}
-object sc_make_prim(sc *sc, object fn, object nargs) {
-    object o = gc_vector(sc->gc, 2, fn, nargs);
-    vector_set_tag(o, TAG_PRIM);
     return o;
 }
 object sc_make_frame(sc *sc, object v, object c, object l) {
@@ -223,12 +223,8 @@ object sc_write(sc *sc, object o) {
     if (TRUE == sc_is_state(sc, o))   return write_vector(sc, "state", o);
     if (TRUE == sc_is_frame(sc, o))   return write_vector(sc, "frame", o);
     if (TRUE == sc_is_prim(sc, o)) {
-        prim *p = object_to_prim(o);
-        printf("#prim<");
-        sc_write(sc, p->fn);
-        printf(":");
-        sc_write(sc, p->nargs);
-        printf(">");
+        prim *p = object_to_prim(o,sc);
+        printf("#prim<%p:%ld>", (void*)(p->fn),p->nargs);
         return VOID;
     }
     if (TRUE == sc_is_integer(sc, o)) {
@@ -312,10 +308,11 @@ object sc_interpreter_step(sc *sc, object o_state) {
             if (X_f == sc->s_lambda) {
                 object formals = sc_list_to_vector(sc, CAR(X_args));
                 object term = CADR(X_args);
-                return STATE(CONS(LAMBDA(formals, term),
-                                  E), s->K);
+                return STATE(CLOSURE(LAMBDA(formals, term), E),
+                             s->K);
             }
             // if (X_f == sc->s_if) {}
+            // if (X_f == sc->s_set) {}
         }
 
         /* Application Form */
@@ -325,8 +322,7 @@ object sc_interpreter_step(sc *sc, object o_state) {
                environment. */
             object C_fn = CLOSURE(X_f, E);
             object C_args = sc_close_args(sc, X_args, E);
-            object K_frame = CONS(NIL, C_args);
-            return STATE(C_fn, CONS(K_frame, s->K));
+            return STATE(C_fn, FRAME(NIL, C_args, s->K));
         }
     }
     /* Variable Reference */
@@ -345,21 +341,18 @@ object sc_interpreter_step(sc *sc, object o_state) {
         if (NIL == s->K) return ERROR("continuation", o_state);
         frame *f = CAST(frame, s->K);
 
-        object F_V = f->values;   // (reverse) list of reduced values
-        object F_C = f->closures; // list of closures to evaluate
-
-        F_V = CONS(X, F_V);
-
         /* If there are remaining closures to evaluate, pop the
-           next one and update value list. */
-        if (TRUE==sc_is_pair(sc, F_C)) {
-            object C = CAR(F_C);
-            object F = CONS(F_V, CDR(F_C));
-            return STATE(C, F);
+           next one and push the value to the update value list. */
+        if (TRUE==sc_is_pair(sc, f->closures)) {
+            return STATE(CAR(f->closures),
+                         FRAME(CONS(s->C,f->values),
+                               CDR(f->closures), 
+                               f->parent));
         }
         /* No more expressions to be reduced in the current frame:
            perform application. */
         else {
+            object F_V = CONS(X, f->values);
             object p=F_V, C_fn;
             int n = 0;
             while (TRUE==sc_is_pair(sc,p)) {
@@ -369,12 +362,13 @@ object sc_interpreter_step(sc *sc, object o_state) {
             // V_fn == primitive or lambda
 
             // unpack the closure
-            object V_fn = CAR(C_fn);
-            object E_fn = CDR(C_fn);
+            closure *c = CAST(closure, C_fn);
+            object V_fn = c->term;
+            object E_fn = c->env;
 
             /* Primitive functions are evaluated. */
             if (TRUE==sc_is_prim(sc, V_fn)) {
-                prim *p = object_to_prim(V_fn);
+                prim *p = object_to_prim(V_fn,sc);
                 if (prim_nargs(p) != (n-1)) {
                     return ERROR("nargs", V_fn);
                 }
@@ -384,13 +378,13 @@ object sc_interpreter_step(sc *sc, object o_state) {
                    primitive has executed.  Meaning, primitives won't
                    be restarted unless it's their own fault. */
                 object closure = CONS(NIL, NIL);
-                object state = STATE(closure, CDR(s->K)); // drop frame
+                object state = STATE(closure, f->parent); // drop frame
                 object_to_pair(closure)->car =
                     run_primitive(sc, prim_fn(p), n-1, F_V);
                 return state;
             }
             /* Abstraction application extends the environment. */
-            else {
+            if (TRUE==sc_is_lambda(sc, V_fn)) {
                 lambda *l = (lambda*)V_fn;
                 vector *v = object_to_vector(l->formals);
                 if (vector_size(v) != (n-1)) {
@@ -401,9 +395,12 @@ object sc_interpreter_step(sc *sc, object o_state) {
                     E_fn = CONS(CONS(v->slot[i], CAR(F_V)), E_fn);
                     F_V = CDR(F_V);
                 }
-                return STATE(CONS(l->term, E_fn),  // close term
-                             CDR(s->K));           // drop frame
+                return STATE(CLOSURE(l->term, E_fn),  // close term
+                             f->parent);              // drop frame
             } 
+            else {
+                return ERROR("apply", V_fn);
+            }
         }
     }
 }
@@ -411,16 +408,21 @@ object sc_interpreter_step(sc *sc, object o_state) {
 
 // ------------------------
 
-object sc_unsafe_define_prim(sc *sc, object var, object ptr, object nargs) {
-    object prim = sc_make_prim(sc, ptr, nargs);
+static object make_prim(sc *sc, void *fn, long nargs) {
+    prim *p = malloc(sizeof(*p));
+    p->a.op = &sc->op_prim; // class
+    p->fn = fn;
+    p->nargs = nargs;
+    return atom_to_object(&p->a);
+}
+
+static void define_prim(sc *sc, object var, void *fn, long nargs) {
+    object prim = make_prim(sc, fn, nargs);
     sc->toplevel = CONS(CONS(var, CLOSURE(prim, NIL)),
                         sc->toplevel);
-    return VOID;
-
 }
-#define DEFUN(str,fn,nargs)                     \
-    sc_unsafe_define_prim                       \
-    (sc,SYMBOL(str),const_to_object(fn),integer_to_object(nargs));
+#define DEFUN(str,fn,nargs) \
+    define_prim (sc,SYMBOL(str),fn,nargs)
 
 #define DEFSYM(name) sc->s_##name = SYMBOL(#name)
 sc *scheme_new(void) {
@@ -433,6 +435,8 @@ sc *scheme_new(void) {
 
     DEFUN("null?", sc_is_null, 1);
     DEFUN("zero?", sc_is_zero, 1);
+
+    sc->op_prim.free = NULL;
     
     return sc;
 }

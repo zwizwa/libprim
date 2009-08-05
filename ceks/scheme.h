@@ -32,12 +32,6 @@ typedef struct {
 
 typedef struct {
     vector v;
-    object fn;
-    object nargs;
-} prim;
-
-typedef struct {
-    vector v;
     object term;
     object env;
 } closure;
@@ -49,12 +43,6 @@ typedef struct {
     object parent;   // link
 } frame;
 
-static inline long prim_nargs(prim *p){
-    return object_to_integer(p->nargs);
-}
-static inline void *prim_fn(prim *p){
-    return object_to_const(p->fn);
-}
 static inline long vector_get_tag(object o){
     vector *v = object_to_vector(o);
     if (!v) return -1;
@@ -73,7 +61,6 @@ static inline void vector_set_tag(object o, long tag){
 VECTOR_ACCESS(pair)
 VECTOR_ACCESS(state)
 VECTOR_ACCESS(lambda)
-VECTOR_ACCESS(prim)
 VECTOR_ACCESS(closure)
 VECTOR_ACCESS(frame)
 
@@ -84,9 +71,11 @@ struct _scheme {
     object toplevel;
     object s_lambda;
     object s_if;
+
+    atom_class op_prim;
 };
 
-static inline symbol *object_to_symbol(object ob, sc *sc) {
+static inline symbol* object_to_symbol(object ob, sc *sc) {
     atom *a;
     if ((a = object_to_atom(ob)) && 
         (a->op == &(sc->syms->op)))
@@ -94,13 +83,29 @@ static inline symbol *object_to_symbol(object ob, sc *sc) {
     else return NULL;
 }
 
+typedef struct {
+    atom a;
+    void *fn;
+    long nargs;
+} prim;
+static inline long prim_nargs(prim *p){ return p->nargs; }
+static inline void *prim_fn(prim *p)  { return p->fn; }
+static inline prim* object_to_prim(object ob, sc *sc) {
+    atom *a;
+    if ((a = object_to_atom(ob)) && 
+        (a->op == &(sc->op_prim)))
+        return (prim*)a;
+    else 
+        return NULL;  
+}
+
 // vector tags for interpreter data types
 #define TAG_PAIR    1
 #define TAG_LAMBDA  2
-#define TAG_PRIM    3
+#define TAG_FRAME   3
 #define TAG_STATE   4
 #define TAG_CLOSURE 5
-#define TAG_FRAME   6
+
 
 
 
