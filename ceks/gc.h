@@ -11,7 +11,7 @@
 #define GC_TAG(x)     ((x)&((1<<GC_TAG_SHIFT)-1))
 #define GC_POINTER(x) ((x)&(0xFFFFFFFFFFFFFFFFL<<GC_TAG_SHIFT))
 
-#define GC_CONST   0   /* constant pointer not managed by GC */
+#define GC_CONST   0   /* (unsafe) untyped pointer not managed by GC */
 #define GC_ATOM    1   /* object pointer, finalized by GC */
 #define GC_VECTOR  2   /* vector pointer, managed by GC */
 #define GC_INTEGER 3   /* integer number (shifted) */

@@ -47,44 +47,32 @@ static inline void vector_set_tag(object o, long tag){
 }
 
 #define OBJECT_ACCESS(type)                             \
-    static inline type *object_##type(object o) {       \
-        return (type*)object_vector(o); }
+    static inline type *object_to_##type(object o) {       \
+        return (type*)object_to_vector(o); }
 
-#define OBJECT_P(type)                                  \
-    static inline int object_is_##type(object o) {      \
-        return tag_##type == vector_get_tag(o); }
-
-#define OBJECT(type)             \
-    OBJECT_ACCESS(type)          \
-    OBJECT_P(type)
-
-#define tag_state  0   /* not tagged */
-#define tag_pair   1
-#define tag_lambda 2
-OBJECT(pair)
-OBJECT(state)
-OBJECT(lambda)
+#define TAG_PAIR   1
+#define TAG_LAMBDA 2
+OBJECT_ACCESS(pair)
+OBJECT_ACCESS(state)
+OBJECT_ACCESS(lambda)
 
 
 
-
-// macros bound to the machine struct
-#define CONS(a,b)      sc_make_pair(sc,a,b)
-#define STATE(c,k)     sc_make_state(sc,c,k)
-#define LAMBDA(f,x)    sc_make_lambda(sc,f,x)
-
-#define CAR(o)  object_pair(o)->car
-#define CDR(o)  object_pair(o)->cdr
+/* List macros */
+#define CAR(o)  object_to_pair(o)->car
+#define CDR(o)  object_to_pair(o)->cdr
 #define NIL ((object)0)
-
 #define CAAR(o) CAR(CAR(o))
 #define CADR(o) CAR(CDR(o))
 
-#define BOOLVALUE(x) ((object)(((x)<<GC_TAG_SHIFT)|GC_TAG(GC_BOOL)))
+/* Booleans are encoded as constant pointers. */
+#define BOOLVALUE(x) constant_to_object((((x)<<1)|1)<<GC_TAG_SHIFT)
 #define TRUE  BOOLVALUE(1)
 #define FALSE BOOLVALUE(0)
 
-static inline int object_null(object o) { return (int)o; }
+/* Scheme primitives */
+typedef object (*sc_1)(sc* sc, object);
+
 
 
 #endif
