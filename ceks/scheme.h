@@ -3,7 +3,11 @@
 
 #include "gc.h"
 
+
 typedef struct _scheme sc;
+typedef object (*primitive)(sc *sc, object args);
+
+
 sc *scheme_new(void);
 
 typedef struct {
@@ -23,6 +27,12 @@ typedef struct {
     object expr;
     object env;
 } closure;
+
+typedef struct {
+    vector v;
+    object formals;
+    object term;
+} lambda;
 
 static inline long vector_get_tag(object o){
     vector *v = object_vector(o);
@@ -45,10 +55,12 @@ static inline void vector_set_tag(object o, long tag){
     OBJECT_ACCESS(type)          \
     OBJECT_P(type)
 
-#define tag_pair 1
-#define tag_state 2
+#define tag_state  0   /* not tagged */
+#define tag_pair   1
+#define tag_lambda 2
 OBJECT(pair)
 OBJECT(state)
+OBJECT(lambda)
 
 
 
@@ -56,10 +68,14 @@ OBJECT(state)
 // macros bound to the machine struct
 #define CONS(a,b)      make_pair(sc,a,b)
 #define STATE(c,k)     make_state(sc,c,k)
+#define LAMBDA(f,x)    make_lambda(sc,f,x)
 
 #define CAR(o)  object_pair(o)->car
 #define CDR(o)  object_pair(o)->cdr
 #define NIL ((object)0)
+
+#define CAAR(o) CAR(CAR(o))
+#define CADR(o) CAR(CDR(o))
 
 static inline int object_null(object o) { (int)o; }
 
