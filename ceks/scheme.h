@@ -119,4 +119,20 @@ typedef object (*sc_3)(sc* sc, object, object, object);
 #define ROOT_ENV 0
 
 
+/* Primitives */
+object sc_interpreter_step(sc*, object);
+object sc_make_state(sc*, object, object);
+object sc_make_pair(sc*, object, object);
+object sc_unsafe_assert(sc *sc, sc_1 predicate, object o);
+
+/* Macros valid in sc context. */
+#define CONS(a,b)    sc_make_pair(sc,a,b)
+#define STATE(c,k)   sc_make_state(sc,c,k)
+#define LAMBDA(f,x)  sc_make_lambda(sc,f,x)
+
+#define SYMBOL(str)   atom_to_object((atom*)(string_to_symbol(sc->syms, str)))
+#define ERROR(msg, o) sc_error(sc, SYMBOL(msg), o)
+#define TYPE_ERROR(o) ERROR("type",o)
+    
+
 #endif

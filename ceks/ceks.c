@@ -99,21 +99,19 @@ object sc_make_prim(sc *sc, object fn, object nargs) {
 
 /* Error handling:
    FIXME: The machine step() is protected with setjmp(). */
-object sc_unsafe_error(sc *sc, object sym_o, object o) {
-    symbol *sym = object_to_symbol(sym_o, sc);
+object sc_error(sc *sc, object sym_o, object o) {
+    symbol *sym   = object_to_symbol(sym_o, sc);
+    if (!sym) sym = string_to_symbol(sc->syms, "error");
     fprintf(stderr, "ERROR: %s %p\n", sym->name, (void*)o);
     exit(1);
     return NIL;
 }
-/* Remaining primitives perform type checking. */
-#define SYMBOL(str) atom_to_object((atom*)(string_to_symbol(sc->syms, str)))
-#define ERROR(msg, o) sc_unsafe_error(sc, SYMBOL(msg), o)
-#define TYPE_ERROR(o) ERROR("type",o)
-    
-static object sc_unsafe_assert(sc *sc, sc_1 predicate, object o) {
+object sc_unsafe_assert(sc *sc, sc_1 predicate, object o) {
     if (FALSE == predicate(sc, o)) { TYPE_ERROR(o); }
     return o;
 }
+/* Remaining primitives perform type checking. */
+
 // safe cast to C struct
 #define CAST(type,x) \
     object_to_##type(sc_unsafe_assert(sc, sc_is_##type, x))
@@ -138,7 +136,7 @@ object sc_length(sc *sc, object lst) {
 }
 object sc_close_args(sc *sc, object lst, object E) {
     if ((TRUE==sc_is_null(sc, lst))) return NIL;
-    else return CONS(CONS(CAR(lst), E), sc_close_args(sc, lst, E)); 
+    else return CONS(CONS(CAR(lst), E), sc_close_args(sc, CDR(lst), E)); 
 }
 object sc_list_to_vector(sc *sc, object lst){
     object slots = sc_length(sc, lst);
@@ -247,7 +245,12 @@ object sc_interpreter_step(sc *sc, object o_state) {
     }
     /* Variable Reference */
     else if (TRUE==sc_is_symbol(sc, X)){
-        object C = sc_find(sc, E, X);
+        object C; 
+        if (FALSE == (C = sc_find(sc, E, X))) {
+            if (FALSE == (C = sc_find_toplevel(sc, X))) {
+                return ERROR("undefined", X);
+            }
+        }
         return STATE(C, s->K);
     }
 
@@ -273,7 +276,7 @@ object sc_interpreter_step(sc *sc, object o_state) {
         else {
             object p=F_V, C_fn;
             int n = 0;
-            while (FALSE==sc_is_null(sc,p)) {
+            while (TRUE==sc_is_pair(sc,p)) {
                 n++; C_fn = CAR(p); p = CDR(p);
             }
             // n    == 1 + nb_args
@@ -293,7 +296,7 @@ object sc_interpreter_step(sc *sc, object o_state) {
                    the primitive.  This is to make sure that we won't
                    be the cause of an abort due to GC _after_ the
                    primitive has executed.  Meaning, primitives won't
-                   be GC-aborted unless it's their own fault. */
+                   be restarted unless it's their own fault. */
                 object closure = CONS(NIL, NIL);
                 object state = STATE(closure, CDR(s->K)); // drop frame
                 object_to_pair(closure)->car =
@@ -338,7 +341,7 @@ object sc_unsafe_define_prim(sc *sc, object var, object ptr, object nargs) {
 #define DEFSYM(name) sc->s_##name = SYMBOL(#name)
 sc *scheme_new(void) {
     sc *sc = malloc(sizeof(*sc));
-    sc->gc = gc_new(100, (gc_mark_roots)mark_roots, sc);
+    sc->gc = gc_new(1000000, (gc_mark_roots)mark_roots, sc);
     sc->syms = symstore_new(1000);
     DEFSYM(lambda);
     DEFSYM(if);
