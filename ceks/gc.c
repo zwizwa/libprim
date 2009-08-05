@@ -38,13 +38,10 @@
 #include "gc_config.h"
 
 
-
-
-
-int gc_grow(gc *gc, long size) {
+int gc_grow(gc *gc, long add_slots) {
     /* grow pool */
     long total = gc->slot_total;
-    total += size;      // make sure there will be enough
+    total += add_slots; // make sure there will be enough
     total += (total/4); // and add a bit more
     long bytes = total * sizeof(object);
     
@@ -111,22 +108,7 @@ object gc_mark(gc *gc, object o_old) {
     return o_new;                        
 }
 
-void gc_collect(gc *gc) {
-
-    /* Record the current used size and swap buffers.  After this
-       gc_alloc() will take from the new space. */
-    object *current   = gc->current;
-    object *old       = gc->old;
-
-    gc->old           = current;
-    gc->old_index     = gc->current_index;
-    gc->current       = old;
-    gc->current_index = 0;
-
-    /* Call client to mark the root pointers. */
-    gc->mark_roots(gc->mark_roots_ctx);
-
-    /* Free all atoms */
+static void _finalize(gc *gc) {
     long i;
     for (i=0; i<gc->old_index; i++){
         atom *a;
@@ -139,55 +121,36 @@ void gc_collect(gc *gc) {
     }
 }
 
-/* If the GC is called during the execution of a primitive, the
-   recently allocated vectors might not have made it into the roots
-   yet.  Therefore the GC can be marked before the interpreter
-   mainloop starts, such that in the event of an allocation, these
-   newer objects can be bundled and added to the root.
-*/
-object gc_mark_wild(gc *gc) {
-    gc->wild = gc->current_index;
+static void _swap(gc *gc) {
+    object *current   = gc->current;
+    object *old       = gc->old;
+
+    gc->old           = current;
+    gc->old_index     = gc->current_index;
+    gc->current       = old;
+    gc->current_index = 0;
 }
 
-/* This function needs to run before any vector is marked and moved
-   (to make sure we can navigate the heap using the length slots not
-   yet replaced with indirections), but after the allocation buffers
-   are swapped so gw_alloc() will work. */
+void gc_collect(gc *gc) {
 
-object gc_border_to_vector(gc *gc, long index) {
-    long nb = 0;
-    long i = index;
-    // traverse once to find the size
-    for(i=index; i<gc->old_index;) {
-        long size = object_to_vector_size(gc->old[i]);
-        i += size+1; nb++;
-    }
-    if (!nb) return integer_to_object(0); // don't alloc
-    // allocate vector
-    object vo = gc_alloc(gc, nb);
-    vector *v = object_to_vector(vo);
-    long j;
-    // traverse again to get the pointers
-    for(j=0, i=index; i<gc->old_index;) {
-        long size = object_to_vector_size(gc->old[i]);
-        v->slot[j] = vector_to_object((vector*)(&gc->old[i]));
-        i += size+1; j++;
-    }
-    // mark all pointers
-    for(j=0, j<nb, j++) {
-        v->slot[j] = gc_mark(gc, v->slot[j]);
-    }
-    return vo;
+    /* Record the current used size and swap buffers.  After this
+       gc_alloc() will take from the new space. */
+    _swap(gc);
+
+    /* Call client to mark the root pointers and pass the continuation
+       so client can abort the C stack when a collection is
+       triggered. */
+    gc->mark_roots(gc->mark_roots_ctx, _finalize);
 }
 
 gc *gc_new(long total, gc_mark_roots fn, void *ctx) {
     gc* x = (gc*)malloc(sizeof(gc));
-    x->slot_total = total;
-    x->current    = (object*)malloc(total * sizeof(object));
-    x->old        = (object*)malloc(total * sizeof(object));
-    x->slot_index = 0;
-    x->root       = gc_alloc(x, 1);
-    x->mark_roots = fn;
+    x->slot_total     = total;
+    x->current        = (object*)malloc(total * sizeof(object));
+    x->old            = (object*)malloc(total * sizeof(object));
+    x->current_index  = 0;
+    x->old_index      = 0;
+    x->mark_roots     = fn;
     x->mark_roots_ctx = ctx;
     return x;
 }

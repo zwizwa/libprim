@@ -43,32 +43,36 @@ struct _vector {
     object slot[0];
 };
 
-/*  This function needs to obj = gc_mark(gc, obj) for all roots.
-
-    The `wild' parameter is a newly allocated vector containing
-    references to all objects that were allocated after the last
-    gc_mark_wild().  (It should not be marked!)
-
-    This mechanism is useful for languages with C primitive, where
-    objects residing on the C stack are not reachable from the roots:
-    simply preserving all newly created objects will solve that
-    problem.
-
-  */
-
-void gc_mark_wild(gc *gc);
-
-typedef void (*gc_mark_roots)(void *ctx, object wild);
+typedef void (*gc_finalize)(gc *);
+typedef void (*gc_mark_roots)(void *ctx, gc_finalize finalize);
 
 struct _gc {
     object *current;
-    object *old;
     long    current_index;
+    object *old;
     long    old_index;
     long    slot_total;
-    gc_mark_roots mark_roots;
+    gc_mark_roots mark_roots; // (1)
     void *mark_roots_ctx;
 };
+
+/* Client is free to abort the C stack during the execution of (1) but
+   _always_ has to call the finalize method after performing gc_mark()
+   for the root objects.
+
+   This is useful if the C stack contains references to objects that
+   are not accessible from the root.  These will be invalid after GC
+   finishes.
+
+   If the GC is part of an interpreter writtin in functional style it
+   is easiest to just abort the current step and restart over after
+   collection.
+
+   If all the references on the C stack are reachable from the root
+   pointers, it is ok to let (1) return such that the allocation that
+   triggered the GC will continue. */
+
+
 
 object gc_mark(gc *gc, object o_old);
 void gc_collect(gc *gc);

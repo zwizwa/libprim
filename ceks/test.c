@@ -34,10 +34,7 @@ void debug_gc(gc_test *x) {
 //}
 
 
-void mark_roots(gc_test *x, object salvaged){
-
-    
-    object new = gc_border_to_vector(x->border);
+void mark_roots(gc_test *x){
 
     x->root = gc_mark(x->gc, x->root);
     fprintf(stderr, "gc - reduced to %ld slots\n", x->gc->current_index);

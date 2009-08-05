@@ -6,12 +6,21 @@
 
 
 struct _scheme {
-    object state;
     gc *gc;
     symstore *syms;
+    object state;
+    object toplevel;
     object s_lambda;
     object s_if;
 };
+
+#define MARK(field) sc->field = gc_mark(sc->gc, sc->field)
+static void mark_roots(sc *sc) {
+    MARK(state);
+    MARK(toplevel);
+}
+//static void mark_roots(sc *sc) {
+//}
 
 
 /* To simplify the implementation _all_ functions are Scheme
@@ -170,15 +179,14 @@ object sc_find(sc *sc, object E, object var) {
     else return sc_find(sc, CDR(E), var);
 }
 object sc_find_toplevel(sc *sc, object var) {
-    vector *v = object_to_vector(sc->gc->root);
-    return sc_find(sc, v->slot[ROOT_ENV], var);
+    return sc_find(sc, sc->toplevel, var);
 }
 
 
 
 
-static inline object apply_primitive(sc *sc, void *p, 
-                                     int nargs, object ra) {
+static inline object run_primitive(sc *sc, void *p, 
+                                   int nargs, object ra) {
     switch(nargs) {
     case 0: return ((sc_0)p)(sc);
     case 1: return ((sc_1)p)(sc, CAR(ra));
@@ -278,13 +286,17 @@ object sc_interpreter_step(sc *sc, object o_state) {
         /* No more expressions to be reduced in the current frame:
            perform application. */
         else {
-            object p=F_V, V_fn;
+            object p=F_V, C_fn;
             int n = 0;
             while (FALSE==sc_is_null(sc,p)) {
-                n++; V_fn = CAR(p); p = CDR(p);
+                n++; C_fn = CAR(p); p = CDR(p);
             }
             // n    == 1 + nb_args
             // V_fn == primitive or lambda
+
+            // unpack the closure
+            object V_fn = CAR(C_fn);
+            object E_fn = CDR(C_fn);
 
             /* Primitive functions are evaluated. */
             if (TRUE==sc_is_prim(sc, V_fn)) {
@@ -292,10 +304,16 @@ object sc_interpreter_step(sc *sc, object o_state) {
                 if (prim_nargs(p) != (n-1)) {
                     return ERROR("nargs", V_fn);
                 }
-                object rv = apply_primitive
-                    (sc, prim_fn(p), n-1, F_V);
-                return STATE(CONS(rv, NIL), 
-                             CDR(s->K));    // drop frame.
+                /* Perform all allocation _before_ the execution of
+                   the primitive.  This is to make sure that we won't
+                   be the cause of an abort due to GC _after_ the
+                   primitive has executed.  Meaning, primitives won't
+                   be GC-aborted unless it's their own fault. */
+                object closure = CONS(NIL, NIL);
+                object state = STATE(closure, CDR(s->K)); // drop frame
+                object_to_pair(closure)->car =
+                    run_primitive(sc, prim_fn(p), n-1, F_V);
+                return state;
             }
             /* Abstraction application extends the environment. */
             else {
@@ -306,12 +324,12 @@ object sc_interpreter_step(sc *sc, object o_state) {
                 }
                 int i;
                 for (i=n-2; i>=0; i++) {
-                    E = CONS(CONS(v->slot[i], CAR(F_V)), E);
+                    E_fn = CONS(CONS(v->slot[i], CAR(F_V)), E_fn);
                     F_V = CDR(F_V);
                 }
-                return STATE(CONS(l->term, E),  // close term
-                             CDR(s->K));        // drop frame
-            }
+                return STATE(CONS(l->term, E_fn),  // close term
+                             CDR(s->K));           // drop frame
+            } 
         }
     }
 }
@@ -319,13 +337,32 @@ object sc_interpreter_step(sc *sc, object o_state) {
 
 // ------------------------
 
+object sc_unsafe_define_prim(sc *sc, object str, object ptr, object nargs) {
+    object var = sc_unsafe_string_to_symbol(sc, str);
+    object prim = sc_make_prim(sc, ptr, nargs);
+    sc->toplevel = CONS(CONS(var, 
+                             CONS(prim, 
+                                  NIL)),  // primitives have no environment
+                        sc->toplevel);
+    return VOID;
+
+}
+#define DEFUN(str,fn,nargs)                     \
+    sc_unsafe_define_prim                       \
+    (sc,const_to_object(str),                   \
+     const_to_object(fn),integer_to_object(nargs));
+
 #define DEFSYM(name) sc->s_##name = SYMBOL(#name)
 sc *scheme_new(void) {
     sc *sc = malloc(sizeof(*sc));
-    sc->gc = gc_new(100, NULL, NULL);
+    sc->gc = gc_new(100, (gc_mark_roots)mark_roots, sc);
     sc->syms = symstore_new(1000);
     DEFSYM(lambda);
     DEFSYM(if);
+    sc->toplevel = NIL;
+
+    DEFUN("null?", sc_is_null, 1);
+    
     return sc;
 }
 

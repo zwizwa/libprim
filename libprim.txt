@@ -363,3 +363,23 @@ To overcome this, all primitives that trigger gc_alloc() should be
 purely functional, such that an allocation can restart the interpreter
 step() that triggered the gc_alloc().
 
+So.. If the gc itself is also made stateless (and written in CPS) then
+this could work pretty well.
+
+Lets see if gc_alloc() can be aborted.
+
+Looks like it.. One problem however is that the current implementation
+of gc_grow() will never be reached, so the program will end up in an
+infinite loop when there isn't enough memory to account for a single
+primitive execution.  Here the mark_wild() function would come in
+handy:
+
+If it is detected that a single primitive step cannot continue because
+there is not enough heap space, the heap needs to grow.  As long as
+gc_collect() doesn't abort the current GC invocation, this can be done
+automatically.
+
+
+
+
+

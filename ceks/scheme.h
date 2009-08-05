@@ -83,8 +83,9 @@ OBJECT_ACCESS(prim)
 #define CDDR(o) CDR(CDR(o))
 #define CADDR(o) CAR(CDDR(o))
 
-/* Booleans are encoded as constant pointers. */
+/* Booleans anv void are encoded as constant pointers. */
 #define BOOLVALUE(x) const_to_object((void*)((((x)<<1)|1)<<GC_TAG_SHIFT))
+#define VOID  BOOLVALUE(2)
 #define TRUE  BOOLVALUE(1)
 #define FALSE BOOLVALUE(0)
 
