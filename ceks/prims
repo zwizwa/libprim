@@ -1,0 +1,8 @@
+#!/bin/bash
+
+PRIMS=$1
+[ -z "$1" ] && PRIMS=ceks.o
+
+objdump -t $PRIMS |grep sc_ | awk '{print $6}'
+
+

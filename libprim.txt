@@ -140,6 +140,7 @@ tagged objects: vectors, atoms, integers, and one available user tag.
 The vectors themselves can be tagged (i.e. to implement a couple of
 primitive structs) when the maximum vector size size is limited.
 
+[1] http://www.brpreiss.com/books/opus5/html/page426.html
 
 Entry: Symbols
 Date: Tue Aug  4 17:58:47 CEST 2009

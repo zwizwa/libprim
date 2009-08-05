@@ -1,4 +1,7 @@
 #include <stdlib.h>
+#include <signal.h>
+#include <sys/types.h>
+#include <unistd.h>
 
 #include "symbol.h"
 #include "scheme.h"
@@ -32,9 +35,14 @@ object sc_is_bool (sc *sc, object o) {
         (0 == (((long)x) & (~TRUE)))) { return TRUE; }
     return FALSE;
 }
-object sc_is_integer (sc *sc, object o) {
-    if (object_to_integer(o)) return TRUE;
+object sc_is_integer(sc *sc, object o) {
+    if (GC_INTEGER == GC_TAG(o)) return TRUE;
     return FALSE;
+}
+object sc_is_zero (sc *sc, object o) {
+    long i = CAST(integer, o);
+    if (i) return FALSE;
+    return TRUE;
 }
 /* Symbols are encoded as GC_ATOM. */
 object sc_is_symbol(sc *sc, object o) {
@@ -51,31 +59,19 @@ object sc_is_vector(sc *sc, object o){
         (0 == vector_get_tag(o))) { return TRUE; }
     return FALSE;
 }
-object sc_is_closure(sc *sc, object o){
-    if (FALSE == sc_is_vector(sc, o)) return FALSE;
-    if (2 != vector_size(object_to_vector(o))) return FALSE;
-    return TRUE;
-}
 /* Pairs and lambdas are tagged vectors. */
-object sc_is_pair(sc *sc, object o){
+static object vector_type(object o, long tag) {
     vector *v;
     if ((v = object_to_vector(o)) &&
-        (TAG_PAIR == vector_get_tag(o))) { return TRUE; }
+        (tag == vector_get_tag(o))) { return TRUE; }
     return FALSE;
 }
-object sc_is_lambda(sc *sc, object o){
-    vector *v;
-    if ((v = object_to_vector(o)) &&
-        (TAG_LAMBDA == vector_get_tag(o))) { return TRUE; }
-    return FALSE;
-}
-object sc_is_prim(sc *sc, object o){
-    vector *v;
-    if ((v = object_to_vector(o)) &&
-        (TAG_PRIM == vector_get_tag(o))) { return TRUE; }
-    return FALSE;
-}
-
+object sc_is_pair(sc *sc, object o)    { return vector_type(o, TAG_PAIR); }
+object sc_is_lambda(sc *sc, object o)  { return vector_type(o, TAG_LAMBDA); }
+object sc_is_prim(sc *sc, object o)    { return vector_type(o, TAG_PRIM); }
+object sc_is_closure(sc *sc, object o) { return vector_type(o, TAG_CLOSURE); }
+object sc_is_state(sc *sc, object o)   { return vector_type(o, TAG_STATE); }
+object sc_is_frame(sc *sc, object o)   { return vector_type(o, TAG_FRAME); }
 
 
 object sc_make_pair(sc *sc, object car, object cdr) {
@@ -86,10 +82,12 @@ object sc_make_pair(sc *sc, object car, object cdr) {
 // state + closure don't need to be tagged
 object sc_make_state(sc *sc, object C, object K) {
     object o = gc_vector(sc->gc, 2, C, K);
+    vector_set_tag(o, TAG_STATE);
     return o;
 }
 object sc_make_closure(sc *sc, object C, object K) {
     object o = gc_vector(sc->gc, 2, C, K);
+    vector_set_tag(o, TAG_CLOSURE);
     return o;
 }
 object sc_make_lambda(sc *sc, object car, object cdr) {
@@ -102,7 +100,11 @@ object sc_make_prim(sc *sc, object fn, object nargs) {
     vector_set_tag(o, TAG_PRIM);
     return o;
 }
-
+object sc_make_frame(sc *sc, object v, object c, object l) {
+    object o = gc_vector(sc->gc, 3, v, c, l);
+    vector_set_tag(o, TAG_FRAME);
+    return o;
+}
 // macros bound to sc context
 #define CONS(a,b)    sc_make_pair(sc,a,b)
 #define STATE(c,k)   sc_make_state(sc,c,k)
@@ -117,8 +119,10 @@ object sc_make_prim(sc *sc, object fn, object nargs) {
 object sc_error(sc *sc, object sym_o, object o) {
     symbol *sym   = object_to_symbol(sym_o, sc);
     if (!sym) sym = string_to_symbol(sc->syms, "error");
-    fprintf(stderr, "ERROR: %s %p\n", sym->name, (void*)o);
-    exit(1);
+    printf("ERROR: ");
+    sc_write(sc, sym_o); printf(": ");
+    sc_write(sc, o);     printf("\n");
+    kill(getpid(), SIGTRAP);
     return NIL;
 }
 object sc_unsafe_assert(sc *sc, sc_1 predicate, object o) {
@@ -126,10 +130,6 @@ object sc_unsafe_assert(sc *sc, sc_1 predicate, object o) {
     return o;
 }
 /* Remaining primitives perform type checking. */
-
-// safe cast to C struct
-#define CAST(type,x) \
-    object_to_##type(sc_unsafe_assert(sc, sc_is_##type, x))
 
 object sc_make_vector(sc *sc, object slots) {
     return gc_vector(sc->gc, CAST(integer, slots));
@@ -148,10 +148,6 @@ object sc_length(sc *sc, object lst) {
     while (TRUE == sc_is_pair(sc, lst)) { nb++; lst = CDR(lst); }
     if (FALSE == sc_is_null(sc, lst)) TYPE_ERROR(lst);
     return integer_to_object(nb);
-}
-object sc_close_args(sc *sc, object lst, object E) {
-    if ((TRUE==sc_is_null(sc, lst))) return NIL;
-    else return CONS(CONS(CAR(lst), E), sc_close_args(sc, CDR(lst), E)); 
 }
 object sc_list_to_vector(sc *sc, object lst){
     object slots = sc_length(sc, lst);
@@ -181,6 +177,18 @@ object sc_is_list(sc *sc, object o) {
     if(FALSE==sc_is_pair(sc, o)) return FALSE;
     return sc_is_list(sc, CDR(o));
 }
+static object write_vector(sc *sc, char *type, object o) {
+    printf("#%s(", type);
+    vector *v = object_to_vector(o);
+    long i,n = vector_size(v);
+    for(i=0;i<n;i++){
+        sc_write(sc, v->slot[i]);
+        if (i != n-1) printf(" ");
+    }
+    printf(")");
+    return VOID;
+}
+
 object sc_write(sc *sc, object o) {
     if(TRUE == sc_is_null(sc, o)) {
         printf("()");
@@ -210,28 +218,38 @@ object sc_write(sc *sc, object o) {
         printf("%s", object_to_symbol(o,sc)->name);
         return VOID;
     }
-    if (TRUE == sc_is_vector(sc, o)) {
-        printf("#(");
-        vector *v = object_to_vector(o);
-        long i,n = vector_size(v);
-        for(i=0;i<n;i++){
-            sc_write(sc, v->slot[i]);
-            if (i != n-1) printf(" ");
-        }
-        printf(")");
+    if (TRUE == sc_is_vector(sc, o))  return write_vector(sc, "", o);
+    if (TRUE == sc_is_closure(sc, o)) return write_vector(sc, "closure", o);
+    if (TRUE == sc_is_state(sc, o))   return write_vector(sc, "state", o);
+    if (TRUE == sc_is_frame(sc, o))   return write_vector(sc, "frame", o);
+    if (TRUE == sc_is_prim(sc, o)) {
+        prim *p = object_to_prim(o);
+        printf("#prim<");
+        sc_write(sc, p->fn);
+        printf(":");
+        sc_write(sc, p->nargs);
+        printf(">");
         return VOID;
     }
     if (TRUE == sc_is_integer(sc, o)) {
         printf("%ld", object_to_integer(o));
         return VOID;
     }
-    printf("<%p>",(void*)o);
+
+    printf("#<%p>",(void*)o);
     return VOID;
 }
 object sc_post(sc* sc, object o) {
     sc_write(sc, o);
     printf("\n");
     return VOID;
+}
+
+
+object sc_close_args(sc *sc, object lst, object E) {
+    if ((TRUE==sc_is_null(sc, lst))) return NIL;
+    else return CONS(CLOSURE(CAR(lst), E),
+                     sc_close_args(sc, CDR(lst), E)); 
 }
 
 static inline object run_primitive(sc *sc, void *p, 
@@ -297,9 +315,7 @@ object sc_interpreter_step(sc *sc, object o_state) {
                 return STATE(CONS(LAMBDA(formals, term),
                                   E), s->K);
             }
-            if (X_f == sc->s_if) {
-                // ...
-            }
+            // if (X_f == sc->s_if) {}
         }
 
         /* Application Form */
@@ -307,7 +323,7 @@ object sc_interpreter_step(sc *sc, object o_state) {
             /* Extend the continuation with a new frame by collecting
                all (open) subterms, and binding them to the current
                environment. */
-            object C_fn = CONS(X_f, E);
+            object C_fn = CLOSURE(X_f, E);
             object C_args = sc_close_args(sc, X_args, E);
             object K_frame = CONS(NIL, C_args);
             return STATE(C_fn, CONS(K_frame, s->K));
@@ -326,11 +342,11 @@ object sc_interpreter_step(sc *sc, object o_state) {
 
     /* Fully reduced value */
     else {
-        pair *continuation = CAST(pair, s->K);
-        pair *frame = CAST(pair, continuation->car);
+        if (NIL == s->K) return ERROR("continuation", o_state);
+        frame *f = CAST(frame, s->K);
 
-        object F_V = frame->car;  // (reverse) list of reduced values
-        object F_C = frame->cdr;  // list of closures to evaluate
+        object F_V = f->values;   // (reverse) list of reduced values
+        object F_C = f->closures; // list of closures to evaluate
 
         F_V = CONS(X, F_V);
 
@@ -397,9 +413,7 @@ object sc_interpreter_step(sc *sc, object o_state) {
 
 object sc_unsafe_define_prim(sc *sc, object var, object ptr, object nargs) {
     object prim = sc_make_prim(sc, ptr, nargs);
-    sc->toplevel = CONS(CONS(var, 
-                             CONS(prim, 
-                                  NIL)),  // primitives have no environment
+    sc->toplevel = CONS(CONS(var, CLOSURE(prim, NIL)),
                         sc->toplevel);
     return VOID;
 
@@ -418,6 +432,7 @@ sc *scheme_new(void) {
     sc->toplevel = NIL;
 
     DEFUN("null?", sc_is_null, 1);
+    DEFUN("zero?", sc_is_zero, 1);
     
     return sc;
 }

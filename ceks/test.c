@@ -34,7 +34,9 @@ object sc_make_state(sc*, object, object);
 void debug_scheme(sc *sc) {
     for (;;) {
         object e = NIL;
-        object t = CONS(SYMBOL("null?"), CONS(NIL, NIL));
+        object t = CONS(SYMBOL("zero?"), 
+                        CONS(integer_to_object(123),
+                             NIL));
         object c = CLOSURE(t,e);
         object k = NIL;
         object s = STATE(c,k);

@@ -42,6 +42,13 @@ typedef struct {
     object env;
 } closure;
 
+typedef struct {
+    vector v;
+    object values;   // done
+    object closures; // todo
+    object parent;   // link
+} frame;
+
 static inline long prim_nargs(prim *p){
     return object_to_integer(p->nargs);
 }
@@ -68,6 +75,7 @@ VECTOR_ACCESS(state)
 VECTOR_ACCESS(lambda)
 VECTOR_ACCESS(prim)
 VECTOR_ACCESS(closure)
+VECTOR_ACCESS(frame)
 
 struct _scheme {
     gc *gc;
@@ -87,9 +95,12 @@ static inline symbol *object_to_symbol(object ob, sc *sc) {
 }
 
 // vector tags for interpreter data types
-#define TAG_PAIR   1
-#define TAG_LAMBDA 2
-#define TAG_PRIM   3
+#define TAG_PAIR    1
+#define TAG_LAMBDA  2
+#define TAG_PRIM    3
+#define TAG_STATE   4
+#define TAG_CLOSURE 5
+#define TAG_FRAME   6
 
 
 
@@ -133,10 +144,14 @@ object sc_make_closure(sc *sc, object C, object K);
 #define STATE(c,k)   sc_make_state(sc,c,k)
 #define LAMBDA(f,x)  sc_make_lambda(sc,f,x)
 #define CLOSURE(t,e) sc_make_closure(sc,t,e)
+#define FRAME(v,c,t) sc_make_frame(sc,v,c,t)
 
 #define SYMBOL(str)   atom_to_object((atom*)(string_to_symbol(sc->syms, str)))
 #define ERROR(msg, o) sc_error(sc, SYMBOL(msg), o)
 #define TYPE_ERROR(o) ERROR("type",o)
     
+// safe cast to C struct
+#define CAST(type,x) object_to_##type(sc_unsafe_assert(sc, sc_is_##type, x))
+
 
 #endif
