@@ -285,4 +285,8 @@ I get it now: by making sure the atom_class pointer is the slot one
 _before_ the atom pointer, it is possible to write unsafe functions
 without too much hassle.
 
+The free() pointer is stored in a class object.  This class object is
+the value's type.  Some values however are only statically typed, and
+appear as unsafe pointers if they make it into Scheme land.
+
 
