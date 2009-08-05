@@ -159,28 +159,35 @@ object sc_list_to_vector(sc *sc, object lst){
     }
     return vo;
 }
+
 object sc_find(sc *sc, object E, object var) {
     if (TRUE == sc_is_null(sc, E)) {
-        ERROR("undefined", var);
+        return FALSE;
     }
     object slot = CAR(E);
     object name = CAR(slot);
     if (name == var) return CDR(slot);
     else return sc_find(sc, CDR(E), var);
 }
-static object apply_primitive(sc *sc, void *p, 
-                              int nargs, object ra) {
-    switch(nargs) {
-    case 0: return ((sc_0)p)(sc);
-    case 1: return ((sc_1)p)(sc, CAR(ra));
-    case 2: return ((sc_2)p)(sc, CADR(ra), CAR(ra));
-    default:
-        return ERROR("prim", integer_to_object(nargs));
-    }
+object sc_find_toplevel(sc *sc, object var) {
+    vector *v = object_to_vector(sc->gc->root);
+    return sc_find(sc, v->slot[ROOT_ENV], var);
 }
 
 
 
+
+static inline object apply_primitive(sc *sc, void *p, 
+                                     int nargs, object ra) {
+    switch(nargs) {
+    case 0: return ((sc_0)p)(sc);
+    case 1: return ((sc_1)p)(sc, CAR(ra));
+    case 2: return ((sc_2)p)(sc, CADR(ra), CAR(ra));
+    case 3: return ((sc_3)p)(sc, CADDR(ra), CADR(ra), CAR(ra));
+    default:
+        return ERROR("prim", integer_to_object(nargs));
+    }
+}
 
 
 /* Some notes on how this is implemented.
@@ -282,19 +289,19 @@ object sc_interpreter_step(sc *sc, object o_state) {
             /* Primitive functions are evaluated. */
             if (TRUE==sc_is_prim(sc, V_fn)) {
                 prim *p = object_to_prim(V_fn);
-                if (object_to_integer(p->nargs) != (n-1)) {
+                if (prim_nargs(p) != (n-1)) {
                     return ERROR("nargs", V_fn);
                 }
-                object rv = apply_primitive(sc, object_to_const(p->fn), 
-                                            n-1, F_V);
-                return STATE(CONS(rv, NIL), // FIXME: primitives return closures?
+                object rv = apply_primitive
+                    (sc, prim_fn(p), n-1, F_V);
+                return STATE(CONS(rv, NIL), 
                              CDR(s->K));    // drop frame.
             }
             /* Abstraction application extends the environment. */
             else {
                 lambda *l = (lambda*)V_fn;
                 vector *v = object_to_vector(l->formals);
-                if (object_to_vector_size(v->tag_size) != (n-1)) {
+                if (vector_size(v) != (n-1)) {
                     return ERROR("nargs", V_fn);
                 }
                 int i;

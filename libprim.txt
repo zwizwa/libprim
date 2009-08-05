@@ -290,3 +290,76 @@ the value's type.  Some values however are only statically typed, and
 appear as unsafe pointers if they make it into Scheme land.
 
 
+
+Entry: debugging
+Date: Wed Aug  5 17:48:59 CEST 2009
+
+Hmm.. it's more difficult than I thought.  The interpreter itself I
+can probably get debugged, since its structure is quite
+straightforward.  However, the GC is going to be an adventure.
+Currently I have no way to properly mark roots in case GC is
+triggered inside a C primitive.
+
+During the evaluation of step() we could push all allocated atoms to a
+stack, and discard it at the end.  This makes sure that intermediate
+data will not be freed.
+
+Alternatively, the heap could be marked such that all objects past the
+marker need to be copied first.
+
+But this then wouldn't work if there are 2 or more collections.
+
+Alternatively, the marking point could be translated into a vector
+that is then added to a local stack of references.
+
+The real question is: does the interpreter know what to mark?
+
+Let's change a gc->root into a callback function.
+
+Done.
+
+Now it shouldn't be to hard to turn a gc marker into an array.
+Basicly something like this:
+
+        sc->marker = gc_marker(sc->gc)
+        step()
+        free_retain_stack()
+
+If there is a collection we do something like
+
+        push_retain_stack(gc_marker_to_vector(sc->marker))
+        mark_all()
+        sc->marker = gc_marker(sc->gc)
+
+
+OR
+
+do it manually.
+which is probably too error-prone..
+
+Ok.. what about keeping most of it hidden inside the GC.
+
+When the GC calls mark_roots() it will pass in a vector of references
+containing the objects that were saved since the last border mark.
+
+Actually, this fancy trick doesn't work because the C stack still has
+the _old_ pointers.
+
+Not simple!
+
+One option would be to abort the primitive whenever a collection is
+necessary.  If they are written in a purely functional style this
+shouldn't be a problem.
+
+
+Entry: mixing GC and C
+Date: Wed Aug  5 19:44:17 CEST 2009
+
+The problem is this: a gc_alloc() inside a primitive might trigger a
+collection.  At that point, all the pointers on the C stack will
+become invalid.
+
+To overcome this, all primitives that trigger gc_alloc() should be
+purely functional, such that an allocation can restart the interpreter
+step() that triggered the gc_alloc().
+

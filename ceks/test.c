@@ -9,12 +9,19 @@ void free_dummy(void *x){
 }
 atom_class dummy_op = {free_dummy};
 
-void debug_gc(gc *gc) {
+typedef struct {
+    gc *gc;
+    object root;
+} gc_test;
+
+
+void debug_gc(gc_test *x) {
     for (;;) {
         atom *a = malloc(sizeof(*a));
         a->op = &dummy_op;
-        object o  = gc_vector(gc, 1, atom_to_object(a));
-        gc->roots = gc_vector(gc, 1, o);
+        object o = gc_vector(x->gc, 1, atom_to_object(a));
+        x->root = gc_vector(x->gc, 1, o);
+        // gc_collect(x->gc);
     }
 
     // gc_collect(gc);
@@ -26,14 +33,22 @@ void debug_gc(gc *gc) {
     
 //}
 
-void notify(void *x){
-    fprintf(stderr, "gc(%p)\n", x);
+
+void mark_roots(gc_test *x, object salvaged){
+
+    
+    object new = gc_border_to_vector(x->border);
+
+    x->root = gc_mark(x->gc, x->root);
+    fprintf(stderr, "gc - reduced to %ld slots\n", x->gc->current_index);
 }
 
 int main(int argc, char **argv) {
-    gc *gc = gc_new(20, notify, NULL);
+    gc_test *x = malloc(sizeof(*x));
+    x->gc = gc_new(20, (gc_mark_roots)mark_roots, x);
+    x->root = integer_to_object(0);
     // sc *sc = scheme_new();
-    debug_gc(gc);
+    debug_gc(x);
     // for(;;) debug_scheme(sc);
     return 0;
 }

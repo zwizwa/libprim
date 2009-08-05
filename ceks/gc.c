@@ -57,7 +57,7 @@ int gc_grow(gc *gc, long size) {
 
 
 static inline int gc_full(gc *gc, int slots) {
-    return (gc->slot_index + slots) >= gc->slot_total;
+    return (gc->current_index + slots) >= gc->slot_total;
 }
 
 /* Allocate a vector. */
@@ -69,9 +69,9 @@ object gc_alloc(gc *gc, long size) {
             if (!gc_grow(gc, slots)) return 0;
         }
     }
-    vector *v = (vector *)(&gc->current[gc->slot_index]);
+    vector *v = (vector *)(&gc->current[gc->current_index]);
     v->tag_size = integer_to_object(size);
-    gc->slot_index += slots;
+    gc->current_index += slots;
     return vector_to_object(v);
 }
 
@@ -86,31 +86,27 @@ static inline void vector_set_moved(vector *v, object o) {
 
 object gc_mark(gc *gc, object o_old) {
 
-    /* Allocate empty vector. */
+    /* Can only mark vectors.  Other objects are copied. */
     vector *v_old = object_to_vector(o_old); 
-    long nb = object_to_vector_size(v_old->tag_size);
+    if (!v_old) return o_old;
+
+    /* Check if it's already marked + moved */
+    object object_moved = vector_moved(v_old);
+    if (object_moved) return object_moved;
+
+    /* Allocate empty vector. */
+    long nb = vector_size(v_old);
     object o_new = gc_alloc(gc, nb);
     vector *v_new = object_to_vector(o_new);
 
     /* Mark the old header as moved before recursing. */
-    vector_set_moved(v_old, o_new); 
+    vector_set_moved(v_old, o_new);
 
+    /* Mark all and move elements and erase tracks. */
     long i;
     for (i=0; i<nb; i++) {
-        object obj = v_old->slot[i];
-        object obj_moved;
-        vector *v;
-
-        if (!(v = object_to_vector(obj))) {
-            v_new->slot[i] = obj; // copy ref
-            v_old->slot[i] = 0;   // erase ref => no free()
-        }
-        else if ((obj_moved = vector_moved(v))) {
-            v_new->slot[i] = obj_moved;
-        }
-        else {
-            v_new->slot[i] = gc_mark(gc, obj);
-        }
+        v_new->slot[i] = gc_mark(gc, v_old->slot[i]);
+        v_old->slot[i] = 0;
     }
     return o_new;                        
 }
@@ -118,21 +114,21 @@ object gc_mark(gc *gc, object o_old) {
 void gc_collect(gc *gc) {
 
     /* Record the current used size and swap buffers.  After this
-       gc_alloc_vector() will take from the new space. */
-    object *current = gc->old;
-    object *old     = gc->current;
-    int had         = gc->slot_index;
+       gc_alloc() will take from the new space. */
+    object *current   = gc->current;
+    object *old       = gc->old;
 
-    gc->current     = current;
-    gc->old         = old;
-    gc->slot_index  = 0;
+    gc->old           = current;
+    gc->old_index     = gc->current_index;
+    gc->current       = old;
+    gc->current_index = 0;
 
-    /* Recursively mark + copy */
-    gc->roots = gc_mark(gc, gc->roots);
+    /* Call client to mark the root pointers. */
+    gc->mark_roots(gc->mark_roots_ctx);
 
     /* Free all atoms */
     long i;
-    for (i=0; i<had; i++){
+    for (i=0; i<gc->old_index; i++){
         atom *a;
         if ((a = object_to_atom(gc->old[i]))) {
             if (a->op) {
@@ -141,20 +137,58 @@ void gc_collect(gc *gc) {
         }
         gc->old[i] = 0;
     }
-    if (gc->notify_fn)  {
-        gc->notify_fn(gc->notify_ctx);
-    }
 }
 
-gc *gc_new(long total, gc_notify fn, void *ctx) {
+/* If the GC is called during the execution of a primitive, the
+   recently allocated vectors might not have made it into the roots
+   yet.  Therefore the GC can be marked before the interpreter
+   mainloop starts, such that in the event of an allocation, these
+   newer objects can be bundled and added to the root.
+*/
+object gc_mark_wild(gc *gc) {
+    gc->wild = gc->current_index;
+}
+
+/* This function needs to run before any vector is marked and moved
+   (to make sure we can navigate the heap using the length slots not
+   yet replaced with indirections), but after the allocation buffers
+   are swapped so gw_alloc() will work. */
+
+object gc_border_to_vector(gc *gc, long index) {
+    long nb = 0;
+    long i = index;
+    // traverse once to find the size
+    for(i=index; i<gc->old_index;) {
+        long size = object_to_vector_size(gc->old[i]);
+        i += size+1; nb++;
+    }
+    if (!nb) return integer_to_object(0); // don't alloc
+    // allocate vector
+    object vo = gc_alloc(gc, nb);
+    vector *v = object_to_vector(vo);
+    long j;
+    // traverse again to get the pointers
+    for(j=0, i=index; i<gc->old_index;) {
+        long size = object_to_vector_size(gc->old[i]);
+        v->slot[j] = vector_to_object((vector*)(&gc->old[i]));
+        i += size+1; j++;
+    }
+    // mark all pointers
+    for(j=0, j<nb, j++) {
+        v->slot[j] = gc_mark(gc, v->slot[j]);
+    }
+    return vo;
+}
+
+gc *gc_new(long total, gc_mark_roots fn, void *ctx) {
     gc* x = (gc*)malloc(sizeof(gc));
     x->slot_total = total;
     x->current    = (object*)malloc(total * sizeof(object));
     x->old        = (object*)malloc(total * sizeof(object));
     x->slot_index = 0;
-    x->roots      = gc_alloc(x, 1);
-    x->notify_fn  = fn;
-    x->notify_ctx = ctx;
+    x->root       = gc_alloc(x, 1);
+    x->mark_roots = fn;
+    x->mark_roots_ctx = ctx;
     return x;
 }
 

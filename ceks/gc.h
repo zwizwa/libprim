@@ -43,23 +43,38 @@ struct _vector {
     object slot[0];
 };
 
-typedef void (*gc_notify)(void *);
+/*  This function needs to obj = gc_mark(gc, obj) for all roots.
+
+    The `wild' parameter is a newly allocated vector containing
+    references to all objects that were allocated after the last
+    gc_mark_wild().  (It should not be marked!)
+
+    This mechanism is useful for languages with C primitive, where
+    objects residing on the C stack are not reachable from the roots:
+    simply preserving all newly created objects will solve that
+    problem.
+
+  */
+
+void gc_mark_wild(gc *gc);
+
+typedef void (*gc_mark_roots)(void *ctx, object wild);
 
 struct _gc {
-    object roots;
     object *current;
-    long slot_index;
-    long slot_total;
     object *old;
-    gc_notify notify_fn;
-    void *notify_ctx;
+    long    current_index;
+    long    old_index;
+    long    slot_total;
+    gc_mark_roots mark_roots;
+    void *mark_roots_ctx;
 };
 
-
+object gc_mark(gc *gc, object o_old);
 void gc_collect(gc *gc);
 object gc_alloc(gc *gc, long slots);
 object gc_vector(gc *gc, long slots, ...);
-gc *gc_new(long total, gc_notify fn, void *ctx);
+gc *gc_new(long total, gc_mark_roots fn, void *ctx);
 
 
 /* Conversion from tagged objects to one of the 4 C data types.  When
@@ -105,5 +120,9 @@ static inline object integer_to_object(long i) {
     return (object)(GC_INTEGER + (i << GC_TAG_SHIFT));
 }
 
+
+static inline long vector_size(vector *v) {
+    return object_to_vector_size(v->tag_size);
+}
 
 #endif
