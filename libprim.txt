@@ -380,6 +380,12 @@ gc_collect() doesn't abort the current GC invocation, this can be done
 automatically.
 
 
+Entry: constant strings
+Date: Wed Aug  5 21:29:40 CEST 2009
+
+Since these are not aligned, they cannot be objects.  So, no
+constant strings.
+
 
 
 

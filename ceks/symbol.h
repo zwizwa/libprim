@@ -13,6 +13,13 @@ struct _symbol {
     const char* name;
 };
 
+struct _symstore {
+    atom_class op;
+    int nb_syms;
+    int total;
+    symbol **syms;
+};
+
 symbol *string_to_symbol(symstore *s, const char *str);
 const char *symbol_to_string(symstore *s, symbol *sym);
 symstore *symstore_new(int total);

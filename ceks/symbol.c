@@ -5,13 +5,6 @@
 #include "gc.h"
 #include "symbol.h"
 
-struct _symstore {
-    atom_class op;
-    int nb_syms;
-    int total;
-    symbol **syms;
-};
-
 
 int atom_is_symbol(atom *a, symstore *s) {
     return (a->op == &(s->op));
@@ -25,7 +18,7 @@ symbol *string_to_symbol(symstore *s, const char *str){
     // FIXME: grow store
     if (s->nb_syms == s->total) exit(1);
 
-    symbol *sym = malloc(sizeof(*s));
+    symbol *sym = malloc(sizeof(*sym));
     sym->s = s;
     sym->name = malloc(1 + strlen(str));
     strcpy((char *)sym->name, str);

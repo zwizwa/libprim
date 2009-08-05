@@ -8,8 +8,8 @@
 // GC type tagging
 
 #define GC_TAG_SHIFT 2
-#define GC_TAG(x)     ((x)&((1<<GC_TAG_SHIFT)-1))
-#define GC_POINTER(x) ((x)&(0xFFFFFFFFFFFFFFFFL<<GC_TAG_SHIFT))
+static inline long GC_TAG(long x) { return x&((1<<GC_TAG_SHIFT)-1); }
+static inline void* GC_POINTER(long x) { return (void*)(x&(0xFFFFFFFFFFFFFFFFL<<GC_TAG_SHIFT)); }
 
 #define GC_CONST   0   /* (unsafe) untyped pointer not managed by GC */
 #define GC_ATOM    1   /* object pointer, finalized by GC */
@@ -57,20 +57,21 @@ struct _gc {
 };
 
 /* Client is free to abort the C stack during the execution of (1) but
-   _always_ has to call the finalize method after performing gc_mark()
-   for the root objects.
+   has to call the finalize method after performing gc_mark() for the
+   root objects.
 
-   This is useful if the C stack contains references to objects that
-   are not accessible from the root.  These will be invalid after GC
-   finishes.
+   Aborting is useful if the C stack contains references to objects
+   that are not accessible from the root.  These will be invalid after
+   the GC finishes.
 
-   If the GC is part of an interpreter writtin in functional style it
-   is easiest to just abort the current step and restart over after
+   If the GC is part of an interpreter written in functional style it
+   is easiest to just abort the current step and start over after
    collection.
 
    If all the references on the C stack are reachable from the root
    pointers, it is ok to let (1) return such that the allocation that
-   triggered the GC will continue. */
+   triggered the GC will continue.  Most likely this is not the case..
+   Even gc_vector() already messes things up. */
 
 
 
@@ -96,7 +97,7 @@ static inline atom *object_to_atom(object ob) {
     else return NULL;
 }
 static inline void *object_to_const(object ob) {
-    if (GC_CONST == GC_TAG(ob)) return (atom*)GC_POINTER(ob);
+    if (GC_CONST == GC_TAG(ob)) return (void*)GC_POINTER(ob);
     else return NULL;
 }
 static inline long object_to_integer(object o) { 

@@ -5,14 +5,6 @@
 
 
 
-struct _scheme {
-    gc *gc;
-    symstore *syms;
-    object state;
-    object toplevel;
-    object s_lambda;
-    object s_if;
-};
 
 #define MARK(field) sc->field = gc_mark(sc->gc, sc->field)
 static void mark_roots(sc *sc) {
@@ -46,9 +38,7 @@ object sc_is_integer (sc *sc, object o) {
 }
 /* Symbols are encoded as GC_ATOM. */
 object sc_is_symbol(sc *sc, object o) {
-    atom *a;
-    if ((a = object_to_atom(o)) && 
-        (a->op == (atom_class*)&sc->syms)) { return TRUE; }
+    if(object_to_symbol(o, sc)) return TRUE;
     return FALSE;
 }
 /* The empty list is the NULL pointer */
@@ -74,13 +64,9 @@ object sc_is_prim(sc *sc, object o){
         (TAG_PRIM == vector_get_tag(o))) { return TRUE; }
     return FALSE;
 }
-// assumes object is const string
-object sc_unsafe_string_to_symbol(sc *sc, object str) {
-    return atom_to_object
-        ((atom*)string_to_symbol(sc->syms,
-                                 (const char *)
-                                 object_to_const(str)));
-}
+
+
+
 object sc_make_pair(sc *sc, object car, object cdr) {
     object o = gc_vector(sc->gc, 2, car, cdr);
     vector_set_tag(o, TAG_PAIR);
@@ -103,7 +89,6 @@ object sc_make_prim(sc *sc, object fn, object nargs) {
 }
 
 // macros bound to sc context
-#define SYMBOL(name) sc_unsafe_string_to_symbol(sc, const_to_object(name))
 #define CONS(a,b)    sc_make_pair(sc,a,b)
 #define STATE(c,k)   sc_make_state(sc,c,k)
 #define LAMBDA(f,x)  sc_make_lambda(sc,f,x)
@@ -115,16 +100,14 @@ object sc_make_prim(sc *sc, object fn, object nargs) {
 /* Error handling:
    FIXME: The machine step() is protected with setjmp(). */
 object sc_unsafe_error(sc *sc, object sym_o, object o) {
-    symbol *sym = object_to_symbol(sym_o);
+    symbol *sym = object_to_symbol(sym_o, sc);
     fprintf(stderr, "ERROR: %s %p\n", sym->name, (void*)o);
     exit(1);
     return NIL;
 }
 /* Remaining primitives perform type checking. */
-#define ERROR(msg, o) \
-    sc_unsafe_error                             \
-    (sc, sc_unsafe_string_to_symbol             \
-     (sc, const_to_object(msg)), o)
+#define SYMBOL(str) atom_to_object((atom*)(string_to_symbol(sc->syms, str)))
+#define ERROR(msg, o) sc_unsafe_error(sc, SYMBOL(msg), o)
 #define TYPE_ERROR(o) ERROR("type",o)
     
 static object sc_unsafe_assert(sc *sc, sc_1 predicate, object o) {
@@ -229,8 +212,9 @@ static inline object run_primitive(sc *sc, void *p,
 
 object sc_interpreter_step(sc *sc, object o_state) {
     state *s = object_to_state(o_state);
-    object X = CAR(s->C);  // (open) term
-    object E = CDR(s->C);  // environment
+    pair *closure = CAST(pair, s->C);
+    object X = closure->car;  // (open) term
+    object E = closure->cdr;  // environment
 
     /* Form */
     if (TRUE==sc_is_pair(sc, X)) {
@@ -337,8 +321,7 @@ object sc_interpreter_step(sc *sc, object o_state) {
 
 // ------------------------
 
-object sc_unsafe_define_prim(sc *sc, object str, object ptr, object nargs) {
-    object var = sc_unsafe_string_to_symbol(sc, str);
+object sc_unsafe_define_prim(sc *sc, object var, object ptr, object nargs) {
     object prim = sc_make_prim(sc, ptr, nargs);
     sc->toplevel = CONS(CONS(var, 
                              CONS(prim, 
@@ -349,8 +332,7 @@ object sc_unsafe_define_prim(sc *sc, object str, object ptr, object nargs) {
 }
 #define DEFUN(str,fn,nargs)                     \
     sc_unsafe_define_prim                       \
-    (sc,const_to_object(str),                   \
-     const_to_object(fn),integer_to_object(nargs));
+    (sc,SYMBOL(str),const_to_object(fn),integer_to_object(nargs));
 
 #define DEFSYM(name) sc->s_##name = SYMBOL(#name)
 sc *scheme_new(void) {

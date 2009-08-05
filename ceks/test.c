@@ -1,7 +1,8 @@
 #include <stdio.h>
 #include <stdlib.h>
-// #include "scheme.h"
+#include "scheme.h"
 #include "gc.h"
+#include <setjmp.h>
 
 void free_dummy(void *x){
     fprintf(stderr, "free_dummy(%p)\n", x);
@@ -27,15 +28,16 @@ void debug_gc(gc_test *x) {
     // gc_collect(gc);
 }
 
-//void debug_scheme(sc *sc) {
-    // object o = make_state(sc, 0, 0, 0, 0);
-    // state *s = object_state(o);
-    
-//}
+object sc_interpreter_step(sc*, object);
+object sc_make_state(sc*, object, object);
 
+void debug_scheme(sc *sc) {
+    for (;;) {
+        sc_interpreter_step(sc, sc_make_state(sc, NIL, NIL));
+    }
+}
 
 void mark_roots(gc_test *x){
-
     x->root = gc_mark(x->gc, x->root);
     fprintf(stderr, "gc - reduced to %ld slots\n", x->gc->current_index);
 }
@@ -44,9 +46,8 @@ int main(int argc, char **argv) {
     gc_test *x = malloc(sizeof(*x));
     x->gc = gc_new(20, (gc_mark_roots)mark_roots, x);
     x->root = integer_to_object(0);
-    // sc *sc = scheme_new();
-    debug_gc(x);
-    // for(;;) debug_scheme(sc);
+    // debug_gc(x);
+    debug_scheme(scheme_new());
     return 0;
 }
 

@@ -2,6 +2,7 @@
 #define _SCHEME_H_
 
 #include "gc.h"
+#include "symbol.h"
 
 /* The remaining tag is used to represent booleans, which makes it
    possible to _only_ use Scheme primitives in the implementation of
@@ -56,16 +57,33 @@ static inline void vector_set_tag(object o, long tag){
     object_to_vector(o)->tag_size |= (tag << GC_VECTOR_TAG_SHIFT);
 }
 
+
 #define OBJECT_ACCESS(type)                                \
     static inline type *object_to_##type(object o) {       \
         return (type*)object_to_vector(o); }
 
-// conversion from object -> C type
+// conversion from vector object -> C type
 OBJECT_ACCESS(pair)
 OBJECT_ACCESS(state)
 OBJECT_ACCESS(lambda)
-OBJECT_ACCESS(symbol)
 OBJECT_ACCESS(prim)
+
+struct _scheme {
+    gc *gc;
+    symstore *syms;
+    object state;
+    object toplevel;
+    object s_lambda;
+    object s_if;
+};
+
+static inline symbol *object_to_symbol(object ob, sc *sc) {
+    atom *a;
+    if ((a = object_to_atom(ob)) && 
+        (a->op == &(sc->syms->op)))
+        return (symbol*)a;
+    else return NULL;
+}
 
 // vector tags for interpreter data types
 #define TAG_PAIR   1
