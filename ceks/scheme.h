@@ -124,6 +124,8 @@ object sc_interpreter_step(sc*, object);
 object sc_make_state(sc*, object, object);
 object sc_make_pair(sc*, object, object);
 object sc_unsafe_assert(sc *sc, sc_1 predicate, object o);
+object sc_write(sc *sc, object o);
+
 
 /* Macros valid in sc context. */
 #define CONS(a,b)    sc_make_pair(sc,a,b)

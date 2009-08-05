@@ -45,6 +45,12 @@ object sc_is_symbol(sc *sc, object o) {
 object sc_is_null(sc *sc, object o) {
     if (!o) return TRUE; else return FALSE;
 }
+object sc_is_vector(sc *sc, object o){
+    vector *v;
+    if ((v = object_to_vector(o)) &&
+        (0 == vector_get_tag(o))) { return TRUE; }
+    return FALSE;
+}
 /* Pairs and lambdas are tagged vectors. */
 object sc_is_pair(sc *sc, object o){
     vector *v;
@@ -149,7 +155,6 @@ object sc_list_to_vector(sc *sc, object lst){
     }
     return vo;
 }
-
 object sc_find(sc *sc, object E, object var) {
     if (TRUE == sc_is_null(sc, E)) {
         return FALSE;
@@ -162,9 +167,58 @@ object sc_find(sc *sc, object E, object var) {
 object sc_find_toplevel(sc *sc, object var) {
     return sc_find(sc, sc->toplevel, var);
 }
-
-
-
+object sc_is_list(sc *sc, object o) {
+    if(TRUE==sc_is_null(sc, o)) return TRUE;
+    if(FALSE==sc_is_pair(sc, o)) return FALSE;
+    return sc_is_list(sc, CDR(o));
+}
+object sc_write(sc *sc, object o) {
+    if(TRUE == sc_is_null(sc, o)) {
+        printf("()");
+        return VOID;
+    }
+    if(TRUE == sc_is_list(sc, o)) {
+        printf("(");
+        for(;;) {
+            sc_write(sc, CAR(o));
+            o = CDR(o);
+            if (TRUE == sc_is_null(sc, o)) {
+                printf(")");
+                return VOID;
+            }
+            printf(" ");
+        }
+    }
+    if(TRUE == sc_is_pair(sc, o)) {
+        printf("(");
+        sc_write(sc, CAR(o));
+        printf(" . ");
+        sc_write(sc, CDR(o));
+        printf(")");
+        return VOID;
+    }
+    if (TRUE == sc_is_symbol(sc, o)) {
+        printf("%s", object_to_symbol(o,sc)->name);
+        return VOID;
+    }
+    if (TRUE == sc_is_vector(sc, o)) {
+        printf("#(");
+        vector *v = object_to_vector(o);
+        long i,n = vector_size(v);
+        for(i=0;i<n;i++){
+            sc_write(sc, v->slot[i]);
+            if (i != n-1) printf(" ");
+        }
+        printf(")");
+        return VOID;
+    }
+    if (TRUE == sc_is_integer(sc, o)) {
+        printf("%ld", object_to_integer(o));
+        return VOID;
+    }
+    printf("<%p>",(void*)o);
+    return VOID;
+}
 
 static inline object run_primitive(sc *sc, void *p, 
                                    int nargs, object ra) {
@@ -177,6 +231,8 @@ static inline object run_primitive(sc *sc, void *p,
         return ERROR("prim", integer_to_object(nargs));
     }
 }
+
+
 
 
 /* Some notes on how this is implemented.

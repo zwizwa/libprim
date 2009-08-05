@@ -39,6 +39,8 @@ void debug_scheme(sc *sc) {
         object k = NIL;
         object s = sc_make_state(sc, c, k);
         for(;;) {
+            sc_write(sc, s);
+            printf("\n");
             s = sc_interpreter_step(sc, s);
         }
     }
