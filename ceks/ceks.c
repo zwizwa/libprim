@@ -51,6 +51,11 @@ object sc_is_vector(sc *sc, object o){
         (0 == vector_get_tag(o))) { return TRUE; }
     return FALSE;
 }
+object sc_is_closure(sc *sc, object o){
+    if (FALSE == sc_is_vector(sc, o)) return FALSE;
+    if (2 != vector_size(object_to_vector(o))) return FALSE;
+    return TRUE;
+}
 /* Pairs and lambdas are tagged vectors. */
 object sc_is_pair(sc *sc, object o){
     vector *v;
@@ -78,8 +83,12 @@ object sc_make_pair(sc *sc, object car, object cdr) {
     vector_set_tag(o, TAG_PAIR);
     return o;
 }
-// state vector doesn't need to be tagged
+// state + closure don't need to be tagged
 object sc_make_state(sc *sc, object C, object K) {
+    object o = gc_vector(sc->gc, 2, C, K);
+    return o;
+}
+object sc_make_closure(sc *sc, object C, object K) {
     object o = gc_vector(sc->gc, 2, C, K);
     return o;
 }
@@ -219,6 +228,11 @@ object sc_write(sc *sc, object o) {
     printf("<%p>",(void*)o);
     return VOID;
 }
+object sc_post(sc* sc, object o) {
+    sc_write(sc, o);
+    printf("\n");
+    return VOID;
+}
 
 static inline object run_primitive(sc *sc, void *p, 
                                    int nargs, object ra) {
@@ -266,9 +280,9 @@ static inline object run_primitive(sc *sc, void *p,
 
 object sc_interpreter_step(sc *sc, object o_state) {
     state *s = object_to_state(o_state);
-    pair *closure = CAST(pair, s->C);
-    object X = closure->car;  // (open) term
-    object E = closure->cdr;  // environment
+    closure *c = CAST(closure, s->C);
+    object X = c->term;  // (open) term
+    object E = c->env;   // environment
 
     /* Form */
     if (TRUE==sc_is_pair(sc, X)) {

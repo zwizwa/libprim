@@ -35,9 +35,9 @@ void debug_scheme(sc *sc) {
     for (;;) {
         object e = NIL;
         object t = CONS(SYMBOL("null?"), CONS(NIL, NIL));
-        object c = CONS(t,e);
+        object c = CLOSURE(t,e);
         object k = NIL;
-        object s = sc_make_state(sc, c, k);
+        object s = STATE(c,k);
         for(;;) {
             sc_write(sc, s);
             printf("\n");

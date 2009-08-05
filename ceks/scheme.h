@@ -26,12 +26,6 @@ typedef struct {
 
 typedef struct {
     vector v;
-    object expr;
-    object env;
-} closure;
-
-typedef struct {
-    vector v;
     object formals;
     object term;
 } lambda;
@@ -41,6 +35,12 @@ typedef struct {
     object fn;
     object nargs;
 } prim;
+
+typedef struct {
+    vector v;
+    object term;
+    object env;
+} closure;
 
 static inline long prim_nargs(prim *p){
     return object_to_integer(p->nargs);
@@ -58,15 +58,16 @@ static inline void vector_set_tag(object o, long tag){
 }
 
 
-#define OBJECT_ACCESS(type)                                \
+#define VECTOR_ACCESS(type)                                \
     static inline type *object_to_##type(object o) {       \
         return (type*)object_to_vector(o); }
 
 // conversion from vector object -> C type
-OBJECT_ACCESS(pair)
-OBJECT_ACCESS(state)
-OBJECT_ACCESS(lambda)
-OBJECT_ACCESS(prim)
+VECTOR_ACCESS(pair)
+VECTOR_ACCESS(state)
+VECTOR_ACCESS(lambda)
+VECTOR_ACCESS(prim)
+VECTOR_ACCESS(closure)
 
 struct _scheme {
     gc *gc;
@@ -125,12 +126,13 @@ object sc_make_state(sc*, object, object);
 object sc_make_pair(sc*, object, object);
 object sc_unsafe_assert(sc *sc, sc_1 predicate, object o);
 object sc_write(sc *sc, object o);
-
+object sc_make_closure(sc *sc, object C, object K);
 
 /* Macros valid in sc context. */
 #define CONS(a,b)    sc_make_pair(sc,a,b)
 #define STATE(c,k)   sc_make_state(sc,c,k)
 #define LAMBDA(f,x)  sc_make_lambda(sc,f,x)
+#define CLOSURE(t,e) sc_make_closure(sc,t,e)
 
 #define SYMBOL(str)   atom_to_object((atom*)(string_to_symbol(sc->syms, str)))
 #define ERROR(msg, o) sc_error(sc, SYMBOL(msg), o)
