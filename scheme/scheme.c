@@ -172,14 +172,23 @@ object sc_list_to_vector(sc *sc, object lst){
     }
     return vo;
 }
-object sc_find(sc *sc, object E, object var) {
-    if (TRUE == sc_is_null(sc, E)) {
-        return FALSE;
-    }
+object sc_find_slot(sc *sc, object E, object var) {
+    if (TRUE == sc_is_null(sc, E)) return FALSE;
     object slot = CAR(E);
     object name = CAR(slot);
-    if (name == var) return CDR(slot);
-    else return sc_find(sc, CDR(E), var);
+    if (name == var) return slot;
+    else return sc_find_slot(sc, CDR(E), var);
+}
+object sc_find(sc *sc, object E, object var) {
+    object rv = sc_find_slot(sc, E, var);
+    if (FALSE == sc_is_pair(sc, rv)) return FALSE;
+    return CDR(rv);
+}
+object sc_env_set(sc *sc, object E, object var, object value) {
+    object rv = sc_find_slot(sc, E, var);
+    if (FALSE == sc_is_pair(sc, rv)) return FALSE;
+    CDR(rv)=value;
+    return VOID;
 }
 object sc_find_toplevel(sc *sc, object var) {
     return sc_find(sc, sc->toplevel, var);
@@ -389,7 +398,11 @@ object sc_interpreter_step(sc *sc, object o_state) {
                                  sc_make_k_if(sc,yes,no,
                                               s->continuation));
                 }
-                // if (X_f == sc->s_setbang) {}
+                if (term_f == sc->s_setbang) {
+                    object var = CLOSURE(CAR(term_args),env);
+                    object cl  = CLOSURE(SYNTAX(CADR(term_args)),env);
+                    return STATE(cl, sc_make_k_set(sc, var, s->continuation));
+                }
             }
 
             /* Application Form */
@@ -440,8 +453,20 @@ object sc_interpreter_step(sc *sc, object o_state) {
         object rc = (FALSE == c->term) ? k->no : k->yes;
         return STATE(rc, k->parent);
     }
+    if (TRUE == sc_is_k_set(sc, s->continuation)) {
+        k_set *k = object_to_k_set(s->continuation);
+        closure *v = CAST(closure, k->var);
+        // allocate before mutation
+        object rv = STATE(CLOSURE(VOID,NIL), k->parent);
+        object val = closure_unpack(sc, s->closure);
+        if (FALSE == sc_env_set(sc, v->env, v->term, val)) {
+            if (FALSE == sc_env_set(sc, sc->toplevel, v->term, val)) {
+                return ERROR("undefined", v->term);
+            }
+        }
+        return rv;
+    }
     if (TRUE == sc_is_k_apply(sc, s->continuation)) {
-        // if(1) {
         /* If there are remaining closures to evaluate, pop the
            next one and push the value to the update value list. */
         k_apply *f = object_to_k_apply(s->continuation);
@@ -461,8 +486,8 @@ object sc_interpreter_step(sc *sc, object o_state) {
             while (TRUE==sc_is_pair(sc,p)) {
                 n++; fn = CAR(p); p = CDR(p);
             }
-            // n    == 1 + nb_args
-            // V_fn == primitive or lambda
+            // n  == 1 + nb_args
+            // fn == primitive or lambda
 
             // unpack the closure
             closure *c = CAST(closure, fn);

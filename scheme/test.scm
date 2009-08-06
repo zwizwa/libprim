@@ -1,5 +1,9 @@
-(gc)
 (if (zero? 1) 123 345)
+(setvar 'foo 456)
+foo
+(set! foo 123)
+foo
+(gc)
 (setvar 'foo
         (lambda (lst _)
           (foo (cdr lst) (post 'foo-foo))))

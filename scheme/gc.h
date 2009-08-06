@@ -11,10 +11,10 @@
 static inline long GC_TAG(long x) { return x&((1<<GC_TAG_SHIFT)-1); }
 static inline void* GC_POINTER(long x) { return (void*)(x&(0xFFFFFFFFFFFFFFFFL<<GC_TAG_SHIFT)); }
 
-#define GC_CONST   0   /* (unsafe) untyped pointer not managed by GC */
-#define GC_ATOM    1   /* object pointer, finalized by GC */
-#define GC_VECTOR  2   /* vector pointer, managed by GC */
-#define GC_INTEGER 3   /* integer number (shifted) */
+#define GC_INTEGER 0   /* integer number (shifted) */
+#define GC_CONST   1   /* pointer untyped, not managed */
+#define GC_ATOM    2   /*         typed,   finalized */
+#define GC_VECTOR  3   /*         vector,  managed */
 
 
 typedef struct _atom atom;
