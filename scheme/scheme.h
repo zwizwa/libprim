@@ -57,6 +57,12 @@ typedef struct {
     object term;
 } lambda;
 
+/* Syntax. All code is wrapped by a Syntax object. */
+typedef struct {
+    vector v;
+    object datum;
+} syntax;
+
 
 static inline long vector_get_tag(object o){
     vector *v = object_to_vector(o);
@@ -78,6 +84,7 @@ VECTOR_ACCESS(state)
 VECTOR_ACCESS(lambda)
 VECTOR_ACCESS(closure)
 VECTOR_ACCESS(frame)
+VECTOR_ACCESS(syntax)
 
 struct _scheme {
     gc *gc;
@@ -121,6 +128,8 @@ static inline prim* object_to_prim(object ob, sc *sc) {
 #define TAG_FRAME   3
 #define TAG_STATE   4
 #define TAG_CLOSURE 5
+#define TAG_SYNTAX  6
+
 
 
 
@@ -172,6 +181,7 @@ sc    *_sc_new(void);
 #define LAMBDA(f,x)  sc_make_lambda(sc,f,x)
 #define CLOSURE(t,e) sc_make_closure(sc,t,e)
 #define FRAME(v,c,t) sc_make_frame(sc,v,c,t)
+#define SYNTAX(d)    sc_make_syntax(sc,d)
 
 #define NUMBER(n)     integer_to_object(n)
 #define SYMBOL(str)   atom_to_object((atom*)(string_to_symbol(sc->syms, str)))
@@ -183,6 +193,8 @@ sc    *_sc_new(void);
 
 // safe cast to C struct
 #define CAST(type,x) object_to_##type(_sc_assert(sc, sc_is_##type, x))
+
+
 
 
 #endif

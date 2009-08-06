@@ -69,12 +69,13 @@ static object vector_type(object o, long tag) {
         (tag == vector_get_tag(o))) { return TRUE; }
     return FALSE;
 }
+
 object sc_is_pair(sc *sc, object o)    { return vector_type(o, TAG_PAIR); }
 object sc_is_lambda(sc *sc, object o)  { return vector_type(o, TAG_LAMBDA); }
 object sc_is_closure(sc *sc, object o) { return vector_type(o, TAG_CLOSURE); }
 object sc_is_state(sc *sc, object o)   { return vector_type(o, TAG_STATE); }
 object sc_is_frame(sc *sc, object o)   { return vector_type(o, TAG_FRAME); }
-
+object sc_is_syntax(sc *sc, object o)  { return vector_type(o, TAG_SYNTAX); }
 
 object sc_make_pair(sc *sc, object car, object cdr) {
     object o = gc_vector(sc->gc, 2, car, cdr);
@@ -102,6 +103,12 @@ object sc_make_frame(sc *sc, object v, object c, object l) {
     vector_set_tag(o, TAG_FRAME);
     return o;
 }
+object sc_make_syntax(sc *sc, object datum){
+    object o = gc_vector(sc->gc, 1, datum);
+    vector_set_tag(o, TAG_SYNTAX);
+    return o;
+}
+
 
 /* Error handling:
    FIXME: The machine step() is protected with setjmp(). */
@@ -115,6 +122,7 @@ object sc_error(sc *sc, object sym_o, object o) {
     printf("ERROR: ");
     sc_write(sc, sym_o); printf(": ");
     sc_write(sc, o);     printf("\n");
+    sc_trap(sc);
     longjmp(sc->step, SC_EX_ABORT);
     return NIL;
 }
@@ -213,6 +221,7 @@ object sc_write(sc *sc, object o) {
     if (TRUE == sc_is_state(sc, o))   return write_vector(sc, "state", o);
     if (TRUE == sc_is_frame(sc, o))   return write_vector(sc, "frame", o);
     if (TRUE == sc_is_lambda(sc, o))  return write_vector(sc, "lambda", o);
+    if (TRUE == sc_is_syntax(sc, o))  return write_vector(sc, "syntax", o);
     if (TRUE == sc_is_prim(sc, o)) {
         prim *p = object_to_prim(o,sc);
         printf("#prim<%p:%ld>", (void*)(p->fn),p->nargs);
@@ -270,7 +279,7 @@ static object closure_pack(sc *sc, object o, object cl) {
        primitive side-effects play nice with GC pre-emption. */
     closure *c = object_to_closure(cl);
     if (TRUE==sc_is_closure(sc, o)) {
-        closure *_c = object_to_closure(cl);
+        closure *_c = object_to_closure(o);
         c->term = _c ->term;
         c->env  = _c ->env;
     }
@@ -286,11 +295,6 @@ static object closure_unpack(sc *sc, object cl) {
     return c->term;
 }
 
-object sc_close_args(sc *sc, object lst, object E) {
-    if ((TRUE==sc_is_null(sc, lst))) return NIL;
-    else return CONS(CLOSURE(CAR(lst), E),
-                     sc_close_args(sc, CDR(lst), E)); 
-}
 #define UP(x) closure_unpack(sc, x)
 static inline object _sc_call(sc *sc, void *p, 
                               int nargs, object ra) {
@@ -304,54 +308,69 @@ static inline object _sc_call(sc *sc, void *p,
     }
 }
 
+object sc_close_args(sc *sc, object lst, object E) {
+    if ((TRUE==sc_is_null(sc, lst))) return NIL;
+    else return CONS(CLOSURE(SYNTAX(CAR(lst)), E),
+                     sc_close_args(sc, CDR(lst), E)); 
+}
+
 object sc_interpreter_step(sc *sc, object o_state) {
     state *s = CAST(state, o_state);
     closure *c = CAST(closure, s->closure);
     object term = c->term;  // (open) term
     object env  = c->env;   // environment
 
-    /* Form */
-    if (TRUE==sc_is_pair(sc, term)) {
-        object term_f    = CAR(term);
-        object term_args = CDR(term);
+    /* Syntax */
+    if (TRUE==sc_is_syntax(sc, term)) {
+        syntax *stx = object_to_syntax(term);
+        object term = stx->datum;
 
-        /* Special Form */
-        if (TRUE==sc_is_symbol(sc, term_f)) {
-            if (term_f == sc->s_lambda) {
-                object formals = sc_list_to_vector(sc, CAR(term_args));
-                object term = CADR(term_args);
-                return STATE(CLOSURE(LAMBDA(formals, term), env),
-                             s->continuation);
+        if (TRUE==sc_is_pair(sc, term)) {
+            object term_f    = CAR(term);
+            object term_args = CDR(term);
+
+            /* Special Form */
+            if (TRUE==sc_is_symbol(sc, term_f)) {
+                if (term_f == sc->s_lambda) {
+                    object formals = sc_list_to_vector(sc, CAR(term_args));
+                    object stx = SYNTAX(CADR(term_args));
+                    return STATE(CLOSURE(LAMBDA(formals, stx), env),
+                                 s->continuation);
+                }
+                // if (X_f == sc->s_if) {}
+                // if (X_f == sc->s_set) {}
             }
-            // if (X_f == sc->s_if) {}
-            // if (X_f == sc->s_set) {}
-        }
 
-        /* Application Form */
-        {
+            /* Application Form */
+
             /* Extend the continuation with a new frame by collecting
                all (open) subterms, and binding them to the current
                environment. */
             object closed_args = sc_close_args(sc, term_args, env);
-            return STATE(CLOSURE(term_f, env),
+            return STATE(CLOSURE(SYNTAX(term_f), env),
                          FRAME(NIL, 
                                closed_args, 
                                s->continuation));
         }
-    }
-    /* Variable Reference */
-    else if (TRUE==sc_is_symbol(sc, term)){
-        object C; 
-        if (FALSE == (C = sc_find(sc, env, term))) {
-            if (FALSE == (C = sc_find_toplevel(sc, term))) {
-                return ERROR("undefined", term);
+        /* Variable Reference */
+        else if (TRUE==sc_is_symbol(sc, term)){
+            object val; 
+            if (FALSE == (val = sc_find(sc, env, term))) {
+                if (FALSE == (val = sc_find_toplevel(sc, term))) {
+                    return ERROR("undefined", term);
+                }
             }
+            return STATE(closure_pack(sc, val, NIL),  // wrap naked values
+                         s->continuation);
         }
-        return STATE(closure_pack(sc, C, NIL),  // wrap naked values
-                     s->continuation);
+        /* Literal Value */
+        else {
+            return STATE(CLOSURE(term,env),
+                         s->continuation);
+        }
     }
 
-    /* Fully reduced value */
+    /* Value */
     else {
         /* A fully reduced value in an empty continuation means the
            evaluation is finished, and the machine can be halted. */

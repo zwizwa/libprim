@@ -17,6 +17,7 @@ object sc_make_state(sc *sc, object C, object K);
 object sc_make_closure(sc *sc, object C, object K);
 object sc_make_lambda(sc *sc, object car, object cdr);
 object sc_make_frame(sc *sc, object v, object c, object l);
+object sc_make_syntax(sc *sc, object datum);
 object sc_error(sc *sc, object sym_o, object o);
 object sc_unsafe_assert(sc *sc, sc_1 predicate, object o);
 object sc_make_vector(sc *sc, object slots);

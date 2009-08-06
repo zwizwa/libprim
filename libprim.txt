@@ -511,3 +511,15 @@ Ok. Added closure_pack() and closure_unpack().
 
 [1] http://www.cs.utah.edu/plt/publications/pllc.pdf
 [2] md5://3ab517a1167f86ef52caf3bf1a4fdb0c
+
+
+Entry: Lists vs. applications
+Date: Thu Aug  6 16:44:38 CEST 2009
+
+Currently the implementation doesn't distinguish between applications
+and lists.  The CEK machine doesn't deal with `constructors' which are
+essentially non-evaluated functions.
+
+I don't really know how this is done in practice.  Let's just wrap
+code in a syntax object for now.
+
