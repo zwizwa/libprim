@@ -1,3 +1,4 @@
+(gc)
 (if (zero? 1) 123 345)
 (setvar 'foo
         (lambda (lst _)

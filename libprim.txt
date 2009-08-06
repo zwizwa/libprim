@@ -582,6 +582,8 @@ will need to be done in such a way that GC interrupt isn't possible.
 I'm adding a couple of structs to accomodate these different
 continuation types.
 
+Ok. 'if' works.
+
 
 Entry: Coroutines
 Date: Thu Aug  6 19:30:26 CEST 2009

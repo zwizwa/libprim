@@ -240,7 +240,6 @@ object sc_write(sc *sc, object o) {
     if (TRUE == sc_is_k_if(sc, o))    return write_vector(sc, "k_if", o);
     if (TRUE == sc_is_k_set(sc, o))   return write_vector(sc, "k_set", o);
 
-
     if (TRUE == sc_is_prim(sc, o)) {
         prim *p = object_to_prim(o,sc);
         printf("#prim<%p:%ld>", (void*)(p->fn),p->nargs);
@@ -262,17 +261,12 @@ object sc_post(sc* sc, object o) {
     printf("\n");
     return VOID;
 }
-/* Set a state that aborts current primitive, filling its continuation
-   with the provided value. */
-// FIXME: needs to support other continuations!
-static void _sc_set_abort_state(sc *sc, object val) {
-    state *s = CAST(state, sc->state);
-    k_apply *f = CAST(k_apply, s->continuation);
-    sc->state = STATE(CLOSURE(val,NIL), f->parent);
-}
 /* This requires a trick since GC aborts and restarts the current primitive. */
 object sc_gc(sc* sc) {
-    _sc_set_abort_state(sc, VOID);
+    state *s = CAST(state, sc->state);
+    // Were sure it's a k_apply since we're a primitive application.
+    k_apply *f = CAST(k_apply, s->continuation);
+    sc->state = STATE(CLOSURE(VOID,NIL), f->parent);
     gc_collect(sc->gc);
     return NIL;
 }
@@ -304,6 +298,9 @@ object sc_setvar(sc* sc, object var, object val) {
    (identifiers) V to closures X.
 
        E = ((I X) (I X) ...)
+
+   Other continuations (if, set!, ...) work similarly: they indicate
+   what to do next with the recently reduced closure.
 */
 
 
