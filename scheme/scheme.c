@@ -8,25 +8,22 @@
 
 
 
-
-#define MARK(field) sc->field = gc_mark(sc->gc, sc->field)
-static void mark_roots(sc *sc) {
-    MARK(state);
-    MARK(toplevel);
-}
-//static void mark_roots(sc *sc) {
-//}
-
+/* --- PRIMITIVES --- */
 
 /* To simplify the implementation _all_ functions are Scheme
    primitives operating on tagged values.  They are named sc_xxx for
    ease of lifting them from the source file for environment
    bootstrap.
 
-   The sc_unsafe_xxx functions operate on arguments without checking
-   them.  These are useful internally when types are known to be
-   correct.
+   The _sc_xxx helper functions operate on sc*, but do not have
+   primitive ABI.
+
 */
+
+static object _sc_assert(sc *sc, sc_1 predicate, object o) {
+    if (FALSE == predicate(sc, o)) { TYPE_ERROR(o); }
+    return o;
+}
 
 /* Booleans are GC_CONST */
 object sc_is_bool (sc *sc, object o) {
@@ -125,10 +122,7 @@ object sc_error(sc *sc, object sym_o, object o) {
     kill(getpid(), SIGTRAP);
     return NIL;
 }
-object sc_unsafe_assert(sc *sc, sc_1 predicate, object o) {
-    if (FALSE == predicate(sc, o)) { TYPE_ERROR(o); }
-    return o;
-}
+
 /* Remaining primitives perform type checking. */
 
 object sc_make_vector(sc *sc, object slots) {
@@ -188,7 +182,6 @@ static object write_vector(sc *sc, char *type, object o) {
     printf(")");
     return VOID;
 }
-
 object sc_write(sc *sc, object o) {
     if(TRUE == sc_is_null(sc, o)) {
         printf("()");
@@ -246,14 +239,16 @@ object sc_post(sc* sc, object o) {
 }
 
 
+
+/* INTERPRETER */
+
 object sc_close_args(sc *sc, object lst, object E) {
     if ((TRUE==sc_is_null(sc, lst))) return NIL;
     else return CONS(CLOSURE(CAR(lst), E),
                      sc_close_args(sc, CDR(lst), E)); 
 }
-
-static inline object run_primitive(sc *sc, void *p, 
-                                   int nargs, object ra) {
+static inline object _sc_call(sc *sc, void *p, 
+                              int nargs, object ra) {
     switch(nargs) {
     case 0: return ((sc_0)p)(sc);
     case 1: return ((sc_1)p)(sc, CAR(ra));
@@ -263,17 +258,6 @@ static inline object run_primitive(sc *sc, void *p,
         return ERROR("prim", integer_to_object(nargs));
     }
 }
-
-
-
-
-/* Some notes on how this is implemented.
-
- - All datatypes should be Scheme datatypes.  These are implemented in
-   terms of gc.h 's object.
-
-*/
-
 
 /* If we pick evaluation to go from left to right, a continuation
    formed by a hole in the evaluation of (X_1 ... X_n) at position h
@@ -384,7 +368,7 @@ object sc_interpreter_step(sc *sc, object o_state) {
                 object closure = CLOSURE(NIL, NIL);
                 object state = STATE(closure, f->parent); // drop frame
                 object_to_closure(closure)->term =
-                    run_primitive(sc, prim_fn(p), n-1, rargs);
+                    _sc_call(sc, prim_fn(p), n-1, rargs);
                 return state;
             }
             /* Application extends the environment. */
@@ -410,37 +394,37 @@ object sc_interpreter_step(sc *sc, object o_state) {
 }
 
 
-// ------------------------
-
-static object make_prim(sc *sc, void *fn, long nargs) {
+/* --- SETUP & GC --- */
+#define MARK(field) sc->field = gc_mark(sc->gc, sc->field)
+static void _sc_mark_roots(sc *sc) {
+    MARK(state);
+    MARK(toplevel);
+}
+static object _sc_make_prim(sc *sc, void *fn, long nargs) {
     prim *p = malloc(sizeof(*p));
     p->a.op = &sc->op_prim; // class
     p->fn = fn;
     p->nargs = nargs;
     return atom_to_object(&p->a);
 }
-static void define_prim(sc *sc, object var, void *fn, long nargs) {
-    object prim = make_prim(sc, fn, nargs);
+static void _sc_define_prim(sc *sc, object var, void *fn, long nargs) {
+    object prim = _sc_make_prim(sc, fn, nargs);
     sc->toplevel = CONS(CONS(var, CLOSURE(prim, NIL)),
                         sc->toplevel);
 }
-#define DEFUN(str,fn,nargs) \
-    define_prim (sc,SYMBOL(str),fn,nargs)
+#define DEF(str,fn,nargs) \
+    _sc_define_prim (sc,SYMBOL(str),fn,nargs)
 
 #define DEFSYM(name) sc->s_##name = SYMBOL(#name)
 sc *scheme_new(void) {
     sc *sc = malloc(sizeof(*sc));
-    sc->gc = gc_new(1000000, (gc_mark_roots)mark_roots, sc);
+    sc->gc = gc_new(1000000, (gc_mark_roots)_sc_mark_roots, sc);
     sc->syms = symstore_new(1000);
     DEFSYM(lambda);
     DEFSYM(if);
     sc->toplevel = NIL;
-
-    DEFUN("null?", sc_is_null, 1);
-    DEFUN("zero?", sc_is_zero, 1);
-
     sc->op_prim.free = NULL;
-    
+#include "scheme_prim.inc"
     return sc;
 }
 

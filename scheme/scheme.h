@@ -151,7 +151,7 @@ typedef object (*sc_3)(sc* sc, object, object, object);
 #define TYPE_ERROR(o) ERROR("type",o)
     
 // safe cast to C struct
-#define CAST(type,x) object_to_##type(sc_unsafe_assert(sc, sc_is_##type, x))
+#define CAST(type,x) object_to_##type(_sc_assert(sc, sc_is_##type, x))
 
 
 #endif

@@ -1,8 +1,8 @@
 #!/bin/bash
 
 PRIMS=$1
-[ -z "$1" ] && PRIMS=ceks.o
+[ -z "$1" ] && PRIMS=scheme.o
 
-objdump -t $PRIMS |grep sc_ | awk '{print $6}'
+objdump -t $PRIMS |grep sc_ | awk '{print "// " $6 }'
 
 
