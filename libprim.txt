@@ -437,3 +437,7 @@ but doesn't make much sense.  Maybe change the rep a bit.
 
 The environment contains closures (open_term + environment) or
 constants.
+
+OK: it's way simpler to make everything a closure, but tag contstants
+with an empty environment.
+

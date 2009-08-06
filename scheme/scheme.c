@@ -175,7 +175,7 @@ object sc_is_list(sc *sc, object o) {
     if(FALSE==sc_is_pair(sc, o)) return FALSE;
     return sc_is_list(sc, CDR(o));
 }
-static object sc_newline(sc *sc) { printf("\n"); return VOID; }
+object sc_newline(sc *sc) { printf("\n"); return VOID; }
 static object write_vector(sc *sc, char *type, object o) {
     printf("#%s(", type);
     vector *v = object_to_vector(o);
@@ -293,7 +293,7 @@ object sc_interpreter_step(sc *sc, object o_state) {
 
     /* Form */
     if (TRUE==sc_is_pair(sc, X)) {
-        object X_f = CAR(X);
+        object X_f    = CAR(X);
         object X_args = CDR(X);
 
         /* Special Form */
@@ -413,7 +413,7 @@ void _sc_run(sc *sc){
     for(;;) {
         switch (exception = setjmp(sc->step)) {
         case SC_EX_TRY:
-            sc_write(sc, sc->state); sc_newline(sc);
+            // sc_write(sc, sc->state); sc_newline(sc);
             sc->state = sc_interpreter_step(sc, sc->state); 
             break;
         case SC_EX_GC:

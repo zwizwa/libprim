@@ -21,7 +21,7 @@ DEF("zero?", sc_is_zero, 1);
 // sc_make_lambda
 // sc_make_frame
 // sc_error
-// sc_write
+DEF("write", sc_write, 1);
 // sc_make_vector
 // sc_reverse
 // sc_length
@@ -29,6 +29,6 @@ DEF("zero?", sc_is_zero, 1);
 // sc_find
 // sc_find_toplevel
 // sc_is_list
-// sc_post
+DEF("post", sc_post, 1);
 // sc_close_args
 // sc_interpreter_step
