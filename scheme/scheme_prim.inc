@@ -15,7 +15,6 @@ DEF("zero?", sc_is_zero, 1);
 // sc_is_closure
 // sc_is_state
 // sc_is_frame
-// sc_make_pair
 // sc_make_state
 // sc_make_closure
 // sc_make_lambda
@@ -35,5 +34,7 @@ DEF("post", sc_post, 1);
 DEF("cons", sc_make_pair, 2);
 DEF("gc", sc_gc, 0);
 DEF("setvar", sc_setvar, 2);
+DEF("car", sc_car, 1);
+DEF("cdr", sc_cdr, 1);
 
 

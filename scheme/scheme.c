@@ -59,7 +59,7 @@ object sc_is_null(sc *sc, object o) {
 object sc_is_vector(sc *sc, object o){
     vector *v;
     if ((v = object_to_vector(o)) &&
-        (0 == vector_get_tag(o))) { return TRUE; }
+        (TAG_VECTOR == vector_get_tag(o))) { return TRUE; }
     return FALSE;
 }
 /* Pairs and lambdas are tagged vectors. */
@@ -74,8 +74,11 @@ object sc_is_pair(sc *sc, object o)    { return vector_type(o, TAG_PAIR); }
 object sc_is_lambda(sc *sc, object o)  { return vector_type(o, TAG_LAMBDA); }
 object sc_is_closure(sc *sc, object o) { return vector_type(o, TAG_CLOSURE); }
 object sc_is_state(sc *sc, object o)   { return vector_type(o, TAG_STATE); }
-object sc_is_frame(sc *sc, object o)   { return vector_type(o, TAG_FRAME); }
 object sc_is_syntax(sc *sc, object o)  { return vector_type(o, TAG_SYNTAX); }
+object sc_is_k_if(sc *sc, object o)    { return vector_type(o, TAG_K_IF); }
+object sc_is_k_set(sc *sc, object o)   { return vector_type(o, TAG_K_SET); }
+object sc_is_k_apply(sc *sc, object o) { return vector_type(o, TAG_K_APPLY); }
+
 
 object sc_make_pair(sc *sc, object car, object cdr) {
     object o = gc_vector(sc->gc, 2, car, cdr);
@@ -98,9 +101,19 @@ object sc_make_lambda(sc *sc, object car, object cdr) {
     vector_set_tag(o, TAG_LAMBDA);
     return o;
 }
-object sc_make_frame(sc *sc, object v, object c, object l) {
-    object o = gc_vector(sc->gc, 3, v, c, l);
-    vector_set_tag(o, TAG_FRAME);
+object sc_make_k_apply(sc *sc, object done, object todo, object parent) {
+    object o = gc_vector(sc->gc, 3, done, todo, parent);
+    vector_set_tag(o, TAG_K_APPLY);
+    return o;
+}
+object sc_make_k_if(sc *sc, object yes, object no, object parent){
+    object o = gc_vector(sc->gc, 3, yes, no, parent);
+    vector_set_tag(o, TAG_K_IF);
+    return o;
+}
+object sc_make_k_set(sc *sc, object var, object parent) {
+    object o = gc_vector(sc->gc, 2, var, parent);
+    vector_set_tag(o, TAG_K_SET);
     return o;
 }
 object sc_make_syntax(sc *sc, object datum){
@@ -108,7 +121,8 @@ object sc_make_syntax(sc *sc, object datum){
     vector_set_tag(o, TAG_SYNTAX);
     return o;
 }
-
+object sc_car(sc *sc, object o) { pair *p = CAST(pair, o); return p->car; }
+object sc_cdr(sc *sc, object o) { pair *p = CAST(pair, o); return p->cdr; }
 
 /* Error handling:
    FIXME: The machine step() is protected with setjmp(). */
@@ -219,9 +233,14 @@ object sc_write(sc *sc, object o) {
     if (TRUE == sc_is_vector(sc, o))  return write_vector(sc, "", o);
     if (TRUE == sc_is_closure(sc, o)) return write_vector(sc, "closure", o);
     if (TRUE == sc_is_state(sc, o))   return write_vector(sc, "state", o);
-    if (TRUE == sc_is_frame(sc, o))   return write_vector(sc, "frame", o);
     if (TRUE == sc_is_lambda(sc, o))  return write_vector(sc, "lambda", o);
     if (TRUE == sc_is_syntax(sc, o))  return write_vector(sc, "syntax", o);
+
+    if (TRUE == sc_is_k_apply(sc, o)) return write_vector(sc, "k_apply", o);
+    if (TRUE == sc_is_k_if(sc, o))    return write_vector(sc, "k_if", o);
+    if (TRUE == sc_is_k_set(sc, o))   return write_vector(sc, "k_set", o);
+
+
     if (TRUE == sc_is_prim(sc, o)) {
         prim *p = object_to_prim(o,sc);
         printf("#prim<%p:%ld>", (void*)(p->fn),p->nargs);
@@ -245,9 +264,10 @@ object sc_post(sc* sc, object o) {
 }
 /* Set a state that aborts current primitive, filling its continuation
    with the provided value. */
+// FIXME: needs to support other continuations!
 static void _sc_set_abort_state(sc *sc, object val) {
     state *s = CAST(state, sc->state);
-    frame *f = CAST(frame, s->continuation);
+    k_apply *f = CAST(k_apply, s->continuation);
     sc->state = STATE(CLOSURE(val,NIL), f->parent);
 }
 /* This requires a trick since GC aborts and restarts the current primitive. */
@@ -337,7 +357,13 @@ object sc_interpreter_step(sc *sc, object o_state) {
     object term = c->term;  // (open) term
     object env  = c->env;   // environment
 
-    /* Syntax */
+    /* Syntax: perform a single reduction step.
+
+       - create abstraction (lambda) value
+       - create application continuation
+       - perform variable reference
+       - create special form contiuation (if, set!, macro, ...)
+     */
     if (TRUE==sc_is_syntax(sc, term)) {
         syntax *stx = object_to_syntax(term);
         object term = stx->datum;
@@ -358,7 +384,14 @@ object sc_interpreter_step(sc *sc, object o_state) {
                     return STATE(CLOSURE(CAR(term_args),env),
                                  s->continuation);
                 }
-                // if (X_f == sc->s_if) {}
+                if (term_f == sc->s_if) {
+                    object cond = CLOSURE(SYNTAX(CAR(term_args)),env);
+                    object yes  = CLOSURE(SYNTAX(CADR(term_args)),env);
+                    object no   = CLOSURE(SYNTAX(CADDR(term_args)),env);
+                    return STATE(cond,
+                                 sc_make_k_if(sc,yes,no,
+                                              s->continuation));
+                }
                 // if (X_f == sc->s_setbang) {}
             }
 
@@ -369,9 +402,9 @@ object sc_interpreter_step(sc *sc, object o_state) {
                environment. */
             object closed_args = sc_close_args(sc, term_args, env);
             return STATE(CLOSURE(SYNTAX(term_f), env),
-                         FRAME(NIL, 
-                               closed_args, 
-                               s->continuation));
+                         sc_make_k_apply(sc, NIL,
+                                         closed_args, 
+                                         s->continuation));
         }
         /* Variable Reference */
         else if (TRUE==sc_is_symbol(sc, term)){
@@ -391,23 +424,38 @@ object sc_interpreter_step(sc *sc, object o_state) {
         }
     }
 
-    /* Value */
-    else {
-        /* A fully reduced value in an empty continuation means the
-           evaluation is finished, and the machine can be halted. */
-        if (NIL == s->continuation) longjmp(sc->step, SC_EX_HALT);
+    /* Value: depending on the type of continuation, we now figure out
+       what to do with the value 
+       
+       - empty continuation: halt
+       - argument evaluation: do next, or apply
+       - macro expansion -> interpret the new term.
+       - predicate position of an 'if' -> pick one
+       - value position of 'set!' -> mutate environment
+    */
 
+    /* A fully reduced value in an empty continuation means the
+       evaluation is finished, and the machine can be halted. */
+    if (NIL == s->continuation) longjmp(sc->step, SC_EX_HALT);
 
+    if (TRUE == sc_is_k_if(sc, s->continuation)) {
+        k_if *k = object_to_k_if(s->continuation);
+        object rc = (FALSE == c->term) ? k->no : k->yes;
+        return STATE(rc, k->parent);
+    }
+    if (TRUE == sc_is_k_apply(sc, s->continuation)) {
+        // if(1) {
         /* If there are remaining closures to evaluate, pop the
            next one and push the value to the update value list. */
-        frame *f = CAST(frame, s->continuation);
+        k_apply *f = object_to_k_apply(s->continuation);
         if (TRUE==sc_is_pair(sc, f->todo)) {
             return STATE(CAR(f->todo),
-                         FRAME(CONS(s->closure, f->done),
-                               CDR(f->todo), 
-                               f->parent));
+                         sc_make_k_apply(sc, 
+                                         CONS(s->closure, f->done),
+                                         CDR(f->todo), 
+                                         f->parent));
         }
-        /* No more expressions to be reduced in the current frame:
+        /* No more expressions to be reduced in the current k_apply:
            perform application. */
         else {
             object rargs = CONS(s->closure, f->done);
@@ -446,26 +494,24 @@ object sc_interpreter_step(sc *sc, object o_state) {
             if (TRUE==sc_is_lambda(sc, fn_term)) {
                 lambda *l = CAST(lambda, fn_term);
                 vector *v = CAST(vector, l->formals);
-                if (vector_size(v) != (n-1)) {
-                    return ERROR("nargs", fn_term);
-                }
+                if (vector_size(v) != (n-1)) return ERROR("nargs", fn_term);
                 int i;
                 for (i=n-2; i>=0; i--) {
                     object cl = CAR(rargs);
-                    if (FALSE == sc_is_closure(sc, cl)) ERROR("env-type", cl);
-                    fn_env = CONS(CONS(v->slot[i], 
-                                       closure_unpack(sc, cl)),
-                                  fn_env);
+                    object unpk = closure_unpack(sc, cl);
+                    fn_env = CONS(CONS(v->slot[i], unpk), fn_env);
                     rargs = CDR(rargs);
                 }
                 return STATE(CLOSURE(l->term, fn_env),  // close term
                              f->parent);                // drop frame
             } 
-            else {
-                return ERROR("apply", fn_term);
-            }
+
+            /* Unknown applicant type */
+            return ERROR("apply", fn_term);
         }
     }
+    /* Unknown continuation type */
+    return ERROR("cont", s->continuation);
 }
 /* Convert an s-expression to a machine state that will eval and
    halt. */
@@ -484,18 +530,12 @@ void _sc_run(sc *sc){
   next:
     switch (exception = setjmp(sc->step)) {
     case SC_EX_TRY:
-        // sc_write(sc, sc->state); sc_newline(sc);
-        sc->state = sc_interpreter_step(sc, sc->state); 
-        goto next;
-    case SC_EX_GC:
-        // printf("GC restart.\n");
-        goto next;
-    case SC_EX_ABORT:
-        // printf("Abort.\n");
-        goto leave;
-    case SC_EX_HALT:
-        // printf("Halt.\n");
-        goto leave;
+        for(;;) {
+            sc->state = sc_interpreter_step(sc, sc->state); 
+        }
+    case SC_EX_GC:    goto next;
+    case SC_EX_ABORT: goto leave;
+    case SC_EX_HALT:  goto leave;
     default:
         printf("Unknown exception %d.\n", exception);
         goto leave;

@@ -1,8 +1,12 @@
+(if (zero? 1) 123 345)
 (setvar 'foo
-        (lambda (_)
-          (foo (post 'foo-foo))))
-(foo 123)
+        (lambda (lst _)
+          (foo (cdr lst) (post 'foo-foo))))
+(foo '(_ _ _ _ _ _ _) '_)
 
+(begin a b c)
+
+((lambda (_ _ rv) rv) a b c)
 
 ;; (post 'fffffffffffffffffffff)
 

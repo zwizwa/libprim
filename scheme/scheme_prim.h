@@ -35,5 +35,7 @@ object sc_datum_to_state(sc *sc, object expr);
 object sc_trap(sc *sc);
 object sc_gc(sc* sc);
 object sc_setvar(sc* sc, object var, object val);
+object sc_car(sc *sc, object o);
+object sc_cdr(sc *sc, object o);
 
 #endif

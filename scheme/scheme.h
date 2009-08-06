@@ -29,21 +29,33 @@ typedef struct {
     object env;   // term's free variables
 } closure;
 
-/* The continuation frame is used to sequence the order of closure
-   reductions.  Each application encountered during closure reduction
-   will create a new list of reducable closures (todo).  One by one
-   these will be reduced (done).  Reduction moves from left to right.
-   When all are done, the reduced terms are passed to a primitive, or
-   an application creates a new reducable closure with reduced
-   closures bound to variables.
+/* The k_apply continuation frame is used to sequence the order of
+   reductions.  Each application will create a new list of reducable
+   closures, which will be reduced one by one from left to right.
+   When done, the reduced terms are passed to a primitive, or an
+   application creates a new reducable closure with reduced closures
+   bound to variables.
 */
 typedef struct {
     vector v;
     object done;   // reversed list of reduced 
     object todo;   // todo
     object parent; // link
-} frame;
+} k_apply;
 
+/* Different continuation types. */
+typedef struct {
+    vector v;
+    object yes;  // non-reduced closures for the 2 branches
+    object no;
+    object parent;
+} k_if;
+
+typedef struct {
+    vector v;
+    object var;  
+    object parent;
+} k_set;
 
 typedef struct {
     vector v;
@@ -64,7 +76,7 @@ typedef struct {
 } syntax;
 
 
-static inline long vector_get_tag(object o){
+static inline unsigned long vector_get_tag(object o){
     vector *v = object_to_vector(o);
     if (!v) return -1;
     return (v->header) >> GC_VECTOR_TAG_SHIFT;
@@ -83,8 +95,10 @@ VECTOR_ACCESS(pair)
 VECTOR_ACCESS(state)
 VECTOR_ACCESS(lambda)
 VECTOR_ACCESS(closure)
-VECTOR_ACCESS(frame)
 VECTOR_ACCESS(syntax)
+VECTOR_ACCESS(k_apply)
+VECTOR_ACCESS(k_if)
+VECTOR_ACCESS(k_set)
 
 struct _scheme {
     gc *gc;
@@ -126,14 +140,17 @@ static inline prim* object_to_prim(object ob, sc *sc) {
 }
 
 // vector tags for interpreter data types
-#define TAG_PAIR    1
-#define TAG_LAMBDA  2
-#define TAG_FRAME   3
-#define TAG_STATE   4
-#define TAG_CLOSURE 5
-#define TAG_SYNTAX  6
+#define TAG_VECTOR    0
 
+#define TAG_PAIR      1
+#define TAG_LAMBDA    2
+#define TAG_STATE     3
+#define TAG_CLOSURE   4
+#define TAG_SYNTAX    5
 
+#define TAG_K_IF      8
+#define TAG_K_SET     9
+#define TAG_K_APPLY  10
 
 
 
@@ -183,8 +200,8 @@ sc    *_sc_new(void);
 #define STATE(c,k)   sc_make_state(sc,c,k)
 #define LAMBDA(f,x)  sc_make_lambda(sc,f,x)
 #define CLOSURE(t,e) sc_make_closure(sc,t,e)
-#define FRAME(v,c,t) sc_make_frame(sc,v,c,t)
 #define SYNTAX(d)    sc_make_syntax(sc,d)
+
 
 #define NUMBER(n)     integer_to_object(n)
 #define SYMBOL(str)   atom_to_object((atom*)(string_to_symbol(sc->syms, str)))

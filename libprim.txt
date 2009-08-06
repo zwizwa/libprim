@@ -579,6 +579,9 @@ Scheme and compiled to C spec of the syntax tree?
 Both special forms need modification to the continuation.  Assignment
 will need to be done in such a way that GC interrupt isn't possible.
 
+I'm adding a couple of structs to accomodate these different
+continuation types.
+
 
 Entry: Coroutines
 Date: Thu Aug  6 19:30:26 CEST 2009

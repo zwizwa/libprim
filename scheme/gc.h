@@ -39,7 +39,7 @@ struct _atom {
 #endif
 
 struct _vector {
-    long header;  // [ struct_tags | length | GC tags ]
+    unsigned long header;  // [ struct_tags | length | GC tags ]
     object slot[0];
 };
 
