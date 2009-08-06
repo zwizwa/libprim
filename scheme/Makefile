@@ -22,9 +22,14 @@ all: scheme
 	$(CC) $(CPPFLAGS) $(CFLAGS) $(OPTI_CFLAGS) $(DEBUG_CFLAGS) -o $@ -c $<
 
 
+test.c_: test.scm unparse.ss
+	mzscheme unparse.ss <$< >$@	
+
+test.o: test.c_
+
 scheme: $(OBJ)
 	$(CC) -o scheme $(OBJ)
 
 
 clean:
-	rm -rf scheme *.o *.d *~
+	rm -rf scheme *.o *.d *~ *.cgen

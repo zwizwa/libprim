@@ -159,10 +159,14 @@ sc    *_sc_new(void);
 #define CLOSURE(t,e) sc_make_closure(sc,t,e)
 #define FRAME(v,c,t) sc_make_frame(sc,v,c,t)
 
+#define NUMBER(n)     integer_to_object(n)
 #define SYMBOL(str)   atom_to_object((atom*)(string_to_symbol(sc->syms, str)))
 #define ERROR(msg, o) sc_error(sc, SYMBOL(msg), o)
 #define TYPE_ERROR(o) ERROR("type",o)
     
+/* Toplevel evaluation */
+#define EVAL(expr)    sc_post(sc, _sc_eval(sc, expr))
+
 // safe cast to C struct
 #define CAST(type,x) object_to_##type(_sc_assert(sc, sc_is_##type, x))
 
