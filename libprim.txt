@@ -523,3 +523,17 @@ essentially non-evaluated functions.
 I don't really know how this is done in practice.  Let's just wrap
 code in a syntax object for now.
 
+This seems to work.  There are now two kinds of terms: non-reduced
+terms are SYNTAX while reduced terms are anything else.
+
+Anyways.. It works, but it's probably a bit unorthodox.  This can't
+represent syntax as values.  The real solution would be to represent
+special forms, applications, variables references and quotes as
+separate entities.
+
+This will have to do for now.
+
+
+Entry: Testing gc preemption
+Date: Thu Aug  6 17:47:06 CEST 2009
+

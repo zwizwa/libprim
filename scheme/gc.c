@@ -67,18 +67,15 @@ object gc_alloc(gc *gc, long size) {
         }
     }
     vector *v = (vector *)(&gc->current[gc->current_index]);
-    v->tag_size = integer_to_object(size);
+    v->header = integer_to_object(size);
     gc->current_index += slots;
     return vector_to_object(v);
 }
 
 /* The size field is used to store redirections during GC. */
 static inline object vector_moved(vector *v) {
-    if (object_to_vector(v->tag_size)) return v->tag_size;
+    if (object_to_vector(v->header)) return v->header;
     else return 0;
-}
-static inline void vector_set_moved(vector *v, object o) {
-    v->tag_size = o;
 }
 
 object gc_mark(gc *gc, object o_old) {
@@ -96,8 +93,11 @@ object gc_mark(gc *gc, object o_old) {
     object o_new = gc_alloc(gc, nb);
     vector *v_new = object_to_vector(o_new);
 
+    /* Copy the tag bits. */
+    v_new->header = v_old->header;
+
     /* Mark the old header as moved before recursing. */
-    vector_set_moved(v_old, o_new);
+    v_old->header = o_new;
 
     /* Mark all and move elements and erase tracks. */
     long i;
@@ -113,9 +113,7 @@ static void _finalize(gc *gc) {
     for (i=0; i<gc->old_index; i++){
         atom *a;
         if ((a = object_to_atom(gc->old[i]))) {
-            if (a->op) {
-                a->op->free(a);
-            }
+            if (a->op && a->op->free) a->op->free(a);
         }
         gc->old[i] = 0;
     }

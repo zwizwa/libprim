@@ -39,7 +39,7 @@ struct _atom {
 #endif
 
 struct _vector {
-    long tag_size;
+    long header;  // [ struct_tags | length | GC tags ]
     object slot[0];
 };
 
@@ -127,7 +127,7 @@ static inline object integer_to_object(long i) {
 
 
 static inline long vector_size(vector *v) {
-    return object_to_vector_size(v->tag_size);
+    return object_to_vector_size(v->header);
 }
 
 #endif

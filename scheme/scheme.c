@@ -458,29 +458,29 @@ object sc_datum_to_state(sc *sc, object expr) {
 /* --- SETUP & GC --- */
 
 void _sc_run(sc *sc){
+    sc->entries++;
     int exception;
-    for(;;) {
-        switch (exception = setjmp(sc->step)) {
-        case SC_EX_TRY:
-            // sc_write(sc, sc->state); sc_newline(sc);
-            sc->state = sc_interpreter_step(sc, sc->state); 
-            break;
-        case SC_EX_GC:
-            printf("GC restart.\n");
-            break;
-        case SC_EX_ABORT:
-            // printf("Abort.\n");
-            return;
-            // break;
-        case SC_EX_HALT:
-            // printf("Halt.\n");
-            return;
-        default:
-            printf("Unknown exception %d.\n", exception);
-            return;
-            // break;
-        }
+  next:
+    switch (exception = setjmp(sc->step)) {
+    case SC_EX_TRY:
+        // sc_write(sc, sc->state); sc_newline(sc);
+        sc->state = sc_interpreter_step(sc, sc->state); 
+        goto next;
+    case SC_EX_GC:
+        printf("GC restart.\n");
+        goto next;
+    case SC_EX_ABORT:
+        // printf("Abort.\n");
+        goto leave;
+    case SC_EX_HALT:
+        // printf("Halt.\n");
+        goto leave;
+    default:
+        printf("Unknown exception %d.\n", exception);
+        goto leave;
     }
+  leave:
+    sc->entries--;
 }
 /* Eval will run the machine until halt, which occurs for an
    irreducable closure and an empty continuation. */
@@ -494,9 +494,19 @@ object _sc_eval(sc *sc, object expr){
     return closure_unpack(sc, s->closure);
 }
 #define MARK(field) sc->field = gc_mark(sc->gc, sc->field)
-static void _sc_mark_roots(sc *sc) {
+static void _sc_mark_roots(sc *sc, gc_finalize fin) {
+    // sc_trap(sc);
+    printf("GC mark()\n");
+    sc_post(sc, sc->state);
     MARK(state);
     MARK(toplevel);
+    fin(sc->gc);
+    sc_post(sc, sc->state);
+    /* Abort C stack, since it now contains invalid refs. */
+    if (sc->entries) {
+        longjmp(sc->step, SC_EX_GC);
+    }
+    printf("WARNING: GC triggered outside of mainloop.\n");
 }
 static object _sc_make_prim(sc *sc, void *fn, long nargs) {
     prim *p = malloc(sizeof(*p));
@@ -516,7 +526,8 @@ static void _sc_define_prim(sc *sc, object var, void *fn, long nargs) {
 #define DEFSYM(name) sc->s_##name = SYMBOL(#name)
 sc *_sc_new(void) {
     sc *sc = malloc(sizeof(*sc));
-    sc->gc = gc_new(1000000, (gc_mark_roots)_sc_mark_roots, sc);
+    sc->entries = 0;
+    sc->gc = gc_new(200, (gc_mark_roots)_sc_mark_roots, sc);
     sc->syms = symstore_new(1000);
     DEFSYM(lambda);
     DEFSYM(if);

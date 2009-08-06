@@ -67,10 +67,10 @@ typedef struct {
 static inline long vector_get_tag(object o){
     vector *v = object_to_vector(o);
     if (!v) return -1;
-    return (v->tag_size) >> GC_VECTOR_TAG_SHIFT;
+    return (v->header) >> GC_VECTOR_TAG_SHIFT;
 }
 static inline void vector_set_tag(object o, long tag){
-    object_to_vector(o)->tag_size |= (tag << GC_VECTOR_TAG_SHIFT);
+    object_to_vector(o)->header |= (tag << GC_VECTOR_TAG_SHIFT);
 }
 
 
@@ -96,6 +96,7 @@ struct _scheme {
 
     jmp_buf step;  // current eval step abort
     atom_class op_prim;
+    long entries;
 };
 
 static inline symbol* object_to_symbol(object ob, sc *sc) {
