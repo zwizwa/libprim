@@ -30,4 +30,7 @@ object sc_write(sc *sc, object o);
 object sc_post(sc* sc, object o);
 object sc_close_args(sc *sc, object lst, object E);
 object sc_interpreter_step(sc *sc, object o_state);
+object sc_datum_to_state(sc *sc, object expr);
+object sc_trap(sc *sc);
+
 #endif

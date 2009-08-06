@@ -1,6 +1,7 @@
 #ifndef _SCHEME_H_
 #define _SCHEME_H_
 
+#include <setjmp.h>
 #include "gc.h"
 #include "symbol.h"
 
@@ -72,6 +73,7 @@ struct _scheme {
     object s_lambda;
     object s_if;
 
+    jmp_buf step;  // current eval step abort
     atom_class op_prim;
 };
 
@@ -134,6 +136,17 @@ typedef object (*sc_3)(sc* sc, object, object, object);
 
 /* ROOT OBJECTS */
 #define ROOT_ENV 0
+
+/* Setup */
+void   _sc_run(sc *sc);
+object _sc_eval(sc *sc, object expr);
+sc    *_sc_new(void);
+
+/* Interpreter exceptions. */
+#define SC_EX_TRY   0
+#define SC_EX_GC    1  /* step() retestart due to Garbage Collection */
+#define SC_EX_ABORT 2  /* full continuation abort */
+#define SC_EX_HALT  3  /* machine is in halt state (empty continuation) */
 
 
 /* Primitives */

@@ -113,13 +113,17 @@ object sc_make_frame(sc *sc, object v, object c, object l) {
 
 /* Error handling:
    FIXME: The machine step() is protected with setjmp(). */
+object sc_trap(sc *sc) {
+    kill(getpid(), SIGTRAP);
+    return VOID;
+}
 object sc_error(sc *sc, object sym_o, object o) {
     symbol *sym   = object_to_symbol(sym_o, sc);
     if (!sym) sym = string_to_symbol(sc->syms, "error");
     printf("ERROR: ");
     sc_write(sc, sym_o); printf(": ");
     sc_write(sc, o);     printf("\n");
-    kill(getpid(), SIGTRAP);
+    longjmp(sc->step, SC_EX_ABORT);
     return NIL;
 }
 
@@ -171,6 +175,7 @@ object sc_is_list(sc *sc, object o) {
     if(FALSE==sc_is_pair(sc, o)) return FALSE;
     return sc_is_list(sc, CDR(o));
 }
+static object sc_newline(sc *sc) { printf("\n"); return VOID; }
 static object write_vector(sc *sc, char *type, object o) {
     printf("#%s(", type);
     vector *v = object_to_vector(o);
@@ -281,7 +286,7 @@ static inline object _sc_call(sc *sc, void *p,
 */
 
 object sc_interpreter_step(sc *sc, object o_state) {
-    state *s = object_to_state(o_state);
+    state *s = CAST(state, o_state);
     closure *c = CAST(closure, s->C);
     object X = c->term;  // (open) term
     object E = c->env;   // environment
@@ -326,7 +331,7 @@ object sc_interpreter_step(sc *sc, object o_state) {
 
     /* Fully reduced value */
     else {
-        if (NIL == s->K) return ERROR("halt", o_state);
+        if (NIL == s->K) longjmp(sc->step, SC_EX_HALT);
         frame *f = CAST(frame, s->K);
 
         /* If there are remaining closures to evaluate, pop the
@@ -392,9 +397,49 @@ object sc_interpreter_step(sc *sc, object o_state) {
         }
     }
 }
+/* Convert an s-expression to a machine state that will eval and
+   halt. */
+object sc_datum_to_state(sc *sc, object expr) {
+    object c = CLOSURE(expr,NIL);  // empty environment
+    object k = NIL;                // empty continuation
+    return STATE(c,k);
+}
 
 
 /* --- SETUP & GC --- */
+
+void _sc_run(sc *sc){
+    int exception;
+    for(;;) {
+        switch (exception = setjmp(sc->step)) {
+        case SC_EX_TRY:
+            sc_write(sc, sc->state); sc_newline(sc);
+            sc->state = sc_interpreter_step(sc, sc->state); 
+            break;
+        case SC_EX_GC:
+            printf("GC restart.\n");
+            break;
+        case SC_EX_ABORT:
+            printf("Abort.\n");
+            break;
+        case SC_EX_HALT:
+            printf("Halt.\n");
+            return;
+        default:
+            printf("Unknown exception %d.\n", exception);
+            break;
+        }
+    }
+}
+/* External eval will run the machine until halt (empty continuation)
+   and produce its value. */
+object _sc_eval(sc *sc, object expr){
+    sc->state = sc_datum_to_state(sc, expr);
+    _sc_run(sc);
+    state   *s = CAST(state, sc->state);
+    sc->state  = NIL;
+    return s->C;
+}
 #define MARK(field) sc->field = gc_mark(sc->gc, sc->field)
 static void _sc_mark_roots(sc *sc) {
     MARK(state);
@@ -416,7 +461,7 @@ static void _sc_define_prim(sc *sc, object var, void *fn, long nargs) {
     _sc_define_prim (sc,SYMBOL(str),fn,nargs)
 
 #define DEFSYM(name) sc->s_##name = SYMBOL(#name)
-sc *scheme_new(void) {
+sc *_sc_new(void) {
     sc *sc = malloc(sizeof(*sc));
     sc->gc = gc_new(1000000, (gc_mark_roots)_sc_mark_roots, sc);
     sc->syms = symstore_new(1000);

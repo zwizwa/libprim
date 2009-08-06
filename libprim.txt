@@ -429,3 +429,11 @@ first `functional C' primitive task for parsing s-expressions = a
 token enumerator.
 
 
+Entry: constants vs. closures
+Date: Thu Aug  6 12:09:08 CEST 2009
+
+Currently I have constants tagged to an environment.  This won't hurt,
+but doesn't make much sense.  Maybe change the rep a bit.
+
+The environment contains closures (open_term + environment) or
+constants.
