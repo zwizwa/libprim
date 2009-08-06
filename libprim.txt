@@ -390,4 +390,33 @@ constant strings.
 Some goes for primitives.
 
 
+Entry: First interpreter run
+Date: Thu Aug  6 02:15:41 CEST 2009
+
+# (zero? 123)
+
+tom@zni:~/libprim/ceks$ ./gc-test
+#state(#closure((zero? 123) ()) ())
+#state(#closure(zero? ()) #frame(() (#closure(123 ())) ()))
+#state(#closure(#prim<0x4014f3:1> ()) #frame(() (#closure(123 ())) ()))
+#state(#closure(123 ()) #frame((#closure(#prim<0x4014f3:1> ())) () ()))
+#state(#closure(#f ()) ())
+ERROR: halt: #state(#closure(#f ()) ())
+Trace/breakpoint trap
+
+
+
+So primitive execution seems to work.  Still to test: abstraction and
+application.  After fixing some bugs we're at:
+
+# ((lambda (abc) 123) 456)
+
+tom@zni:~/libprim/ceks$ ./gc-test
+#state(#closure(((lambda (abc) 123) 456) ()) ())
+#state(#closure((lambda (abc) 123) ()) #frame(() (#closure(456 ())) ()))
+#state(#closure(#lambda(#(abc) 123) ()) #frame(() (#closure(456 ())) ()))
+#state(#closure(456 ()) #frame((#closure(#lambda(#(abc) 123) ())) () ()))
+#state(#closure(123 ((abc . #closure(456 ())))) ())
+ERROR: halt: #state(#closure(123 ((abc . #closure(456 ())))) ())
+Trace/breakpoint trap
 

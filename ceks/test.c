@@ -31,12 +31,30 @@ void debug_gc(gc_test *x) {
 object sc_interpreter_step(sc*, object);
 object sc_make_state(sc*, object, object);
 
-void debug_scheme(sc *sc) {
+void test_prim(sc *sc) {
     for (;;) {
         object e = NIL;
         object t = CONS(SYMBOL("zero?"), 
                         CONS(integer_to_object(123),
                              NIL));
+        object c = CLOSURE(t,e);
+        object k = NIL;
+        object s = STATE(c,k);
+        for(;;) {
+            sc_write(sc, s);
+            printf("\n");
+            s = sc_interpreter_step(sc, s);
+        }
+    }
+}
+
+void test_app(sc *sc) {
+    for (;;) {
+        object e = NIL;
+        object l = CONS(SYMBOL("lambda"), 
+                        CONS(CONS(SYMBOL("abc"), NIL),
+                             CONS(integer_to_object(123), NIL)));
+        object t = CONS(l, CONS(integer_to_object(456), NIL));
         object c = CLOSURE(t,e);
         object k = NIL;
         object s = STATE(c,k);
@@ -58,7 +76,7 @@ int main(int argc, char **argv) {
     x->gc = gc_new(20, (gc_mark_roots)mark_roots, x);
     x->root = integer_to_object(0);
     // debug_gc(x);
-    debug_scheme(scheme_new());
+    test_app(scheme_new());
     return 0;
 }
 

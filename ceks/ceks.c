@@ -222,6 +222,7 @@ object sc_write(sc *sc, object o) {
     if (TRUE == sc_is_closure(sc, o)) return write_vector(sc, "closure", o);
     if (TRUE == sc_is_state(sc, o))   return write_vector(sc, "state", o);
     if (TRUE == sc_is_frame(sc, o))   return write_vector(sc, "frame", o);
+    if (TRUE == sc_is_lambda(sc, o))  return write_vector(sc, "lambda", o);
     if (TRUE == sc_is_prim(sc, o)) {
         prim *p = object_to_prim(o,sc);
         printf("#prim<%p:%ld>", (void*)(p->fn),p->nargs);
@@ -231,6 +232,9 @@ object sc_write(sc *sc, object o) {
         printf("%ld", object_to_integer(o));
         return VOID;
     }
+    if (TRUE  == o) { printf("#t"); return VOID; }
+    if (FALSE == o) { printf("#f"); return VOID; }
+    if (VOID  == o) { printf("#<void>"); return VOID; }
 
     printf("#<%p>",(void*)o);
     return VOID;
@@ -338,7 +342,7 @@ object sc_interpreter_step(sc *sc, object o_state) {
 
     /* Fully reduced value */
     else {
-        if (NIL == s->K) return ERROR("continuation", o_state);
+        if (NIL == s->K) return ERROR("halt", o_state);
         frame *f = CAST(frame, s->K);
 
         /* If there are remaining closures to evaluate, pop the
@@ -352,8 +356,8 @@ object sc_interpreter_step(sc *sc, object o_state) {
         /* No more expressions to be reduced in the current frame:
            perform application. */
         else {
-            object F_V = CONS(X, f->values);
-            object p=F_V, C_fn;
+            object rargs = CONS(s->C, f->values);
+            object p=rargs, C_fn;
             int n = 0;
             while (TRUE==sc_is_pair(sc,p)) {
                 n++; C_fn = CAR(p); p = CDR(p);
@@ -377,23 +381,23 @@ object sc_interpreter_step(sc *sc, object o_state) {
                    be the cause of an abort due to GC _after_ the
                    primitive has executed.  Meaning, primitives won't
                    be restarted unless it's their own fault. */
-                object closure = CONS(NIL, NIL);
+                object closure = CLOSURE(NIL, NIL);
                 object state = STATE(closure, f->parent); // drop frame
-                object_to_pair(closure)->car =
-                    run_primitive(sc, prim_fn(p), n-1, F_V);
+                object_to_closure(closure)->term =
+                    run_primitive(sc, prim_fn(p), n-1, rargs);
                 return state;
             }
-            /* Abstraction application extends the environment. */
+            /* Application extends the environment. */
             if (TRUE==sc_is_lambda(sc, V_fn)) {
-                lambda *l = (lambda*)V_fn;
+                lambda *l = CAST(lambda, V_fn);
                 vector *v = object_to_vector(l->formals);
                 if (vector_size(v) != (n-1)) {
                     return ERROR("nargs", V_fn);
                 }
                 int i;
-                for (i=n-2; i>=0; i++) {
-                    E_fn = CONS(CONS(v->slot[i], CAR(F_V)), E_fn);
-                    F_V = CDR(F_V);
+                for (i=n-2; i>=0; i--) {
+                    E_fn = CONS(CONS(v->slot[i], CAR(rargs)), E_fn);
+                    rargs = CDR(rargs);
                 }
                 return STATE(CLOSURE(l->term, E_fn),  // close term
                              f->parent);              // drop frame
@@ -415,7 +419,6 @@ static object make_prim(sc *sc, void *fn, long nargs) {
     p->nargs = nargs;
     return atom_to_object(&p->a);
 }
-
 static void define_prim(sc *sc, object var, void *fn, long nargs) {
     object prim = make_prim(sc, fn, nargs);
     sc->toplevel = CONS(CONS(var, CLOSURE(prim, NIL)),
