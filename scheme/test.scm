@@ -1,3 +1,4 @@
+(gc)
 (((lambda (abc) (lambda (def) abc)) 123) 456)
 
 (lambda (bie) bie)

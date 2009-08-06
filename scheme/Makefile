@@ -2,7 +2,7 @@
 SRC=gc.c symbol.c scheme.c main.c
 OBJ=$(SRC:.c=.o)
 DEBUG_CFLAGS=-Wall -g
-
+# OPTI_CFLAGS=-Wall -Os
 
 all: scheme
 

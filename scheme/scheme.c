@@ -243,7 +243,19 @@ object sc_post(sc* sc, object o) {
     printf("\n");
     return VOID;
 }
-
+/* Set a state that aborts current primitive, filling its continuation
+   with the provided value. */
+static void _sc_set_abort_state(sc *sc, object val) {
+    state *s = CAST(state, sc->state);
+    frame *f = CAST(frame, s->continuation);
+    sc->state = STATE(CLOSURE(val,NIL), f->parent);
+}
+/* This requires a trick since GC aborts and restarts the current primitive. */
+object sc_gc(sc* sc) {
+    _sc_set_abort_state(sc, VOID);
+    gc_collect(sc->gc);
+    return NIL;
+}
 
 
 /* INTERPRETER */
@@ -497,16 +509,23 @@ object _sc_eval(sc *sc, object expr){
 static void _sc_mark_roots(sc *sc, gc_finalize fin) {
     // sc_trap(sc);
     printf("GC mark()\n");
-    sc_post(sc, sc->state);
+    // sc_post(sc, sc->state);
     MARK(state);
     MARK(toplevel);
     fin(sc->gc);
-    sc_post(sc, sc->state);
-    /* Abort C stack, since it now contains invalid refs. */
+    // sc_post(sc, sc->state);
+    /* Abort C stack, since it now contains invalid refs.
+
+       Note: This prevents the GC to grow the heap size, which means
+             it becomes _our_ responsability to ensure the restarting
+             doesn't turn into an infinite loop (when the current
+             evaluation step won't make it to the next before
+             triggering collection).
+    */
     if (sc->entries) {
         longjmp(sc->step, SC_EX_GC);
     }
-    printf("WARNING: GC triggered outside of mainloop.\n");
+    printf("WARNING: It is not safe to trigger GC outside of mainloop.\n");
 }
 static object _sc_make_prim(sc *sc, void *fn, long nargs) {
     prim *p = malloc(sizeof(*p));

@@ -33,4 +33,5 @@ DEF("post", sc_post, 1);
 // sc_close_args
 // sc_interpreter_step
 DEF("cons", sc_make_pair, 2);
+DEF("gc",sc_gc, 0);
 
