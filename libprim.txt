@@ -420,3 +420,12 @@ tom@zni:~/libprim/ceks$ ./gc-test
 ERROR: halt: #state(#closure(123 ((abc . #closure(456 ())))) ())
 Trace/breakpoint trap
 
+
+Entry: Pre-emption
+Date: Thu Aug  6 10:46:21 CEST 2009
+
+So, let's install the preemption based garbage collector + write the
+first `functional C' primitive task for parsing s-expressions = a
+token enumerator.
+
+

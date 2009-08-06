@@ -390,7 +390,7 @@ object sc_interpreter_step(sc *sc, object o_state) {
             /* Application extends the environment. */
             if (TRUE==sc_is_lambda(sc, V_fn)) {
                 lambda *l = CAST(lambda, V_fn);
-                vector *v = object_to_vector(l->formals);
+                vector *v = CAST(vector, l->formals);
                 if (vector_size(v) != (n-1)) {
                     return ERROR("nargs", V_fn);
                 }
