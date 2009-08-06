@@ -92,7 +92,9 @@ struct _scheme {
     object state;
     object toplevel;
     object s_lambda;
+    object s_quote;
     object s_if;
+    object s_setbang;
 
     jmp_buf step;  // current eval step abort
     atom_class op_prim;

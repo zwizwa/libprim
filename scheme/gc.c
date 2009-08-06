@@ -153,10 +153,6 @@ gc *gc_new(long total, gc_mark_roots fn, void *ctx) {
     return x;
 }
 
-
-
-
-
 object gc_vector(gc *gc, long slots, ...) {
     va_list ap;
     object o = gc_alloc(gc, slots);
@@ -169,6 +165,3 @@ object gc_vector(gc *gc, long slots, ...) {
     va_end(ap);
     return o;
 }
-
-
-

@@ -256,6 +256,11 @@ object sc_gc(sc* sc) {
     gc_collect(sc->gc);
     return NIL;
 }
+/* Like define, but the function version. */
+object sc_setvar(sc* sc, object var, object val) {
+    sc->toplevel = CONS(CONS(var,val), sc->toplevel);
+    return VOID;
+}
 
 
 /* INTERPRETER */
@@ -349,8 +354,12 @@ object sc_interpreter_step(sc *sc, object o_state) {
                     return STATE(CLOSURE(LAMBDA(formals, stx), env),
                                  s->continuation);
                 }
+                if (term_f == sc->s_quote) {
+                    return STATE(CLOSURE(CAR(term_args),env),
+                                 s->continuation);
+                }
                 // if (X_f == sc->s_if) {}
-                // if (X_f == sc->s_set) {}
+                // if (X_f == sc->s_setbang) {}
             }
 
             /* Application Form */
@@ -479,7 +488,7 @@ void _sc_run(sc *sc){
         sc->state = sc_interpreter_step(sc, sc->state); 
         goto next;
     case SC_EX_GC:
-        printf("GC restart.\n");
+        // printf("GC restart.\n");
         goto next;
     case SC_EX_ABORT:
         // printf("Abort.\n");
@@ -508,7 +517,7 @@ object _sc_eval(sc *sc, object expr){
 #define MARK(field) sc->field = gc_mark(sc->gc, sc->field)
 static void _sc_mark_roots(sc *sc, gc_finalize fin) {
     // sc_trap(sc);
-    printf("GC mark()\n");
+    // printf("GC mark()\n");
     // sc_post(sc, sc->state);
     MARK(state);
     MARK(toplevel);
@@ -525,7 +534,7 @@ static void _sc_mark_roots(sc *sc, gc_finalize fin) {
     if (sc->entries) {
         longjmp(sc->step, SC_EX_GC);
     }
-    printf("WARNING: It is not safe to trigger GC outside of mainloop.\n");
+    printf("WARNING: triggering GC outside of the main loop.\n");
 }
 static object _sc_make_prim(sc *sc, void *fn, long nargs) {
     prim *p = malloc(sizeof(*p));
@@ -535,21 +544,22 @@ static object _sc_make_prim(sc *sc, void *fn, long nargs) {
     return atom_to_object(&p->a);
 }
 static void _sc_define_prim(sc *sc, object var, void *fn, long nargs) {
-    object prim = _sc_make_prim(sc, fn, nargs);
-    sc->toplevel = CONS(CONS(var, CLOSURE(prim, NIL)),
-                        sc->toplevel);
+    sc_setvar(sc, var, _sc_make_prim(sc, fn, nargs));
 }
 #define DEF(str,fn,nargs) \
     _sc_define_prim (sc,SYMBOL(str),fn,nargs)
 
-#define DEFSYM(name) sc->s_##name = SYMBOL(#name)
 sc *_sc_new(void) {
     sc *sc = malloc(sizeof(*sc));
     sc->entries = 0;
-    sc->gc = gc_new(200, (gc_mark_roots)_sc_mark_roots, sc);
+    sc->gc = gc_new(1000000, (gc_mark_roots)_sc_mark_roots, sc);
     sc->syms = symstore_new(1000);
-    DEFSYM(lambda);
-    DEFSYM(if);
+
+    sc->s_lambda  = SYMBOL("lambda");
+    sc->s_if      = SYMBOL("if");
+    sc->s_setbang = SYMBOL("set!");
+    sc->s_quote   = SYMBOL("quote");
+
     sc->toplevel = NIL;
     sc->op_prim.free = NULL;
 #include "scheme_prim.inc"

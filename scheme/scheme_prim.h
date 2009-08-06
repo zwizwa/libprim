@@ -34,5 +34,6 @@ object sc_interpreter_step(sc *sc, object o_state);
 object sc_datum_to_state(sc *sc, object expr);
 object sc_trap(sc *sc);
 object sc_gc(sc* sc);
+object sc_setvar(sc* sc, object var, object val);
 
 #endif

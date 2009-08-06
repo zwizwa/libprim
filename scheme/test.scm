@@ -1,14 +1,25 @@
-(gc)
-(((lambda (abc) (lambda (def) abc)) 123) 456)
+(setvar 'foo
+        (lambda (_)
+          (foo (post 'foo-foo))))
+(foo 123)
 
-(lambda (bie) bie)
 
-(post ((lambda (abc) 123) 345))
+;; (post 'fffffffffffffffffffff)
 
-(post (cons 111 ((lambda (abc) 123) 456)))
 
-(post
- ((lambda (ding) 
-    (lambda (foo bar) ding))
-  123))
+
+
+;; (gc)
+;; (((lambda (abc) (lambda (def) abc)) 123) 456)
+
+;; (lambda (bie) bie)
+
+;; (post ((lambda (abc) 123) 345))
+
+;; (post (cons 111 ((lambda (abc) 123) 456)))
+
+;; (post
+;;  ((lambda (ding) 
+;;     (lambda (foo bar) ding))
+;;   123))
   
