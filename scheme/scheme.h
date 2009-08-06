@@ -13,11 +13,37 @@ typedef struct _scheme sc;
 
 sc *scheme_new(void);
 
+
+/* The machine will attempt to reduce the current term (which is a
+   closure = open term + variable bindings) or continue with the
+   computation context (a list of reducable closures). */
 typedef struct {
     vector v;
-    object C;  // closure
-    object K;  // continuation
+    object closure;      // current (reducable) closure
+    object continuation; // current continuation
 } state;
+
+typedef struct {
+    vector v;
+    object term;  // (reducable) (open) term
+    object env;   // term's free variables
+} closure;
+
+/* The continuation frame is used to sequence the order of closure
+   reductions.  Each application encountered during closure reduction
+   will create a new list of reducable closures (todo).  One by one
+   these will be reduced (done).  Reduction moves from left to right.
+   When all are done, the reduced terms are passed to a primitive, or
+   an application creates a new reducable closure with reduced
+   closures bound to variables.
+*/
+typedef struct {
+    vector v;
+    object done;   // reversed list of reduced 
+    object todo;   // todo
+    object parent; // link
+} frame;
+
 
 typedef struct {
     vector v;
@@ -31,18 +57,6 @@ typedef struct {
     object term;
 } lambda;
 
-typedef struct {
-    vector v;
-    object term;
-    object env;
-} closure;
-
-typedef struct {
-    vector v;
-    object values;   // done
-    object closures; // todo
-    object parent;   // link
-} frame;
 
 static inline long vector_get_tag(object o){
     vector *v = object_to_vector(o);

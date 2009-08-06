@@ -31,6 +31,7 @@ void debug_gc(gc_test *x) {
 
 void test_scheme(sc *sc) {
     for (;;) {
+// generated from test.scm
 #include "test.c_"
         sc_trap(sc);
     }

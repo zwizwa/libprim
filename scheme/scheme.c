@@ -102,14 +102,6 @@ object sc_make_frame(sc *sc, object v, object c, object l) {
     vector_set_tag(o, TAG_FRAME);
     return o;
 }
-// macros bound to sc context
-#define CONS(a,b)    sc_make_pair(sc,a,b)
-#define STATE(c,k)   sc_make_state(sc,c,k)
-#define LAMBDA(f,x)  sc_make_lambda(sc,f,x)
-
-
-
-
 
 /* Error handling:
    FIXME: The machine step() is protected with setjmp(). */
@@ -247,23 +239,6 @@ object sc_post(sc* sc, object o) {
 
 /* INTERPRETER */
 
-object sc_close_args(sc *sc, object lst, object E) {
-    if ((TRUE==sc_is_null(sc, lst))) return NIL;
-    else return CONS(CLOSURE(CAR(lst), E),
-                     sc_close_args(sc, CDR(lst), E)); 
-}
-static inline object _sc_call(sc *sc, void *p, 
-                              int nargs, object ra) {
-    switch(nargs) {
-    case 0: return ((sc_0)p)(sc);
-    case 1: return ((sc_1)p)(sc, CAR(ra));
-    case 2: return ((sc_2)p)(sc, CADR(ra), CAR(ra));
-    case 3: return ((sc_3)p)(sc, CADDR(ra), CADR(ra), CAR(ra));
-    default:
-        return ERROR("prim", integer_to_object(nargs));
-    }
-}
-
 /* If we pick evaluation to go from left to right, a continuation
    formed by a hole in the evaluation of (X_1 ... X_n) at position h
    is a list of frames
@@ -285,24 +260,68 @@ static inline object _sc_call(sc *sc, void *p,
        E = ((I X) (I X) ...)
 */
 
+
+/* Interpreter state contains only closures, but primitives and
+   environments have either (fully reduced) closures or naked
+   primitive values. */
+static object closure_pack(sc *sc, object o, object cl) {
+    if (NIL == cl) cl = CLOSURE(NIL,NIL);
+    /* Use prealloc structure in-place.  This is used to make
+       primitive side-effects play nice with GC pre-emption. */
+    closure *c = object_to_closure(cl);
+    if (TRUE==sc_is_closure(sc, o)) {
+        closure *_c = object_to_closure(cl);
+        c->term = _c ->term;
+        c->env  = _c ->env;
+    }
+    else {
+        c->term = o;
+        c->env  = NIL;
+    }
+    return cl;
+}
+static object closure_unpack(sc *sc, object cl) {
+    closure *c = object_to_closure(cl);
+    if (TRUE==sc_is_lambda(sc, c->term)) return cl;
+    return c->term;
+}
+
+object sc_close_args(sc *sc, object lst, object E) {
+    if ((TRUE==sc_is_null(sc, lst))) return NIL;
+    else return CONS(CLOSURE(CAR(lst), E),
+                     sc_close_args(sc, CDR(lst), E)); 
+}
+#define UP(x) closure_unpack(sc, x)
+static inline object _sc_call(sc *sc, void *p, 
+                              int nargs, object ra) {
+    switch(nargs) {
+    case 0: return ((sc_0)p)(sc);
+    case 1: return ((sc_1)p)(sc, UP(CAR(ra)));
+    case 2: return ((sc_2)p)(sc, UP(CADR(ra)), UP(CAR(ra)));
+    case 3: return ((sc_3)p)(sc, UP(CADDR(ra)), UP(CADR(ra)), UP(CAR(ra)));
+    default:
+        return ERROR("prim", integer_to_object(nargs));
+    }
+}
+
 object sc_interpreter_step(sc *sc, object o_state) {
     state *s = CAST(state, o_state);
-    closure *c = CAST(closure, s->C);
-    object X = c->term;  // (open) term
-    object E = c->env;   // environment
+    closure *c = CAST(closure, s->closure);
+    object term = c->term;  // (open) term
+    object env  = c->env;   // environment
 
     /* Form */
-    if (TRUE==sc_is_pair(sc, X)) {
-        object X_f    = CAR(X);
-        object X_args = CDR(X);
+    if (TRUE==sc_is_pair(sc, term)) {
+        object term_f    = CAR(term);
+        object term_args = CDR(term);
 
         /* Special Form */
-        if (TRUE==sc_is_symbol(sc, X_f)) {
-            if (X_f == sc->s_lambda) {
-                object formals = sc_list_to_vector(sc, CAR(X_args));
-                object term = CADR(X_args);
-                return STATE(CLOSURE(LAMBDA(formals, term), E),
-                             s->K);
+        if (TRUE==sc_is_symbol(sc, term_f)) {
+            if (term_f == sc->s_lambda) {
+                object formals = sc_list_to_vector(sc, CAR(term_args));
+                object term = CADR(term_args);
+                return STATE(CLOSURE(LAMBDA(formals, term), env),
+                             s->continuation);
             }
             // if (X_f == sc->s_if) {}
             // if (X_f == sc->s_set) {}
@@ -313,57 +332,63 @@ object sc_interpreter_step(sc *sc, object o_state) {
             /* Extend the continuation with a new frame by collecting
                all (open) subterms, and binding them to the current
                environment. */
-            object C_fn = CLOSURE(X_f, E);
-            object C_args = sc_close_args(sc, X_args, E);
-            return STATE(C_fn, FRAME(NIL, C_args, s->K));
+            object closed_args = sc_close_args(sc, term_args, env);
+            return STATE(CLOSURE(term_f, env),
+                         FRAME(NIL, 
+                               closed_args, 
+                               s->continuation));
         }
     }
     /* Variable Reference */
-    else if (TRUE==sc_is_symbol(sc, X)){
+    else if (TRUE==sc_is_symbol(sc, term)){
         object C; 
-        if (FALSE == (C = sc_find(sc, E, X))) {
-            if (FALSE == (C = sc_find_toplevel(sc, X))) {
-                return ERROR("undefined", X);
+        if (FALSE == (C = sc_find(sc, env, term))) {
+            if (FALSE == (C = sc_find_toplevel(sc, term))) {
+                return ERROR("undefined", term);
             }
         }
-        return STATE(C, s->K);
+        return STATE(closure_pack(sc, C, NIL),  // wrap naked values
+                     s->continuation);
     }
 
     /* Fully reduced value */
     else {
-        if (NIL == s->K) longjmp(sc->step, SC_EX_HALT);
-        frame *f = CAST(frame, s->K);
+        /* A fully reduced value in an empty continuation means the
+           evaluation is finished, and the machine can be halted. */
+        if (NIL == s->continuation) longjmp(sc->step, SC_EX_HALT);
+
 
         /* If there are remaining closures to evaluate, pop the
            next one and push the value to the update value list. */
-        if (TRUE==sc_is_pair(sc, f->closures)) {
-            return STATE(CAR(f->closures),
-                         FRAME(CONS(s->C,f->values),
-                               CDR(f->closures), 
+        frame *f = CAST(frame, s->continuation);
+        if (TRUE==sc_is_pair(sc, f->todo)) {
+            return STATE(CAR(f->todo),
+                         FRAME(CONS(s->closure, f->done),
+                               CDR(f->todo), 
                                f->parent));
         }
         /* No more expressions to be reduced in the current frame:
            perform application. */
         else {
-            object rargs = CONS(s->C, f->values);
-            object p=rargs, C_fn;
+            object rargs = CONS(s->closure, f->done);
+            object p=rargs, fn;
             int n = 0;
             while (TRUE==sc_is_pair(sc,p)) {
-                n++; C_fn = CAR(p); p = CDR(p);
+                n++; fn = CAR(p); p = CDR(p);
             }
             // n    == 1 + nb_args
             // V_fn == primitive or lambda
 
             // unpack the closure
-            closure *c = CAST(closure, C_fn);
-            object V_fn = c->term;
-            object E_fn = c->env;
+            closure *c = CAST(closure, fn);
+            object fn_term = c->term;
+            object fn_env  = c->env;
 
             /* Primitive functions are evaluated. */
-            if (TRUE==sc_is_prim(sc, V_fn)) {
-                prim *p = object_to_prim(V_fn,sc);
+            if (TRUE==sc_is_prim(sc, fn_term)) {
+                prim *p = object_to_prim(fn_term,sc);
                 if (prim_nargs(p) != (n-1)) {
-                    return ERROR("nargs", V_fn);
+                    return ERROR("nargs", fn_term);
                 }
                 /* Perform all allocation _before_ the execution of
                    the primitive.  This is to make sure that we won't
@@ -371,28 +396,33 @@ object sc_interpreter_step(sc *sc, object o_state) {
                    primitive has executed.  Meaning, primitives won't
                    be restarted unless it's their own fault. */
                 object closure = CLOSURE(NIL, NIL);
-                object state = STATE(closure, f->parent); // drop frame
-                object_to_closure(closure)->term =
-                    _sc_call(sc, prim_fn(p), n-1, rargs);
+                object state   = STATE(closure, f->parent); // drop frame
+                closure_pack(sc,
+                             _sc_call(sc, prim_fn(p), n-1, rargs),
+                             closure);
                 return state;
             }
-            /* Application extends the environment. */
-            if (TRUE==sc_is_lambda(sc, V_fn)) {
-                lambda *l = CAST(lambda, V_fn);
+            /* Application extends the fn_env environment. */
+            if (TRUE==sc_is_lambda(sc, fn_term)) {
+                lambda *l = CAST(lambda, fn_term);
                 vector *v = CAST(vector, l->formals);
                 if (vector_size(v) != (n-1)) {
-                    return ERROR("nargs", V_fn);
+                    return ERROR("nargs", fn_term);
                 }
                 int i;
                 for (i=n-2; i>=0; i--) {
-                    E_fn = CONS(CONS(v->slot[i], CAR(rargs)), E_fn);
+                    object cl = CAR(rargs);
+                    if (FALSE == sc_is_closure(sc, cl)) ERROR("env-type", cl);
+                    fn_env = CONS(CONS(v->slot[i], 
+                                       closure_unpack(sc, cl)),
+                                  fn_env);
                     rargs = CDR(rargs);
                 }
-                return STATE(CLOSURE(l->term, E_fn),  // close term
-                             f->parent);              // drop frame
+                return STATE(CLOSURE(l->term, fn_env),  // close term
+                             f->parent);                // drop frame
             } 
             else {
-                return ERROR("apply", V_fn);
+                return ERROR("apply", fn_term);
             }
         }
     }
@@ -420,25 +450,29 @@ void _sc_run(sc *sc){
             printf("GC restart.\n");
             break;
         case SC_EX_ABORT:
-            printf("Abort.\n");
-            break;
+            // printf("Abort.\n");
+            return;
+            // break;
         case SC_EX_HALT:
-            printf("Halt.\n");
+            // printf("Halt.\n");
             return;
         default:
             printf("Unknown exception %d.\n", exception);
-            break;
+            return;
+            // break;
         }
     }
 }
-/* External eval will run the machine until halt (empty continuation)
-   and produce its value. */
+/* Eval will run the machine until halt, which occurs for an
+   irreducable closure and an empty continuation. */
 object _sc_eval(sc *sc, object expr){
     sc->state = sc_datum_to_state(sc, expr);
     _sc_run(sc);
     state   *s = CAST(state, sc->state);
+    // closure *c = CAST(closure, s->closure);
     sc->state  = NIL;
-    return s->C;
+    // return c->term;
+    return closure_unpack(sc, s->closure);
 }
 #define MARK(field) sc->field = gc_mark(sc->gc, sc->field)
 static void _sc_mark_roots(sc *sc) {

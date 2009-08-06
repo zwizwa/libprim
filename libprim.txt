@@ -432,6 +432,9 @@ token enumerator.
 Entry: constants vs. closures
 Date: Thu Aug  6 12:09:08 CEST 2009
 
+Yesterday went well.  The basic infrastructure seems to work.  Now I
+need to get the small errors in the representation right.
+
 Currently I have constants tagged to an environment.  This won't hurt,
 but doesn't make much sense.  Maybe change the rep a bit.
 
@@ -441,3 +444,70 @@ constants.
 OK: it's way simpler to make everything a closure, but tag contstants
 with an empty environment.
 
+So.. Something is not right.  This gives an error:
+
+   (post (cons 111 ((lambda (abc) 123) 456)))
+
+ERROR: undefined: abc
+
+I currently lost oversight so let's re-connect with the textbook
+rules.
+
+
+Entry: CEK primitives
+Date: Thu Aug  6 15:01:19 CEST 2009
+
+Looks like I'm confusing two things:
+
+    * primitive values + fully reduced closures  (lambda + env)
+
+    * non-fully reduced closures (application/varref/value + env)
+
+I'd like to make sure that primitives only see primitive values and
+fully reduced closures.  Also, primitives should be able to return
+closures (even not fully reduced).
+
+Where is the inconsistency?
+
+Looking at PLLC[1] Chapter 6, p 74 at the CEK reduction rule [cek5], it
+seems that primitives get passed _only_ primitive values, not
+closures.
+
+How can I make this consistent with a primitive that can operate on
+closures as values?
+
+Hmm.. Let's provide better names for the data structure.
+
+1. A continuation frame represents the current state of argument
+   evaluation from reducable closures to irreducable closures.
+
+2. A fully evaluated continuation frame can be _applied_ which means
+   that a new (reducable) closure is created by extending the closure
+   in the first position with variables.
+
+
+From what I could test it seems that application works fine.  So I
+guess I need to figure out how to understand the difference between:
+
+      - a machine where _all_ values are closures, but primitives can
+        only accept and return primitive values (which have their
+        environment dropped before primitive evaluation)
+
+      - a machine where values are either closures or primitive
+        values, and primitive functions can operate on both.
+
+So, either the interpreter's notion of "closure" is made abstract, or
+it is changed to directly operate on both primitive values and
+closures.
+
+What I could do is the following: regard interpreter state and
+environment + data structures as different worlds.
+
+STATE: the current reducable closure and continuation contain closure
+structs only, but all communucation with the environment (extension
+and reference) and primtives will pack/unpack closures to variables.
+
+Ok. Added closure_pack() and closure_unpack().
+
+[1] http://www.cs.utah.edu/plt/publications/pllc.pdf
+[2] md5://3ab517a1167f86ef52caf3bf1a4fdb0c
