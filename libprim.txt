@@ -582,7 +582,9 @@ will need to be done in such a way that GC interrupt isn't possible.
 I'm adding a couple of structs to accomodate these different
 continuation types.
 
-Ok. 'if' and 'set!' now work.
+Once realizing the frame type is only one of different kinds of
+continuations, it was quite straigtforward to add 'if', 'set!',
+'begin' and 'lambda' with multiple expressions.
 
 
 Entry: Coroutines
@@ -600,3 +602,35 @@ Date: Fri Aug  7 09:17:45 CEST 2009
 This will require a syntax-level environment, and a lookup for every
 form.
 
+
+Entry: C-Scheme
+Date: Fri Aug  7 10:23:06 CEST 2009
+
+Working with C-callable Scheme primitives makes the step towards a
+PreScheme-like implementation easier.  Using only `let*', `if',
+`begin', `set!', and a restriction on function application (only
+primitives can be called from primitives) this could be turned into a
+simple Scheme->C compiler.
+
+At least, the way the interpreter step is implemented now in C +
+Scheme datatypes, could be embedded into equivalent Scheme quite
+easily.
+
+        Scheme          C
+        --------------------------------------------
+        let*            Lexical variables and blocks.
+        begin           Blocks.
+        if              if statement.
+        set!            Variable assignment.
+        (fn arg ...)    Function call.
+        prim-fn         C-implemented prim (or compiled from C-Scheme)
+        
+The only thing that won't work is `lambda'.  But, in case it is used
+to pass to higher order functions (HOF), the HOF could be replaced
+with a macro.
+
+Note that PreScheme[1] is much more than this: it compiles a
+significantly larger subset of Scheme.
+
+[1] http://en.wikipedia.org/wiki/PreScheme
+[2] http://citeseerx.ist.psu.edu/viewdoc/summary?doi=10.1.1.3.4031
