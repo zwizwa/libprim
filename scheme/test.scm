@@ -1,4 +1,13 @@
+((lambda (a . rest) rest) 123 1 2 3)
+
+bork
+
+((lambda args args) 1 2 3)
+
+(lambda (a) a)
+(lambda (a . rest) rest)
 (take-vector 3 '(a b c d))
+(take-vector 3 '())
 (take-vector 3 '(a b))
 
 (length '(a b))

@@ -174,18 +174,18 @@ _ sc_reverse(sc *sc, _ lst) {
 }
 
 // parse improper list
-static void _sc_length_rest(sc *sc, _ lst, long *length, _ *rest) {
+static void _sc_length_rest(sc *sc, _ lst, _ *length, _ *rest) {
     long nb = 0;
     while (TRUE == sc_is_pair(sc, lst)) { nb++; lst = CDR(lst); }
     *rest = lst;
-    *length = nb;
+    *length = integer_to_object(nb);
 }
 _ sc_length(sc *sc, _ lst) {
-    long nb;
+    _ nb;
     _ rest;
     _sc_length_rest(sc, lst, &nb, &rest);
     if (FALSE == sc_is_null(sc, rest)) TYPE_ERROR(lst);
-    return integer_to_object(nb);
+    return nb;
 }
 
 //static _ _sc_impure_list_to_vector_and_rest(sc *sc, _* rest) {
@@ -401,7 +401,6 @@ _ sc_close_args(sc *sc, _ lst, _ E) {
     else return CONS(CLOSURE(AST(CAR(lst)), E),
                      sc_close_args(sc, CDR(lst), E)); 
 }
-
 _ sc_interpreter_step(sc *sc, _ o_state) {
     state *s = CAST(state, o_state);
     closure *c = CAST(closure, s->closure);
@@ -427,13 +426,19 @@ _ sc_interpreter_step(sc *sc, _ o_state) {
             if (TRUE==sc_is_symbol(sc, term_f)) {
                 if (term_f == sc->s_lambda) {
                     if (NIL == term_args) ERROR("syntax",term);
-                    _ formals = sc_list_to_vector(sc, CAR(term_args));
-                    _ rest = NIL;
+                    _ argspec = CAR(term_args);
+                    _ named;
+                    _ rest;
+                    _sc_length_rest(sc, argspec, &named, &rest);
+                    if ((NIL   != rest) &&
+                        (FALSE == sc_is_symbol(sc,rest))) {
+                        ERROR("syntax",term);
+                    }
+                    _ formals = sc_take_vector(sc, named, argspec);
                     /* Implement the expression sequence in a `lambda'
                        expression as a `begin' sequencing form. */
                     // FIXME: don't do this if there's just 1 expr.
-                    _ stx = AST(CONS(sc->s_begin,
-                                             CDR(term_args)));
+                    _ stx = AST(CONS(sc->s_begin, CDR(term_args)));
                     _ l = sc_make_lambda(sc, formals, rest, stx);
                     return STATE(CLOSURE(l, env), s->continuation);
                 }
@@ -580,8 +585,8 @@ _ sc_interpreter_step(sc *sc, _ o_state) {
         /* No more expressions to be reduced in the current k_apply:
            perform application. */
         else {
-            _ rargs = CONS(s->closure, k->done);
-            _ p=rargs, fn;
+            _ rev_args = CONS(s->closure, k->done);
+            _ p=rev_args, fn;
             int n = 0;
             while (TRUE==sc_is_pair(sc,p)) {
                 n++; fn = CAR(p); p = CDR(p);
@@ -608,7 +613,7 @@ _ sc_interpreter_step(sc *sc, _ o_state) {
                 _ closure = CLOSURE(NIL, NIL);
                 _ state   = STATE(closure, k->parent); // drop frame
                 closure_pack(sc,
-                             _sc_call(sc, prim_fn(p), n-1, rargs),
+                             _sc_call(sc, prim_fn(p), n-1, rev_args),
                              closure);
                 return state;
             }
@@ -616,13 +621,33 @@ _ sc_interpreter_step(sc *sc, _ o_state) {
             if (TRUE==sc_is_lambda(sc, fn_term)) {
                 lambda *l = CAST(lambda, fn_term);
                 vector *v = CAST(vector, l->formals);
-                if (vector_size(v) != (n-1)) return ERROR("nargs", fn_term);
-                int i;
-                for (i=n-2; i>=0; i--) {
-                    _ cl = CAR(rargs);
+
+                long nb_named_args    = vector_size(v);
+                long nb_received_args = n - 1;
+                long nb_rest_args     = nb_received_args - nb_named_args;
+
+                if ((nb_rest_args < 0) 
+                    || ((NIL == l->rest) &&
+                        (nb_rest_args != 0))) return ERROR("nargs", fn_term);
+
+                /* If any, add the rest arguments. */
+                _ rest_args = NIL;
+                if (NIL != l->rest) {
+                    while (nb_rest_args--) {
+                        _ unpk = closure_unpack(sc, CAR(rev_args));
+                        rest_args = CONS(unpk, rest_args);
+                        rev_args = CDR(rev_args);
+                    }
+                    fn_env = CONS(CONS(l->rest, rest_args), fn_env);
+                }
+
+                /* Add the named arguments. */
+                long i;
+                for (i=nb_named_args-1; i>=0; i--) {
+                    _ cl = CAR(rev_args);
                     _ unpk = closure_unpack(sc, cl);
                     fn_env = CONS(CONS(v->slot[i], unpk), fn_env);
-                    rargs = CDR(rargs);
+                    rev_args = CDR(rev_args);
                 }
                 return STATE(CLOSURE(l->term, fn_env),  // close term
                              k->parent);                // drop frame
