@@ -123,7 +123,7 @@ _ sc_is_k_macro(sc *sc, _ o) { return vector_type(o, TAG_K_MACRO); }
 // P = parent continuation
 // D = datum
 
-_ sc_make_pair(sc *sc, _ car, _ cdr)     {STRUCT(TAG_PAIR,    2, car,cdr);}
+_ sc_cons(sc *sc, _ car, _ cdr)          {STRUCT(TAG_PAIR,    2, car,cdr);}
 _ sc_make_state(sc *sc, _ C, _ K)        {STRUCT(TAG_STATE,   2, C,K);}
 _ sc_make_closure(sc *sc, _ T, _ E)      {STRUCT(TAG_CLOSURE, 2, T,E);}
 _ sc_make_lambda(sc *sc, _ F, _ R, _ S)  {STRUCT(TAG_LAMBDA , 3, F,R,S);}

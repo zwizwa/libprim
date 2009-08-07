@@ -239,6 +239,9 @@ sc    *_sc_new(void);
 // safe cast to C struct
 #define CAST(type,x) object_to_##type(_sc_assert(sc, sc_is_##type, x))
 
+// renames
+#define sc_make_pair sc_cons
+
 
 
 
