@@ -11,16 +11,14 @@
       x))
 
 (define (mangle x)
-  (let* ((x (regexp-replace #rx"^sc_" x ""))
-         (x (regexp-replace* #rx"_" x "-"))
-         (x (regexp-replace* #rx"-to-" x "->"))
-         (x (pre->suf #rx"^bang-" x "!"))
-         (x (pre->suf #rx"^is-" x "?"))
+  (let* ((x (regexp-replace  #px"^sc_"   x ""))
+         (x (regexp-replace* #px"_"      x "-"))
+         (x (regexp-replace* #px"-to-"   x "->"))
+         (x (pre->suf        #px"^bang-" x "!"))
+         (x (pre->suf        #px"^is-"   x "?"))
          )x))
-         
 
-
-(define (collect)
+(define (scan)
   (define lst '())
   (let next ()
     (let* ((line (read-line)))
@@ -44,7 +42,7 @@
       (printf "~aDEF(~s, ~a, ~s);\n" prefix (mangle name) name n))))
 
 (define (gen-header)
-  (define ds (collect))
+  (define ds (scan))
   (decls ds)
   (printf "static inline void _sc_def_prims(sc *sc){\n")
   (defs ds)
