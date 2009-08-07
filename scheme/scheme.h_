@@ -49,7 +49,7 @@ _ sc_is_prim(sc *sc, _ o);
 _ sc_is_symbol(sc *sc, _ o);
 _ sc_is_integer(sc *sc, _ o);
 static inline void _sc_def_prims(sc *sc){
-    DEF("datum-to-state", sc_datum_to_state, 1);
+    DEF("datum->state", sc_datum_to_state, 1);
     DEF("interpreter-step", sc_interpreter_step, 1);
     DEF("close-args", sc_close_args, 2);
     DEF("gc", sc_gc, 0);
@@ -64,7 +64,7 @@ static inline void _sc_def_prims(sc *sc){
     DEF("env-set", sc_env_set, 3);
     DEF("find", sc_find, 2);
     DEF("find-slot", sc_find_slot, 2);
-    DEF("list-to-vector", sc_list_to_vector, 1);
+    DEF("list->vector", sc_list_to_vector, 1);
     DEF("take-vector", sc_take_vector, 2);
     DEF("length", sc_length, 1);
     DEF("reverse", sc_reverse, 1);

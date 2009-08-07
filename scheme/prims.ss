@@ -2,25 +2,23 @@
 
 ;; Bootstrap primitive init from C file.
 
-
 (define re-def (pregexp "_\\s+?sc_\\S*?\\(sc\\s*?\\*.*?\\)"))
 (define re-name (pregexp "sc_\\S*?(?=\\()"))
 
-(define (join lst)
-  (apply string-append
-         (cdr
-          (apply append
-                 (for/list ((l lst)) (list "-" l))))))
+(define (pre->suf pre x suf)
+  (if (regexp-match pre x)
+      (string-append (regexp-replace pre x "") suf)
+      x))
 
 (define (mangle x)
-  (define seg (cdr (regexp-split #rx"_" x)))
-  (define (first? str) (equal? str (car seg)))
-  (define (join/postfix str) (append (string-append (join (cdr seg)) str)))
-  (let ((seg (cdr (regexp-split #rx"_" x))))
-    (cond
-     ((first? "is")   (join/postfix "?"))
-     ((first? "bang") (join/postfix "!"))
-     (else (join seg)))))
+  (let* ((x (regexp-replace #rx"^sc_" x ""))
+         (x (regexp-replace* #rx"_" x "-"))
+         (x (regexp-replace* #rx"-to-" x "->"))
+         (x (pre->suf #rx"^bang-" x "!"))
+         (x (pre->suf #rx"^is-" x "?"))
+         )x))
+         
+
 
 (define (collect)
   (define lst '())
@@ -34,35 +32,22 @@
           (next)))))
   lst)
 
-(define *decls* (collect))
-
-(define (decls)
+(define (decls ds)
   (display "typedef object _;\n")
-  (for ((d *decls*))
+  (for ((d ds))
     (printf "~a;\n" d)))
 
-(define (defs [prefix "    "])
-  (for ((d *decls*))
+(define (defs ds [prefix "    "])
+  (for ((d ds))
     (let ((n (sub1 (length (regexp-split #rx"," d))))
           (name (car (regexp-match re-name d))))
       (printf "~aDEF(~s, ~a, ~s);\n" prefix (mangle name) name n))))
 
-;; (define (next)
-;;   (let* ((line (read-line)))
-;;     (when (not (eof-object? line))
-;;       (let ((match (regexp-match re-def line)))
-;;         (when match
-;;           (let* ((str (car match))
-;;                  (n (sub1 (length (regexp-split #rx"," str))))
-;;                  (name (car (regexp-match re-name str))))
-;;             (printf "~a; // DEF(~s, ~a, ~s);\n" str (mangle name) name n))
-          
-;;           )
-;;         (next)))))
+(define (gen-header)
+  (define ds (collect))
+  (decls ds)
+  (printf "static inline void _sc_def_prims(sc *sc){\n")
+  (defs ds)
+  (printf "}\n"))
 
-(decls)
-(printf "static inline void _sc_def_prims(sc *sc){\n")
-(defs)
-(printf "}\n")
-  
-  
+(gen-header)
