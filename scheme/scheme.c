@@ -22,54 +22,56 @@
 
 */
 
-static object _sc_assert(sc *sc, sc_1 predicate, object o) {
+typedef object _;  // reduce noise
+
+static _ _sc_assert(sc *sc, sc_1 predicate, _ o) {
     if (FALSE == predicate(sc, o)) { TYPE_ERROR(o); }
     return o;
 }
 
 /* Booleans are GC_CONST */
-object sc_is_bool (sc *sc, object o) {
+_ sc_is_bool (sc *sc, _ o) {
     void *x;
     if ((x = object_to_const(o)) &&
         (0 == (((long)x) & (~TRUE)))) { return TRUE; }
     return FALSE;
 }
-object sc_is_integer(sc *sc, object o) {
+_ sc_is_integer(sc *sc, _ o) {
     if (GC_INTEGER == GC_TAG(o)) return TRUE;
     return FALSE;
 }
-object sc_is_zero (sc *sc, object o) {
+_ sc_is_zero (sc *sc, _ o) {
     long i = CAST(integer, o);
     if (i) return FALSE;
     return TRUE;
 }
 /* Symbols are encoded as GC_ATOM. */
-object sc_is_symbol(sc *sc, object o) {
+_ sc_is_symbol(sc *sc, _ o) {
     if(object_to_symbol(o, sc)) return TRUE;
     return FALSE;
 }
-object sc_is_prim(sc *sc, object o) {
+_ sc_is_prim(sc *sc, _ o) {
     if(object_to_prim(o,sc)) return TRUE;
     return FALSE;
 }
 
 
 /* The empty list is the NULL pointer */
-object sc_is_null(sc *sc, object o) {
+_ sc_is_null(sc *sc, _ o) {
     if (!o) return TRUE; else return FALSE;
 }
 /* Pairs and lambdas are tagged vectors. */
-static object vector_type(object o, long tag) {
+static _ vector_type(_ o, long tag) {
     vector *v;
     if ((v = object_to_vector(o)) &&
         (tag == vector_get_tag(o))) { return TRUE; }
     return FALSE;
 }
 
-static object _sc_make_struct(sc *sc, long tag, long slots, ...) {
+static _ _sc_make_struct(sc *sc, long tag, long slots, ...) {
     va_list ap;
     va_start(ap, slots);
-    object o = gc_vector_v(sc->gc, slots, ap);
+    _ o = gc_vector_v(sc->gc, slots, ap);
     va_end(ap);   
     vector_set_tag(o, tag);
     return o;
@@ -92,21 +94,21 @@ static object _sc_make_struct(sc *sc, long tag, long slots, ...) {
 #define TAG_K_MACRO  12
 
 
-typedef object o;  // This file is quasi-Huffman encoded ;)
+typedef _ o;  // This file is quasi-Huffman encoded ;)
 
 /* Predicates */
-object sc_is_vector(sc *sc, object o)  { return vector_type(o, TAG_VECTOR); }
-object sc_is_pair(sc *sc, object o)    { return vector_type(o, TAG_PAIR); }
-object sc_is_lambda(sc *sc, object o)  { return vector_type(o, TAG_LAMBDA); }
-object sc_is_closure(sc *sc, object o) { return vector_type(o, TAG_CLOSURE); }
-object sc_is_state(sc *sc, object o)   { return vector_type(o, TAG_STATE); }
-object sc_is_ast(sc *sc, object o)     { return vector_type(o, TAG_AST); }
+_ sc_is_vector(sc *sc, _ o)  { return vector_type(o, TAG_VECTOR); }
+_ sc_is_pair(sc *sc, _ o)    { return vector_type(o, TAG_PAIR); }
+_ sc_is_lambda(sc *sc, _ o)  { return vector_type(o, TAG_LAMBDA); }
+_ sc_is_closure(sc *sc, _ o) { return vector_type(o, TAG_CLOSURE); }
+_ sc_is_state(sc *sc, _ o)   { return vector_type(o, TAG_STATE); }
+_ sc_is_ast(sc *sc, _ o)     { return vector_type(o, TAG_AST); }
 
-object sc_is_k_if(sc *sc, object o)    { return vector_type(o, TAG_K_IF); }
-object sc_is_k_apply(sc *sc, object o) { return vector_type(o, TAG_K_APPLY); }
-object sc_is_k_seq(sc *sc, object o)   { return vector_type(o, TAG_K_SEQ); }
-object sc_is_k_set(sc *sc, object o)   { return vector_type(o, TAG_K_SET); }
-object sc_is_k_macro(sc *sc, object o) { return vector_type(o, TAG_K_MACRO); }
+_ sc_is_k_if(sc *sc, _ o)    { return vector_type(o, TAG_K_IF); }
+_ sc_is_k_apply(sc *sc, _ o) { return vector_type(o, TAG_K_APPLY); }
+_ sc_is_k_seq(sc *sc, _ o)   { return vector_type(o, TAG_K_SEQ); }
+_ sc_is_k_set(sc *sc, _ o)   { return vector_type(o, TAG_K_SET); }
+_ sc_is_k_macro(sc *sc, _ o) { return vector_type(o, TAG_K_MACRO); }
 
 #define STRUCT(tag, size, ...) return _sc_make_struct(sc, tag, size, __VA_ARGS__)
 
@@ -122,31 +124,29 @@ object sc_is_k_macro(sc *sc, object o) { return vector_type(o, TAG_K_MACRO); }
 // P = parent continuation
 // D = datum
 
+_ sc_make_pair(sc *sc, _ car, _ cdr)     {STRUCT(TAG_PAIR,    2, car,cdr);}
+_ sc_make_state(sc *sc, _ C, _ K)        {STRUCT(TAG_STATE,   2, C,K);}
+_ sc_make_closure(sc *sc, _ T, _ E)      {STRUCT(TAG_CLOSURE, 2, T,E);}
+_ sc_make_lambda(sc *sc, _ F, _ R, _ S)  {STRUCT(TAG_LAMBDA , 3, F,R,S);}
+_ sc_make_ast(sc *sc, _ D)               {STRUCT(TAG_AST,     1, D);}
+
+_ sc_make_k_apply(sc *sc, _ D, _ T, _ P) {STRUCT(TAG_K_APPLY, 3, D,T,P);}
+_ sc_make_k_if(sc *sc, _ Y, _ N, _ P)    {STRUCT(TAG_K_IF,    3, Y,N,P);}
+_ sc_make_k_set(sc *sc, _ V, _ P)        {STRUCT(TAG_K_SET,   2, V,P);}
+_ sc_make_k_seq(sc *sc, _ T, _ P)        {STRUCT(TAG_K_SEQ,   2, T,P);}
+_ sc_make_k_macro(sc *sc, _ E, _ P)      {STRUCT(TAG_K_MACRO, 2, E,P);}
 
 
-object sc_make_pair(sc *sc, object car, object cdr)     {STRUCT(TAG_PAIR,    2, car,cdr);}
-object sc_make_state(sc *sc, object C, object K)        {STRUCT(TAG_STATE,   2, C,K);}
-object sc_make_closure(sc *sc, object T, object E)      {STRUCT(TAG_CLOSURE, 2, T,E);}
-object sc_make_lambda(sc *sc, object F, object R, object S)  {STRUCT(TAG_LAMBDA , 3, F,R,S);}
-object sc_make_ast(sc *sc, object D)               {STRUCT(TAG_AST,     1, D);}
-
-object sc_make_k_apply(sc *sc, object D, object T, object P) {STRUCT(TAG_K_APPLY, 3, D,T,P);}
-object sc_make_k_if(sc *sc, object Y, object N, object P)    {STRUCT(TAG_K_IF,    3, Y,N,P);}
-object sc_make_k_set(sc *sc, object V, object P)        {STRUCT(TAG_K_SET,   2, V,P);}
-object sc_make_k_seq(sc *sc, object T, object P)        {STRUCT(TAG_K_SEQ,   2, T,P);}
-object sc_make_k_macro(sc *sc, object E, object P)      {STRUCT(TAG_K_MACRO, 2, E,P);}
-
-
-object sc_car(sc *sc, object o) { pair *p = CAST(pair, o); return p->car; }
-object sc_cdr(sc *sc, object o) { pair *p = CAST(pair, o); return p->cdr; }
+_ sc_car(sc *sc, _ o) { pair *p = CAST(pair, o); return p->car; }
+_ sc_cdr(sc *sc, _ o) { pair *p = CAST(pair, o); return p->cdr; }
 
 /* Error handling:
    FIXME: The machine step() is protected with setjmp(). */
-object sc_trap(sc *sc) {
+_ sc_trap(sc *sc) {
     kill(getpid(), SIGTRAP);
     return VOID;
 }
-object sc_error(sc *sc, object sym_o, object o) {
+_ sc_error(sc *sc, _ sym_o, _ o) {
     symbol *sym   = object_to_symbol(sym_o, sc);
     if (!sym) sym = string_to_symbol(sc->syms, "error");
     printf("ERROR: ");
@@ -156,18 +156,15 @@ object sc_error(sc *sc, object sym_o, object o) {
     longjmp(sc->step, SC_EX_ABORT);
     return NIL;
 }
-
-/* Remaining primitives perform type checking. */
-
-object sc_make_vector(sc *sc, object slots, object init) {
+_ sc_make_vector(sc *sc, _ slots, _ init) {
     long i,n = CAST(integer, slots);
-    object o = gc_alloc(sc->gc, n);
+    _ o = gc_alloc(sc->gc, n);
     vector *v = object_to_vector(o);
     for(i=0; i<n; i++) v->slot[i] = init;
     return o;
 }
-object sc_reverse(sc *sc, object lst) {
-    object rlst = NIL;
+_ sc_reverse(sc *sc, _ lst) {
+    _ rlst = NIL;
     while(FALSE == (sc_is_null(sc, lst))) {
         pair *p = CAST(pair, lst);
         rlst = CONS(p->car, rlst);
@@ -175,15 +172,15 @@ object sc_reverse(sc *sc, object lst) {
     }
     return rlst;
 }
-object sc_length(sc *sc, object lst) {
+_ sc_length(sc *sc, _ lst) {
     int nb = 0;
     while (TRUE == sc_is_pair(sc, lst)) { nb++; lst = CDR(lst); }
     if (FALSE == sc_is_null(sc, lst)) TYPE_ERROR(lst);
     return integer_to_object(nb);
 }
-object sc_list_to_vector(sc *sc, object lst){
-    object slots = sc_length(sc, lst);
-    object vo = gc_alloc(sc->gc, CAST(integer, slots));
+_ sc_list_to_vector(sc *sc, _ lst){
+    _ slots = sc_length(sc, lst);
+    _ vo = gc_alloc(sc->gc, CAST(integer, slots));
     vector *v = object_to_vector(vo);
     long i=0;
     while (FALSE == sc_is_null(sc, lst)) {
@@ -192,34 +189,34 @@ object sc_list_to_vector(sc *sc, object lst){
     }
     return vo;
 }
-object sc_find_slot(sc *sc, object E, object var) {
+_ sc_find_slot(sc *sc, _ E, _ var) {
     if (TRUE == sc_is_null(sc, E)) return FALSE;
-    object slot = CAR(E);
-    object name = CAR(slot);
+    _ slot = CAR(E);
+    _ name = CAR(slot);
     if (name == var) return slot;
     else return sc_find_slot(sc, CDR(E), var);
 }
-object sc_find(sc *sc, object E, object var) {
-    object rv = sc_find_slot(sc, E, var);
+_ sc_find(sc *sc, _ E, _ var) {
+    _ rv = sc_find_slot(sc, E, var);
     if (FALSE == sc_is_pair(sc, rv)) return FALSE;
     return CDR(rv);
 }
-object sc_env_set(sc *sc, object E, object var, object value) {
-    object rv = sc_find_slot(sc, E, var);
+_ sc_env_set(sc *sc, _ E, _ var, _ value) {
+    _ rv = sc_find_slot(sc, E, var);
     if (FALSE == sc_is_pair(sc, rv)) return FALSE;
     CDR(rv)=value;
     return VOID;
 }
-object sc_find_toplevel(sc *sc, object var) {
+_ sc_find_toplevel(sc *sc, _ var) {
     return sc_find(sc, sc->toplevel, var);
 }
-object sc_is_list(sc *sc, object o) {
+_ sc_is_list(sc *sc, _ o) {
     if(TRUE==sc_is_null(sc, o)) return TRUE;
     if(FALSE==sc_is_pair(sc, o)) return FALSE;
     return sc_is_list(sc, CDR(o));
 }
-object sc_newline(sc *sc) { printf("\n"); return VOID; }
-static object write_vector(sc *sc, char *type, object o) {
+_ sc_newline(sc *sc) { printf("\n"); return VOID; }
+static _ write_vector(sc *sc, char *type, _ o) {
     printf("#%s(", type);
     vector *v = object_to_vector(o);
     long i,n = vector_size(v);
@@ -230,7 +227,7 @@ static object write_vector(sc *sc, char *type, object o) {
     printf(")");
     return VOID;
 }
-object sc_write(sc *sc, object o) {
+_ sc_write(sc *sc, _ o) {
     if (TRUE  == o) { printf("#t"); return VOID; }
     if (FALSE == o) { printf("#f"); return VOID; }
     if (TRUE == sc_is_integer(sc, o)) {
@@ -287,13 +284,13 @@ object sc_write(sc *sc, object o) {
     printf("#<%p>",(void*)o);
     return VOID;
 }
-object sc_post(sc* sc, object o) {
+_ sc_post(sc* sc, _ o) {
     sc_write(sc, o);
     printf("\n");
     return VOID;
 }
 /* This requires a trick since GC aborts and restarts the current primitive. */
-object sc_gc(sc* sc) {
+_ sc_gc(sc* sc) {
     state *s = CAST(state, sc->state);
     // Were sure it's a k_apply since we're a primitive application.
     k_apply *f = CAST(k_apply, s->continuation);
@@ -302,11 +299,11 @@ object sc_gc(sc* sc) {
     return NIL;
 }
 /*  Add to the toplevel environments (no mutation). */
-object sc_push_toplevel(sc* sc, object var, object val) {
+_ sc_push_toplevel(sc* sc, _ var, _ val) {
     sc->toplevel = CONS(CONS(var,val), sc->toplevel);
     return VOID;
 }
-object sc_push_toplevel_macro(sc* sc, object var, object val) {
+_ sc_push_toplevel_macro(sc* sc, _ var, _ val) {
     sc->toplevel_macro = CONS(CONS(var,val), sc->toplevel_macro);
     return VOID;
 }
@@ -342,7 +339,7 @@ object sc_push_toplevel_macro(sc* sc, object var, object val) {
 /* Interpreter state contains only closures, but primitives and
    environments have either (fully reduced) closures or naked
    primitive values. */
-static object closure_pack(sc *sc, object o, object cl) {
+static _ closure_pack(sc *sc, _ o, _ cl) {
     if (NIL == cl) cl = CLOSURE(NIL,NIL);
     /* Use prealloc structure in-place.  This is used to make
        primitive side-effects play nice with GC pre-emption. */
@@ -358,15 +355,15 @@ static object closure_pack(sc *sc, object o, object cl) {
     }
     return cl;
 }
-static object closure_unpack(sc *sc, object cl) {
+static _ closure_unpack(sc *sc, _ cl) {
     closure *c = object_to_closure(cl);
     if (TRUE==sc_is_lambda(sc, c->term)) return cl;
     return c->term;
 }
 
 #define UP(x) closure_unpack(sc, x)
-static inline object _sc_call(sc *sc, void *p, 
-                              int nargs, object ra) {
+static inline _ _sc_call(sc *sc, void *p, 
+                              int nargs, _ ra) {
     switch(nargs) {
     case 0: return ((sc_0)p)(sc);
     case 1: return ((sc_1)p)(sc, UP(CAR(ra)));
@@ -379,17 +376,17 @@ static inline object _sc_call(sc *sc, void *p,
 
 /* Convert a list of terms obtained as part of an AST of a closure to
    a list of closures. */
-object sc_close_args(sc *sc, object lst, object E) {
+_ sc_close_args(sc *sc, _ lst, _ E) {
     if ((TRUE==sc_is_null(sc, lst))) return NIL;
     else return CONS(CLOSURE(AST(CAR(lst)), E),
                      sc_close_args(sc, CDR(lst), E)); 
 }
 
-object sc_interpreter_step(sc *sc, object o_state) {
+_ sc_interpreter_step(sc *sc, _ o_state) {
     state *s = CAST(state, o_state);
     closure *c = CAST(closure, s->closure);
-    object term = c->term;  // (open) term
-    object env  = c->env;   // environment
+    _ term = c->term;  // (open) term
+    _ env  = c->env;   // environment
 
     /* Abstract Syntax: perform a single reduction step.
 
@@ -400,24 +397,24 @@ object sc_interpreter_step(sc *sc, object o_state) {
      */
     if (TRUE==sc_is_ast(sc, term)) {
         ast *stx = object_to_ast(term);
-        object term = stx->datum;
+        _ term = stx->datum;
 
         if (TRUE==sc_is_pair(sc, term)) {
-            object term_f    = CAR(term);
-            object term_args = CDR(term);
+            _ term_f    = CAR(term);
+            _ term_args = CDR(term);
 
             /* Special Form */
             if (TRUE==sc_is_symbol(sc, term_f)) {
                 if (term_f == sc->s_lambda) {
                     if (NIL == term_args) ERROR("syntax",term);
-                    object formals = sc_list_to_vector(sc, CAR(term_args));
-                    object rest = NIL;
+                    _ formals = sc_list_to_vector(sc, CAR(term_args));
+                    _ rest = NIL;
                     /* Implement the expression sequence in a `lambda'
                        expression as a `begin' sequencing form. */
                     // FIXME: don't do this if there's just 1 expr.
-                    object stx = AST(CONS(sc->s_begin,
+                    _ stx = AST(CONS(sc->s_begin,
                                              CDR(term_args)));
-                    object l = sc_make_lambda(sc, formals, rest, stx);
+                    _ l = sc_make_lambda(sc, formals, rest, stx);
                     return STATE(CLOSURE(l, env), s->continuation);
                 }
                 if (term_f == sc->s_quote) {
@@ -428,9 +425,9 @@ object sc_interpreter_step(sc *sc, object o_state) {
                 if (term_f == sc->s_if) {
                     if (NIL == term_args) ERROR("syntax",term);
                     if (NIL == CDR(term_args)) ERROR("syntax",term);
-                    object cond = CLOSURE(AST(CAR(term_args)),env);
-                    object yes  = CLOSURE(AST(CADR(term_args)),env);
-                    object no   = 
+                    _ cond = CLOSURE(AST(CAR(term_args)),env);
+                    _ yes  = CLOSURE(AST(CADR(term_args)),env);
+                    _ no   = 
                         (NIL == CDDR(term_args)) ? 
                         CLOSURE(VOID,NIL) :
                         CLOSURE(AST(CADDR(term_args)),env);
@@ -441,26 +438,26 @@ object sc_interpreter_step(sc *sc, object o_state) {
                 if (term_f == sc->s_setbang) {
                     if (NIL == term_args) ERROR("syntax",term);
                     if (NIL == CDR(term_args)) ERROR("syntax",term);
-                    object var = CLOSURE(CAR(term_args),env);
-                    object cl  = CLOSURE(AST(CADR(term_args)),env);
+                    _ var = CLOSURE(CAR(term_args),env);
+                    _ cl  = CLOSURE(AST(CADR(term_args)),env);
                     return STATE(cl, sc_make_k_set(sc, var, s->continuation));
                 }
                 if (term_f == sc->s_begin) {
                     if (NIL == term_args) ERROR("syntax",term);
-                    object todo = sc_close_args(sc, term_args, env);
+                    _ todo = sc_close_args(sc, term_args, env);
                     return STATE(CAR(todo),
                                  sc_make_k_seq(sc, CDR(todo),
                                                s->continuation));
                 }
-                object macro;
+                _ macro;
                 if (FALSE != (macro = sc_find(sc, sc->toplevel_macro, term_f))) {
                     /* Macro continuation is based on a completed
                        k_apply frame that will trigger the fn
                        application, linked to a k_macro frame that
                        will steer the result back to the AST
                        reducer. */
-                    object k_m = sc_make_k_macro(sc, c->env, s->continuation);
-                    object k_a = sc_make_k_apply
+                    _ k_m = sc_make_k_macro(sc, c->env, s->continuation);
+                    _ k_a = sc_make_k_apply
                         (sc,  
                          CONS(closure_pack(sc, macro, NIL), NIL), // done list
                          NIL, // todo list
@@ -474,7 +471,7 @@ object sc_interpreter_step(sc *sc, object o_state) {
             /* Extend the continuation with a new frame by collecting
                all (open) subterms, and binding them to the current
                environment. */
-            object closed_args = sc_close_args(sc, term_args, env);
+            _ closed_args = sc_close_args(sc, term_args, env);
             return STATE(CLOSURE(AST(term_f), env),
                          sc_make_k_apply(sc, NIL,
                                          closed_args, 
@@ -482,7 +479,7 @@ object sc_interpreter_step(sc *sc, object o_state) {
         }
         /* Variable Reference */
         else if (TRUE==sc_is_symbol(sc, term)){
-            object val; 
+            _ val; 
             if (FALSE == (val = sc_find(sc, env, term))) {
                 if (FALSE == (val = sc_find_toplevel(sc, term))) {
                     return ERROR("undefined", term);
@@ -514,15 +511,15 @@ object sc_interpreter_step(sc *sc, object o_state) {
 
     if (TRUE == sc_is_k_if(sc, s->continuation)) {
         k_if *k = object_to_k_if(s->continuation);
-        object rc = (FALSE == c->term) ? k->no : k->yes;
+        _ rc = (FALSE == c->term) ? k->no : k->yes;
         return STATE(rc, k->parent);
     }
     if (TRUE == sc_is_k_set(sc, s->continuation)) {
         k_set *k = object_to_k_set(s->continuation);
         closure *v = CAST(closure, k->var);
         // allocate before mutation
-        object rv = STATE(CLOSURE(VOID,NIL), k->parent);
-        object val = closure_unpack(sc, s->closure);
+        _ rv = STATE(CLOSURE(VOID,NIL), k->parent);
+        _ val = closure_unpack(sc, s->closure);
         if (FALSE == sc_env_set(sc, v->env, v->term, val)) {
             if (FALSE == sc_env_set(sc, sc->toplevel, v->term, val)) {
                 return ERROR("undefined", v->term);
@@ -544,7 +541,7 @@ object sc_interpreter_step(sc *sc, object o_state) {
         return STATE(s->closure, k->parent);
     }
     if (TRUE == sc_is_k_macro(sc, s->continuation)) {
-        /* The object returned by the macro is wrapped as an AST wich
+        /* The _ returned by the macro is wrapped as an AST wich
            triggers its further reduction. */
         k_macro *k = object_to_k_macro(s->continuation);
         return STATE(CLOSURE(AST(c->term),k->env), k->parent);
@@ -563,8 +560,8 @@ object sc_interpreter_step(sc *sc, object o_state) {
         /* No more expressions to be reduced in the current k_apply:
            perform application. */
         else {
-            object rargs = CONS(s->closure, k->done);
-            object p=rargs, fn;
+            _ rargs = CONS(s->closure, k->done);
+            _ p=rargs, fn;
             int n = 0;
             while (TRUE==sc_is_pair(sc,p)) {
                 n++; fn = CAR(p); p = CDR(p);
@@ -574,8 +571,8 @@ object sc_interpreter_step(sc *sc, object o_state) {
 
             // unpack the closure
             closure *c = CAST(closure, fn);
-            object fn_term = c->term;
-            object fn_env  = c->env;
+            _ fn_term = c->term;
+            _ fn_env  = c->env;
 
             /* Primitive functions are evaluated. */
             if (TRUE==sc_is_prim(sc, fn_term)) {
@@ -588,8 +585,8 @@ object sc_interpreter_step(sc *sc, object o_state) {
                    be the cause of an abort due to GC _after_ the
                    primitive has executed.  Meaning, primitives won't
                    be restarted unless it's their own fault. */
-                object closure = CLOSURE(NIL, NIL);
-                object state   = STATE(closure, k->parent); // drop frame
+                _ closure = CLOSURE(NIL, NIL);
+                _ state   = STATE(closure, k->parent); // drop frame
                 closure_pack(sc,
                              _sc_call(sc, prim_fn(p), n-1, rargs),
                              closure);
@@ -602,8 +599,8 @@ object sc_interpreter_step(sc *sc, object o_state) {
                 if (vector_size(v) != (n-1)) return ERROR("nargs", fn_term);
                 int i;
                 for (i=n-2; i>=0; i--) {
-                    object cl = CAR(rargs);
-                    object unpk = closure_unpack(sc, cl);
+                    _ cl = CAR(rargs);
+                    _ unpk = closure_unpack(sc, cl);
                     fn_env = CONS(CONS(v->slot[i], unpk), fn_env);
                     rargs = CDR(rargs);
                 }
@@ -620,9 +617,9 @@ object sc_interpreter_step(sc *sc, object o_state) {
 }
 /* Convert an s-expression to a machine state that will eval and
    halt. */
-object sc_datum_to_state(sc *sc, object expr) {
-    object c = CLOSURE(expr,NIL);  // empty environment
-    object k = NIL;                // empty continuation
+_ sc_datum_to_state(sc *sc, _ expr) {
+    _ c = CLOSURE(expr,NIL);  // empty environment
+    _ k = NIL;                // empty continuation
     return STATE(c,k);
 }
 
@@ -650,7 +647,7 @@ void _sc_run(sc *sc){
 }
 /* Eval will run the machine until halt, which occurs for an
    irreducable closure and an empty continuation. */
-object _sc_eval(sc *sc, object expr){
+_ _sc_eval(sc *sc, _ expr){
     sc->state = sc_datum_to_state(sc, expr);
     _sc_run(sc);
     state   *s = CAST(state, sc->state);
@@ -682,14 +679,14 @@ static void _sc_mark_roots(sc *sc, gc_finalize fin) {
     }
     printf("WARNING: triggering GC outside of the main loop.\n");
 }
-static object _sc_make_prim(sc *sc, void *fn, long nargs) {
+static _ _sc_make_prim(sc *sc, void *fn, long nargs) {
     prim *p = malloc(sizeof(*p));
     p->a.op = &sc->op_prim; // class
     p->fn = fn;
     p->nargs = nargs;
     return atom_to_object(&p->a);
 }
-static void _sc_push_prim(sc *sc, object var, void *fn, long nargs) {
+static void _sc_push_prim(sc *sc, _ var, void *fn, long nargs) {
     sc_push_toplevel(sc, var, _sc_make_prim(sc, fn, nargs));
 }
 #define DEF(str,fn,nargs) \
