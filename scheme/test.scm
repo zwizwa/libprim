@@ -1,4 +1,4 @@
-(gc)
+;; (gc)
 
 
 (let ((foo 123)) foo)

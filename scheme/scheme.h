@@ -109,6 +109,13 @@ typedef struct {
     object term;
 } lambda;
 
+typedef struct {
+    vector v;
+    object tag;
+    object arg;
+    object state;
+} error;
+
 /* All reducable code is wrapped by an AST object. */
 typedef struct {
     vector v;
@@ -116,10 +123,14 @@ typedef struct {
 } ast;
 
 
-static inline unsigned long vector_get_tag(object o){
+static inline unsigned long vector_to_tag(vector *v) {
+    return (v->header) >> GC_VECTOR_TAG_SHIFT;
+}
+
+static inline unsigned long object_get_vector_tag(object o){
     vector *v = object_to_vector(o);
     if (!v) return -1;
-    return (v->header) >> GC_VECTOR_TAG_SHIFT;
+    return vector_to_tag(v);
 }
 static inline void vector_set_tag(object o, long tag){
     object_to_vector(o)->header |= (tag << GC_VECTOR_TAG_SHIFT);
@@ -136,6 +147,8 @@ DEF_CAST (state)
 DEF_CAST (lambda)
 DEF_CAST (closure)
 DEF_CAST (ast)
+DEF_CAST (error)
+
 DEF_CAST (k_apply)
 DEF_CAST (k_if)
 DEF_CAST (k_set)
@@ -151,13 +164,18 @@ struct _scheme {
     object toplevel;
     object toplevel_macro;
 
+    object error_tag;
+    object error_arg;
+
     object s_lambda;
     object s_quote;
     object s_if;
     object s_setbang;
     object s_begin;
 
-    jmp_buf step;  // current eval step abort
+    jmp_buf step;   // current CEKS step abort
+    jmp_buf run;    // full interpreter C stack unwind (i.e. for GC)
+
     atom_class op_prim;
     long entries;
 };

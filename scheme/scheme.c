@@ -2,6 +2,7 @@
 #include <signal.h>
 #include <sys/types.h>
 #include <unistd.h>
+#include <string.h>
 
 #include "symbol.h"
 #include "scheme.h"
@@ -63,7 +64,7 @@ _ sc_is_null(sc *sc, _ o) {
 static _ vector_type(_ o, long tag) {
     vector *v;
     if ((v = object_to_vector(o)) &&
-        (tag == vector_get_tag(o))) { return TRUE; }
+        (tag == vector_to_tag(v))) { return TRUE; }
     return FALSE;
 }
 
@@ -85,6 +86,7 @@ static _ _sc_make_struct(sc *sc, long tag, long slots, ...) {
 #define TAG_STATE     3
 #define TAG_CLOSURE   4
 #define TAG_AST       5
+#define TAG_ERROR     6
 
 #define TAG_K_IF      8
 #define TAG_K_SET     9
@@ -102,12 +104,28 @@ _ sc_is_lambda(sc *sc, _ o)  { return vector_type(o, TAG_LAMBDA); }
 _ sc_is_closure(sc *sc, _ o) { return vector_type(o, TAG_CLOSURE); }
 _ sc_is_state(sc *sc, _ o)   { return vector_type(o, TAG_STATE); }
 _ sc_is_ast(sc *sc, _ o)     { return vector_type(o, TAG_AST); }
+_ sc_is_error(sc *sc, _ o)   { return vector_type(o, TAG_ERROR); }
 
 _ sc_is_k_if(sc *sc, _ o)    { return vector_type(o, TAG_K_IF); }
 _ sc_is_k_apply(sc *sc, _ o) { return vector_type(o, TAG_K_APPLY); }
 _ sc_is_k_seq(sc *sc, _ o)   { return vector_type(o, TAG_K_SEQ); }
 _ sc_is_k_set(sc *sc, _ o)   { return vector_type(o, TAG_K_SET); }
 _ sc_is_k_macro(sc *sc, _ o) { return vector_type(o, TAG_K_MACRO); }
+
+_ sc_is_continuation(sc *sc, _ o) {
+    vector *v;
+    if ((v = object_to_vector(o))) {
+        switch(vector_to_tag(v)) {
+        case TAG_K_APPLY:
+        case TAG_K_SEQ:
+        case TAG_K_IF:
+        case TAG_K_SET:
+        case TAG_K_MACRO:
+            return TRUE;
+        }
+    }
+    return FALSE;
+}
 
 #define STRUCT(tag, size, ...) return _sc_make_struct(sc, tag, size, __VA_ARGS__)
 
@@ -128,6 +146,7 @@ _ sc_make_state(sc *sc, _ C, _ K)        {STRUCT(TAG_STATE,   2, C,K);}
 _ sc_make_closure(sc *sc, _ T, _ E)      {STRUCT(TAG_CLOSURE, 2, T,E);}
 _ sc_make_lambda(sc *sc, _ F, _ R, _ S)  {STRUCT(TAG_LAMBDA , 3, F,R,S);}
 _ sc_make_ast(sc *sc, _ D)               {STRUCT(TAG_AST,     1, D);}
+_ sc_make_error(sc *sc, _ T, _ A, _ K)   {STRUCT(TAG_ERROR,   3, T,A,K);}
 
 _ sc_make_k_apply(sc *sc, _ D, _ T, _ P) {STRUCT(TAG_K_APPLY, 3, D,T,P);}
 _ sc_make_k_if(sc *sc, _ Y, _ N, _ P)    {STRUCT(TAG_K_IF,    3, Y,N,P);}
@@ -145,15 +164,10 @@ _ sc_trap(sc *sc) {
     kill(getpid(), SIGTRAP);
     return VOID;
 }
-_ sc_error(sc *sc, _ sym_o, _ o) {
-    symbol *sym   = object_to_symbol(sym_o, sc);
-    if (!sym) sym = string_to_symbol(sc->syms, "error");
-    printf("ERROR: ");
-    sc_write(sc, sym_o); printf(": ");
-    sc_write(sc, o);     printf("\n");
-    sc_trap(sc);
+_ sc_error(sc *sc, _ sym_o, _ arg_o) {
+    sc->error_tag = sym_o;
+    sc->error_arg = arg_o;
     longjmp(sc->step, SC_EX_ABORT);
-    return NIL;
 }
 _ sc_make_vector(sc *sc, _ slots, _ init) {
     long i,n = CAST(integer, slots);
@@ -277,7 +291,7 @@ _ sc_write(sc *sc, _ o) {
         printf("()");
         return VOID;
     }
-    if (TRUE == sc_is_vector(sc, o))  return write_vector(sc, "", o);
+   if (TRUE == sc_is_vector(sc, o))  return write_vector(sc, "", o);
     // FIXME: this doesn't print improper lists other than pairs.
     if(TRUE == sc_is_list(sc, o)) {
         printf("(");
@@ -307,6 +321,7 @@ _ sc_write(sc *sc, _ o) {
     if (TRUE == sc_is_state(sc, o))   return write_vector(sc, "state", o);
     if (TRUE == sc_is_lambda(sc, o))  return write_vector(sc, "lambda", o);
     if (TRUE == sc_is_ast(sc, o))     return write_vector(sc, "ast", o);
+    if (TRUE == sc_is_error(sc, o))   return write_vector(sc, "error", o);
 
     if (TRUE == sc_is_k_apply(sc, o)) return write_vector(sc, "k_apply", o);
     if (TRUE == sc_is_k_if(sc, o))    return write_vector(sc, "k_if", o);
@@ -331,6 +346,7 @@ _ sc_post(sc* sc, _ o) {
 }
 
 _ sc_fatal(sc *sc) {
+    printf("FATAL\n");
     return VOID;
 }
 
@@ -408,9 +424,8 @@ _ sc_close_args(sc *sc, _ lst, _ E) {
                      sc_close_args(sc, CDR(lst), E)); 
 }
 
+static _ _sc_step_internal(sc *sc, _ o_state) {
 
-
-_ sc_interpreter_step(sc *sc, _ o_state) {
     state *s = CAST(state, o_state);
     closure *c = CAST(closure, s->closure);
     _ term = c->term;  // (open) term
@@ -541,8 +556,9 @@ _ sc_interpreter_step(sc *sc, _ o_state) {
 
     /* A fully reduced value in an empty continuation means the
        evaluation is finished, and the machine can be halted. */
-    if (NIL == s->continuation) longjmp(sc->step, SC_EX_HALT);
-
+    if (NIL == s->continuation) {
+        sc_error(sc, SYMBOL("halt"), s->closure);
+    }
     if (TRUE == sc_is_k_if(sc, s->continuation)) {
         k_if *k = object_to_k_if(s->continuation);
         _ rc = (FALSE == c->term) ? k->no : k->yes;
@@ -662,6 +678,12 @@ _ sc_interpreter_step(sc *sc, _ o_state) {
                              k->parent);                // drop frame
             } 
 
+            /* Continuation */
+            if (TRUE==sc_is_continuation(sc, fn_term)) {
+                if (n != 2) ERROR("nargs", fn_term);
+                return STATE(CAR(rev_args), CADR(rev_args));
+            }
+
             /* Unknown applicant type */
             return ERROR("apply", fn_term);
         }
@@ -669,6 +691,45 @@ _ sc_interpreter_step(sc *sc, _ o_state) {
     /* Unknown continuation type */
     return ERROR("cont", s->continuation);
 }
+
+/* Because interpreter-step is accessible from Scheme, it is possible
+   to create towers of interpreters.  This requires some nesting for
+   the exceptions, which only travel towards the nearest step() to be
+   turned into values for the layer above.
+
+   Note that GC exceptions are different: they travel all the way up
+   to the topmost STEP and restart its continuation.  
+
+   Only GC and the topmost STEP are allowed to access sc->state.
+*/
+
+_ sc_interpreter_step(sc *sc, _ state) {
+    int exception;
+    object rv = NIL;
+    jmp_buf save;
+    memcpy(&save, &sc->step, sizeof(save));
+    sc->entries++;
+
+    switch(exception = setjmp(sc->step)) {
+        case SC_EX_TRY:
+            rv = _sc_step_internal(sc, state);
+            break;
+        case SC_EX_ABORT: 
+            rv = sc_make_error(sc, sc->error_tag, sc->error_arg, state);
+            sc->error_arg = NIL;
+            sc->error_tag = NIL;
+            break;
+        default:
+            break;
+    }
+    memcpy(&sc->step, &save, sizeof(save));
+    sc->entries--;
+    return rv;
+}
+
+
+
+
 
 /* While sc_interpreter_step() is a pure function, some primitives
    require direct modification of the continuation.  We do this using
@@ -683,7 +744,7 @@ static _ _sc_prim_k(sc *sc) {
     k_apply *f = CAST(k_apply, s->continuation);
     return f->parent;
 }
-static _ _sc_restart(sc *sc) { longjmp(sc->step, SC_EX_RESTART); }
+static _ _sc_restart(sc *sc) { longjmp(sc->run, SC_EX_RESTART); }
    
 /* GC: set continuation manually, since since the interpreter aborts
    and restarts the current step. */
@@ -722,35 +783,51 @@ _ sc_datum_to_state(sc *sc, _ expr) {
 /* --- SETUP & GC --- */
 
 void _sc_run(sc *sc){
-    if (sc->entries) {
-        fprintf(stderr, "ERROR: not allowing interpreter re-entry.\n");
-        return;
-    }
-    sc->entries++;
     int exception;
+    sc->entries++;
   next:
-    switch (exception = setjmp(sc->step)) {
+    switch (exception = setjmp(sc->run)) {
     case SC_EX_TRY:
-        for(;;) {
+        do {
+            // sc_post(sc, sc->state);
             sc->state = sc_interpreter_step(sc, sc->state); 
+        } while (FALSE == sc_is_error(sc, sc->state));
+        /* Handle error states */
+        error *e = object_to_error(sc->state);
+        if (e->tag == SYMBOL("halt")) {
+            sc->state = e->state;
+            goto leave;
+        }
+        else {
+            // FIXME: stay inside the interpreter.
+            printf("ERROR: ");
+            sc_write(sc, e->tag); printf(": ");
+            sc_write(sc, e->arg); printf("\n");
+            goto abort;
         }
     case SC_EX_RESTART: goto next;
-    case SC_EX_ABORT:   sc->state = sc->state_abort; goto next;
-    case SC_EX_HALT:    goto leave;
     default:
         fprintf(stderr, "Unknown exception %d.\n", exception);
-        goto leave;
+        goto abort;
     }
   leave:
     sc->entries--;
+    return;
+  abort:
+    sc->state = sc->state_abort;
+    goto next;
 }
 /* Eval runs until halt SC_EX_HALT. */
 _ _sc_eval(sc *sc, _ expr){
     sc->state = sc_datum_to_state(sc, expr);
     _sc_run(sc);
-    state   *s = CAST(state, sc->state);
-    sc->state  = NIL;
-    return closure_unpack(sc, s->closure);
+    _ rv = NIL;
+    if (TRUE==sc_is_state(sc, sc->state)) {
+        state *s = CAST(state, sc->state);
+        rv = closure_unpack(sc, s->closure);
+    }
+    sc->state = NIL;
+    return rv;
 }
 #define MARK(field) sc->field = gc_mark(sc->gc, sc->field)
 static void _sc_mark_roots(sc *sc, gc_finalize fin) {

@@ -720,7 +720,15 @@ Before the step() function can really be a pure function, it has to
 isolate all side effects, and should not rely on a main loop's
 actions.
 
+Maybe it's best to first try to implement call/cc.
 
+Applying a continuation is really simple.  But how to capture it?
+Looks like that's similar to apply.
+
+Then about errors.  Maybe it is better to keep errors local to the
+step() function that generated them, and return them as values
+containing the continuation.  Except for GC restarts: they need to go
+all the way up to make sure data is not corrupted.
 
 
 
