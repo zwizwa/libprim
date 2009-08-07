@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include "scheme.h"
+#include "scheme.h_"  /* primitives */
 #include "gc.h"
 #include <setjmp.h>
 

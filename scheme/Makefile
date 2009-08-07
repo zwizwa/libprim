@@ -6,9 +6,14 @@ DEBUG_CFLAGS=-Wall -g
 
 all: scheme
 
+test.o: test.c_
+scheme.o: boot.c_ scheme.h_
+
+
+GEN = scheme.h_ test.c_ boot.c_
 
 # make deps from .c file
-%.d: %.c
+%.d: %.c $(GEN)
 	set -e; rm -f $@; \
 		$(CC) -M $(CPPFLAGS) $< > $@.$$$$; \
 		sed 's,\($*\)\.o[ :]*,\1.o $@ : ,g' < $@.$$$$ > $@; \
@@ -16,19 +21,23 @@ all: scheme
 
 -include $(SRC:.c=.d)
 
-
-
-%.o: %.c Makefile
+%.o: %.c Makefile $(GEN)
 	$(CC) $(CPPFLAGS) $(CFLAGS) $(OPTI_CFLAGS) $(DEBUG_CFLAGS) -o $@ -c $<
 
 %.c_: %.scm unparse.ss
 	mzscheme unparse.ss <$< >$@	
+%.h_: %.c prims.ss
+	mzscheme prims.ss <$< >$@
 
-test.o: test.c_
-scheme.o: boot.c_
+
 
 scheme: $(OBJ)
 	$(CC) -o scheme $(OBJ)
 
+.PHONY: clean
 clean:
-	rm -rf scheme *.o *.d *~ *.cgen
+	rm -rf scheme *.o *.d *~
+
+.PHONY: mrproper
+mrproper: clean
+	rm -f *.c_ *.h_	

@@ -221,10 +221,6 @@ sc    *_sc_new(void);
 #define SC_EX_ABORT 2  /* full continuation abort */
 #define SC_EX_HALT  3  /* machine is in halt state (empty continuation) */
 
-
-/* Primitives */
-#include "scheme_prim.h"
-
 /* Macros valid in sc context. */
 #define CONS(a,b)    sc_make_pair(sc,a,b)
 #define STATE(c,k)   sc_make_state(sc,c,k)

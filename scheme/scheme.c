@@ -5,6 +5,7 @@
 
 #include "symbol.h"
 #include "scheme.h"
+#include "scheme.h_"
 
 
 
@@ -21,8 +22,6 @@
    named _sc_xxx.  These are kept to a minimum to avoid duplication.
 
 */
-
-typedef object _;  // reduce noise
 
 static _ _sc_assert(sc *sc, sc_1 predicate, _ o) {
     if (FALSE == predicate(sc, o)) { TYPE_ERROR(o); }

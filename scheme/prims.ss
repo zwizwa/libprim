@@ -4,16 +4,17 @@
 
 ;; (define re-def (regexp "_.\\s+?sc_\\s+?\\(.*?\\)"))
 
-(define re-def (pregexp "_\\s+?sc_\\S*?\\(sc\\s+?\\*sc.*?\\)"))
+(define re-def (pregexp "_\\s+?sc_\\S*?\\(sc\\s*?\\*\\s*?sc.*?\\)"))
 (define (next)
   (let* ((line (read-line)))
     (when (not (eof-object? line))
       (let ((match (regexp-match re-def line)))
         (when match
-          (write match)
-          (newline))
+          (display (car match))
+          (display ";\n"))
         (next)))))
 
+(display "typedef object _;\n")
 (next)
 
   
