@@ -36,7 +36,7 @@ scheme: $(OBJ)
 
 .PHONY: clean
 clean:
-	rm -rf scheme *.o *.d *~
+	rm -f scheme *.o *.d *.d.* *~
 
 .PHONY: mrproper
 mrproper: clean

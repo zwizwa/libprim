@@ -4,7 +4,7 @@
 
 ;; (define re-def (regexp "_.\\s+?sc_\\s+?\\(.*?\\)"))
 
-(define re-def (pregexp "_\\s+?sc_\\S*?\\(sc\\s*?\\*\\s*?sc.*?\\)"))
+(define re-def (pregexp "_\\s+?sc_\\S*?\\(sc\\s*?\\*.*?\\)"))
 (define (next)
   (let* ((line (read-line)))
     (when (not (eof-object? line))
