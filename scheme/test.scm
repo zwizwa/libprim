@@ -1,12 +1,15 @@
+;; Bootstrap
+ 
+
 
 
 ;; (begin)
 (if (zero? 1) 2)
 (post 'before-defmacro)
-(setmacro 'testmac
-          (lambda (form)
-            (post form)
-            '(post 'ok)))
+(push-toplevel-macro 'testmac
+                     (lambda (form)
+                       (post form)
+                       '(post 'ok)))
 (post 'before-macro)
 (testmac)
 ((lambda ()

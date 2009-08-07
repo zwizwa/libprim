@@ -33,8 +33,8 @@ DEF("post", sc_post, 1);
 // sc_interpreter_step
 DEF("cons", sc_make_pair, 2);
 DEF("gc", sc_gc, 0);
-DEF("setvar", sc_setvar, 2);
-DEF("setmacro", sc_setmacro, 2);
+DEF("push-toplevel", sc_push_toplevel, 2);
+DEF("push-toplevel-macro", sc_push_toplevel_macro, 2);
 DEF("car", sc_car, 1);
 DEF("cdr", sc_cdr, 1);
 

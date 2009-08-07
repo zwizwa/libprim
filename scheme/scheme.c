@@ -294,12 +294,12 @@ object sc_gc(sc* sc) {
     gc_collect(sc->gc);
     return NIL;
 }
-/* Like define, but the function version. */
-object sc_setvar(sc* sc, object var, object val) {
+/*  Add to the toplevel environments (no mutation). */
+object sc_push_toplevel(sc* sc, object var, object val) {
     sc->toplevel = CONS(CONS(var,val), sc->toplevel);
     return VOID;
 }
-object sc_setmacro(sc* sc, object var, object val) {
+object sc_push_toplevel_macro(sc* sc, object var, object val) {
     sc->toplevel_macro = CONS(CONS(var,val), sc->toplevel_macro);
     return VOID;
 }
@@ -681,11 +681,11 @@ static object _sc_make_prim(sc *sc, void *fn, long nargs) {
     p->nargs = nargs;
     return atom_to_object(&p->a);
 }
-static void _sc_define_prim(sc *sc, object var, void *fn, long nargs) {
-    sc_setvar(sc, var, _sc_make_prim(sc, fn, nargs));
+static void _sc_push_prim(sc *sc, object var, void *fn, long nargs) {
+    sc_push_toplevel(sc, var, _sc_make_prim(sc, fn, nargs));
 }
 #define DEF(str,fn,nargs) \
-    _sc_define_prim (sc,SYMBOL(str),fn,nargs)
+    _sc_push_prim (sc,SYMBOL(str),fn,nargs)
 
 sc *_sc_new(void) {
     sc *sc = malloc(sizeof(*sc));

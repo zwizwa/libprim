@@ -655,3 +655,5 @@ Date: Fri Aug  7 11:38:25 CEST 2009
 It looks like I have all of Scheme now.  Next: make some C-code
 analysis tools that generate all the boilerplate.
 
+One more thing is missing: variable length argument lists.  This is
+necessary to implement `list' without which macros are no fun.
