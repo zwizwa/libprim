@@ -1,3 +1,7 @@
+
+
+;; (begin)
+(if (zero? 1) 2)
 (post 'before-defmacro)
 (setmacro 'testmac
           (lambda (form)

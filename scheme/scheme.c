@@ -402,6 +402,7 @@ object sc_interpreter_step(sc *sc, object o_state) {
             /* Special Form */
             if (TRUE==sc_is_symbol(sc, term_f)) {
                 if (term_f == sc->s_lambda) {
+                    if (NIL == term_args) ERROR("syntax",term);
                     object formals = sc_list_to_vector(sc, CAR(term_args));
                     /* Implement the expression sequence in a `lambda'
                        expression as a `begin' sequencing form. */
@@ -412,23 +413,32 @@ object sc_interpreter_step(sc *sc, object o_state) {
                                  s->continuation);
                 }
                 if (term_f == sc->s_quote) {
+                    if (NIL == term_args) ERROR("syntax",term);
                     return STATE(CLOSURE(CAR(term_args),env),
                                  s->continuation);
                 }
                 if (term_f == sc->s_if) {
+                    if (NIL == term_args) ERROR("syntax",term);
+                    if (NIL == CDR(term_args)) ERROR("syntax",term);
                     object cond = CLOSURE(AST(CAR(term_args)),env);
                     object yes  = CLOSURE(AST(CADR(term_args)),env);
-                    object no   = CLOSURE(AST(CADDR(term_args)),env);
+                    object no   = 
+                        (NIL == CDDR(term_args)) ? 
+                        CLOSURE(VOID,NIL) :
+                        CLOSURE(AST(CADDR(term_args)),env);
                     return STATE(cond,
                                  sc_make_k_if(sc,yes,no,
                                               s->continuation));
                 }
                 if (term_f == sc->s_setbang) {
+                    if (NIL == term_args) ERROR("syntax",term);
+                    if (NIL == CDR(term_args)) ERROR("syntax",term);
                     object var = CLOSURE(CAR(term_args),env);
                     object cl  = CLOSURE(AST(CADR(term_args)),env);
                     return STATE(cl, sc_make_k_set(sc, var, s->continuation));
                 }
                 if (term_f == sc->s_begin) {
+                    if (NIL == term_args) ERROR("syntax",term);
                     object todo = sc_close_args(sc, term_args, env);
                     return STATE(CAR(todo),
                                  sc_make_k_seq(sc, CDR(todo),
