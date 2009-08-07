@@ -145,7 +145,9 @@ DEF_CAST (k_macro)
 struct _scheme {
     gc *gc;
     symstore *syms;
+
     object state;
+    object state_abort;
     object toplevel;
     object toplevel_macro;
 
@@ -216,10 +218,10 @@ object _sc_eval(sc *sc, object expr);
 sc    *_sc_new(void);
 
 /* Interpreter exceptions. */
-#define SC_EX_TRY   0
-#define SC_EX_GC    1  /* step() retestart due to Garbage Collection */
-#define SC_EX_ABORT 2  /* full continuation abort */
-#define SC_EX_HALT  3  /* machine is in halt state (empty continuation) */
+#define SC_EX_TRY     0
+#define SC_EX_RESTART 1  /* restart from current sc->state. */
+#define SC_EX_ABORT   2  /* abort to default toplevel continuation. */
+#define SC_EX_HALT    3  /* halt leaves the interpreter loop. */
 
 /* Macros valid in sc context. */
 #define CONS(a,b)    sc_make_pair(sc,a,b)

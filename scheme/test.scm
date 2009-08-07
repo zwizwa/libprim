@@ -1,3 +1,11 @@
+(gc)
+
+
+(let ((foo 123)) foo)
+(words)
+(macros)
+
+
 
 
 (define-syntax foo (lambda _ '(post 123)))
@@ -6,9 +14,6 @@
 
 (define foo 123)
 foo
-bork
-                                                  
-                     
 
 (list 1 2 3)
 

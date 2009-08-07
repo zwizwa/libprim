@@ -685,3 +685,44 @@ code that bridge Scheme and C datastructures for abstract functions.
 In short: use either purely functional programming or concurrency
 oriented programming, and you get a very simple interpreter and
 application structure.
+
+
+Entry: Bootstrapping
+Date: Fri Aug  7 19:14:57 CEST 2009
+
+Bootstrapping is fun.  It's the first time I did this for a Scheme
+interpreter.  I've added two mzscheme .ss files.  One to convert .scm
+files to .c_ files as long as there is no reader, and one to lift the
+primitives from the .c file and write boilerplate registration code.
+
+Then bootstrapping the rest of the basic scheme functionality on top
+of the bare words is quite interesting.
+
+One thing though: I don't immediately see how to make apply and eval
+work.  Eval is probably iterating the step() function.  But apply?
+Similarly maybe?  Constructing a continuation frame and iterating the
+interpreter?
+
+There is probably a simpler though non-obvious way to do this..
+Manipulating the machine state from inside a primitive would probably
+do the trick.
+
+The trick is that the function modifies the continuation.  This could
+be done using mutation, but that won't play nice with running the
+interpreter manually (as part of debugging for instance).  It's
+probably best to make it possible for primitives to return a
+continuation.  Or better: to allow for explicit "state transforming"
+primitives.
+
+Let's thinkg about this first..
+
+Before the step() function can really be a pure function, it has to
+isolate all side effects, and should not rely on a main loop's
+actions.
+
+
+
+
+
+
+

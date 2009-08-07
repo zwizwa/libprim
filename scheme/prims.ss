@@ -35,17 +35,16 @@
   (for ((d ds))
     (printf "~a;\n" d)))
 
-(define (defs ds [prefix "    "])
+(define (defs ds prefix)
   (for ((d ds))
     (let ((n (sub1 (length (regexp-split #rx"," d))))
           (name (car (regexp-match re-name d))))
       (printf "~aDEF(~s, ~a, ~s);\n" prefix (mangle name) name n))))
 
-(define (gen-header)
-  (define ds (scan))
+(define (gen-header ds)
   (decls ds)
-  (printf "static inline void _sc_def_prims(sc *sc){\n")
-  (defs ds)
-  (printf "}\n"))
+  (printf  "static inline void _sc_def_prims(sc *sc){\n")
+  (defs ds "    ")
+  (printf  "}\n"))
 
-(gen-header)
+(gen-header (scan))

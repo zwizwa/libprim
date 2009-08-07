@@ -7,6 +7,7 @@
          (list 'quote (car (cdr form)))
          (car (cdr (cdr form))))))
 (define cadr  (lambda (x) (car (cdr x))))
+(define cddr  (lambda (x) (cdr (cdr x))))
 (define caddr (lambda (x) (car (cdr (cdr x)))))
 
 (def-toplevel-macro!
@@ -15,3 +16,24 @@
     (list 'def-toplevel-macro!
           (list 'quote (cadr form))
           (caddr form))))
+
+(define map (lambda (fn lst)
+              (if (null? lst) lst
+                  (cons (fn (car lst))
+                        (map fn (cdr lst))))))
+
+;; (define dbg (lambda (x) (post x) x))
+
+;; (define (apply* fn) (lambda args (apply fn args)))
+
+(define-syntax let
+  (lambda (form)
+    ((lambda (names values body)
+       (cons (cons 'lambda (cons names body)) values))
+     (map car (cadr form))
+     (map cadr (cadr form))
+     (cddr form))))
+
+
+(define words (lambda () (map car (toplevel))))
+(define macros (lambda () (map car (toplevel-macro))))

@@ -245,6 +245,9 @@ _ sc_bang_def_toplevel_macro(sc* sc, _ var, _ val) {
     }
     return VOID;
 }
+_ sc_toplevel(sc *sc) { return sc->toplevel; }
+_ sc_toplevel_macro(sc *sc) { return sc->toplevel_macro; }
+
 _ sc_is_list(sc *sc, _ o) {
     if(TRUE==sc_is_null(sc, o)) return TRUE;
     if(FALSE==sc_is_pair(sc, o)) return FALSE;
@@ -320,18 +323,15 @@ _ sc_write(sc *sc, _ o) {
     return VOID;
 }
 _ sc_post(sc* sc, _ o) {
-    sc_write(sc, o);
-    printf("\n");
+    if (VOID != o) {
+        sc_write(sc, o);
+        printf("\n");
+    }
     return VOID;
 }
-/* This requires a trick since GC aborts and restarts the current primitive. */
-_ sc_gc(sc* sc) {
-    state *s = CAST(state, sc->state);
-    // Were sure it's a k_apply since we're a primitive application.
-    k_apply *f = CAST(k_apply, s->continuation);
-    sc->state = STATE(CLOSURE(VOID,NIL), f->parent);
-    gc_collect(sc->gc);
-    return NIL;
+
+_ sc_fatal(sc *sc) {
+    return VOID;
 }
 
 
@@ -407,6 +407,9 @@ _ sc_close_args(sc *sc, _ lst, _ E) {
     else return CONS(CLOSURE(AST(CAR(lst)), E),
                      sc_close_args(sc, CDR(lst), E)); 
 }
+
+
+
 _ sc_interpreter_step(sc *sc, _ o_state) {
     state *s = CAST(state, o_state);
     closure *c = CAST(closure, s->closure);
@@ -474,7 +477,7 @@ _ sc_interpreter_step(sc *sc, _ o_state) {
                     return STATE(cl, sc_make_k_set(sc, var, s->continuation));
                 }
                 if (term_f == sc->s_begin) {
-                    if (NIL == term_args) ERROR("syntax",term);
+                    if (FALSE == sc_is_pair(sc, term_args)) ERROR("syntax",term);
                     _ todo = sc_close_args(sc, term_args, env);
                     return STATE(CAR(todo),
                                  sc_make_k_seq(sc, CDR(todo),
@@ -592,7 +595,7 @@ _ sc_interpreter_step(sc *sc, _ o_state) {
            perform application. */
         else {
             _ rev_args = CONS(s->closure, k->done);
-            _ p=rev_args, fn;
+            _ p=rev_args, fn=NIL;
             int n = 0;
             while (TRUE==sc_is_pair(sc,p)) {
                 n++; fn = CAR(p); p = CDR(p);
@@ -666,6 +669,47 @@ _ sc_interpreter_step(sc *sc, _ o_state) {
     /* Unknown continuation type */
     return ERROR("cont", s->continuation);
 }
+
+/* While sc_interpreter_step() is a pure function, some primitives
+   require direct modification of the continuation.  We do this using
+   assignment of sc->state and the SC_EX_RESTART exception. */
+
+static _ _sc_prim_k(sc *sc) {
+    state *s = CAST(state, sc->state);
+    /* We know we're in a k_apply continuation because we can only end
+       up here through primitive execution.  FIXME: It's probably
+       better to put the parent field in the same location for all
+       k_xxx structs. */
+    k_apply *f = CAST(k_apply, s->continuation);
+    return f->parent;
+}
+static _ _sc_restart(sc *sc) { longjmp(sc->step, SC_EX_RESTART); }
+   
+/* GC: set continuation manually, since since the interpreter aborts
+   and restarts the current step. */
+_ sc_gc(sc* sc) {
+    sc->state = STATE(CLOSURE(VOID,NIL), _sc_prim_k(sc));
+    gc_collect(sc->gc);
+    return NIL;
+}
+
+/* Apply: Insert a k_apply frame. */
+_ sc_apply(sc* sc, _ fn, _ args) {
+    object k = _sc_prim_k(sc);
+    object done = CONS(closure_pack(sc, fn, NIL), NIL);
+
+    while(NIL != args) {
+        done = CONS(closure_pack(sc, CAR(args), NIL), done);
+        args = CDR(args);
+    }
+    object state = STATE(CAR(done), sc_make_k_apply(sc, CDR(done), NIL, k));
+    sc->state = state;
+    return _sc_restart(sc);
+}
+
+
+
+
 /* Convert an s-expression to a machine state that will eval and
    halt. */
 _ sc_datum_to_state(sc *sc, _ expr) {
@@ -690,9 +734,9 @@ void _sc_run(sc *sc){
         for(;;) {
             sc->state = sc_interpreter_step(sc, sc->state); 
         }
-    case SC_EX_GC:    goto next;
-    case SC_EX_ABORT: goto leave;
-    case SC_EX_HALT:  goto leave;
+    case SC_EX_RESTART: goto next;
+    case SC_EX_ABORT:   sc->state = sc->state_abort; goto next;
+    case SC_EX_HALT:    goto leave;
     default:
         fprintf(stderr, "Unknown exception %d.\n", exception);
         goto leave;
@@ -700,15 +744,12 @@ void _sc_run(sc *sc){
   leave:
     sc->entries--;
 }
-/* Eval will run the machine until halt, which occurs for an
-   irreducable closure and an empty continuation. */
+/* Eval runs until halt SC_EX_HALT. */
 _ _sc_eval(sc *sc, _ expr){
     sc->state = sc_datum_to_state(sc, expr);
     _sc_run(sc);
     state   *s = CAST(state, sc->state);
-    // closure *c = CAST(closure, s->closure);
     sc->state  = NIL;
-    // return c->term;
     return closure_unpack(sc, s->closure);
 }
 #define MARK(field) sc->field = gc_mark(sc->gc, sc->field)
@@ -717,6 +758,7 @@ static void _sc_mark_roots(sc *sc, gc_finalize fin) {
     // printf("GC mark()\n");
     // sc_post(sc, sc->state);
     MARK(state);
+    MARK(state_abort);
     MARK(toplevel);
     MARK(toplevel_macro);
     fin(sc->gc);
@@ -729,9 +771,7 @@ static void _sc_mark_roots(sc *sc, gc_finalize fin) {
              evaluation step won't make it to the next before
              triggering collection).
     */
-    if (sc->entries) {
-        longjmp(sc->step, SC_EX_GC);
-    }
+    if (sc->entries) _sc_restart(sc);
     printf("WARNING: triggering GC outside of the main loop.\n");
 }
 static _ _sc_make_prim(sc *sc, void *fn, long nargs) {
@@ -758,6 +798,10 @@ sc *_sc_new(void) {
     /* Environments */
     sc->toplevel       = NIL;
     sc->toplevel_macro = NIL;
+
+    /* Toplevel continuation */
+    _ abort = AST(CONS(SYMBOL("fatal"),NIL));
+    sc->state_abort = sc_datum_to_state(sc, abort);
 
     /* Cached identifiers */
     sc->s_lambda  = SYMBOL("lambda");

@@ -2,7 +2,7 @@
 SRC=gc.c symbol.c scheme.c main.c
 OBJ=$(SRC:.c=.o)
 DEBUG_CFLAGS=-Wall -g
-# OPTI_CFLAGS=-Wall -Os
+# OPTI_CFLAGS=-Os
 
 all: scheme
 
@@ -13,7 +13,7 @@ scheme.o: boot.c_ scheme.h_
 GEN = scheme.h_ test.c_ boot.c_
 
 # make deps from .c file
-%.d: %.c $(GEN)
+%.d: %.c $(GEN) Makefile
 	set -e; rm -f $@; \
 		$(CC) -M $(CPPFLAGS) $< > $@.$$$$; \
 		sed 's,\($*\)\.o[ :]*,\1.o $@ : ,g' < $@.$$$$ > $@; \
@@ -33,6 +33,12 @@ GEN = scheme.h_ test.c_ boot.c_
 
 scheme: $(OBJ)
 	$(CC) -o scheme $(OBJ)
+
+strip: scheme
+	strip scheme
+	ls -l scheme
+
+
 
 .PHONY: clean
 clean:
