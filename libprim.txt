@@ -602,6 +602,19 @@ Date: Fri Aug  7 09:17:45 CEST 2009
 This will require a syntax-level environment, and a lookup for every
 form.
 
+A macro continuation is simply a tag: the current value (s-expression)
+needs to be tagged such that it is wrapped as SYNTAX and passed to the
+interpreter.
+
+I'm going to change the wording.  What is now SYNTAX should become
+AST: a tag for reducable term.  SYNTAX in Scheme sense seems to be
+something different: it is a data structure with binding information.
+Even if I'm not going to support the latter, it's best not to confuse
+things.
+
+Ok, macros work by:  constructing a k_apply linked to k_macro.  The
+k_apply is filled so it will trigger the application of the macro.
+The k_macro wraps the result as an AST to trigger reduction.
 
 Entry: C-Scheme
 Date: Fri Aug  7 10:23:06 CEST 2009

@@ -59,7 +59,6 @@ typedef struct {
     object parent; // link
 } k_apply;
 
-/* Different continuation types. */
 typedef struct {
     vector v;
     object yes;  // non-reduced closures for the 2 branches
@@ -79,7 +78,11 @@ typedef struct {
     object parent;
 } k_seq;
 
-
+typedef struct {
+    vector v;
+    object env;
+    object parent;
+} k_macro;
 
 typedef struct {
     vector v;
@@ -93,11 +96,11 @@ typedef struct {
     object term;
 } lambda;
 
-/* Syntax. All code is wrapped by a Syntax object. */
+/* All reducable code is wrapped by an AST object. */
 typedef struct {
     vector v;
     object datum;
-} syntax;
+} ast;
 
 
 static inline unsigned long vector_get_tag(object o){
@@ -110,27 +113,28 @@ static inline void vector_set_tag(object o, long tag){
 }
 
 
-#define VECTOR_ACCESS(type)                                \
+#define DEF_CAST(type)                                \
     static inline type *object_to_##type(object o) {       \
         return (type*)object_to_vector(o); }
 
 // conversion from vector object -> C type
-VECTOR_ACCESS(pair)
-VECTOR_ACCESS(state)
-VECTOR_ACCESS(lambda)
-VECTOR_ACCESS(closure)
-VECTOR_ACCESS(syntax)
-VECTOR_ACCESS(k_apply)
-VECTOR_ACCESS(k_if)
-VECTOR_ACCESS(k_set)
-VECTOR_ACCESS(k_seq)
+DEF_CAST (pair)
+DEF_CAST (state)
+DEF_CAST (lambda)
+DEF_CAST (closure)
+DEF_CAST (ast)
+DEF_CAST (k_apply)
+DEF_CAST (k_if)
+DEF_CAST (k_set)
+DEF_CAST (k_seq)
+DEF_CAST (k_macro)
 
 struct _scheme {
     gc *gc;
     symstore *syms;
     object state;
     object toplevel;
-    object toplevel_stx;
+    object toplevel_macro;
 
     object s_lambda;
     object s_quote;
@@ -174,12 +178,13 @@ static inline prim* object_to_prim(object ob, sc *sc) {
 #define TAG_LAMBDA    2
 #define TAG_STATE     3
 #define TAG_CLOSURE   4
-#define TAG_SYNTAX    5
+#define TAG_AST       5
 
 #define TAG_K_IF      8
 #define TAG_K_SET     9
 #define TAG_K_APPLY  10
 #define TAG_K_SEQ    11
+#define TAG_K_MACRO  12
 
 
 
@@ -229,7 +234,7 @@ sc    *_sc_new(void);
 #define STATE(c,k)   sc_make_state(sc,c,k)
 #define LAMBDA(f,x)  sc_make_lambda(sc,f,x)
 #define CLOSURE(t,e) sc_make_closure(sc,t,e)
-#define SYNTAX(d)    sc_make_syntax(sc,d)
+#define AST(d)       sc_make_ast(sc,d)
 
 
 #define NUMBER(n)     integer_to_object(n)

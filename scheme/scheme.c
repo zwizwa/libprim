@@ -74,11 +74,13 @@ object sc_is_pair(sc *sc, object o)    { return vector_type(o, TAG_PAIR); }
 object sc_is_lambda(sc *sc, object o)  { return vector_type(o, TAG_LAMBDA); }
 object sc_is_closure(sc *sc, object o) { return vector_type(o, TAG_CLOSURE); }
 object sc_is_state(sc *sc, object o)   { return vector_type(o, TAG_STATE); }
-object sc_is_syntax(sc *sc, object o)  { return vector_type(o, TAG_SYNTAX); }
+object sc_is_ast(sc *sc, object o)     { return vector_type(o, TAG_AST); }
 object sc_is_k_if(sc *sc, object o)    { return vector_type(o, TAG_K_IF); }
 object sc_is_k_apply(sc *sc, object o) { return vector_type(o, TAG_K_APPLY); }
 object sc_is_k_seq(sc *sc, object o)   { return vector_type(o, TAG_K_SEQ); }
 object sc_is_k_set(sc *sc, object o)   { return vector_type(o, TAG_K_SET); }
+object sc_is_k_macro(sc *sc, object o) { return vector_type(o, TAG_K_MACRO); }
+
 
 
 object sc_make_pair(sc *sc, object car, object cdr) {
@@ -122,9 +124,14 @@ object sc_make_k_seq(sc *sc, object todo, object parent) {
     vector_set_tag(o, TAG_K_SEQ);
     return o;
 }
-object sc_make_syntax(sc *sc, object datum){
+object sc_make_k_macro(sc *sc, object env, object parent){
+    object o = gc_vector(sc->gc, 2, env, parent);
+    vector_set_tag(o, TAG_K_MACRO);
+    return o;
+}
+object sc_make_ast(sc *sc, object datum){
     object o = gc_vector(sc->gc, 1, datum);
-    vector_set_tag(o, TAG_SYNTAX);
+    vector_set_tag(o, TAG_AST);
     return o;
 }
 object sc_car(sc *sc, object o) { pair *p = CAST(pair, o); return p->car; }
@@ -217,10 +224,19 @@ static object write_vector(sc *sc, char *type, object o) {
     return VOID;
 }
 object sc_write(sc *sc, object o) {
+    if (TRUE  == o) { printf("#t"); return VOID; }
+    if (FALSE == o) { printf("#f"); return VOID; }
+    if (TRUE == sc_is_integer(sc, o)) {
+        printf("%ld", object_to_integer(o));
+        return VOID;
+    }
+    if (VOID  == o) { printf("#<void>"); return VOID; }
     if(TRUE == sc_is_null(sc, o)) {
         printf("()");
         return VOID;
     }
+    if (TRUE == sc_is_vector(sc, o))  return write_vector(sc, "", o);
+    // FIXME: this doesn't print improper lists other than pairs.
     if(TRUE == sc_is_list(sc, o)) {
         printf("(");
         for(;;) {
@@ -245,30 +261,22 @@ object sc_write(sc *sc, object o) {
         printf("%s", object_to_symbol(o,sc)->name);
         return VOID;
     }
-    if (TRUE == sc_is_vector(sc, o))  return write_vector(sc, "", o);
     if (TRUE == sc_is_closure(sc, o)) return write_vector(sc, "closure", o);
     if (TRUE == sc_is_state(sc, o))   return write_vector(sc, "state", o);
     if (TRUE == sc_is_lambda(sc, o))  return write_vector(sc, "lambda", o);
-    if (TRUE == sc_is_syntax(sc, o))  return write_vector(sc, "syntax", o);
+    if (TRUE == sc_is_ast(sc, o))     return write_vector(sc, "ast", o);
 
     if (TRUE == sc_is_k_apply(sc, o)) return write_vector(sc, "k_apply", o);
     if (TRUE == sc_is_k_if(sc, o))    return write_vector(sc, "k_if", o);
     if (TRUE == sc_is_k_seq(sc, o))   return write_vector(sc, "k_seq", o);
     if (TRUE == sc_is_k_set(sc, o))   return write_vector(sc, "k_set", o);
+    if (TRUE == sc_is_k_macro(sc, o))   return write_vector(sc, "k_macro", o);
 
     if (TRUE == sc_is_prim(sc, o)) {
         prim *p = object_to_prim(o,sc);
         printf("#prim<%p:%ld>", (void*)(p->fn),p->nargs);
         return VOID;
     }
-    if (TRUE == sc_is_integer(sc, o)) {
-        printf("%ld", object_to_integer(o));
-        return VOID;
-    }
-    if (TRUE  == o) { printf("#t"); return VOID; }
-    if (FALSE == o) { printf("#f"); return VOID; }
-    if (VOID  == o) { printf("#<void>"); return VOID; }
-
     printf("#<%p>",(void*)o);
     return VOID;
 }
@@ -289,6 +297,10 @@ object sc_gc(sc* sc) {
 /* Like define, but the function version. */
 object sc_setvar(sc* sc, object var, object val) {
     sc->toplevel = CONS(CONS(var,val), sc->toplevel);
+    return VOID;
+}
+object sc_setmacro(sc* sc, object var, object val) {
+    sc->toplevel_macro = CONS(CONS(var,val), sc->toplevel_macro);
     return VOID;
 }
 
@@ -358,9 +370,11 @@ static inline object _sc_call(sc *sc, void *p,
     }
 }
 
+/* Convert a list of terms obtained as part of an AST of a closure to
+   a list of closures. */
 object sc_close_args(sc *sc, object lst, object E) {
     if ((TRUE==sc_is_null(sc, lst))) return NIL;
-    else return CONS(CLOSURE(SYNTAX(CAR(lst)), E),
+    else return CONS(CLOSURE(AST(CAR(lst)), E),
                      sc_close_args(sc, CDR(lst), E)); 
 }
 
@@ -370,15 +384,15 @@ object sc_interpreter_step(sc *sc, object o_state) {
     object term = c->term;  // (open) term
     object env  = c->env;   // environment
 
-    /* Syntax: perform a single reduction step.
+    /* Abstract Syntax: perform a single reduction step.
 
        - create abstraction (lambda) value
        - create application continuation
        - perform variable reference
        - create special form contiuation (if, set!, macro, ...)
      */
-    if (TRUE==sc_is_syntax(sc, term)) {
-        syntax *stx = object_to_syntax(term);
+    if (TRUE==sc_is_ast(sc, term)) {
+        ast *stx = object_to_ast(term);
         object term = stx->datum;
 
         if (TRUE==sc_is_pair(sc, term)) {
@@ -391,7 +405,8 @@ object sc_interpreter_step(sc *sc, object o_state) {
                     object formals = sc_list_to_vector(sc, CAR(term_args));
                     /* Implement the expression sequence in a `lambda'
                        expression as a `begin' sequencing form. */
-                    object stx = SYNTAX(CONS(sc->s_begin,
+                    // FIXME: don't do this if there's just 1 expr.
+                    object stx = AST(CONS(sc->s_begin,
                                              CDR(term_args)));
                     return STATE(CLOSURE(LAMBDA(formals, stx), env),
                                  s->continuation);
@@ -401,16 +416,16 @@ object sc_interpreter_step(sc *sc, object o_state) {
                                  s->continuation);
                 }
                 if (term_f == sc->s_if) {
-                    object cond = CLOSURE(SYNTAX(CAR(term_args)),env);
-                    object yes  = CLOSURE(SYNTAX(CADR(term_args)),env);
-                    object no   = CLOSURE(SYNTAX(CADDR(term_args)),env);
+                    object cond = CLOSURE(AST(CAR(term_args)),env);
+                    object yes  = CLOSURE(AST(CADR(term_args)),env);
+                    object no   = CLOSURE(AST(CADDR(term_args)),env);
                     return STATE(cond,
                                  sc_make_k_if(sc,yes,no,
                                               s->continuation));
                 }
                 if (term_f == sc->s_setbang) {
                     object var = CLOSURE(CAR(term_args),env);
-                    object cl  = CLOSURE(SYNTAX(CADR(term_args)),env);
+                    object cl  = CLOSURE(AST(CADR(term_args)),env);
                     return STATE(cl, sc_make_k_set(sc, var, s->continuation));
                 }
                 if (term_f == sc->s_begin) {
@@ -418,6 +433,21 @@ object sc_interpreter_step(sc *sc, object o_state) {
                     return STATE(CAR(todo),
                                  sc_make_k_seq(sc, CDR(todo),
                                                s->continuation));
+                }
+                object macro;
+                if (FALSE != (macro = sc_find(sc, sc->toplevel_macro, term_f))) {
+                    /* Macro continuation is based on a completed
+                       k_apply frame that will trigger the fn
+                       application, linked to a k_macro frame that
+                       will steer the result back to the AST
+                       reducer. */
+                    object k_m = sc_make_k_macro(sc, c->env, s->continuation);
+                    object k_a = sc_make_k_apply
+                        (sc,  
+                         CONS(closure_pack(sc, macro, NIL), NIL), // done list
+                         NIL, // todo list
+                         k_m);
+                    return STATE(CLOSURE(term,NIL), k_a);
                 }
             }
 
@@ -427,7 +457,7 @@ object sc_interpreter_step(sc *sc, object o_state) {
                all (open) subterms, and binding them to the current
                environment. */
             object closed_args = sc_close_args(sc, term_args, env);
-            return STATE(CLOSURE(SYNTAX(term_f), env),
+            return STATE(CLOSURE(AST(term_f), env),
                          sc_make_k_apply(sc, NIL,
                                          closed_args, 
                                          s->continuation));
@@ -494,6 +524,12 @@ object sc_interpreter_step(sc *sc, object o_state) {
         }
         /* If it's the last, keep it and discard the frame. */
         return STATE(s->closure, k->parent);
+    }
+    if (TRUE == sc_is_k_macro(sc, s->continuation)) {
+        /* The object returned by the macro is wrapped as an AST wich
+           triggers its further reduction. */
+        k_macro *k = object_to_k_macro(s->continuation);
+        return STATE(CLOSURE(AST(c->term),k->env), k->parent);
     }
     if (TRUE == sc_is_k_apply(sc, s->continuation)) {
         /* If there are remaining closures to evaluate, pop the
@@ -612,7 +648,7 @@ static void _sc_mark_roots(sc *sc, gc_finalize fin) {
     // sc_post(sc, sc->state);
     MARK(state);
     MARK(toplevel);
-    MARK(toplevel_stx);
+    MARK(toplevel_macro);
     fin(sc->gc);
     // sc_post(sc, sc->state);
     /* Abort C stack, since it now contains invalid refs.
@@ -644,18 +680,26 @@ static void _sc_define_prim(sc *sc, object var, void *fn, long nargs) {
 sc *_sc_new(void) {
     sc *sc = malloc(sizeof(*sc));
     sc->entries = 0;
-    sc->gc = gc_new(1000000, (gc_mark_roots)_sc_mark_roots, sc);
-    sc->syms = symstore_new(1000);
 
+    /* Garbage collector. */
+    sc->gc = gc_new(1000000, (gc_mark_roots)_sc_mark_roots, sc);
+
+    /* Atom classes. */
+    sc->syms = symstore_new(1000);
+    sc->op_prim.free = NULL;
+
+    /* Environments */
+    sc->toplevel       = NIL;
+    sc->toplevel_macro = NIL;
+
+    /* Cached identifiers */
     sc->s_lambda  = SYMBOL("lambda");
     sc->s_if      = SYMBOL("if");
     sc->s_setbang = SYMBOL("set!");
     sc->s_quote   = SYMBOL("quote");
     sc->s_begin   = SYMBOL("begin");
 
-    sc->toplevel     = NIL;
-    sc->toplevel_stx = NIL;
-    sc->op_prim.free = NULL;
+    /* Primitive defs */
 #include "scheme_prim.inc"
     return sc;
 }
