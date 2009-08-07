@@ -1,3 +1,7 @@
+((lambda ()
+   (post 'a)
+   (post 'b)
+   123))
 (begin
   (post 'foo)
   (post 'bar)

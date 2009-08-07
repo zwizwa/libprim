@@ -389,7 +389,10 @@ object sc_interpreter_step(sc *sc, object o_state) {
             if (TRUE==sc_is_symbol(sc, term_f)) {
                 if (term_f == sc->s_lambda) {
                     object formals = sc_list_to_vector(sc, CAR(term_args));
-                    object stx = SYNTAX(CADR(term_args));
+                    /* Implement the expression sequence in a `lambda'
+                       expression as a `begin' sequencing form. */
+                    object stx = SYNTAX(CONS(sc->s_begin,
+                                             CDR(term_args)));
                     return STATE(CLOSURE(LAMBDA(formals, stx), env),
                                  s->continuation);
                 }
@@ -416,7 +419,6 @@ object sc_interpreter_step(sc *sc, object o_state) {
                                  sc_make_k_seq(sc, CDR(todo),
                                                s->continuation));
                 }
-
             }
 
             /* Application Form */
