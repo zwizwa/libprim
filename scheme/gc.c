@@ -1,6 +1,5 @@
 #include <stdlib.h>
 #include <stdio.h>
-#include <stdarg.h>
 
 /* Simple copying GC for allocating graphs of vectors and atoms.
 
@@ -153,15 +152,20 @@ gc *gc_new(long total, gc_mark_roots fn, void *ctx) {
     return x;
 }
 
-object gc_vector(gc *gc, long slots, ...) {
-    va_list ap;
+object gc_vector_v(gc *gc, long slots, va_list ap) {
     object o = gc_alloc(gc, slots);
     vector *v = object_to_vector(o);
     long i = 0;
-    va_start(ap, slots);
     for (i=0; i<slots; i++) {
         v->slot[i] = va_arg(ap, object);
     }
-    va_end(ap);
+    return o;
+}
+
+object gc_vector(gc *gc, long slots, ...) {
+    va_list ap;
+    va_start(ap, slots);
+    object o = gc_vector_v(gc, slots, ap);
+    va_end(ap);   
     return o;
 }

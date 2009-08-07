@@ -10,13 +10,15 @@
 
 /* --- PRIMITIVES --- */
 
-/* To simplify the implementation _all_ functions are Scheme
-   primitives operating on tagged values.  They are named sc_xxx for
-   ease of lifting them from the source file for environment
-   bootstrap.
+/* To simplify the implementation, as much as possible functions are
+   implemented as Scheme primitives operating on tagged values.  They
+   are named sc_xxx for ease of lifting them from the source file for
+   environment bootstrap.
 
-   The _sc_xxx helper functions operate on sc*, but do not have
-   primitive ABI.
+   The functions operating on *sc that are too lowlevel to respect the
+   sc_xxx ABI (because they use values that cannot be represented as a
+   Scheme object, or because they violate behavioural constraints) are
+   named _sc_xxx.  These are kept to a minimum to avoid duplication.
 
 */
 
@@ -56,12 +58,6 @@ object sc_is_prim(sc *sc, object o) {
 object sc_is_null(sc *sc, object o) {
     if (!o) return TRUE; else return FALSE;
 }
-object sc_is_vector(sc *sc, object o){
-    vector *v;
-    if ((v = object_to_vector(o)) &&
-        (TAG_VECTOR == vector_get_tag(o))) { return TRUE; }
-    return FALSE;
-}
 /* Pairs and lambdas are tagged vectors. */
 static object vector_type(object o, long tag) {
     vector *v;
@@ -70,70 +66,77 @@ static object vector_type(object o, long tag) {
     return FALSE;
 }
 
+static object _sc_make_struct(sc *sc, long tag, long slots, ...) {
+    va_list ap;
+    va_start(ap, slots);
+    object o = gc_vector_v(sc->gc, slots, ap);
+    va_end(ap);   
+    vector_set_tag(o, tag);
+    return o;
+}
+
+
+// vector tags for interpreter data types
+#define TAG_VECTOR    0
+
+#define TAG_PAIR      1
+#define TAG_LAMBDA    2
+#define TAG_STATE     3
+#define TAG_CLOSURE   4
+#define TAG_AST       5
+
+#define TAG_K_IF      8
+#define TAG_K_SET     9
+#define TAG_K_APPLY  10
+#define TAG_K_SEQ    11
+#define TAG_K_MACRO  12
+
+
+typedef object o;  // This file is quasi-Huffman encoded ;)
+
+/* Predicates */
+object sc_is_vector(sc *sc, object o)  { return vector_type(o, TAG_VECTOR); }
 object sc_is_pair(sc *sc, object o)    { return vector_type(o, TAG_PAIR); }
 object sc_is_lambda(sc *sc, object o)  { return vector_type(o, TAG_LAMBDA); }
 object sc_is_closure(sc *sc, object o) { return vector_type(o, TAG_CLOSURE); }
 object sc_is_state(sc *sc, object o)   { return vector_type(o, TAG_STATE); }
 object sc_is_ast(sc *sc, object o)     { return vector_type(o, TAG_AST); }
+
 object sc_is_k_if(sc *sc, object o)    { return vector_type(o, TAG_K_IF); }
 object sc_is_k_apply(sc *sc, object o) { return vector_type(o, TAG_K_APPLY); }
 object sc_is_k_seq(sc *sc, object o)   { return vector_type(o, TAG_K_SEQ); }
 object sc_is_k_set(sc *sc, object o)   { return vector_type(o, TAG_K_SET); }
 object sc_is_k_macro(sc *sc, object o) { return vector_type(o, TAG_K_MACRO); }
 
+#define STRUCT(tag, size, ...) return _sc_make_struct(sc, tag, size, __VA_ARGS__)
+
+/* Constructors */
+// C = closure
+// K = continuation
+// F = formal argument vector
+// R = rest args
+// S = syntax term (AST)
+// D = done (list of reduced closures)
+// T = todo (list of non-reduced closures)
+// E = environment
+// P = parent continuation
+// D = datum
 
 
-object sc_make_pair(sc *sc, object car, object cdr) {
-    object o = gc_vector(sc->gc, 2, car, cdr);
-    vector_set_tag(o, TAG_PAIR);
-    return o;
-}
-// state + closure don't need to be tagged
-object sc_make_state(sc *sc, object C, object K) {
-    object o = gc_vector(sc->gc, 2, C, K);
-    vector_set_tag(o, TAG_STATE);
-    return o;
-}
-object sc_make_closure(sc *sc, object C, object K) {
-    object o = gc_vector(sc->gc, 2, C, K);
-    vector_set_tag(o, TAG_CLOSURE);
-    return o;
-}
-object sc_make_lambda(sc *sc, object car, object cdr) {
-    object o = gc_vector(sc->gc, 2, car, cdr);
-    vector_set_tag(o, TAG_LAMBDA);
-    return o;
-}
-object sc_make_k_apply(sc *sc, object done, object todo, object parent) {
-    object o = gc_vector(sc->gc, 3, done, todo, parent);
-    vector_set_tag(o, TAG_K_APPLY);
-    return o;
-}
-object sc_make_k_if(sc *sc, object yes, object no, object parent){
-    object o = gc_vector(sc->gc, 3, yes, no, parent);
-    vector_set_tag(o, TAG_K_IF);
-    return o;
-}
-object sc_make_k_set(sc *sc, object var, object parent) {
-    object o = gc_vector(sc->gc, 2, var, parent);
-    vector_set_tag(o, TAG_K_SET);
-    return o;
-}
-object sc_make_k_seq(sc *sc, object todo, object parent) {
-    object o = gc_vector(sc->gc, 2, todo, parent);
-    vector_set_tag(o, TAG_K_SEQ);
-    return o;
-}
-object sc_make_k_macro(sc *sc, object env, object parent){
-    object o = gc_vector(sc->gc, 2, env, parent);
-    vector_set_tag(o, TAG_K_MACRO);
-    return o;
-}
-object sc_make_ast(sc *sc, object datum){
-    object o = gc_vector(sc->gc, 1, datum);
-    vector_set_tag(o, TAG_AST);
-    return o;
-}
+
+object sc_make_pair(sc *sc, object car, object cdr)     {STRUCT(TAG_PAIR,    2, car,cdr);}
+object sc_make_state(sc *sc, object C, object K)        {STRUCT(TAG_STATE,   2, C,K);}
+object sc_make_closure(sc *sc, object T, object E)      {STRUCT(TAG_CLOSURE, 2, T,E);}
+object sc_make_lambda(sc *sc, object F, object R, object S)  {STRUCT(TAG_LAMBDA , 3, F,R,S);}
+object sc_make_ast(sc *sc, object D)               {STRUCT(TAG_AST,     1, D);}
+
+object sc_make_k_apply(sc *sc, object D, object T, object P) {STRUCT(TAG_K_APPLY, 3, D,T,P);}
+object sc_make_k_if(sc *sc, object Y, object N, object P)    {STRUCT(TAG_K_IF,    3, Y,N,P);}
+object sc_make_k_set(sc *sc, object V, object P)        {STRUCT(TAG_K_SET,   2, V,P);}
+object sc_make_k_seq(sc *sc, object T, object P)        {STRUCT(TAG_K_SEQ,   2, T,P);}
+object sc_make_k_macro(sc *sc, object E, object P)      {STRUCT(TAG_K_MACRO, 2, E,P);}
+
+
 object sc_car(sc *sc, object o) { pair *p = CAST(pair, o); return p->car; }
 object sc_cdr(sc *sc, object o) { pair *p = CAST(pair, o); return p->cdr; }
 
@@ -156,8 +159,12 @@ object sc_error(sc *sc, object sym_o, object o) {
 
 /* Remaining primitives perform type checking. */
 
-object sc_make_vector(sc *sc, object slots) {
-    return gc_vector(sc->gc, CAST(integer, slots));
+object sc_make_vector(sc *sc, object slots, object init) {
+    long i,n = CAST(integer, slots);
+    object o = gc_alloc(sc->gc, n);
+    vector *v = object_to_vector(o);
+    for(i=0; i<n; i++) v->slot[i] = init;
+    return o;
 }
 object sc_reverse(sc *sc, object lst) {
     object rlst = NIL;
@@ -176,7 +183,7 @@ object sc_length(sc *sc, object lst) {
 }
 object sc_list_to_vector(sc *sc, object lst){
     object slots = sc_length(sc, lst);
-    object vo = sc_make_vector(sc, slots);
+    object vo = gc_alloc(sc->gc, CAST(integer, slots));
     vector *v = object_to_vector(vo);
     long i=0;
     while (FALSE == sc_is_null(sc, lst)) {
@@ -404,13 +411,14 @@ object sc_interpreter_step(sc *sc, object o_state) {
                 if (term_f == sc->s_lambda) {
                     if (NIL == term_args) ERROR("syntax",term);
                     object formals = sc_list_to_vector(sc, CAR(term_args));
+                    object rest = NIL;
                     /* Implement the expression sequence in a `lambda'
                        expression as a `begin' sequencing form. */
                     // FIXME: don't do this if there's just 1 expr.
                     object stx = AST(CONS(sc->s_begin,
                                              CDR(term_args)));
-                    return STATE(CLOSURE(LAMBDA(formals, stx), env),
-                                 s->continuation);
+                    object l = sc_make_lambda(sc, formals, rest, stx);
+                    return STATE(CLOSURE(l, env), s->continuation);
                 }
                 if (term_f == sc->s_quote) {
                     if (NIL == term_args) ERROR("syntax",term);

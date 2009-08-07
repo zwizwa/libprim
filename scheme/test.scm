@@ -1,3 +1,6 @@
+(list->vector '(1 2 3))
+(make-vector 10 123)
+
 ;; Bootstrap
  
 

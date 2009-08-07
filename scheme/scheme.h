@@ -93,6 +93,7 @@ typedef struct {
 typedef struct {
     vector v;
     object formals;
+    object rest;
     object term;
 } lambda;
 
@@ -171,23 +172,6 @@ static inline prim* object_to_prim(object ob, sc *sc) {
         return NULL;  
 }
 
-// vector tags for interpreter data types
-#define TAG_VECTOR    0
-
-#define TAG_PAIR      1
-#define TAG_LAMBDA    2
-#define TAG_STATE     3
-#define TAG_CLOSURE   4
-#define TAG_AST       5
-
-#define TAG_K_IF      8
-#define TAG_K_SET     9
-#define TAG_K_APPLY  10
-#define TAG_K_SEQ    11
-#define TAG_K_MACRO  12
-
-
-
 /* List macros */
 #define CAR(o)  object_to_pair(o)->car
 #define CDR(o)  object_to_pair(o)->cdr
@@ -232,7 +216,6 @@ sc    *_sc_new(void);
 /* Macros valid in sc context. */
 #define CONS(a,b)    sc_make_pair(sc,a,b)
 #define STATE(c,k)   sc_make_state(sc,c,k)
-#define LAMBDA(f,x)  sc_make_lambda(sc,f,x)
 #define CLOSURE(t,e) sc_make_closure(sc,t,e)
 #define AST(d)       sc_make_ast(sc,d)
 

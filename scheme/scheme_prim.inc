@@ -19,12 +19,13 @@ DEF("zero?", sc_is_zero, 1);
 // sc_make_closure
 // sc_make_lambda
 // sc_make_frame
+DEF("make-vector", sc_make_vector, 2);
 // sc_error
 DEF("write", sc_write, 1);
 // sc_make_vector
 // sc_reverse
 // sc_length
-// sc_list_to_vector
+DEF("list->vector", sc_list_to_vector, 1);
 // sc_find
 // sc_find_toplevel
 // sc_is_list

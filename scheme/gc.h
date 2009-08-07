@@ -4,6 +4,7 @@
 #include "gc_config.h"
 
 #include <stdio.h>
+#include <stdarg.h>
 
 // GC type tagging
 
@@ -75,11 +76,14 @@ struct _gc {
 
 
 
-object gc_mark(gc *gc, object o_old);
+
+gc *gc_new(long total, gc_mark_roots fn, void *ctx);
 void gc_collect(gc *gc);
+object gc_mark(gc *gc, object o_old);
+
 object gc_alloc(gc *gc, long slots);
 object gc_vector(gc *gc, long slots, ...);
-gc *gc_new(long total, gc_mark_roots fn, void *ctx);
+object gc_vector_v(gc *gc, long slots, va_list ap);
 
 
 /* Conversion from tagged objects to one of the 4 C data types.  When
