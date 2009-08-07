@@ -27,15 +27,16 @@ DEF("write", sc_write, 1);
 DEF("length", sc_length, 1);
 DEF("list->vector", sc_list_to_vector, 1);
 // sc_find
-// sc_find_toplevel
+DEF("find-toplevel", sc_find_toplevel, 1);
+DEF("find-toplevel-macro", sc_find_toplevel_macro, 1);
 // sc_is_list
 DEF("post", sc_post, 1);
 // sc_close_args
 // sc_interpreter_step
 DEF("cons", sc_make_pair, 2);
 DEF("gc", sc_gc, 0);
-DEF("push-toplevel", sc_push_toplevel, 2);
-DEF("push-toplevel-macro", sc_push_toplevel_macro, 2);
+DEF("def-toplevel!", sc_def_toplevel, 2);
+DEF("def-toplevel-macro!", sc_def_toplevel_macro, 2);
 DEF("car", sc_car, 1);
 DEF("cdr", sc_cdr, 1);
 DEF("take-vector", sc_take_vector, 2);

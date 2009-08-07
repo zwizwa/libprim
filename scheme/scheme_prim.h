@@ -26,6 +26,7 @@ object sc_length(sc *sc, object lst);
 object sc_list_to_vector(sc *sc, object lst);
 object sc_find(sc *sc, object E, object var);
 object sc_find_toplevel(sc *sc, object var);
+object sc_find_toplevel_macro(sc *sc, object var);
 object sc_is_list(sc *sc, object o);
 object sc_write(sc *sc, object o);
 object sc_post(sc* sc, object o);

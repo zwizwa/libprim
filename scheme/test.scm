@@ -1,3 +1,17 @@
+
+
+(define-syntax foo (lambda _ '(post 123)))
+;; (def-toplevel-macro! 'foo (lambda _ '(post 123)))
+(foo)
+
+(define foo 123)
+foo
+bork
+                                                  
+                     
+
+(list 1 2 3)
+
 ((lambda (a . rest) rest) 123 1 2 3)
 
 bork

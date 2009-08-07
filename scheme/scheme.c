@@ -230,6 +230,25 @@ _ sc_env_set(sc *sc, _ E, _ var, _ value) {
 _ sc_find_toplevel(sc *sc, _ var) {
     return sc_find(sc, sc->toplevel, var);
 }
+_ sc_find_toplevel_macro(sc *sc, _ var) {
+    return sc_find(sc, sc->toplevel_macro, var);
+}
+/*  Add to or mutate toplevel. */
+_ sc_def_toplevel(sc* sc, _ var, _ val) {
+    if (FALSE == sc_env_set(sc, sc->toplevel, var, val)) {
+        sc->toplevel = CONS(CONS(var,val), sc->toplevel);
+    }
+    return VOID;
+}
+_ sc_def_toplevel_macro(sc* sc, _ var, _ val) {
+    printf("def_toplevel\n");
+    sc_post(sc, var);
+    sc_post(sc, val);
+    if (FALSE == sc_env_set(sc, sc->toplevel_macro, var, val)) {
+        sc->toplevel_macro = CONS(CONS(var,val), sc->toplevel_macro);
+    }
+    return VOID;
+}
 _ sc_is_list(sc *sc, _ o) {
     if(TRUE==sc_is_null(sc, o)) return TRUE;
     if(FALSE==sc_is_pair(sc, o)) return FALSE;
@@ -317,15 +336,6 @@ _ sc_gc(sc* sc) {
     sc->state = STATE(CLOSURE(VOID,NIL), f->parent);
     gc_collect(sc->gc);
     return NIL;
-}
-/*  Add to the toplevel environments (no mutation). */
-_ sc_push_toplevel(sc* sc, _ var, _ val) {
-    sc->toplevel = CONS(CONS(var,val), sc->toplevel);
-    return VOID;
-}
-_ sc_push_toplevel_macro(sc* sc, _ var, _ val) {
-    sc->toplevel_macro = CONS(CONS(var,val), sc->toplevel_macro);
-    return VOID;
 }
 
 
@@ -630,7 +640,7 @@ _ sc_interpreter_step(sc *sc, _ o_state) {
                     || ((NIL == l->rest) &&
                         (nb_rest_args != 0))) return ERROR("nargs", fn_term);
 
-                /* If any, add the rest arguments. */
+                /* If any, add the rest arguments accumulated in a list. */
                 _ rest_args = NIL;
                 if (NIL != l->rest) {
                     while (nb_rest_args--) {
@@ -735,11 +745,11 @@ static _ _sc_make_prim(sc *sc, void *fn, long nargs) {
     p->nargs = nargs;
     return atom_to_object(&p->a);
 }
-static void _sc_push_prim(sc *sc, _ var, void *fn, long nargs) {
-    sc_push_toplevel(sc, var, _sc_make_prim(sc, fn, nargs));
+static void _sc_def_prim(sc *sc, _ var, void *fn, long nargs) {
+    sc_def_toplevel(sc, var, _sc_make_prim(sc, fn, nargs));
 }
 #define DEF(str,fn,nargs) \
-    _sc_push_prim (sc,SYMBOL(str),fn,nargs)
+    _sc_def_prim (sc,SYMBOL(str),fn,nargs)
 
 sc *_sc_new(void) {
     sc *sc = malloc(sizeof(*sc));
@@ -765,6 +775,9 @@ sc *_sc_new(void) {
 
     /* Primitive defs */
 #include "scheme_prim.inc"
+
+    /* Highlevel bootstrap */
+#include "boot.c_"
     return sc;
 }
 

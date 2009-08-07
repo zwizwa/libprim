@@ -21,15 +21,14 @@ all: scheme
 %.o: %.c Makefile
 	$(CC) $(CPPFLAGS) $(CFLAGS) $(OPTI_CFLAGS) $(DEBUG_CFLAGS) -o $@ -c $<
 
-
-test.c_: test.scm unparse.ss
+%.c_: %.scm unparse.ss
 	mzscheme unparse.ss <$< >$@	
 
 test.o: test.c_
+scheme.o: boot.c_
 
 scheme: $(OBJ)
 	$(CC) -o scheme $(OBJ)
-
 
 clean:
 	rm -rf scheme *.o *.d *~ *.cgen
