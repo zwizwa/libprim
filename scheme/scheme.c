@@ -5,7 +5,7 @@
 
 #include "symbol.h"
 #include "scheme.h"
-#include "scheme.h_"
+
 
 
 
@@ -233,16 +233,13 @@ _ sc_find_toplevel_macro(sc *sc, _ var) {
     return sc_find(sc, sc->toplevel_macro, var);
 }
 /*  Add to or mutate toplevel. */
-_ sc_def_toplevel(sc* sc, _ var, _ val) {
+_ sc_bang_def_toplevel(sc* sc, _ var, _ val) {
     if (FALSE == sc_env_set(sc, sc->toplevel, var, val)) {
         sc->toplevel = CONS(CONS(var,val), sc->toplevel);
     }
     return VOID;
 }
-_ sc_def_toplevel_macro(sc* sc, _ var, _ val) {
-    printf("def_toplevel\n");
-    sc_post(sc, var);
-    sc_post(sc, val);
+_ sc_bang_def_toplevel_macro(sc* sc, _ var, _ val) {
     if (FALSE == sc_env_set(sc, sc->toplevel_macro, var, val)) {
         sc->toplevel_macro = CONS(CONS(var,val), sc->toplevel_macro);
     }
@@ -744,12 +741,9 @@ static _ _sc_make_prim(sc *sc, void *fn, long nargs) {
     p->nargs = nargs;
     return atom_to_object(&p->a);
 }
-static void _sc_def_prim(sc *sc, _ var, void *fn, long nargs) {
-    sc_def_toplevel(sc, var, _sc_make_prim(sc, fn, nargs));
+void _sc_def_prim(sc *sc, _ var, void *fn, long nargs) {
+    sc_bang_def_toplevel(sc, var, _sc_make_prim(sc, fn, nargs));
 }
-#define DEF(str,fn,nargs) \
-    _sc_def_prim (sc,SYMBOL(str),fn,nargs)
-
 sc *_sc_new(void) {
     sc *sc = malloc(sizeof(*sc));
     sc->entries = 0;
@@ -773,7 +767,7 @@ sc *_sc_new(void) {
     sc->s_begin   = SYMBOL("begin");
 
     /* Primitive defs */
-#include "scheme_prim.inc"
+    _sc_def_prims(sc); // defined in scheme.h_
 
     /* Highlevel bootstrap */
 #include "boot.c_"

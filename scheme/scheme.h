@@ -243,6 +243,10 @@ sc    *_sc_new(void);
 #define sc_make_pair sc_cons
 
 
+// Geneterated bootstrap code
+void _sc_def_prim(sc *sc, object var, void *fn, long nargs);
+#define DEF(str,fn,nargs) _sc_def_prim (sc,SYMBOL(str),fn,nargs)
+#include "scheme.h_"
 
 
 #endif
