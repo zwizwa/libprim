@@ -76,8 +76,9 @@ object sc_is_closure(sc *sc, object o) { return vector_type(o, TAG_CLOSURE); }
 object sc_is_state(sc *sc, object o)   { return vector_type(o, TAG_STATE); }
 object sc_is_syntax(sc *sc, object o)  { return vector_type(o, TAG_SYNTAX); }
 object sc_is_k_if(sc *sc, object o)    { return vector_type(o, TAG_K_IF); }
-object sc_is_k_set(sc *sc, object o)   { return vector_type(o, TAG_K_SET); }
 object sc_is_k_apply(sc *sc, object o) { return vector_type(o, TAG_K_APPLY); }
+object sc_is_k_seq(sc *sc, object o)   { return vector_type(o, TAG_K_SEQ); }
+object sc_is_k_set(sc *sc, object o)   { return vector_type(o, TAG_K_SET); }
 
 
 object sc_make_pair(sc *sc, object car, object cdr) {
@@ -114,6 +115,11 @@ object sc_make_k_if(sc *sc, object yes, object no, object parent){
 object sc_make_k_set(sc *sc, object var, object parent) {
     object o = gc_vector(sc->gc, 2, var, parent);
     vector_set_tag(o, TAG_K_SET);
+    return o;
+}
+object sc_make_k_seq(sc *sc, object todo, object parent) {
+    object o = gc_vector(sc->gc, 2, todo, parent);
+    vector_set_tag(o, TAG_K_SEQ);
     return o;
 }
 object sc_make_syntax(sc *sc, object datum){
@@ -247,6 +253,7 @@ object sc_write(sc *sc, object o) {
 
     if (TRUE == sc_is_k_apply(sc, o)) return write_vector(sc, "k_apply", o);
     if (TRUE == sc_is_k_if(sc, o))    return write_vector(sc, "k_if", o);
+    if (TRUE == sc_is_k_seq(sc, o))   return write_vector(sc, "k_seq", o);
     if (TRUE == sc_is_k_set(sc, o))   return write_vector(sc, "k_set", o);
 
     if (TRUE == sc_is_prim(sc, o)) {
@@ -403,6 +410,13 @@ object sc_interpreter_step(sc *sc, object o_state) {
                     object cl  = CLOSURE(SYNTAX(CADR(term_args)),env);
                     return STATE(cl, sc_make_k_set(sc, var, s->continuation));
                 }
+                if (term_f == sc->s_begin) {
+                    object todo = sc_close_args(sc, term_args, env);
+                    return STATE(CAR(todo),
+                                 sc_make_k_seq(sc, CDR(todo),
+                                               s->continuation));
+                }
+
             }
 
             /* Application Form */
@@ -466,21 +480,34 @@ object sc_interpreter_step(sc *sc, object o_state) {
         }
         return rv;
     }
+    if (TRUE == sc_is_k_seq(sc, s->continuation)) {
+        k_seq *k = object_to_k_seq(s->continuation);
+        /* If there is another closure to reduce, discard current and
+           pop next. */
+        if (TRUE==sc_is_pair(sc, k->todo)) {
+            return STATE(CAR(k->todo),
+                         sc_make_k_seq(sc, 
+                                       CDR(k->todo),
+                                       k->parent));
+        }
+        /* If it's the last, keep it and discard the frame. */
+        return STATE(s->closure, k->parent);
+    }
     if (TRUE == sc_is_k_apply(sc, s->continuation)) {
         /* If there are remaining closures to evaluate, pop the
            next one and push the value to the update value list. */
-        k_apply *f = object_to_k_apply(s->continuation);
-        if (TRUE==sc_is_pair(sc, f->todo)) {
-            return STATE(CAR(f->todo),
+        k_apply *k = object_to_k_apply(s->continuation);
+        if (TRUE==sc_is_pair(sc, k->todo)) {
+            return STATE(CAR(k->todo),
                          sc_make_k_apply(sc, 
-                                         CONS(s->closure, f->done),
-                                         CDR(f->todo), 
-                                         f->parent));
+                                         CONS(s->closure, k->done),
+                                         CDR(k->todo), 
+                                         k->parent));
         }
         /* No more expressions to be reduced in the current k_apply:
            perform application. */
         else {
-            object rargs = CONS(s->closure, f->done);
+            object rargs = CONS(s->closure, k->done);
             object p=rargs, fn;
             int n = 0;
             while (TRUE==sc_is_pair(sc,p)) {
@@ -506,7 +533,7 @@ object sc_interpreter_step(sc *sc, object o_state) {
                    primitive has executed.  Meaning, primitives won't
                    be restarted unless it's their own fault. */
                 object closure = CLOSURE(NIL, NIL);
-                object state   = STATE(closure, f->parent); // drop frame
+                object state   = STATE(closure, k->parent); // drop frame
                 closure_pack(sc,
                              _sc_call(sc, prim_fn(p), n-1, rargs),
                              closure);
@@ -525,7 +552,7 @@ object sc_interpreter_step(sc *sc, object o_state) {
                     rargs = CDR(rargs);
                 }
                 return STATE(CLOSURE(l->term, fn_env),  // close term
-                             f->parent);                // drop frame
+                             k->parent);                // drop frame
             } 
 
             /* Unknown applicant type */
@@ -583,6 +610,7 @@ static void _sc_mark_roots(sc *sc, gc_finalize fin) {
     // sc_post(sc, sc->state);
     MARK(state);
     MARK(toplevel);
+    MARK(toplevel_stx);
     fin(sc->gc);
     // sc_post(sc, sc->state);
     /* Abort C stack, since it now contains invalid refs.
@@ -621,8 +649,10 @@ sc *_sc_new(void) {
     sc->s_if      = SYMBOL("if");
     sc->s_setbang = SYMBOL("set!");
     sc->s_quote   = SYMBOL("quote");
+    sc->s_begin   = SYMBOL("begin");
 
-    sc->toplevel = NIL;
+    sc->toplevel     = NIL;
+    sc->toplevel_stx = NIL;
     sc->op_prim.free = NULL;
 #include "scheme_prim.inc"
     return sc;

@@ -582,7 +582,7 @@ will need to be done in such a way that GC interrupt isn't possible.
 I'm adding a couple of structs to accomodate these different
 continuation types.
 
-Ok. 'if' works.
+Ok. 'if' and 'set!' now work.
 
 
 Entry: Coroutines
@@ -592,3 +592,11 @@ This paper defends the revival of (asymmetric) coroutines as a general
 control abstraction[1].
 
 [1] http://lambda-the-ultimate.org/node/2868
+
+
+Entry: Macros
+Date: Fri Aug  7 09:17:45 CEST 2009
+
+This will require a syntax-level environment, and a lookup for every
+form.
+

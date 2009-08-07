@@ -1,3 +1,7 @@
+(begin
+  (post 'foo)
+  (post 'bar)
+  123)
 (if (zero? 1) 123 345)
 (setvar 'foo 456)
 foo

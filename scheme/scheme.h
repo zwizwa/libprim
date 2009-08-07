@@ -5,13 +5,29 @@
 #include "gc.h"
 #include "symbol.h"
 
-/* The remaining tag is used to represent booleans, which makes it
-   possible to _only_ use Scheme primitives in the implementation of
-   the interpreter. */
-
 typedef struct _scheme sc;
-
 sc *scheme_new(void);
+
+/* The interpreter is written as a step() function manipulating a
+   state data structure.  It is based on the CEKS machine from
+   http://www.cs.utah.edu/plt/publications/pllc.pdf
+
+   All data structures and function primitives are Scheme values.
+
+   The GC is a stop-and-copy type supporting 4 data types: integers,
+   vectors, finalized atoms and unmanaged constants.
+
+   When GC is triggered in the context of a primitive, it will be
+   aborted and restarted.  Therefore primitives may not perform vector
+   allocation after performing side effects (i.e. mutation of globally
+   accessible state, be it interpreter state or foreign data).
+
+   It is not safe to perform allocation outside of the main
+   interpreter loop.
+
+   The main loop is not re-entrant.
+
+ */
 
 
 /* The machine will attempt to reduce the current term (which is a
@@ -34,8 +50,8 @@ typedef struct {
    closures, which will be reduced one by one from left to right.
    When done, the reduced terms are passed to a primitive, or an
    application creates a new reducable closure with reduced closures
-   bound to variables.
-*/
+   bound to variables. */
+
 typedef struct {
     vector v;
     object done;   // reversed list of reduced 
@@ -56,6 +72,14 @@ typedef struct {
     object var;  
     object parent;
 } k_set;
+
+typedef struct {
+    vector v;
+    object todo;  
+    object parent;
+} k_seq;
+
+
 
 typedef struct {
     vector v;
@@ -99,16 +123,20 @@ VECTOR_ACCESS(syntax)
 VECTOR_ACCESS(k_apply)
 VECTOR_ACCESS(k_if)
 VECTOR_ACCESS(k_set)
+VECTOR_ACCESS(k_seq)
 
 struct _scheme {
     gc *gc;
     symstore *syms;
     object state;
     object toplevel;
+    object toplevel_stx;
+
     object s_lambda;
     object s_quote;
     object s_if;
     object s_setbang;
+    object s_begin;
 
     jmp_buf step;  // current eval step abort
     atom_class op_prim;
@@ -151,6 +179,7 @@ static inline prim* object_to_prim(object ob, sc *sc) {
 #define TAG_K_IF      8
 #define TAG_K_SET     9
 #define TAG_K_APPLY  10
+#define TAG_K_SEQ    11
 
 
 
