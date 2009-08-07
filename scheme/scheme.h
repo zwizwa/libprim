@@ -15,19 +15,31 @@ sc *scheme_new(void);
    All data structures and function primitives are Scheme values.
 
    The GC is a stop-and-copy type supporting 4 data types: integers,
-   vectors, finalized atoms and unmanaged constants.
+   vectors, finalized atoms and unmanaged constants.  Note that it is
+   not safe to perform allocation outside of the main interpreter
+   loop, and the main loop is not re-entrant.
 
    When GC is triggered in the context of a primitive, it will be
    aborted and restarted.  Therefore primitives may not perform vector
-   allocation after performing side effects (i.e. mutation of globally
-   accessible state, be it interpreter state or foreign data).
+   allocation _after_ performing side effects (i.e. mutation of
+   globally accessible state, be it interpreter state or foreign
+   data).
 
-   It is not safe to perform allocation outside of the main
-   interpreter loop.
+   Such an interpreter can support two kinds of primitives:
 
-   The main loop is not re-entrant.
+     * RESTARTABLE: Pure functions operating on Scheme data structures
+       (or impure functions that do not perform allocation _after_
+       mutation).
 
- */
+     * ABSTRACT: C code that does not refer to any Scheme data.
+
+   The disadvantage of not being able to access Scheme data from
+   impure C code can be largely removed by providing a suspension
+   mechanism for primitives.  In this case the C code could behave as
+   a coroutine, which allows the use of enumerators / iterators
+   instead of construction of intermediate data.
+
+*/
 
 
 /* The machine will attempt to reduce the current term (which is a

@@ -172,22 +172,42 @@ _ sc_reverse(sc *sc, _ lst) {
     }
     return rlst;
 }
-_ sc_length(sc *sc, _ lst) {
-    int nb = 0;
+
+// parse improper list
+static void _sc_length_rest(sc *sc, _ lst, long *length, _ *rest) {
+    long nb = 0;
     while (TRUE == sc_is_pair(sc, lst)) { nb++; lst = CDR(lst); }
-    if (FALSE == sc_is_null(sc, lst)) TYPE_ERROR(lst);
+    *rest = lst;
+    *length = nb;
+}
+_ sc_length(sc *sc, _ lst) {
+    long nb;
+    _ rest;
+    _sc_length_rest(sc, lst, &nb, &rest);
+    if (FALSE == sc_is_null(sc, rest)) TYPE_ERROR(lst);
     return integer_to_object(nb);
 }
-_ sc_list_to_vector(sc *sc, _ lst){
-    _ slots = sc_length(sc, lst);
-    _ vo = gc_alloc(sc->gc, CAST(integer, slots));
+
+//static _ _sc_impure_list_to_vector_and_rest(sc *sc, _* rest) {
+//}
+
+// Take n elements from the head of a list and place them in a vector.
+_ sc_take_vector(sc *sc, _ n, _ in_lst) {
+    _ lst = in_lst;
+    long slots = CAST(integer, n);
+    _ vo = gc_alloc(sc->gc, slots);
     vector *v = object_to_vector(vo);
-    long i=0;
-    while (FALSE == sc_is_null(sc, lst)) {
-        v->slot[i++] = CAR(lst);
-        lst = CDR(lst);
+    long i;
+    for(i=0; i<slots; i++){
+        if (FALSE == sc_is_pair(sc, lst)) return TYPE_ERROR(in_lst);
+        pair *p = object_to_pair(lst);
+        v->slot[i] = p->car;
+        lst = p->cdr;
     }
     return vo;
+}
+_ sc_list_to_vector(sc *sc, _ lst){
+    return sc_take_vector(sc, sc_length(sc, lst), lst);
 }
 _ sc_find_slot(sc *sc, _ E, _ var) {
     if (TRUE == sc_is_null(sc, E)) return FALSE;
@@ -627,6 +647,10 @@ _ sc_datum_to_state(sc *sc, _ expr) {
 /* --- SETUP & GC --- */
 
 void _sc_run(sc *sc){
+    if (sc->entries) {
+        fprintf(stderr, "ERROR: not allowing interpreter re-entry.\n");
+        return;
+    }
     sc->entries++;
     int exception;
   next:
@@ -639,7 +663,7 @@ void _sc_run(sc *sc){
     case SC_EX_ABORT: goto leave;
     case SC_EX_HALT:  goto leave;
     default:
-        printf("Unknown exception %d.\n", exception);
+        fprintf(stderr, "Unknown exception %d.\n", exception);
         goto leave;
     }
   leave:

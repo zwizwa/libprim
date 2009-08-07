@@ -1,3 +1,8 @@
+(take-vector 3 '(a b c d))
+(take-vector 3 '(a b))
+
+(length '(a b))
+(length 123)
 (list->vector '(1 2 3))
 (make-vector 10 123)
 

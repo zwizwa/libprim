@@ -24,7 +24,7 @@ DEF("make-vector", sc_make_vector, 2);
 DEF("write", sc_write, 1);
 // sc_make_vector
 // sc_reverse
-// sc_length
+DEF("length", sc_length, 1);
 DEF("list->vector", sc_list_to_vector, 1);
 // sc_find
 // sc_find_toplevel
@@ -38,7 +38,7 @@ DEF("push-toplevel", sc_push_toplevel, 2);
 DEF("push-toplevel-macro", sc_push_toplevel_macro, 2);
 DEF("car", sc_car, 1);
 DEF("cdr", sc_cdr, 1);
-
+DEF("take-vector", sc_take_vector, 2);
 
 
 

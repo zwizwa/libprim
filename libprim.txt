@@ -657,3 +657,31 @@ analysis tools that generate all the boilerplate.
 
 One more thing is missing: variable length argument lists.  This is
 necessary to implement `list' without which macros are no fun.
+
+
+Entry: Two Kinds of Primitives
+Date: Fri Aug  7 13:20:51 CEST 2009
+
+Due to restart at GC, the interpreter can support two kinds of
+primitives:
+
+     * RESTARTABLE: Pure functions operating on Scheme data structures
+       (or impure functions that do not perform allocation _after_
+       mutation).
+
+     * ABSTRACT: C code that does not refer to any Scheme data.
+
+The disadvantage of not being able to access Scheme data from impure C
+code can be largely removed by providing a suspension mechanism for
+primitives.  In this case the C code could behave as a coroutine,
+which allows the use of enumerators / iterators instead of
+construction of intermediate data.
+
+Impure functions performing allocation before mutation are hard to
+write, and are best limited to the implementation of internal
+primitives supporting mutation (like `set!' and `define') and adaptor
+code that bridge Scheme and C datastructures for abstract functions.
+
+In short: use either purely functional programming or concurrency
+oriented programming, and you get a very simple interpreter and
+application structure.
