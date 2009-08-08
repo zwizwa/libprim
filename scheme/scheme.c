@@ -590,8 +590,8 @@ static _ _sc_step(sc *sc, _ o_state) {
            implied empty envionment.  This representation makes C
            primitives simpler.  */
 
-        if (FALSE == sc_is_closure(sc, s->redex_or_value)) { 
-            closure *c = object_to_closure(c->term);
+        if ((TRUE == sc_is_closure(sc, s->redex_or_value))) {
+            closure *c = object_to_closure(s->redex_or_value);
             term = c->term;
             env  = c->env;
         }
