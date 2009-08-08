@@ -161,7 +161,7 @@ struct _scheme {
     symstore *syms;
 
     object state;
-    object state_abort;
+    object abort_k;
     object toplevel;
     object toplevel_macro;
 
@@ -176,10 +176,11 @@ struct _scheme {
     object s_letcc;
 
     jmp_buf step;   // current CEKS step abort
-    jmp_buf run;    // full interpreter C stack unwind (i.e. for GC)
+    jmp_buf top;    // full interpreter C stack unwind (i.e. for GC)
 
     atom_class op_prim;
     long entries;
+    long step_entries;
 };
 
 static inline symbol* object_to_symbol(object ob, sc *sc) {

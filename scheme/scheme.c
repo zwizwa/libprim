@@ -178,7 +178,7 @@ _ sc_trap(sc *sc) {
 _ sc_error(sc *sc, _ sym_o, _ arg_o) {
     sc->error_tag = sym_o;
     sc->error_arg = arg_o;
-    if (sym_o != SYMBOL("halt")) sc_trap(sc);
+    // if (sym_o != SYMBOL("halt")) sc_trap(sc);
     longjmp(sc->step, SC_EX_ABORT);
 }
 _ sc_make_vector(sc *sc, _ slots, _ init) {
@@ -362,8 +362,13 @@ _ sc_post(sc* sc, _ o) {
     return VOID;
 }
 
-_ sc_fatal(sc *sc) {
-    printf("FATAL\n");
+_ sc_fatal(sc *sc, _ err) {
+    if (TRUE == sc_is_error(sc, err)) {
+        error *e = object_to_error(err);
+        printf("ERROR: ");
+        sc_write(sc, e->tag); printf(": ");
+        sc_write(sc, e->arg); printf("\n");
+    }
     return VOID;
 }
 
@@ -725,7 +730,7 @@ _ sc_eval_step(sc *sc, _ state) {
     object rv = NIL;
     jmp_buf save;
     memcpy(&save, &sc->step, sizeof(save));
-    sc->entries++;
+    sc->step_entries++;
 
     switch(exception = setjmp(sc->step)) {
         case SC_EX_TRY:
@@ -740,7 +745,7 @@ _ sc_eval_step(sc *sc, _ state) {
             break;
     }
     memcpy(&sc->step, &save, sizeof(save));
-    sc->entries--;
+    sc->step_entries--;
     return rv;
 }
 
@@ -748,7 +753,7 @@ _ sc_eval_step(sc *sc, _ state) {
 
 
 
-static _ _sc_restart(sc *sc) { longjmp(sc->run, SC_EX_RESTART); }
+static _ _sc_restart(sc *sc) { longjmp(sc->top, SC_EX_RESTART); }
    
 /* GC: set continuation manually, since since the interpreter aborts
    and restarts the current step. */
@@ -806,50 +811,42 @@ _ sc_apply_ktx(sc* sc, _ k, _ fn, _ args) {
 */
 
 _ _sc_eval(sc *sc, _ expr){
-    int exception;
-    if (sc->entries) return NIL;
-    sc->state = STATE(REDEX(expr,NIL),MT);
+    if (sc->entries) {
+        printf("WARNING: multiple _sc_eval() entries.\n");
+        return NIL;
+    }
     sc->entries++;
-  next:
-    switch (exception = setjmp(sc->run)) {
-    case SC_EX_TRY:
-        do {
-            // sc_post(sc, sc->state);
-            sc->state = sc_eval_step(sc, sc->state); 
-        } while (FALSE == sc_is_error(sc, sc->state));
-        /* Handle error states */
-        error *e = object_to_error(sc->state);
-        if (e->tag == SYMBOL("halt")) {
-            expr = e->arg;
-            goto leave;
+    sc->state = STATE(REDEX(expr,NIL),MT);
+
+    for(;;) {
+        if (setjmp(sc->top)){
+            sc->step_entries = 0;  // full tower unwind
         }
         else {
-            // FIXME: stay inside the interpreter.
-            printf("ERROR: ");
-            sc_write(sc, e->tag); printf(": ");
-            sc_write(sc, e->arg); printf("\n");
-            goto abort;
+            /* Run */
+            do sc->state = sc_eval_step(sc, sc->state); 
+            while (FALSE == sc_is_error(sc, sc->state));
+            
+            /* Halt */
+            error *e = object_to_error(sc->state);
+            if (e->tag == SYMBOL("halt")) {
+                sc->entries--;
+                return e->arg;
+            }
+            
+            /* Abort */
+            sc->state = STATE(VALUE(sc->state), sc->abort_k);
         }
-    case SC_EX_RESTART: goto next;
-    default:
-        fprintf(stderr, "Unknown exception %d.\n", exception);
-        goto abort;
     }
-  leave:
-    sc->entries--;
-    return expr;
-  abort:
-    sc->state = sc->state_abort;
-    goto next;
 }
 
 #define MARK(field) sc->field = gc_mark(sc->gc, sc->field)
 static void _sc_mark_roots(sc *sc, gc_finalize fin) {
     // sc_trap(sc);
-    printf("GC mark()\n");
+    // printf("GC mark()\n");
     // sc_post(sc, sc->state);
     MARK(state);
-    MARK(state_abort);
+    MARK(abort_k);
     MARK(toplevel);
     MARK(toplevel_macro);
     fin(sc->gc);
@@ -878,6 +875,7 @@ void _sc_def_prim(sc *sc, _ var, void *fn, long nargs) {
 sc *_sc_new(void) {
     sc *sc = malloc(sizeof(*sc));
     sc->entries = 0;
+    sc->step_entries = 0;
 
     /* Garbage collector. */
     sc->gc = gc_new(10000, (gc_mark_roots)_sc_mark_roots, sc);
@@ -890,10 +888,6 @@ sc *_sc_new(void) {
     sc->toplevel       = NIL;
     sc->toplevel_macro = NIL;
 
-    /* Toplevel continuation */
-    _ abort = REDEX(CONS(SYMBOL("fatal"),NIL),NIL);
-    sc->state_abort = STATE(abort,MT);
-
     /* Cached identifiers */
     sc->s_lambda   = SYMBOL("lambda");
     sc->s_if       = SYMBOL("if");
@@ -904,6 +898,11 @@ sc *_sc_new(void) {
 
     /* Primitive defs */
     _sc_def_prims(sc); // defined in scheme.h_
+
+    /* Bootstrap toplevel continuation */
+    _ done = CONS(sc_find_toplevel(sc, SYMBOL("fatal")),NIL);
+    sc->abort_k = sc_make_k_apply(sc, MT, done, NIL);
+
 
     /* Highlevel bootstrap */
 #include "boot.c_"

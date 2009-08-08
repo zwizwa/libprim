@@ -3,7 +3,7 @@ _ sc_apply_ktx(sc* sc, _ k, _ fn, _ args);
 _ sc_gc(sc* sc);
 _ sc_eval_step(sc *sc, _ state);
 _ sc_close_args(sc *sc, _ lst, _ E);
-_ sc_fatal(sc *sc);
+_ sc_fatal(sc *sc, _ err);
 _ sc_post(sc* sc, _ o);
 _ sc_write(sc *sc, _ o);
 _ sc_newline(sc *sc);
@@ -60,7 +60,7 @@ static inline void _sc_def_prims(sc *sc){
     DEF("gc", sc_gc, 0);
     DEF("eval-step", sc_eval_step, 1);
     DEF("close-args", sc_close_args, 2);
-    DEF("fatal", sc_fatal, 0);
+    DEF("fatal", sc_fatal, 1);
     DEF("post", sc_post, 1);
     DEF("write", sc_write, 1);
     DEF("newline", sc_newline, 0);

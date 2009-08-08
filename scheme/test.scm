@@ -1,9 +1,11 @@
+(bla)
+(gc)
 (apply post '(bar-bar))
 (define foo
   (lambda ()
     (foo)))
 
-(foo)
+;; (foo)
 
 ;; (begin
 ;;   (write (apply post '(foefel)))
