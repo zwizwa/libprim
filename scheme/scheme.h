@@ -47,8 +47,8 @@ sc *scheme_new(void);
    computation context (a list of reducable closures). */
 typedef struct {
     vector v;
-    object closure;      // current (reducable) closure
-    object continuation; // current continuation
+    object redex_or_value;  // naked value or reducable/value closure
+    object continuation;    // current continuation
 } state;
 
 typedef struct {

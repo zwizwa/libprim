@@ -29,5 +29,3 @@
      (map car (cadr form))
      (map cadr (cadr form))
      (cddr form))))
-;(define (apply fn args)
-;  (letcc k ((apply-k-tx k fn args)

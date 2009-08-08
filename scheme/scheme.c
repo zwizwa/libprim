@@ -389,39 +389,12 @@ _ sc_fatal(sc *sc) {
 */
 
 
-/* Interpreter state contains only closures, but primitives and
-   environments have either (fully reduced) closures or naked
-   primitive values. */
-static _ closure_pack(sc *sc, _ o, _ cl) {
-    if (NIL == cl) cl = CLOSURE(NIL,NIL);
-    /* Use prealloc structure in-place.  This is used to make
-       primitive side-effects play nice with GC pre-emption. */
-    closure *c = object_to_closure(cl);
-    if (TRUE==sc_is_closure(sc, o)) {
-        closure *_c = object_to_closure(o);
-        c->term = _c ->term;
-        c->env  = _c ->env;
-    }
-    else {
-        c->term = o;
-        c->env  = NIL;
-    }
-    return cl;
-}
-static _ closure_unpack(sc *sc, _ cl) {
-    closure *c = object_to_closure(cl);
-    if (TRUE==sc_is_lambda(sc, c->term)) return cl;
-    return c->term;
-}
-
-#define UP(x) closure_unpack(sc, x)
-static inline _ _sc_call(sc *sc, void *p, 
-                              int nargs, _ ra) {
+static inline _ _sc_call(sc *sc, void *p, int nargs, _ ra) {
     switch(nargs) {
     case 0: return ((sc_0)p)(sc);
-    case 1: return ((sc_1)p)(sc, UP(CAR(ra)));
-    case 2: return ((sc_2)p)(sc, UP(CADR(ra)), UP(CAR(ra)));
-    case 3: return ((sc_3)p)(sc, UP(CADDR(ra)), UP(CADR(ra)), UP(CAR(ra)));
+    case 1: return ((sc_1)p)(sc, CAR(ra));
+    case 2: return ((sc_2)p)(sc, CADR(ra), CAR(ra));
+    case 3: return ((sc_3)p)(sc, CADDR(ra), CADR(ra), CAR(ra));
     default:
         return ERROR("prim", integer_to_object(nargs));
     }
@@ -435,216 +408,81 @@ _ sc_close_args(sc *sc, _ lst, _ E) {
                      sc_close_args(sc, CDR(lst), E)); 
 }
 
-static _ _sc_step_internal(sc *sc, _ o_state) {
+_ _sc_step_value(sc *sc, _ value, _ k) {
 
-    /* The state consists of a closure (a possibly reducable, possibly
-       open term and its environment) and a continuation (a data
-       structure that encodes what to do with a fully reduced value).
-       The machine tries to either reduce the current closure, or
-       updates the current continuation with the current value (=
-       non-reducable closure). */
-
-    state *s = CAST(state, o_state);
-    closure *c = CAST(closure, s->closure);
-    _ term = c->term;  // (open) term
-    _ env  = c->env;   // environment
-
-    /* Abstract Syntax: perform a single reduction step.
-
-       - create abstraction (lambda) value
-       - create application continuation
-       - perform variable reference
-       - create special form contiuation (if, set!, macro, ...)
-     */
-    if (TRUE==sc_is_ast(sc, term)) {
-        ast *stx = object_to_ast(term);
-        _ term = stx->datum;
-
-        if (TRUE==sc_is_pair(sc, term)) {
-            _ term_f    = CAR(term);
-            _ term_args = CDR(term);
-
-            /* Special Form */
-            if (TRUE==sc_is_symbol(sc, term_f)) {
-                if (term_f == sc->s_lambda) {
-                    if (NIL == term_args) ERROR("syntax",term);
-                    _ argspec = CAR(term_args);
-                    _ named;
-                    _ rest;
-                    _sc_length_rest(sc, argspec, &named, &rest);
-                    if ((NIL   != rest) &&
-                        (FALSE == sc_is_symbol(sc,rest))) {
-                        ERROR("syntax",term);
-                    }
-                    _ formals = sc_take_vector(sc, named, argspec);
-                    /* Implement the expression sequence in a `lambda'
-                       expression as a `begin' sequencing form. */
-                    // FIXME: don't do this if there's just 1 expr.
-                    _ stx = AST(CONS(sc->s_begin, CDR(term_args)));
-                    _ l = sc_make_lambda(sc, formals, rest, stx);
-                    return STATE(CLOSURE(l, env), s->continuation);
-                }
-                if (term_f == sc->s_quote) {
-                    if (NIL == term_args) ERROR("syntax",term);
-                    return STATE(CLOSURE(CAR(term_args),env),
-                                 s->continuation);
-                }
-                if (term_f == sc->s_if) {
-                    if (NIL == term_args) ERROR("syntax",term);
-                    if (NIL == CDR(term_args)) ERROR("syntax",term);
-                    _ cond = CLOSURE(AST(CAR(term_args)),env);
-                    _ yes  = CLOSURE(AST(CADR(term_args)),env);
-                    _ no   = 
-                        (NIL == CDDR(term_args)) ? 
-                        CLOSURE(VOID,NIL) :
-                        CLOSURE(AST(CADDR(term_args)),env);
-                    return STATE(cond,
-                                 sc_make_k_if(sc,
-                                              s->continuation,
-                                              yes,no));
-                                              
-                }
-                if (term_f == sc->s_bang_set) {
-                    if (NIL == term_args) ERROR("syntax",term);
-                    if (NIL == CDR(term_args)) ERROR("syntax",term);
-                    _ var = CLOSURE(CAR(term_args),env);
-                    _ cl  = CLOSURE(AST(CADR(term_args)),env);
-                    return STATE(cl, sc_make_k_set(sc, s->continuation, var));
-                }
-                if (term_f == sc->s_begin) {
-                    if (FALSE == sc_is_pair(sc, term_args)) ERROR("syntax",term);
-                    _ todo = sc_close_args(sc, term_args, env);
-                    return STATE(CAR(todo),
-                                 sc_make_k_seq(sc, s->continuation, CDR(todo)));
-                }                
-                if (term_f == sc->s_letcc) {
-                    if (NIL == term_args) ERROR("syntax",term);
-                    if (NIL == CDR(term_args)) ERROR("syntax",term);
-                    _ var = CAR(term_args);
-                    env   = CONS(CONS(var,s->continuation),env);
-                    _ cl  = CLOSURE(AST(CADR(term_args)),env);
-                    return STATE(cl, s->continuation);
-                }
-                _ macro;
-                if (FALSE != (macro = sc_find(sc, sc->toplevel_macro, term_f))) {
-                    /* Macro continuation is based on a completed
-                       k_apply frame that will trigger the fn
-                       application, linked to a k_macro frame that
-                       will steer the result back to the AST
-                       reducer. */
-                    _ k_m = sc_make_k_macro(sc, s->continuation, c->env);
-                    _ k_a = sc_make_k_apply
-                        (sc,
-                         k_m,
-                         CONS(closure_pack(sc, macro, NIL), NIL), // done list
-                         NIL); // todo list
-                    return STATE(CLOSURE(term,NIL), k_a);
-                }
-            }
-
-            /* Application Form */
-
-            /* Extend the continuation with a new frame by collecting
-               all (open) subterms, and binding them to the current
-               environment. */
-            _ closed_args = sc_close_args(sc, term_args, env);
-            return STATE(CLOSURE(AST(term_f), env),
-                         sc_make_k_apply(sc, 
-                                         s->continuation,
-                                         NIL,
-                                         closed_args));
-        }
-        /* Variable Reference */
-        else if (TRUE==sc_is_symbol(sc, term)){
-            _ val; 
-            if (FALSE == (val = sc_find(sc, env, term))) {
-                if (FALSE == (val = sc_find_toplevel(sc, term))) {
-                    return ERROR("undefined", term);
-                }
-            }
-            return STATE(closure_pack(sc, val, NIL),  // wrap naked values
-                         s->continuation);
-        }
-        /* Literal Value */
-        else {
-            return STATE(CLOSURE(term,env),
-                         s->continuation);
-        }
-    }
-
-    /* Value: depending on the type of continuation, we now figure out
-       what to do with the value 
+    /* Look at the continuation to determine what to do with the value. 
        
        - empty continuation: halt
-       - argument evaluation: do next, or apply
-       - macro expansion -> interpret the new term.
-       - predicate position of an 'if' -> pick one
+       - argument evaluation: eval next, or apply
+       - macro expansion result -> interpret the new term.
+       - predicate position of an 'if' -> pick yes or no
        - value position of 'set!' -> mutate environment
+       - ...
     */
 
     /* A fully reduced value in an empty continuation means the
        evaluation is finished, and the machine can be halted. */
-    if (MT == s->continuation) {
-        sc_error(sc, SYMBOL("halt"), s->closure);
+    if (MT == k) {
+        sc_error(sc, SYMBOL("halt"), value);
     }
-    if (TRUE == sc_is_k_if(sc, s->continuation)) {
-        k_if *k = object_to_k_if(s->continuation);
-        _ rc = (FALSE == c->term) ? k->no : k->yes;
-        return STATE(rc, k->parent);
+    if (TRUE == sc_is_k_if(sc, k)) {
+        k_if *kx = object_to_k_if(k);
+        _ rc = (FALSE == value) ? kx->no : kx->yes;
+        return STATE(rc, kx->parent);
     }
-    if (TRUE == sc_is_k_set(sc, s->continuation)) {
-        k_set *k = object_to_k_set(s->continuation);
-        closure *v = CAST(closure, k->var);
+    if (TRUE == sc_is_k_set(sc, k)) {
+        k_set *kx = object_to_k_set(k);
+        closure *v = CAST(closure, kx->var);
         // allocate before mutation
-        _ rv = STATE(CLOSURE(VOID,NIL), k->parent);
-        _ val = closure_unpack(sc, s->closure);
-        if (FALSE == sc_env_set(sc, v->env, v->term, val)) {
-            if (FALSE == sc_env_set(sc, sc->toplevel, v->term, val)) {
+        _ rv = STATE(CLOSURE(VOID,NIL), kx->parent);
+        if (FALSE == sc_env_set(sc, v->env, v->term, value)) {
+            if (FALSE == sc_env_set(sc, sc->toplevel, v->term, value)) {
                 return ERROR("undefined", v->term);
             }
         }
         return rv;
     }
-    if (TRUE == sc_is_k_seq(sc, s->continuation)) {
-        k_seq *k = object_to_k_seq(s->continuation);
+    // FIXME: this is wrong! instead of returning value, it needs to return term.
+    if (TRUE == sc_is_k_seq(sc, k)) {
+        k_seq *kx = object_to_k_seq(k);
         /* If there is another closure to reduce, discard current and
            pop next. */
-        if (TRUE==sc_is_pair(sc, k->todo)) {
-            return STATE(CAR(k->todo),
+        if (TRUE==sc_is_pair(sc, kx->todo)) {
+            return STATE(CAR(kx->todo),
                          sc_make_k_seq(sc, 
-                                       k->parent,
-                                       CDR(k->todo)));
+                                       kx->parent,
+                                       CDR(kx->todo)));
         }
         /* If it's the last, keep it and discard the frame. */
-        return STATE(s->closure, k->parent);
+        return STATE(value, kx->parent);
     }
-    if (TRUE == sc_is_k_macro(sc, s->continuation)) {
+    if (TRUE == sc_is_k_macro(sc, k)) {
         /* The _ returned by the macro is wrapped as an AST wich
            triggers its further reduction. */
-        k_macro *k = object_to_k_macro(s->continuation);
-        return STATE(CLOSURE(AST(c->term),k->env), k->parent);
+        k_macro *kx = object_to_k_macro(k);
+        return STATE(CLOSURE(AST(value),kx->env), kx->parent);
     }
-    if (TRUE == sc_is_k_ignore(sc, s->continuation)) {
+    if (TRUE == sc_is_k_ignore(sc, k)) {
         /* Ignore current value and complete the parent continuation
            with stored value.  Used in sc_apply_ktx. */
-        k_ignore *k = object_to_k_ignore(s->continuation);
-        return STATE(k->value, k->parent);
+        k_ignore *kx = object_to_k_ignore(k);
+        return STATE(kx->value, kx->parent);
     }
-    if (TRUE == sc_is_k_apply(sc, s->continuation)) {
+    if (TRUE == sc_is_k_apply(sc, k)) {
         /* If there are remaining closures to evaluate, push the value
            to the update value list and pop the next closure. */
-        k_apply *k = object_to_k_apply(s->continuation);
-        if (TRUE==sc_is_pair(sc, k->todo)) {
-            return STATE(CAR(k->todo),
-                         sc_make_k_apply(sc, k->parent,
-                                         CONS(s->closure, k->done),
-                                         CDR(k->todo)));
+        k_apply *kx = object_to_k_apply(k);
+        if (TRUE==sc_is_pair(sc, kx->todo)) {
+            return STATE(CAR(kx->todo),
+                         sc_make_k_apply(sc, kx->parent,
+                                         CONS(value, kx->done),
+                                         CDR(kx->todo)));
                                           
         }
         /* No more expressions to be reduced in the current k_apply:
            perform application. */
         else {
-            _ rev_args = CONS(s->closure, k->done);
+            _ rev_args = CONS(value, kx->done);
             _ p=rev_args, fn=NIL;
             int n = 0;
             while (TRUE==sc_is_pair(sc,p)) {
@@ -654,9 +492,17 @@ static _ _sc_step_internal(sc *sc, _ o_state) {
             // fn == primitive or lambda
 
             // unpack the closure
-            closure *c = CAST(closure, fn);
-            _ fn_term = c->term;
-            _ fn_env  = c->env;
+            _ fn_env, fn_term;
+
+            if (TRUE == sc_is_closure(sc, fn)) {
+                closure *c = object_to_closure(fn);
+                fn_term = c->term;
+                fn_env  = c->env;
+            }
+            else {
+                fn_term = fn;
+                fn_env  = NIL;
+            }
 
             /* Application of primitive function results in C call. */
             if (TRUE==sc_is_prim(sc, fn_term)) {
@@ -669,10 +515,9 @@ static _ _sc_step_internal(sc *sc, _ o_state) {
                    be the cause of an abort due to GC _after_ the
                    primitive has executed.  Meaning, primitives won't
                    be restarted unless it's their own fault. */
-                _ closure = CLOSURE(NIL, NIL);
-                _ state   = STATE(closure, k->parent); // drop frame
+                _ state   = STATE(VOID, kx->parent); // drop frame
                 _ rv      = _sc_call(sc, prim_fn(p), n-1, rev_args);
-                closure_pack(sc, rv, closure);
+                object_to_state(state)->redex_or_value = rv;
                 return state;
             }
             /* Application of abstraction extends the fn_env environment. */
@@ -692,8 +537,7 @@ static _ _sc_step_internal(sc *sc, _ o_state) {
                 _ rest_args = NIL;
                 if (NIL != l->rest) {
                     while (nb_rest_args--) {
-                        _ unpk = closure_unpack(sc, CAR(rev_args));
-                        rest_args = CONS(unpk, rest_args);
+                        rest_args = CONS(CAR(rev_args), rest_args);
                         rev_args = CDR(rev_args);
                     }
                     fn_env = CONS(CONS(l->rest, rest_args), fn_env);
@@ -702,13 +546,11 @@ static _ _sc_step_internal(sc *sc, _ o_state) {
                 /* Add the named arguments. */
                 long i;
                 for (i=nb_named_args-1; i>=0; i--) {
-                    _ cl = CAR(rev_args);
-                    _ unpk = closure_unpack(sc, cl);
-                    fn_env = CONS(CONS(v->slot[i], unpk), fn_env);
+                    fn_env = CONS(CONS(v->slot[i], CAR(rev_args)), fn_env);
                     rev_args = CDR(rev_args);
                 }
                 return STATE(CLOSURE(l->term, fn_env),  // close term
-                             k->parent);                // drop frame
+                             kx->parent);               // drop frame
             } 
 
             /* Continuation */
@@ -723,8 +565,164 @@ static _ _sc_step_internal(sc *sc, _ o_state) {
         }
     }
     /* Unknown continuation type */
-    return ERROR("cont", s->continuation);
+    return ERROR("cont", k);
 }
+
+
+static _ _sc_step(sc *sc, _ o_state) {
+
+    /* The state consists of a closure (a possibly reducable, possibly
+       open term and its environment) and a continuation (a data
+       structure that encodes what to do with a fully reduced value).
+
+       The machine tries to either reduce the current closure, or
+       update the current continuation with the current value (=
+       non-reducable closure). */
+
+    _ term, env, k;  // C E K
+    {
+        state *s = CAST(state, o_state);
+        k = s->continuation;
+
+        /* Determine term and environment.
+           
+           The environment and state can contain naked values with an
+           implied empty envionment.  This representation makes C
+           primitives simpler.  */
+
+        if (FALSE == sc_is_closure(sc, s->redex_or_value)) { 
+            closure *c = object_to_closure(c->term);
+            term = c->term;
+            env  = c->env;
+        }
+        else {
+            term = s->redex_or_value;
+            env  = NIL;
+        }
+
+        /* Fully reduced expression: strip environment if it is no
+           longer needed and pass it to the current continuation. */
+        if (FALSE==sc_is_ast(sc, term)) {
+            _ value = (TRUE==sc_is_lambda(sc, term)) 
+                ? s->redex_or_value : term;
+            return _sc_step_value(sc, value, k);
+        }
+        
+        /* AST: unpack s-expression wrapper. */
+        term = object_to_ast(term)->datum;
+    }
+
+
+
+    /* Abstract Syntax: perform a single reduction step.
+
+       - create abstraction (lambda) value
+       - create application continuation
+       - perform variable reference
+       - create special form contiuation (if, set!, macro, ...)
+     */
+    if (TRUE==sc_is_pair(sc, term)) {
+        _ term_f    = CAR(term);
+        _ term_args = CDR(term);
+
+        /* Special Form */
+        if (TRUE==sc_is_symbol(sc, term_f)) {
+            if (term_f == sc->s_lambda) {
+                if (NIL == term_args) ERROR("syntax",term);
+                _ argspec = CAR(term_args);
+                _ named;
+                _ rest;
+                _sc_length_rest(sc, argspec, &named, &rest);
+                if ((NIL   != rest) &&
+                    (FALSE == sc_is_symbol(sc,rest))) {
+                    ERROR("syntax",term);
+                }
+                _ formals = sc_take_vector(sc, named, argspec);
+                /* Implement the expression sequence in a `lambda'
+                   expression as a `begin' sequencing form. */
+                // FIXME: don't do this if there's just 1 expr.
+                _ stx = AST(CONS(sc->s_begin, CDR(term_args)));
+                _ l = sc_make_lambda(sc, formals, rest, stx);
+                return STATE(CLOSURE(l, env), k);
+            }
+            if (term_f == sc->s_quote) {
+                if (NIL == term_args) ERROR("syntax",term);
+                return STATE(CLOSURE(CAR(term_args),env), k);
+            }
+            if (term_f == sc->s_if) {
+                if (NIL == term_args) ERROR("syntax",term);
+                if (NIL == CDR(term_args)) ERROR("syntax",term);
+                _ cond = CLOSURE(AST(CAR(term_args)),env);
+                _ yes  = CLOSURE(AST(CADR(term_args)),env);
+                _ no   = 
+                    (NIL == CDDR(term_args)) ? 
+                    CLOSURE(VOID,NIL) :
+                    CLOSURE(AST(CADDR(term_args)),env);
+                return STATE(cond, sc_make_k_if(sc, k, yes,no));
+                                              
+            }
+            if (term_f == sc->s_bang_set) {
+                if (NIL == term_args) ERROR("syntax",term);
+                if (NIL == CDR(term_args)) ERROR("syntax",term);
+                _ var = CLOSURE(CAR(term_args),env);
+                _ cl  = CLOSURE(AST(CADR(term_args)),env);
+                return STATE(cl, sc_make_k_set(sc, k, var));
+            }
+            if (term_f == sc->s_begin) {
+                if (FALSE == sc_is_pair(sc, term_args)) ERROR("syntax",term);
+                _ todo = sc_close_args(sc, term_args, env);
+                return STATE(CAR(todo), sc_make_k_seq(sc, k, CDR(todo)));
+            }                
+            if (term_f == sc->s_letcc) {
+                if (NIL == term_args) ERROR("syntax",term);
+                if (NIL == CDR(term_args)) ERROR("syntax",term);
+                _ var = CAR(term_args);
+                env   = CONS(CONS(var,k),env);
+                _ cl  = CLOSURE(AST(CADR(term_args)),env);
+                return STATE(cl, k);
+            }
+            _ macro;
+            if (FALSE != (macro = sc_find(sc, sc->toplevel_macro, term_f))) {
+                /* Macro continuation is based on a completed
+                   k_apply frame that will trigger the fn
+                   application, linked to a k_macro frame that
+                   will steer the result back to the AST
+                   reducer. */
+                _ k_m = sc_make_k_macro(sc, k, env);
+                _ k_a = sc_make_k_apply
+                    (sc, k_m,
+                     CONS(macro, NIL), // done list
+                     NIL);             // todo list
+                return STATE(CLOSURE(term,NIL), k_a);
+            }
+        }
+
+        /* Application Form */
+
+        /* Extend the continuation with a new frame by collecting
+           all (open) subterms, and binding them to the current
+           environment. */
+        _ closed_args = sc_close_args(sc, term_args, env);
+        return STATE(CLOSURE(AST(term_f), env),
+                     sc_make_k_apply(sc, k, NIL, closed_args));
+    }
+    /* Variable Reference */
+    else if (TRUE==sc_is_symbol(sc, term)){
+        _ val; 
+        if (FALSE == (val = sc_find(sc, env, term))) {
+            if (FALSE == (val = sc_find_toplevel(sc, term))) {
+                return ERROR("undefined", term);
+            }
+        }
+        return STATE(val, k); // wrap naked values
+    }
+    /* Literal Value */
+    else {
+        return STATE(CLOSURE(term,env), k);
+    }
+}
+
+
 
 /* Because interpreter-step is accessible from Scheme, it is possible
    to create towers of interpreters.  This requires some nesting for
@@ -746,7 +744,7 @@ _ sc_interpreter_step(sc *sc, _ state) {
 
     switch(exception = setjmp(sc->step)) {
         case SC_EX_TRY:
-            rv = _sc_step_internal(sc, state);
+            rv = _sc_step(sc, state);
             break;
         case SC_EX_ABORT: 
             rv = sc_make_error(sc, sc->error_tag, sc->error_arg, state);
@@ -803,10 +801,6 @@ _ sc_gc(sc* sc) {
 
 /*  = CONS(closure_pack(sc, fn, NIL), NIL); */
 
-    
-    
-    
-
 /*     while(NIL != args) { */
 /*         done = CONS(closure_pack(sc, CAR(args), NIL), done); */
 /*         args = CDR(args); */
@@ -818,19 +812,25 @@ _ sc_gc(sc* sc) {
 
 
 
-/* Convert an s-expression to a machine state that will eval and
-   halt. */
-_ sc_datum_to_state(sc *sc, _ expr) {
-    _ c = CLOSURE(expr,NIL);  // empty environment
-    _ k = MT;                 // empty continuation
-    return STATE(c,k);
-}
-
 
 /* --- SETUP & GC --- */
 
-void _sc_run(sc *sc){
+/* Toplevel eval.  This function captures the GC restart.
+
+     - This function is NOT re-entrant.  The primitive
+       sc_interpreter_step() however can be called recursively.
+
+     - It is allowed to use gc_alloc() outside this loop to create
+       data (to pass to this function) as long as you can prove that
+       there will be no collection.  Triggering GC outside of this
+       function will invalidate previously allocated data (it will
+       have moved).
+*/
+
+_ _sc_eval(sc *sc, _ expr){
+    sc->state = STATE(expr,MT);
     int exception;
+    if (sc->entries) return NIL;
     sc->entries++;
   next:
     switch (exception = setjmp(sc->run)) {
@@ -842,7 +842,7 @@ void _sc_run(sc *sc){
         /* Handle error states */
         error *e = object_to_error(sc->state);
         if (e->tag == SYMBOL("halt")) {
-            sc->state = e->state;
+            expr = e->arg;
             goto leave;
         }
         else {
@@ -859,23 +859,12 @@ void _sc_run(sc *sc){
     }
   leave:
     sc->entries--;
-    return;
+    return expr;
   abort:
     sc->state = sc->state_abort;
     goto next;
 }
-/* Eval runs until halt SC_EX_HALT. */
-_ _sc_eval(sc *sc, _ expr){
-    sc->state = sc_datum_to_state(sc, expr);
-    _sc_run(sc);
-    _ rv = NIL;
-    if (TRUE==sc_is_state(sc, sc->state)) {
-        state *s = CAST(state, sc->state);
-        rv = closure_unpack(sc, s->closure);
-    }
-    sc->state = NIL;
-    return rv;
-}
+
 #define MARK(field) sc->field = gc_mark(sc->gc, sc->field)
 static void _sc_mark_roots(sc *sc, gc_finalize fin) {
     // sc_trap(sc);
@@ -925,7 +914,7 @@ sc *_sc_new(void) {
 
     /* Toplevel continuation */
     _ abort = AST(CONS(SYMBOL("fatal"),NIL));
-    sc->state_abort = sc_datum_to_state(sc, abort);
+    sc->state_abort = STATE(abort,MT);
 
     /* Cached identifiers */
     sc->s_lambda   = SYMBOL("lambda");

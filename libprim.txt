@@ -781,3 +781,26 @@ Basicly, such a continuation takes a value, ignores it, and passes
 another value to its parent continuation.
 
     
+Entry: closures and values
+Date: Sat Aug  8 12:33:11 CEST 2009
+
+So.. It's probably best to move closure_pack to the start of step(),
+and unpack before adding to the environment.  It's a bit awkward the
+way it is now.
+
+Let's make it such that:
+
+      - on step() entry, the closure is unpacked to perform reduction.
+
+      - if there is no reduction, the value is packed.
+
+This is not so simple, as there are many forms that need the
+environment: lambda, set!, 
+
+
+Entry: magic values
+Date: Sat Aug  8 12:47:55 CEST 2009
+
+Because closures and ast's have a special meaning in the interpreter,
+they cannot be used as values in Scheme.
+

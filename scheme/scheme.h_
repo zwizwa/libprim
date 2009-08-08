@@ -1,5 +1,4 @@
 typedef object _;
-_ sc_datum_to_state(sc *sc, _ expr);
 _ sc_gc(sc* sc);
 _ sc_interpreter_step(sc *sc, _ state);
 _ sc_close_args(sc *sc, _ lst, _ E);
@@ -58,7 +57,6 @@ _ sc_is_prim(sc *sc, _ o);
 _ sc_is_symbol(sc *sc, _ o);
 _ sc_is_integer(sc *sc, _ o);
 static inline void _sc_def_prims(sc *sc){
-    DEF("datum->state", sc_datum_to_state, 1);
     DEF("gc", sc_gc, 0);
     DEF("interpreter-step", sc_interpreter_step, 1);
     DEF("close-args", sc_close_args, 2);
