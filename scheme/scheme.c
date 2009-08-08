@@ -640,9 +640,10 @@ static _ _sc_step(sc *sc, _ o_state) {
                 _ formals = sc_take_vector(sc, named, argspec);
                 /* Implement the expression sequence in a `lambda'
                    expression as a `begin' sequencing form. */
-                // FIXME: don't do this if there's just 1 expr.
-                _ stx = AST(CONS(sc->s_begin, CDR(term_args)));
-                _ l = sc_make_lambda(sc, formals, rest, stx);
+                _ body = CDR(term_args);
+                if (NIL == CDR(body)) body = CAR(body);
+                else body = CONS(sc->s_begin, body);
+                _ l = sc_make_lambda(sc, formals, rest, AST(body));
                 return STATE(CLOSURE(l, env), k);
             }
             if (term_f == sc->s_quote) {
