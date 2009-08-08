@@ -177,6 +177,7 @@ _ sc_trap(sc *sc) {
 _ sc_error(sc *sc, _ sym_o, _ arg_o) {
     sc->error_tag = sym_o;
     sc->error_arg = arg_o;
+    // if (sym_o != SYMBOL("halt")) sc_trap(sc);
     longjmp(sc->step, SC_EX_ABORT);
 }
 _ sc_make_vector(sc *sc, _ slots, _ init) {
@@ -442,19 +443,14 @@ _ _sc_step_value(sc *sc, _ value, _ k) {
         }
         return rv;
     }
-    // FIXME: this is wrong! instead of returning value, it needs to return term.
     if (TRUE == sc_is_k_seq(sc, k)) {
         k_seq *kx = object_to_k_seq(k);
-        /* If there is another closure to reduce, discard current and
-           pop next. */
-        if (TRUE==sc_is_pair(sc, kx->todo)) {
-            return STATE(CAR(kx->todo),
-                         sc_make_k_seq(sc, 
-                                       kx->parent,
-                                       CDR(kx->todo)));
-        }
-        /* If it's the last, keep it and discard the frame. */
-        return STATE(value, kx->parent);
+        /* There is always at least one next expression. */
+        pair *top = CAST(pair, kx->todo);
+        /* If this is the last one, replace the continuation, else
+           update k_seq. */
+        if (NIL == top->cdr) return STATE(top->car, kx->parent);
+        return STATE(top->car, sc_make_k_seq(sc, kx->parent, top->cdr));
     }
     if (TRUE == sc_is_k_macro(sc, k)) {
         /* The _ returned by the macro is wrapped as an AST wich
@@ -556,8 +552,7 @@ _ _sc_step_value(sc *sc, _ value, _ k) {
             /* Continuation */
             if (TRUE==sc_is_k(sc, fn_term)) {
                 if (n != 2) ERROR("nargs", fn_term);
-                closure *c = CAST(closure, CADR(rev_args));
-                return STATE(CAR(rev_args), c->term);
+                return STATE(CAR(rev_args), fn_term);
             }
 
             /* Unknown applicant type */
@@ -672,7 +667,11 @@ static _ _sc_step(sc *sc, _ o_state) {
             if (term_f == sc->s_begin) {
                 if (FALSE == sc_is_pair(sc, term_args)) ERROR("syntax",term);
                 _ todo = sc_close_args(sc, term_args, env);
-                return STATE(CAR(todo), sc_make_k_seq(sc, k, CDR(todo)));
+                pair *body = object_to_pair(todo);
+                /* Don't create a contination if there's only a single
+                   expression.*/
+                if (NIL == body->cdr) return STATE(body->car, k);
+                return STATE(body->car, sc_make_k_seq(sc, k, body->cdr));
             }                
             if (term_f == sc->s_letcc) {
                 if (NIL == term_args) ERROR("syntax",term);
