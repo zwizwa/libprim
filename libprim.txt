@@ -864,3 +864,7 @@ Inspecting the run state it gives something like:
 ... (#k_apply(#k_macro(#k_apply(#k_macro(#k_apply( ...
 
 Ok.. recursive macro application.
+
+After some more small tagging bugs (sc_apply_ktx required some head
+scratching) it seems to work now.  The only remaining problem is the
+invokation of (gc) from within scheme.

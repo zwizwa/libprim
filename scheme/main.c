@@ -30,12 +30,12 @@ void debug_gc(gc_test *x) {
 
 
 void test_scheme(sc *sc) {
-    for (;;) {
+//    for (;;) {
 // generated from test.scm
         // gc_collect(sc->gc);
 #include "test.c_"
-        sc_trap(sc);
-    }
+        // sc_trap(sc);
+//    }
 }
 
 void mark_roots(gc_test *x){
