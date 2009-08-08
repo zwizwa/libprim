@@ -112,7 +112,7 @@ _ sc_is_k_seq(sc *sc, _ o)   { return vector_type(o, TAG_K_SEQ); }
 _ sc_is_k_set(sc *sc, _ o)   { return vector_type(o, TAG_K_SET); }
 _ sc_is_k_macro(sc *sc, _ o) { return vector_type(o, TAG_K_MACRO); }
 
-_ sc_is_continuation(sc *sc, _ o) {
+_ sc_is_k(sc *sc, _ o) {
     vector *v;
     if (MT == o) return TRUE;
     if ((v = object_to_vector(o))) {
@@ -126,6 +126,9 @@ _ sc_is_continuation(sc *sc, _ o) {
         }
     }
     return FALSE;
+}
+_ sc_k_parent(sc *sc, _ o) {
+    return VOID;
 }
 
 #define STRUCT(tag, size, ...) return _sc_make_struct(sc, tag, size, __VA_ARGS__)
@@ -149,11 +152,12 @@ _ sc_make_lambda(sc *sc, _ F, _ R, _ S)  {STRUCT(TAG_LAMBDA , 3, F,R,S);}
 _ sc_make_ast(sc *sc, _ D)               {STRUCT(TAG_AST,     1, D);}
 _ sc_make_error(sc *sc, _ T, _ A, _ K)   {STRUCT(TAG_ERROR,   3, T,A,K);}
 
-_ sc_make_k_apply(sc *sc, _ D, _ T, _ P) {STRUCT(TAG_K_APPLY, 3, D,T,P);}
-_ sc_make_k_if(sc *sc, _ Y, _ N, _ P)    {STRUCT(TAG_K_IF,    3, Y,N,P);}
-_ sc_make_k_set(sc *sc, _ V, _ P)        {STRUCT(TAG_K_SET,   2, V,P);}
-_ sc_make_k_seq(sc *sc, _ T, _ P)        {STRUCT(TAG_K_SEQ,   2, T,P);}
-_ sc_make_k_macro(sc *sc, _ E, _ P)      {STRUCT(TAG_K_MACRO, 2, E,P);}
+// 'P' is in slot 0
+_ sc_make_k_apply(sc *sc, _ P, _ D, _ T) {STRUCT(TAG_K_APPLY, 3, P,D,T);}
+_ sc_make_k_if(sc *sc, _ P, _ Y, _ N)    {STRUCT(TAG_K_IF,    3, P,Y,N);}
+_ sc_make_k_set(sc *sc, _ P, _ V)        {STRUCT(TAG_K_SET,   2, P,V);}
+_ sc_make_k_seq(sc *sc, _ P, _ T)        {STRUCT(TAG_K_SEQ,   2, P,T);}
+_ sc_make_k_macro(sc *sc, _ P, _ E)      {STRUCT(TAG_K_MACRO, 2, P,E);}
 
 
 _ sc_car(sc *sc, _ o) { pair *p = CAST(pair, o); return p->car; }
@@ -490,22 +494,23 @@ static _ _sc_step_internal(sc *sc, _ o_state) {
                         CLOSURE(VOID,NIL) :
                         CLOSURE(AST(CADDR(term_args)),env);
                     return STATE(cond,
-                                 sc_make_k_if(sc,yes,no,
-                                              s->continuation));
+                                 sc_make_k_if(sc,
+                                              s->continuation,
+                                              yes,no));
+                                              
                 }
                 if (term_f == sc->s_bang_set) {
                     if (NIL == term_args) ERROR("syntax",term);
                     if (NIL == CDR(term_args)) ERROR("syntax",term);
                     _ var = CLOSURE(CAR(term_args),env);
                     _ cl  = CLOSURE(AST(CADR(term_args)),env);
-                    return STATE(cl, sc_make_k_set(sc, var, s->continuation));
+                    return STATE(cl, sc_make_k_set(sc, s->continuation, var));
                 }
                 if (term_f == sc->s_begin) {
                     if (FALSE == sc_is_pair(sc, term_args)) ERROR("syntax",term);
                     _ todo = sc_close_args(sc, term_args, env);
                     return STATE(CAR(todo),
-                                 sc_make_k_seq(sc, CDR(todo),
-                                               s->continuation));
+                                 sc_make_k_seq(sc, s->continuation, CDR(todo)));
                 }                
                 if (term_f == sc->s_letcc) {
                     if (NIL == term_args) ERROR("syntax",term);
@@ -522,12 +527,12 @@ static _ _sc_step_internal(sc *sc, _ o_state) {
                        application, linked to a k_macro frame that
                        will steer the result back to the AST
                        reducer. */
-                    _ k_m = sc_make_k_macro(sc, c->env, s->continuation);
+                    _ k_m = sc_make_k_macro(sc, s->continuation, c->env);
                     _ k_a = sc_make_k_apply
-                        (sc,  
+                        (sc,
+                         k_m,
                          CONS(closure_pack(sc, macro, NIL), NIL), // done list
-                         NIL, // todo list
-                         k_m);
+                         NIL); // todo list
                     return STATE(CLOSURE(term,NIL), k_a);
                 }
             }
@@ -539,9 +544,10 @@ static _ _sc_step_internal(sc *sc, _ o_state) {
                environment. */
             _ closed_args = sc_close_args(sc, term_args, env);
             return STATE(CLOSURE(AST(term_f), env),
-                         sc_make_k_apply(sc, NIL,
-                                         closed_args, 
-                                         s->continuation));
+                         sc_make_k_apply(sc, 
+                                         s->continuation,
+                                         NIL,
+                                         closed_args));
         }
         /* Variable Reference */
         else if (TRUE==sc_is_symbol(sc, term)){
@@ -601,8 +607,8 @@ static _ _sc_step_internal(sc *sc, _ o_state) {
         if (TRUE==sc_is_pair(sc, k->todo)) {
             return STATE(CAR(k->todo),
                          sc_make_k_seq(sc, 
-                                       CDR(k->todo),
-                                       k->parent));
+                                       k->parent,
+                                       CDR(k->todo)));
         }
         /* If it's the last, keep it and discard the frame. */
         return STATE(s->closure, k->parent);
@@ -619,10 +625,10 @@ static _ _sc_step_internal(sc *sc, _ o_state) {
         k_apply *k = object_to_k_apply(s->continuation);
         if (TRUE==sc_is_pair(sc, k->todo)) {
             return STATE(CAR(k->todo),
-                         sc_make_k_apply(sc, 
+                         sc_make_k_apply(sc, k->parent,
                                          CONS(s->closure, k->done),
-                                         CDR(k->todo), 
-                                         k->parent));
+                                         CDR(k->todo)));
+                                          
         }
         /* No more expressions to be reduced in the current k_apply:
            perform application. */
@@ -695,7 +701,7 @@ static _ _sc_step_internal(sc *sc, _ o_state) {
             } 
 
             /* Continuation */
-            if (TRUE==sc_is_continuation(sc, fn_term)) {
+            if (TRUE==sc_is_k(sc, fn_term)) {
                 if (n != 2) ERROR("nargs", fn_term);
                 closure *c = CAST(closure, CADR(rev_args));
                 return STATE(CAR(rev_args), c->term);
@@ -779,7 +785,7 @@ _ sc_apply_ktx(sc* sc, _ k, _ fn, _ args) {
         done = CONS(closure_pack(sc, CAR(args), NIL), done);
         args = CDR(args);
     }
-    object state = STATE(CAR(done), sc_make_k_apply(sc, CDR(done), NIL, k));
+    object state = STATE(CAR(done), sc_make_k_apply(sc, k, CDR(done), NIL));
     sc->state = state;
     return _sc_restart(sc);
 }

@@ -66,35 +66,37 @@ typedef struct {
 
 typedef struct {
     vector v;
+    object parent; // link
     object done;   // reversed list of reduced 
     object todo;   // todo
-    object parent; // link
 } k_apply;
 
 typedef struct {
     vector v;
+    object parent;
     object yes;  // non-reduced closures for the 2 branches
     object no;
-    object parent;
 } k_if;
 
 typedef struct {
     vector v;
-    object var;  
     object parent;
+    object var;  
 } k_set;
 
 typedef struct {
     vector v;
-    object todo;  
     object parent;
+    object todo;  
 } k_seq;
 
 typedef struct {
     vector v;
-    object env;
     object parent;
+    object env;
 } k_macro;
+
+
 
 typedef struct {
     vector v;
