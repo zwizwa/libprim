@@ -178,7 +178,7 @@ _ sc_trap(sc *sc) {
 _ sc_error(sc *sc, _ sym_o, _ arg_o) {
     sc->error_tag = sym_o;
     sc->error_arg = arg_o;
-    // if (sym_o != SYMBOL("halt")) sc_trap(sc);
+    if (sym_o != SYMBOL("halt")) sc_trap(sc);
     longjmp(sc->step, SC_EX_ABORT);
 }
 _ sc_make_vector(sc *sc, _ slots, _ init) {
@@ -544,7 +544,7 @@ _ _sc_step_value(sc *sc, _ v, _ k) {
             /* Continuation */
             if (TRUE==sc_is_k(sc, fn_term)) {
                 if (n != 2) ERROR("nargs", fn_term);
-                return STATE(CAR(rev_args), fn_term);
+                return STATE(VALUE(CAR(rev_args)), fn_term);
             }
 
             /* Unknown applicant type */
@@ -691,7 +691,7 @@ static _ _sc_step(sc *sc, _ o_state) {
                 (sc, k_m,
                  CONS(macro, NIL), // done list
                  NIL);             // todo list
-            return STATE(REDEX(term,NIL), k_a);
+            return STATE(VALUE(term), k_a);
         }
 
         /* Fallthrough: symbol must be bound to applicable values. */
@@ -780,7 +780,7 @@ _ sc_apply_ktx(sc* sc, _ k, _ fn, _ args) {
             done = CONS(p->car, done);
             args = p->cdr;
         }
-        value = p->car;
+        value = VALUE(p->car);
     }
     object app = sc_make_k_apply(sc, k, done, NIL); // all but last
     object seq = sc_make_k_seq(sc, app, CONS(value, NIL));
@@ -846,7 +846,7 @@ _ _sc_eval(sc *sc, _ expr){
 #define MARK(field) sc->field = gc_mark(sc->gc, sc->field)
 static void _sc_mark_roots(sc *sc, gc_finalize fin) {
     // sc_trap(sc);
-    // printf("GC mark()\n");
+    printf("GC mark()\n");
     // sc_post(sc, sc->state);
     MARK(state);
     MARK(state_abort);
@@ -880,7 +880,7 @@ sc *_sc_new(void) {
     sc->entries = 0;
 
     /* Garbage collector. */
-    sc->gc = gc_new(1000000, (gc_mark_roots)_sc_mark_roots, sc);
+    sc->gc = gc_new(100000000, (gc_mark_roots)_sc_mark_roots, sc);
 
     /* Atom classes. */
     sc->syms = symstore_new(1000);

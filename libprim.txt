@@ -856,3 +856,11 @@ abstractions are values.
 So.. Can I get rid of it in one try?  The code should be a lot clearer
 with this..
 
+I think I got the concept right, but there is some stray assignment
+that messes up the GC.  Maybe time to isolate all assignments?
+
+Inspecting the run state it gives something like:
+
+... (#k_apply(#k_macro(#k_apply(#k_macro(#k_apply( ...
+
+Ok.. recursive macro application.
