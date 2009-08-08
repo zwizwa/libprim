@@ -766,3 +766,18 @@ right-to-left app frame?
 Before continuing, let's make the continuations somewhat abstract:
 each with a parent slot in the first position.
 
+Ok.
+
+One way is to have a reverse k_apply: one that traverses the arguments
+from right to left.  This way the `apply' continuation can be
+constructed as an argument list, with the function value passed to it.
+This would either require an extra reverse, or some re-arrangement in
+the primitive call trampoline.
+
+Or, a different kind of continuation could be made that ignores its
+value, but passes closure to its parent continuation.
+
+Basicly, such a continuation takes a value, ignores it, and passes
+another value to its parent continuation.
+
+    

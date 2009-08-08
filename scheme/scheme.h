@@ -96,6 +96,14 @@ typedef struct {
     object env;
 } k_macro;
 
+/* Ignore current value and pass a different one to the parent.
+   Useful for replacing the full machine state from a primitive. */
+typedef struct {
+    vector v;
+    object parent;
+    object value;
+} k_ignore;
+
 
 
 typedef struct {
@@ -156,6 +164,7 @@ DEF_CAST (k_if)
 DEF_CAST (k_set)
 DEF_CAST (k_seq)
 DEF_CAST (k_macro)
+DEF_CAST (k_ignore)
 
 struct _scheme {
     gc *gc;

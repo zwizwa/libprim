@@ -93,8 +93,10 @@ static _ _sc_make_struct(sc *sc, long tag, long slots, ...) {
 #define TAG_K_APPLY  10
 #define TAG_K_SEQ    11
 #define TAG_K_MACRO  12
+#define TAG_K_IGNORE 13
+// reserved 14 15
 static inline long tag_is_k(long tag) {
-    return (0L == (tag & (~0x38L)));
+    return (0x8L == (tag & (~0x7L)));
 }
 
 
@@ -114,6 +116,7 @@ _ sc_is_k_apply(sc *sc, _ o) { return vector_type(o, TAG_K_APPLY); }
 _ sc_is_k_seq(sc *sc, _ o)   { return vector_type(o, TAG_K_SEQ); }
 _ sc_is_k_set(sc *sc, _ o)   { return vector_type(o, TAG_K_SET); }
 _ sc_is_k_macro(sc *sc, _ o) { return vector_type(o, TAG_K_MACRO); }
+_ sc_is_k_ignore(sc *sc, _ o){ return vector_type(o, TAG_K_IGNORE); }
 
 _ sc_is_k(sc *sc, _ o) {
     vector *v;
@@ -154,11 +157,12 @@ _ sc_make_ast(sc *sc, _ D)               {STRUCT(TAG_AST,     1, D);}
 _ sc_make_error(sc *sc, _ T, _ A, _ K)   {STRUCT(TAG_ERROR,   3, T,A,K);}
 
 // 'P' is in slot 0
-_ sc_make_k_apply(sc *sc, _ P, _ D, _ T) {STRUCT(TAG_K_APPLY, 3, P,D,T);}
-_ sc_make_k_if(sc *sc, _ P, _ Y, _ N)    {STRUCT(TAG_K_IF,    3, P,Y,N);}
-_ sc_make_k_set(sc *sc, _ P, _ V)        {STRUCT(TAG_K_SET,   2, P,V);}
-_ sc_make_k_seq(sc *sc, _ P, _ T)        {STRUCT(TAG_K_SEQ,   2, P,T);}
-_ sc_make_k_macro(sc *sc, _ P, _ E)      {STRUCT(TAG_K_MACRO, 2, P,E);}
+_ sc_make_k_apply(sc *sc, _ P, _ D, _ T) {STRUCT(TAG_K_APPLY,  3, P,D,T);}
+_ sc_make_k_if(sc *sc, _ P, _ Y, _ N)    {STRUCT(TAG_K_IF,     3, P,Y,N);}
+_ sc_make_k_set(sc *sc, _ P, _ V)        {STRUCT(TAG_K_SET,    2, P,V);}
+_ sc_make_k_seq(sc *sc, _ P, _ T)        {STRUCT(TAG_K_SEQ,    2, P,T);}
+_ sc_make_k_macro(sc *sc, _ P, _ E)      {STRUCT(TAG_K_MACRO,  2, P,E);}
+_ sc_make_k_ignore(sc *sc, _ P, _ V)     {STRUCT(TAG_K_IGNORE, 2, P,V);}
 
 
 _ sc_car(sc *sc, _ o) { pair *p = CAST(pair, o); return p->car; }
@@ -620,9 +624,15 @@ static _ _sc_step_internal(sc *sc, _ o_state) {
         k_macro *k = object_to_k_macro(s->continuation);
         return STATE(CLOSURE(AST(c->term),k->env), k->parent);
     }
+    if (TRUE == sc_is_k_ignore(sc, s->continuation)) {
+        /* Ignore current value and complete the parent continuation
+           with stored value.  Used in sc_apply_ktx. */
+        k_ignore *k = object_to_k_ignore(s->continuation);
+        return STATE(k->value, k->parent);
+    }
     if (TRUE == sc_is_k_apply(sc, s->continuation)) {
-        /* If there are remaining closures to evaluate, pop the
-           next one and push the value to the update value list. */
+        /* If there are remaining closures to evaluate, push the value
+           to the update value list and pop the next closure. */
         k_apply *k = object_to_k_apply(s->continuation);
         if (TRUE==sc_is_pair(sc, k->todo)) {
             return STATE(CAR(k->todo),
@@ -648,7 +658,7 @@ static _ _sc_step_internal(sc *sc, _ o_state) {
             _ fn_term = c->term;
             _ fn_env  = c->env;
 
-            /* Primitive functions are evaluated. */
+            /* Application of primitive function results in C call. */
             if (TRUE==sc_is_prim(sc, fn_term)) {
                 prim *p = object_to_prim(fn_term,sc);
                 if (prim_nargs(p) != (n-1)) {
@@ -665,7 +675,7 @@ static _ _sc_step_internal(sc *sc, _ o_state) {
                 closure_pack(sc, rv, closure);
                 return state;
             }
-            /* Application extends the fn_env environment. */
+            /* Application of abstraction extends the fn_env environment. */
             if (TRUE==sc_is_lambda(sc, fn_term)) {
                 lambda *l = CAST(lambda, fn_term);
                 vector *v = CAST(vector, l->formals);
@@ -778,18 +788,32 @@ _ sc_gc(sc* sc) {
     return NIL;
 }
 
-/* Continuation transformer for apply. */
-_ sc_apply_ktx(sc* sc, _ k, _ fn, _ args) {
-    object done = CONS(closure_pack(sc, fn, NIL), NIL);
+/* Continuation transformer for apply.  This uses k_ignore to pass a
+   value to a k_apply continuation.  (It would be simpler if k_apply
+   evaluated from right to left, in which case `fn' would be the final
+   value.) */
+/* _ __sc_apply_ktx(sc* sc, _ k, _ fn, _ args) { */
+/*     object done; */
+/*     object value; */
+/*     if (NIL == args) { */
+/*         done = nil; */
+/*         value = closure_pack(sc, fn, NIL); */
+/*     } */
+/*     else { */
 
-    while(NIL != args) {
-        done = CONS(closure_pack(sc, CAR(args), NIL), done);
-        args = CDR(args);
-    }
-    object state = STATE(CAR(done), sc_make_k_apply(sc, k, CDR(done), NIL));
-    sc->state = state;
-    return _sc_restart(sc);
-}
+/*  = CONS(closure_pack(sc, fn, NIL), NIL); */
+
+    
+    
+    
+
+/*     while(NIL != args) { */
+/*         done = CONS(closure_pack(sc, CAR(args), NIL), done); */
+/*         args = CDR(args); */
+/*     } */
+/*     object app = sc_make_k_apply(sc, k, CDR(done), NIL); // all but last */
+/*     return sc_make_sc_ignore(sc, app, CAR(done); // last argument */
+/* } */
 
 
 

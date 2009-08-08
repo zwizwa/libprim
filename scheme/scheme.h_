@@ -1,6 +1,5 @@
 typedef object _;
 _ sc_datum_to_state(sc *sc, _ expr);
-_ sc_apply_ktx(sc* sc, _ k, _ fn, _ args);
 _ sc_gc(sc* sc);
 _ sc_interpreter_step(sc *sc, _ state);
 _ sc_close_args(sc *sc, _ lst, _ E);
@@ -27,6 +26,7 @@ _ sc_error(sc *sc, _ sym_o, _ arg_o);
 _ sc_trap(sc *sc);
 _ sc_cdr(sc *sc, _ o);
 _ sc_car(sc *sc, _ o);
+_ sc_make_k_ignore(sc *sc, _ P, _ V);
 _ sc_make_k_macro(sc *sc, _ P, _ E);
 _ sc_make_k_seq(sc *sc, _ P, _ T);
 _ sc_make_k_set(sc *sc, _ P, _ V);
@@ -40,6 +40,7 @@ _ sc_make_state(sc *sc, _ C, _ K);
 _ sc_cons(sc *sc, _ car, _ cdr);
 _ sc_k_parent(sc *sc, _ o);
 _ sc_is_k(sc *sc, _ o);
+_ sc_is_k_ignore(sc *sc, _ o);
 _ sc_is_k_macro(sc *sc, _ o);
 _ sc_is_k_set(sc *sc, _ o);
 _ sc_is_k_seq(sc *sc, _ o);
@@ -58,7 +59,6 @@ _ sc_is_symbol(sc *sc, _ o);
 _ sc_is_integer(sc *sc, _ o);
 static inline void _sc_def_prims(sc *sc){
     DEF("datum->state", sc_datum_to_state, 1);
-    DEF("apply-ktx", sc_apply_ktx, 3);
     DEF("gc", sc_gc, 0);
     DEF("interpreter-step", sc_interpreter_step, 1);
     DEF("close-args", sc_close_args, 2);
@@ -85,6 +85,7 @@ static inline void _sc_def_prims(sc *sc){
     DEF("trap", sc_trap, 0);
     DEF("cdr", sc_cdr, 1);
     DEF("car", sc_car, 1);
+    DEF("make-k-ignore", sc_make_k_ignore, 2);
     DEF("make-k-macro", sc_make_k_macro, 2);
     DEF("make-k-seq", sc_make_k_seq, 2);
     DEF("make-k-set", sc_make_k_set, 2);
@@ -98,6 +99,7 @@ static inline void _sc_def_prims(sc *sc){
     DEF("cons", sc_cons, 2);
     DEF("k-parent", sc_k_parent, 1);
     DEF("k?", sc_is_k, 1);
+    DEF("k-ignore?", sc_is_k_ignore, 1);
     DEF("k-macro?", sc_is_k_macro, 1);
     DEF("k-set?", sc_is_k_set, 1);
     DEF("k-seq?", sc_is_k_seq, 1);
