@@ -1,5 +1,7 @@
 typedef object _;
+_ sc_eval_ktx(sc *sc, _ k, _ expr);
 _ sc_apply_ktx(sc* sc, _ k, _ fn, _ args);
+_ sc_gc_used(sc *sc);
 _ sc_gc(sc* sc);
 _ sc_eval_step(sc *sc, _ state);
 _ sc_close_args(sc *sc, _ lst, _ E);
@@ -60,7 +62,9 @@ _ sc_is_prim(sc *sc, _ o);
 _ sc_is_symbol(sc *sc, _ o);
 _ sc_is_integer(sc *sc, _ o);
 static inline void _sc_def_prims(sc *sc){
+    DEF("eval-ktx", sc_eval_ktx, 2);
     DEF("apply-ktx", sc_apply_ktx, 3);
+    DEF("gc-used", sc_gc_used, 0);
     DEF("gc", sc_gc, 0);
     DEF("eval-step", sc_eval_step, 1);
     DEF("close-args", sc_close_args, 2);

@@ -344,7 +344,7 @@ _ sc_write(sc *sc, _ o) {
     if (TRUE == sc_is_k_seq(sc, o))   return write_vector(sc, "k_seq", o);
     if (TRUE == sc_is_k_set(sc, o))   return write_vector(sc, "k_set", o);
     if (TRUE == sc_is_k_macro(sc, o)) return write_vector(sc, "k_macro", o);
-    if (MT   == o) printf("k_mt");
+    if (MT   == o) { printf("#k_mt"); return VOID; }
 
     if (TRUE == sc_is_prim(sc, o)) {
         prim *p = object_to_prim(o,sc);
@@ -567,13 +567,17 @@ _ _sc_step_value(sc *sc, _ v, _ k) {
 
 static _ _sc_step(sc *sc, _ o_state) {
 
-    /* The state consists of a closure (a possibly reducible, possibly
-       open term and its environment) and a continuation (a data
-       structure that encodes what to do with a fully reduced value).
+    /* The state consists of:
 
-       The machine tries to either reduce the current closure, or
-       update the current continuation with the current value (=
-       non-reducible closure). */
+       - a closure: a possibly reducible (redex or value), open term
+                    and its environment
+       
+       - a continuation: a data structure that encodes what to do with
+                         a fully reduced value.
+
+       The machine tries to either reduce the redex, or update the
+       current continuation with the current value (= non-reducible
+       closure). */
 
     _ term, env, k;  // C E K
 
@@ -769,6 +773,10 @@ _ sc_gc(sc* sc) {
     return NIL; // not reached
 }
 
+_ sc_gc_used(sc *sc) {
+    return integer_to_object(sc->gc->current_index);
+}
+
 /* Continuation transformer for apply.  
 
    This uses k_seq to ignore the value passed to the continuation, and
@@ -796,7 +804,9 @@ _ sc_apply_ktx(sc* sc, _ k, _ fn, _ args) {
     return seq;
 }
 
-
+_ sc_eval_ktx(sc *sc, _ k, _ expr) {
+    return sc_make_k_seq(sc, k, CONS(REDEX(expr, NIL),NIL));
+}
 
 
 

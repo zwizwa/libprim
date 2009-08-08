@@ -873,12 +873,15 @@ Was a problem with sc->entries.  Added sc->step_entries, which is a
 different semaphore.
 
 Seems to work now.  I can call the interpreter step from within scheme
-+ all the AST objects are available:
++ all the state objects are available:
 
 (make-value 123)
 => #value(123)
 
-(eval-step (make-state (make-redex 'a '((a . 123))) (mt))))
-=> #error(halt 123 #state(#value(123) k_mt#<0x1c>))
+(eval-step (make-state (make-redex 'a '((a . 123))) (mt)))
+=> #state(#value(123) #k_mt)
+
+(eval-step (eval-step (make-state (make-redex 'a '((a . 123))) (mt))))
+=> #error(halt 123 #state(#value(123) #k_mt))
 
 

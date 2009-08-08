@@ -1,6 +1,10 @@
+(eval '(post 123))
+(gc-used)
+(gc)
+(gc-used)
+
 (make-value 123)
-(eval-step
-(eval-step (make-state (make-redex 'a '((a . 123))) (mt))))
+(eval-step (make-state (make-redex 'a '((a . 123))) (mt)))
 
 
 

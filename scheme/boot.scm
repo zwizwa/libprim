@@ -32,5 +32,7 @@
        (cddr form))))
   (define apply (lambda (fn args)
                   (letcc k ((apply-ktx k fn args) 0))))
+  (define eval (lambda (expr)
+                 (letcc k ((eval-ktx k expr) 0))))
 
   (post 'init-OK))
