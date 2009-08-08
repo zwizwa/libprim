@@ -44,18 +44,18 @@ sc *scheme_new(void);
 
 /* The machine will attempt to reduce the current term (which is a
    closure = open term + variable bindings) or continue with the
-   computation context (a list of reducable closures). */
+   computation context (a list of reducible closures). */
 typedef struct {
     vector v;
-    object redex_or_value;  // naked value or reducable/value closure
+    object redex_or_value;  // naked value or reducible/value closure
     object continuation;    // current continuation
 } state;
 
 /* The k_apply continuation frame is used to sequence the order of
-   reductions.  Each application will create a new list of reducable
+   reductions.  Each application will create a new list of reducible
    closures, which will be reduced one by one from left to right.
    When done, the reduced terms are passed to a primitive, or an
-   application creates a new reducable closure with reduced closures
+   application creates a new reducible closure with reduced closures
    bound to variables. */
 
 typedef struct {

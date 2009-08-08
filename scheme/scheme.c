@@ -563,13 +563,13 @@ _ _sc_step_value(sc *sc, _ v, _ k) {
 
 static _ _sc_step(sc *sc, _ o_state) {
 
-    /* The state consists of a closure (a possibly reducable, possibly
+    /* The state consists of a closure (a possibly reducible, possibly
        open term and its environment) and a continuation (a data
        structure that encodes what to do with a fully reduced value).
 
        The machine tries to either reduce the current closure, or
        update the current continuation with the current value (=
-       non-reducable closure). */
+       non-reducible closure). */
 
     _ term, env, k;  // C E K
 
