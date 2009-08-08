@@ -93,6 +93,9 @@ static _ _sc_make_struct(sc *sc, long tag, long slots, ...) {
 #define TAG_K_APPLY  10
 #define TAG_K_SEQ    11
 #define TAG_K_MACRO  12
+static inline long tag_is_k(long tag) {
+    return (0L == (tag & (~0x38L)));
+}
 
 
 typedef _ o;  // This file is quasi-Huffman encoded ;)
@@ -116,19 +119,17 @@ _ sc_is_k(sc *sc, _ o) {
     vector *v;
     if (MT == o) return TRUE;
     if ((v = object_to_vector(o))) {
-        switch(vector_to_tag(v)) {
-        case TAG_K_APPLY:
-        case TAG_K_SEQ:
-        case TAG_K_IF:
-        case TAG_K_SET:
-        case TAG_K_MACRO:
-            return TRUE;
-        }
+        if (tag_is_k(vector_to_tag(v))) return TRUE;
     }
     return FALSE;
 }
 _ sc_k_parent(sc *sc, _ o) {
-    return VOID;
+    vector *v;
+    if (MT == o) TYPE_ERROR(o);
+    if ((v = object_to_vector(o))) {
+        if (tag_is_k(vector_to_tag(v))) return v->slot[0];
+    }
+    return TYPE_ERROR(o);
 }
 
 #define STRUCT(tag, size, ...) return _sc_make_struct(sc, tag, size, __VA_ARGS__)
