@@ -1,3 +1,9 @@
+(make-value 123)
+(eval-step
+(eval-step (make-state (make-redex 'a '((a . 123))) (mt))))
+
+
+
 (bla)
 (gc)
 (apply post '(bar-bar))

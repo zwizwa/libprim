@@ -372,6 +372,10 @@ _ sc_fatal(sc *sc, _ err) {
     return VOID;
 }
 
+_ sc_mt(sc *sc)    { return MT; }
+_ sc_true(sc *sc)  { return TRUE; }
+_ sc_false(sc *sc) { return FALSE; }
+_ sc_void(sc *sc)  { return VOID; }
 
 /* INTERPRETER */
 
