@@ -84,9 +84,10 @@ static _ _sc_make_struct(sc *sc, long tag, long slots, ...) {
 #define TAG_PAIR      1
 #define TAG_LAMBDA    2
 #define TAG_STATE     3
-#define TAG_CLOSURE   4
+#define TAG_VALUE     4
 #define TAG_REDEX     5
 #define TAG_ERROR     6
+
 
 #define TAG_K_IF      8
 #define TAG_K_SET     9
@@ -106,9 +107,9 @@ typedef _ o;  // This file is quasi-Huffman encoded ;)
 _ sc_is_vector(sc *sc, _ o)  { return vector_type(o, TAG_VECTOR); }
 _ sc_is_pair(sc *sc, _ o)    { return vector_type(o, TAG_PAIR); }
 _ sc_is_lambda(sc *sc, _ o)  { return vector_type(o, TAG_LAMBDA); }
-_ sc_is_closure(sc *sc, _ o) { return vector_type(o, TAG_CLOSURE); }
 _ sc_is_state(sc *sc, _ o)   { return vector_type(o, TAG_STATE); }
 _ sc_is_redex(sc *sc, _ o)   { return vector_type(o, TAG_REDEX); }
+_ sc_is_value(sc *sc, _ o)   { return vector_type(o, TAG_VALUE); }
 _ sc_is_error(sc *sc, _ o)   { return vector_type(o, TAG_ERROR); }
 
 _ sc_is_k_if(sc *sc, _ o)    { return vector_type(o, TAG_K_IF); }
@@ -150,12 +151,12 @@ _ sc_k_parent(sc *sc, _ o) {
 
 
 
-_ sc_cons(sc *sc, _ car, _ cdr)          {STRUCT(TAG_PAIR,    2, car,cdr);}
-_ sc_make_state(sc *sc, _ C, _ K)        {STRUCT(TAG_STATE,   2, C,K);}
-_ sc_make_closure(sc *sc, _ T, _ E)      {STRUCT(TAG_CLOSURE, 2, T,E);}
-_ sc_make_lambda(sc *sc, _ F, _ R, _ S)  {STRUCT(TAG_LAMBDA , 3, F,R,S);}
-_ sc_make_error(sc *sc, _ T, _ A, _ K)   {STRUCT(TAG_ERROR,   3, T,A,K);}
-_ sc_make_redex(sc *sc, _ D)             {STRUCT(TAG_REDEX,   1, D);}
+_ sc_cons(sc *sc, _ car, _ cdr)              {STRUCT(TAG_PAIR,    2, car,cdr);}
+_ sc_make_state(sc *sc, _ C, _ K)            {STRUCT(TAG_STATE,   2, C,K);}
+_ sc_make_lambda(sc *sc, _ F, _ R, _ S, _ E) {STRUCT(TAG_LAMBDA , 4, F,R,S,E);}
+_ sc_make_error(sc *sc, _ T, _ A, _ K)       {STRUCT(TAG_ERROR,   3, T,A,K);}
+_ sc_make_redex(sc *sc, _ D, _ E)            {STRUCT(TAG_REDEX,   2, D,E);}
+_ sc_make_value(sc *sc, _ D)                 {STRUCT(TAG_VALUE,   1, D);}
 
 // 'P' is in slot 0
 _ sc_make_k_apply(sc *sc, _ P, _ D, _ T) {STRUCT(TAG_K_APPLY,  3, P,D,T);}
@@ -332,10 +333,10 @@ _ sc_write(sc *sc, _ o) {
         printf("%s", object_to_symbol(o,sc)->name);
         return VOID;
     }
-    if (TRUE == sc_is_closure(sc, o)) return write_vector(sc, "closure", o);
     if (TRUE == sc_is_state(sc, o))   return write_vector(sc, "state", o);
     if (TRUE == sc_is_lambda(sc, o))  return write_vector(sc, "lambda", o);
     if (TRUE == sc_is_redex(sc, o))   return write_vector(sc, "redex", o);
+    if (TRUE == sc_is_value(sc, o))   return write_vector(sc, "value", o);
     if (TRUE == sc_is_error(sc, o))   return write_vector(sc, "error", o);
 
     if (TRUE == sc_is_k_apply(sc, o)) return write_vector(sc, "k_apply", o);
@@ -405,15 +406,14 @@ static inline _ _sc_call(sc *sc, void *p, int nargs, _ ra) {
     }
 }
 
-/* Convert a list of terms obtained as part of an AST of a closure to
-   a list of closures. */
+/* Propagate environment during reduction. */
 _ sc_close_args(sc *sc, _ lst, _ E) {
     if ((TRUE==sc_is_null(sc, lst))) return NIL;
-    else return CONS(CLOSURE(REDEX(CAR(lst)), E),
+    else return CONS(REDEX(CAR(lst), E),
                      sc_close_args(sc, CDR(lst), E)); 
 }
 
-_ _sc_step_value(sc *sc, _ value, _ k) {
+_ _sc_step_value(sc *sc, _ v, _ k) {
 
     /* Look at the continuation to determine what to do with the value. 
        
@@ -424,6 +424,10 @@ _ _sc_step_value(sc *sc, _ value, _ k) {
        - value position of 'set!' -> mutate environment
        - ...
     */
+
+    /* Unwrap */
+    value *vx = CAST(value, v);
+    _ value = vx->datum;
 
     /* A fully reduced value in an empty continuation means the
        evaluation is finished, and the machine can be halted. */
@@ -437,9 +441,9 @@ _ _sc_step_value(sc *sc, _ value, _ k) {
     }
     if (TRUE == sc_is_k_set(sc, k)) {
         k_set *kx = object_to_k_set(k);
-        closure *v = CAST(closure, kx->var);
+        redex *v = CAST(redex, kx->var);  // term=id + env
         // allocate before mutation
-        _ rv = STATE(CLOSURE(VOID,NIL), kx->parent);
+        _ rv = STATE(VALUE(VOID), kx->parent);
         if (FALSE == sc_env_set(sc, v->env, v->term, value)) {
             if (FALSE == sc_env_set(sc, sc->toplevel, v->term, value)) {
                 return ERROR("undefined", v->term);
@@ -460,7 +464,7 @@ _ _sc_step_value(sc *sc, _ value, _ k) {
         /* The _ returned by the macro is wrapped as an AST wich
            triggers its further reduction. */
         k_macro *kx = object_to_k_macro(k);
-        return STATE(CLOSURE(REDEX(value),kx->env), kx->parent);
+        return STATE(REDEX(value,kx->env), kx->parent);
     }
     if (TRUE == sc_is_k_apply(sc, k)) {
         /* If there are remaining closures to evaluate, push the value
@@ -477,26 +481,13 @@ _ _sc_step_value(sc *sc, _ value, _ k) {
            perform application. */
         else {
             _ rev_args = CONS(value, kx->done);
-            _ p=rev_args, fn=NIL;
+            _ p=rev_args, fn_term=NIL;
             int n = 0;
             while (TRUE==sc_is_pair(sc,p)) {
-                n++; fn = CAR(p); p = CDR(p);
+                n++; fn_term = CAR(p); p = CDR(p);
             }
             // n  == 1 + nb_args
             // fn == primitive or lambda
-
-            // unpack the closure
-            _ fn_env, fn_term;
-
-            if (TRUE == sc_is_closure(sc, fn)) {
-                closure *c = object_to_closure(fn);
-                fn_term = c->term;
-                fn_env  = c->env;
-            }
-            else {
-                fn_term = fn;
-                fn_env  = NIL;
-            }
 
             /* Application of primitive function results in C call. */
             if (TRUE==sc_is_prim(sc, fn_term)) {
@@ -507,17 +498,20 @@ _ _sc_step_value(sc *sc, _ value, _ k) {
                 /* Perform all allocation _before_ the execution of
                    the primitive.  This is to make sure that we won't
                    be the cause of an abort due to GC _after_ the
-                   primitive has executed.  Meaning, primitives won't
-                   be restarted unless it's their own fault. */
-                _ state   = STATE(VOID, kx->parent); // drop frame
+                   primitive has executed.  Meaning, a primitive won't
+                   be restarted if it doesn't call gc_alloc(). */
+                _ value   = VALUE(VOID);
+                _ state   = STATE(value, kx->parent); // drop frame
                 _ rv      = _sc_call(sc, prim_fn(p), n-1, rev_args);
-                object_to_state(state)->redex_or_value = rv;
+                object_to_value(value)->datum = rv;
+                    
                 return state;
             }
             /* Application of abstraction extends the fn_env environment. */
             if (TRUE==sc_is_lambda(sc, fn_term)) {
                 lambda *l = CAST(lambda, fn_term);
                 vector *v = CAST(vector, l->formals);
+                _ fn_env = l->env;
 
                 long nb_named_args    = vector_size(v);
                 long nb_received_args = n - 1;
@@ -543,8 +537,8 @@ _ _sc_step_value(sc *sc, _ value, _ k) {
                     fn_env = CONS(CONS(v->slot[i], CAR(rev_args)), fn_env);
                     rev_args = CDR(rev_args);
                 }
-                return STATE(CLOSURE(l->term, fn_env),  // close term
-                             kx->parent);               // drop frame
+                return STATE(REDEX(l->term, fn_env),  // close term
+                             kx->parent);             // drop frame
             } 
 
             /* Continuation */
@@ -573,39 +567,21 @@ static _ _sc_step(sc *sc, _ o_state) {
        non-reducable closure). */
 
     _ term, env, k;  // C E K
-    {
-        state *s = CAST(state, o_state);
-        k = s->continuation;
 
-        /* Determine term and environment.
-           
-           The environment and state can contain naked values with an
-           implied empty envionment.  This representation makes C
-           primitives simpler.  */
+    state *s = CAST(state, o_state);
+    k = s->continuation;
 
-        if ((TRUE == sc_is_closure(sc, s->redex_or_value))) {
-            closure *c = object_to_closure(s->redex_or_value);
-            term = c->term;
-            env  = c->env;
-        }
-        else {
-            term = s->redex_or_value;
-            env  = NIL;
-        }
-
-        /* Fully reduced expression: strip environment if it is no
-           longer needed and pass it to the current continuation. */
-        if (FALSE==sc_is_redex(sc, term)) {
-            _ value = (TRUE==sc_is_lambda(sc, term)) 
-                ? s->redex_or_value : term;
-            return _sc_step_value(sc, value, k);
-        }
-        
-        /* Reducable: unpack s-expression wrapper. */
-        term = object_to_redex(term)->datum;
+    /* Values */
+    if (FALSE==sc_is_redex(sc, s->redex_or_value)) {
+        return _sc_step_value(sc, s->redex_or_value, k);
     }
-
-
+    /* Determine term and environment: The redex can contain naked
+       values with an implied empty envionment. */
+    else {
+        redex *r = CAST(redex, s->redex_or_value);
+        env  = r->env;
+        term = r->term;
+    }
 
     /* Abstract Syntax: perform a single reduction step.
 
@@ -623,12 +599,15 @@ static _ _sc_step(sc *sc, _ o_state) {
                 return ERROR("undefined", term);
             }
         }
-        return STATE(val, k); // wrap naked values
+        return STATE(VALUE(val), k);
     }
 
     /* Literal Value */
     if (FALSE==sc_is_pair(sc, term)) {
-        return STATE(CLOSURE(term,env), k);
+        _ val = (TRUE==sc_is_lambda(sc, term)) 
+            ? s->redex_or_value : term;
+
+        return STATE(VALUE(val),k);
     }
 
     _ term_f    = CAR(term);
@@ -652,38 +631,43 @@ static _ _sc_step(sc *sc, _ o_state) {
             _ body = CDR(term_args);
             if (NIL == CDR(body)) body = CAR(body);
             else body = CONS(sc->s_begin, body);
-            _ l = sc_make_lambda(sc, formals, rest, REDEX(body));
-            return STATE(CLOSURE(l, env), k);
+            _ l = sc_make_lambda(sc, formals, rest, body, env);
+            return STATE(VALUE(l), k);
         }
         if (term_f == sc->s_quote) {
             if (NIL == term_args) ERROR("syntax",term);
-            return STATE(CLOSURE(CAR(term_args),env), k);
+            return STATE(VALUE(CAR(term_args)), k);
         }
         if (term_f == sc->s_if) {
             if (NIL == term_args) ERROR("syntax",term);
             if (NIL == CDR(term_args)) ERROR("syntax",term);
-            _ cond = CLOSURE(REDEX(CAR(term_args)),env);
-            _ yes  = CLOSURE(REDEX(CADR(term_args)),env);
+            _ cond = REDEX(CAR(term_args),env);
+            _ yes  = REDEX(CADR(term_args),env);
             _ no   = 
                 (NIL == CDDR(term_args)) ? 
-                CLOSURE(VOID,NIL) :
-                CLOSURE(REDEX(CADDR(term_args)),env);
+                VALUE(VOID) :
+                REDEX(CADDR(term_args),env);
             return STATE(cond, sc_make_k_if(sc, k, yes,no));
                                               
         }
         if (term_f == sc->s_bang_set) {
             if (NIL == term_args) ERROR("syntax",term);
+            _ var = CAR(term_args);
+            if (FALSE == sc_is_symbol(sc, var)) ERROR("syntax",term);
             if (NIL == CDR(term_args)) ERROR("syntax",term);
-            _ var = CLOSURE(CAR(term_args),env);
-            _ cl  = CLOSURE(REDEX(CADR(term_args)),env);
-            return STATE(cl, sc_make_k_set(sc, k, var));
+            _ expr = CADR(term_args);
+            /* The variable name won't be reduced: the REDEX struct is
+               used just for bundling the sym + env. */
+            _ lvalue = REDEX(var,env); 
+            return STATE(REDEX(expr, env),
+                         sc_make_k_set(sc, k, lvalue));
         }
         if (term_f == sc->s_begin) {
             if (FALSE == sc_is_pair(sc, term_args)) ERROR("syntax",term);
             _ todo = sc_close_args(sc, term_args, env);
             pair *body = object_to_pair(todo);
-            /* Don't create a contination if there's only a single
-               expression.*/
+            /* Don't create a contination frame if there's only a
+               single expression. */
             if (NIL == body->cdr) return STATE(body->car, k);
             return STATE(body->car, sc_make_k_seq(sc, k, body->cdr));
         }                
@@ -692,7 +676,7 @@ static _ _sc_step(sc *sc, _ o_state) {
             if (NIL == CDR(term_args)) ERROR("syntax",term);
             _ var = CAR(term_args);
             env   = CONS(CONS(var,k),env);
-            _ cl  = CLOSURE(REDEX(CADR(term_args)),env);
+            _ cl  = REDEX(CADR(term_args),env);
             return STATE(cl, k);
         }
         _ macro;
@@ -707,7 +691,7 @@ static _ _sc_step(sc *sc, _ o_state) {
                 (sc, k_m,
                  CONS(macro, NIL), // done list
                  NIL);             // todo list
-            return STATE(CLOSURE(term,NIL), k_a);
+            return STATE(REDEX(term,NIL), k_a);
         }
 
         /* Fallthrough: symbol must be bound to applicable values. */
@@ -719,7 +703,7 @@ static _ _sc_step(sc *sc, _ o_state) {
        all (open) subterms, and binding them to the current
        environment. */
     _ closed_args = sc_close_args(sc, term_args, env);
-    return STATE(CLOSURE(REDEX(term_f), env),
+    return STATE(REDEX(term_f, env),
                  sc_make_k_apply(sc, k, NIL, closed_args));
 }
 
@@ -764,33 +748,24 @@ _ sc_eval_step(sc *sc, _ state) {
 
 
 
-/* While sc_eval_step() is a pure function, some primitives
-   require direct modification of the continuation.  We do this using
-   assignment of sc->state and the SC_EX_RESTART exception. */
-
-static _ _sc_prim_k(sc *sc) {
-    state *s = CAST(state, sc->state);
-    /* We know we're in a k_apply continuation because we can only end
-       up here through primitive execution.  FIXME: It's probably
-       better to put the parent field in the same location for all
-       k_xxx structs. */
-    k_apply *f = CAST(k_apply, s->continuation);
-    return f->parent;
-}
 static _ _sc_restart(sc *sc) { longjmp(sc->run, SC_EX_RESTART); }
    
 /* GC: set continuation manually, since since the interpreter aborts
    and restarts the current step. */
 _ sc_gc(sc* sc) {
-    sc->state = STATE(CLOSURE(VOID,NIL), _sc_prim_k(sc));
-    gc_collect(sc->gc);
-    return NIL;
+    state *s = CAST(state, sc->state);
+    _ k = sc_k_parent(sc, s->continuation); // drop `gc' k_apply frame
+    sc->state = STATE(VALUE(VOID), k);      // update state manually
+    gc_collect(sc->gc);                     // collect will restart at sc->state
+    return NIL; // not reached
 }
 
-/* Continuation transformer for apply.  This uses k_ignore to pass a
-   value to a k_apply continuation.  (It would be simpler if k_apply
-   evaluated from right to left, so the awkwardness here is due to
-   implementation: I need evaluation from left to right.) */
+/* Continuation transformer for apply.  
+
+   This uses k_seq to ignore the value passed to the continuation, and
+   pass a value to a k_apply continuation.  It would be simpler if
+   k_apply evaluated from right to left (which I don't want), so the
+   awkwardness here is due to implementation. */
 _ sc_apply_ktx(sc* sc, _ k, _ fn, _ args) {
     object done;
     object value;
@@ -831,9 +806,9 @@ _ sc_apply_ktx(sc* sc, _ k, _ fn, _ args) {
 */
 
 _ _sc_eval(sc *sc, _ expr){
-    sc->state = STATE(expr,MT);
     int exception;
     if (sc->entries) return NIL;
+    sc->state = STATE(REDEX(expr,NIL),MT);
     sc->entries++;
   next:
     switch (exception = setjmp(sc->run)) {
@@ -916,7 +891,7 @@ sc *_sc_new(void) {
     sc->toplevel_macro = NIL;
 
     /* Toplevel continuation */
-    _ abort = REDEX(CONS(SYMBOL("fatal"),NIL));
+    _ abort = REDEX(CONS(SYMBOL("fatal"),NIL),NIL);
     sc->state_abort = STATE(abort,MT);
 
     /* Cached identifiers */

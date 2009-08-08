@@ -835,11 +835,24 @@ As I've mentioned before, this makes make-ast behave as eval.
 Maybe the solution is to explicitly represent non-reducable values as
 VALUE?
 
+Ok: 
+
+ * all primitive return values will be tagged with VALUE
+ * REDEX that is not a varref or an application is tagged as VALUE
 
 
+Ok, I see..
 
+It's probably best to get rid of the word "closure", and have two
+kinds of values that contain environments:
 
+      - redex
+      - lambda
 
+The trouble is primitive values.  In the lambda calculus, there are
+only two kinds of terms: applications and abstractions, where
+abstractions are values.
 
-
+So.. Can I get rid of it in one try?  The code should be a lot clearer
+with this..
 

@@ -51,12 +51,6 @@ typedef struct {
     object continuation;    // current continuation
 } state;
 
-typedef struct {
-    vector v;
-    object term;  // (reducable) (open) term
-    object env;   // term's free variables
-} closure;
-
 /* The k_apply continuation frame is used to sequence the order of
    reductions.  Each application will create a new list of reducable
    closures, which will be reduced one by one from left to right.
@@ -108,6 +102,7 @@ typedef struct {
     object formals;
     object rest;
     object term;
+    object env;
 } lambda;
 
 typedef struct {
@@ -119,8 +114,14 @@ typedef struct {
 
 typedef struct {
     vector v;
-    object datum;
+    object term;
+    object env;
 } redex;
+
+typedef struct {
+    vector v;
+    object datum;
+} value;
 
 
 static inline unsigned long vector_to_tag(vector *v) {
@@ -145,9 +146,9 @@ static inline void vector_set_tag(object o, long tag){
 DEF_CAST (pair)
 DEF_CAST (state)
 DEF_CAST (lambda)
-DEF_CAST (closure)
 DEF_CAST (redex)
 DEF_CAST (error)
+DEF_CAST (value)
 
 DEF_CAST (k_apply)
 DEF_CAST (k_if)
@@ -247,9 +248,8 @@ sc    *_sc_new(void);
 /* Macros valid in sc context. */
 #define CONS(a,b)    sc_make_pair(sc,a,b)
 #define STATE(c,k)   sc_make_state(sc,c,k)
-#define CLOSURE(t,e) sc_make_closure(sc,t,e)
-#define REDEX(d)     sc_make_redex(sc,d)
-
+#define REDEX(t,e)   sc_make_redex(sc,t,e)
+#define VALUE(d)     sc_make_value(sc,d)
 
 #define NUMBER(n)     integer_to_object(n)
 #define SYMBOL(str)   atom_to_object((atom*)(string_to_symbol(sc->syms, str)))

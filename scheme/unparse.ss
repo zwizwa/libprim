@@ -15,7 +15,7 @@
     (format "SYMBOL(~s)" (symbol->string x)))
    (else "#<unprintable>")))
 
-(define (evl x) (format "EVAL(REDEX(~a));\n" (unparse x)))
+(define (evl x) (format "EVAL(~a);\n" (unparse x)))
 
 (define (convert)
   (let ((expr (read)))
