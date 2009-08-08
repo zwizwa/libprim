@@ -603,7 +603,7 @@ static _ _sc_step(sc *sc, _ o_state) {
             return _sc_step_value(sc, value, k);
         }
         
-        /* AST: unpack s-expression wrapper. */
+        /* Reducable: unpack s-expression wrapper. */
         term = object_to_ast(term)->datum;
     }
 
@@ -616,98 +616,9 @@ static _ _sc_step(sc *sc, _ o_state) {
        - perform variable reference
        - create special form contiuation (if, set!, macro, ...)
      */
-    if (TRUE==sc_is_pair(sc, term)) {
-        _ term_f    = CAR(term);
-        _ term_args = CDR(term);
 
-        /* Special Form */
-        if (TRUE==sc_is_symbol(sc, term_f)) {
-            if (term_f == sc->s_lambda) {
-                if (NIL == term_args) ERROR("syntax",term);
-                _ argspec = CAR(term_args);
-                _ named;
-                _ rest;
-                _sc_length_rest(sc, argspec, &named, &rest);
-                if ((NIL   != rest) &&
-                    (FALSE == sc_is_symbol(sc,rest))) {
-                    ERROR("syntax",term);
-                }
-                _ formals = sc_take_vector(sc, named, argspec);
-                /* Implement the expression sequence in a `lambda'
-                   expression as a `begin' sequencing form. */
-                _ body = CDR(term_args);
-                if (NIL == CDR(body)) body = CAR(body);
-                else body = CONS(sc->s_begin, body);
-                _ l = sc_make_lambda(sc, formals, rest, AST(body));
-                return STATE(CLOSURE(l, env), k);
-            }
-            if (term_f == sc->s_quote) {
-                if (NIL == term_args) ERROR("syntax",term);
-                return STATE(CLOSURE(CAR(term_args),env), k);
-            }
-            if (term_f == sc->s_if) {
-                if (NIL == term_args) ERROR("syntax",term);
-                if (NIL == CDR(term_args)) ERROR("syntax",term);
-                _ cond = CLOSURE(AST(CAR(term_args)),env);
-                _ yes  = CLOSURE(AST(CADR(term_args)),env);
-                _ no   = 
-                    (NIL == CDDR(term_args)) ? 
-                    CLOSURE(VOID,NIL) :
-                    CLOSURE(AST(CADDR(term_args)),env);
-                return STATE(cond, sc_make_k_if(sc, k, yes,no));
-                                              
-            }
-            if (term_f == sc->s_bang_set) {
-                if (NIL == term_args) ERROR("syntax",term);
-                if (NIL == CDR(term_args)) ERROR("syntax",term);
-                _ var = CLOSURE(CAR(term_args),env);
-                _ cl  = CLOSURE(AST(CADR(term_args)),env);
-                return STATE(cl, sc_make_k_set(sc, k, var));
-            }
-            if (term_f == sc->s_begin) {
-                if (FALSE == sc_is_pair(sc, term_args)) ERROR("syntax",term);
-                _ todo = sc_close_args(sc, term_args, env);
-                pair *body = object_to_pair(todo);
-                /* Don't create a contination if there's only a single
-                   expression.*/
-                if (NIL == body->cdr) return STATE(body->car, k);
-                return STATE(body->car, sc_make_k_seq(sc, k, body->cdr));
-            }                
-            if (term_f == sc->s_letcc) {
-                if (NIL == term_args) ERROR("syntax",term);
-                if (NIL == CDR(term_args)) ERROR("syntax",term);
-                _ var = CAR(term_args);
-                env   = CONS(CONS(var,k),env);
-                _ cl  = CLOSURE(AST(CADR(term_args)),env);
-                return STATE(cl, k);
-            }
-            _ macro;
-            if (FALSE != (macro = sc_find(sc, sc->toplevel_macro, term_f))) {
-                /* Macro continuation is based on a completed
-                   k_apply frame that will trigger the fn
-                   application, linked to a k_macro frame that
-                   will steer the result back to the AST
-                   reducer. */
-                _ k_m = sc_make_k_macro(sc, k, env);
-                _ k_a = sc_make_k_apply
-                    (sc, k_m,
-                     CONS(macro, NIL), // done list
-                     NIL);             // todo list
-                return STATE(CLOSURE(term,NIL), k_a);
-            }
-        }
-
-        /* Application Form */
-
-        /* Extend the continuation with a new frame by collecting
-           all (open) subterms, and binding them to the current
-           environment. */
-        _ closed_args = sc_close_args(sc, term_args, env);
-        return STATE(CLOSURE(AST(term_f), env),
-                     sc_make_k_apply(sc, k, NIL, closed_args));
-    }
     /* Variable Reference */
-    else if (TRUE==sc_is_symbol(sc, term)){
+    if (TRUE==sc_is_symbol(sc, term)){
         _ val; 
         if (FALSE == (val = sc_find(sc, env, term))) {
             if (FALSE == (val = sc_find_toplevel(sc, term))) {
@@ -716,10 +627,102 @@ static _ _sc_step(sc *sc, _ o_state) {
         }
         return STATE(val, k); // wrap naked values
     }
+
     /* Literal Value */
-    else {
+    if (FALSE==sc_is_pair(sc, term)) {
         return STATE(CLOSURE(term,env), k);
     }
+
+    _ term_f    = CAR(term);
+    _ term_args = CDR(term);
+
+    /* Special Form */
+    if (TRUE==sc_is_symbol(sc, term_f)) {
+        if (term_f == sc->s_lambda) {
+            if (NIL == term_args) ERROR("syntax",term);
+            _ argspec = CAR(term_args);
+            _ named;
+            _ rest;
+            _sc_length_rest(sc, argspec, &named, &rest);
+            if ((NIL   != rest) &&
+                (FALSE == sc_is_symbol(sc,rest))) {
+                ERROR("syntax",term);
+            }
+            _ formals = sc_take_vector(sc, named, argspec);
+            /* Implement the expression sequence in a `lambda'
+               expression as a `begin' sequencing form. */
+            _ body = CDR(term_args);
+            if (NIL == CDR(body)) body = CAR(body);
+            else body = CONS(sc->s_begin, body);
+            _ l = sc_make_lambda(sc, formals, rest, AST(body));
+            return STATE(CLOSURE(l, env), k);
+        }
+        if (term_f == sc->s_quote) {
+            if (NIL == term_args) ERROR("syntax",term);
+            return STATE(CLOSURE(CAR(term_args),env), k);
+        }
+        if (term_f == sc->s_if) {
+            if (NIL == term_args) ERROR("syntax",term);
+            if (NIL == CDR(term_args)) ERROR("syntax",term);
+            _ cond = CLOSURE(AST(CAR(term_args)),env);
+            _ yes  = CLOSURE(AST(CADR(term_args)),env);
+            _ no   = 
+                (NIL == CDDR(term_args)) ? 
+                CLOSURE(VOID,NIL) :
+                CLOSURE(AST(CADDR(term_args)),env);
+            return STATE(cond, sc_make_k_if(sc, k, yes,no));
+                                              
+        }
+        if (term_f == sc->s_bang_set) {
+            if (NIL == term_args) ERROR("syntax",term);
+            if (NIL == CDR(term_args)) ERROR("syntax",term);
+            _ var = CLOSURE(CAR(term_args),env);
+            _ cl  = CLOSURE(AST(CADR(term_args)),env);
+            return STATE(cl, sc_make_k_set(sc, k, var));
+        }
+        if (term_f == sc->s_begin) {
+            if (FALSE == sc_is_pair(sc, term_args)) ERROR("syntax",term);
+            _ todo = sc_close_args(sc, term_args, env);
+            pair *body = object_to_pair(todo);
+            /* Don't create a contination if there's only a single
+               expression.*/
+            if (NIL == body->cdr) return STATE(body->car, k);
+            return STATE(body->car, sc_make_k_seq(sc, k, body->cdr));
+        }                
+        if (term_f == sc->s_letcc) {
+            if (NIL == term_args) ERROR("syntax",term);
+            if (NIL == CDR(term_args)) ERROR("syntax",term);
+            _ var = CAR(term_args);
+            env   = CONS(CONS(var,k),env);
+            _ cl  = CLOSURE(AST(CADR(term_args)),env);
+            return STATE(cl, k);
+        }
+        _ macro;
+        if (FALSE != (macro = sc_find(sc, sc->toplevel_macro, term_f))) {
+            /* Macro continuation is based on a completed
+               k_apply frame that will trigger the fn
+               application, linked to a k_macro frame that
+               will steer the result back to the AST
+               reducer. */
+            _ k_m = sc_make_k_macro(sc, k, env);
+            _ k_a = sc_make_k_apply
+                (sc, k_m,
+                 CONS(macro, NIL), // done list
+                 NIL);             // todo list
+            return STATE(CLOSURE(term,NIL), k_a);
+        }
+
+        /* Fallthrough: symbol must be bound to applicable values. */
+    }
+
+    /* Application */
+
+    /* Extend the continuation with a new frame by collecting
+       all (open) subterms, and binding them to the current
+       environment. */
+    _ closed_args = sc_close_args(sc, term_args, env);
+    return STATE(CLOSURE(AST(term_f), env),
+                 sc_make_k_apply(sc, k, NIL, closed_args));
 }
 
 
