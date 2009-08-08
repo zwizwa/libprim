@@ -782,6 +782,11 @@ another value to its parent continuation.
 
 Actually, this already exists: k_seq.
 
+Indeed:  Using a continuation like this:
+         
+         (fn a1 a2 (begin _ value))
+
+
     
 Entry: closures and values
 Date: Sat Aug  8 12:33:11 CEST 2009

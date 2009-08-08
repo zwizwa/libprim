@@ -116,7 +116,6 @@ _ sc_is_k_apply(sc *sc, _ o) { return vector_type(o, TAG_K_APPLY); }
 _ sc_is_k_seq(sc *sc, _ o)   { return vector_type(o, TAG_K_SEQ); }
 _ sc_is_k_set(sc *sc, _ o)   { return vector_type(o, TAG_K_SET); }
 _ sc_is_k_macro(sc *sc, _ o) { return vector_type(o, TAG_K_MACRO); }
-_ sc_is_k_ignore(sc *sc, _ o){ return vector_type(o, TAG_K_IGNORE); }
 
 _ sc_is_k(sc *sc, _ o) {
     vector *v;
@@ -162,7 +161,6 @@ _ sc_make_k_if(sc *sc, _ P, _ Y, _ N)    {STRUCT(TAG_K_IF,     3, P,Y,N);}
 _ sc_make_k_set(sc *sc, _ P, _ V)        {STRUCT(TAG_K_SET,    2, P,V);}
 _ sc_make_k_seq(sc *sc, _ P, _ T)        {STRUCT(TAG_K_SEQ,    2, P,T);}
 _ sc_make_k_macro(sc *sc, _ P, _ E)      {STRUCT(TAG_K_MACRO,  2, P,E);}
-_ sc_make_k_ignore(sc *sc, _ P, _ V)     {STRUCT(TAG_K_IGNORE, 2, P,V);}
 
 
 _ sc_car(sc *sc, _ o) { pair *p = CAST(pair, o); return p->car; }
@@ -461,12 +459,6 @@ _ _sc_step_value(sc *sc, _ value, _ k) {
            triggers its further reduction. */
         k_macro *kx = object_to_k_macro(k);
         return STATE(CLOSURE(AST(value),kx->env), kx->parent);
-    }
-    if (TRUE == sc_is_k_ignore(sc, k)) {
-        /* Ignore current value and complete the parent continuation
-           with stored value.  Used in sc_apply_ktx. */
-        k_ignore *kx = object_to_k_ignore(k);
-        return STATE(kx->value, kx->parent);
     }
     if (TRUE == sc_is_k_apply(sc, k)) {
         /* If there are remaining closures to evaluate, push the value
@@ -814,7 +806,8 @@ _ sc_apply_ktx(sc* sc, _ k, _ fn, _ args) {
         value = p->car;
     }
     object app = sc_make_k_apply(sc, k, done, NIL); // all but last
-    return sc_make_k_ignore(sc, app, value);       // last argument
+    object seq = sc_make_k_seq(sc, app, CONS(value, NIL));
+    return seq;
 }
 
 
