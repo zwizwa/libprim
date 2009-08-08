@@ -117,11 +117,10 @@ typedef struct {
     object state;
 } error;
 
-/* All reducable code is wrapped by an AST object. */
 typedef struct {
     vector v;
     object datum;
-} ast;
+} redex;
 
 
 static inline unsigned long vector_to_tag(vector *v) {
@@ -147,7 +146,7 @@ DEF_CAST (pair)
 DEF_CAST (state)
 DEF_CAST (lambda)
 DEF_CAST (closure)
-DEF_CAST (ast)
+DEF_CAST (redex)
 DEF_CAST (error)
 
 DEF_CAST (k_apply)
@@ -249,7 +248,7 @@ sc    *_sc_new(void);
 #define CONS(a,b)    sc_make_pair(sc,a,b)
 #define STATE(c,k)   sc_make_state(sc,c,k)
 #define CLOSURE(t,e) sc_make_closure(sc,t,e)
-#define AST(d)       sc_make_ast(sc,d)
+#define REDEX(d)     sc_make_redex(sc,d)
 
 
 #define NUMBER(n)     integer_to_object(n)
@@ -265,7 +264,6 @@ sc    *_sc_new(void);
 
 // renames
 #define sc_make_pair sc_cons
-#define sc_make_ast  sc_eval
 
 
 // Geneterated bootstrap code

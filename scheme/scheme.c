@@ -85,7 +85,7 @@ static _ _sc_make_struct(sc *sc, long tag, long slots, ...) {
 #define TAG_LAMBDA    2
 #define TAG_STATE     3
 #define TAG_CLOSURE   4
-#define TAG_AST       5
+#define TAG_REDEX     5
 #define TAG_ERROR     6
 
 #define TAG_K_IF      8
@@ -108,7 +108,7 @@ _ sc_is_pair(sc *sc, _ o)    { return vector_type(o, TAG_PAIR); }
 _ sc_is_lambda(sc *sc, _ o)  { return vector_type(o, TAG_LAMBDA); }
 _ sc_is_closure(sc *sc, _ o) { return vector_type(o, TAG_CLOSURE); }
 _ sc_is_state(sc *sc, _ o)   { return vector_type(o, TAG_STATE); }
-_ sc_is_ast(sc *sc, _ o)     { return vector_type(o, TAG_AST); }
+_ sc_is_redex(sc *sc, _ o)   { return vector_type(o, TAG_REDEX); }
 _ sc_is_error(sc *sc, _ o)   { return vector_type(o, TAG_ERROR); }
 
 _ sc_is_k_if(sc *sc, _ o)    { return vector_type(o, TAG_K_IF); }
@@ -141,7 +141,7 @@ _ sc_k_parent(sc *sc, _ o) {
 // K = continuation
 // F = formal argument vector
 // R = rest args
-// S = syntax term (AST)
+// S = syntax term (REDEX)
 // D = done (list of reduced closures)
 // T = todo (list of non-reduced closures)
 // E = environment
@@ -155,7 +155,7 @@ _ sc_make_state(sc *sc, _ C, _ K)        {STRUCT(TAG_STATE,   2, C,K);}
 _ sc_make_closure(sc *sc, _ T, _ E)      {STRUCT(TAG_CLOSURE, 2, T,E);}
 _ sc_make_lambda(sc *sc, _ F, _ R, _ S)  {STRUCT(TAG_LAMBDA , 3, F,R,S);}
 _ sc_make_error(sc *sc, _ T, _ A, _ K)   {STRUCT(TAG_ERROR,   3, T,A,K);}
-_ sc_eval(sc *sc, _ D)                   {STRUCT(TAG_AST,     1, D);}
+_ sc_make_redex(sc *sc, _ D)             {STRUCT(TAG_REDEX,   1, D);}
 
 // 'P' is in slot 0
 _ sc_make_k_apply(sc *sc, _ P, _ D, _ T) {STRUCT(TAG_K_APPLY,  3, P,D,T);}
@@ -335,7 +335,7 @@ _ sc_write(sc *sc, _ o) {
     if (TRUE == sc_is_closure(sc, o)) return write_vector(sc, "closure", o);
     if (TRUE == sc_is_state(sc, o))   return write_vector(sc, "state", o);
     if (TRUE == sc_is_lambda(sc, o))  return write_vector(sc, "lambda", o);
-    if (TRUE == sc_is_ast(sc, o))     return write_vector(sc, "ast", o);
+    if (TRUE == sc_is_redex(sc, o))   return write_vector(sc, "redex", o);
     if (TRUE == sc_is_error(sc, o))   return write_vector(sc, "error", o);
 
     if (TRUE == sc_is_k_apply(sc, o)) return write_vector(sc, "k_apply", o);
@@ -409,7 +409,7 @@ static inline _ _sc_call(sc *sc, void *p, int nargs, _ ra) {
    a list of closures. */
 _ sc_close_args(sc *sc, _ lst, _ E) {
     if ((TRUE==sc_is_null(sc, lst))) return NIL;
-    else return CONS(CLOSURE(AST(CAR(lst)), E),
+    else return CONS(CLOSURE(REDEX(CAR(lst)), E),
                      sc_close_args(sc, CDR(lst), E)); 
 }
 
@@ -460,7 +460,7 @@ _ _sc_step_value(sc *sc, _ value, _ k) {
         /* The _ returned by the macro is wrapped as an AST wich
            triggers its further reduction. */
         k_macro *kx = object_to_k_macro(k);
-        return STATE(CLOSURE(AST(value),kx->env), kx->parent);
+        return STATE(CLOSURE(REDEX(value),kx->env), kx->parent);
     }
     if (TRUE == sc_is_k_apply(sc, k)) {
         /* If there are remaining closures to evaluate, push the value
@@ -595,14 +595,14 @@ static _ _sc_step(sc *sc, _ o_state) {
 
         /* Fully reduced expression: strip environment if it is no
            longer needed and pass it to the current continuation. */
-        if (FALSE==sc_is_ast(sc, term)) {
+        if (FALSE==sc_is_redex(sc, term)) {
             _ value = (TRUE==sc_is_lambda(sc, term)) 
                 ? s->redex_or_value : term;
             return _sc_step_value(sc, value, k);
         }
         
         /* Reducable: unpack s-expression wrapper. */
-        term = object_to_ast(term)->datum;
+        term = object_to_redex(term)->datum;
     }
 
 
@@ -652,7 +652,7 @@ static _ _sc_step(sc *sc, _ o_state) {
             _ body = CDR(term_args);
             if (NIL == CDR(body)) body = CAR(body);
             else body = CONS(sc->s_begin, body);
-            _ l = sc_make_lambda(sc, formals, rest, AST(body));
+            _ l = sc_make_lambda(sc, formals, rest, REDEX(body));
             return STATE(CLOSURE(l, env), k);
         }
         if (term_f == sc->s_quote) {
@@ -662,12 +662,12 @@ static _ _sc_step(sc *sc, _ o_state) {
         if (term_f == sc->s_if) {
             if (NIL == term_args) ERROR("syntax",term);
             if (NIL == CDR(term_args)) ERROR("syntax",term);
-            _ cond = CLOSURE(AST(CAR(term_args)),env);
-            _ yes  = CLOSURE(AST(CADR(term_args)),env);
+            _ cond = CLOSURE(REDEX(CAR(term_args)),env);
+            _ yes  = CLOSURE(REDEX(CADR(term_args)),env);
             _ no   = 
                 (NIL == CDDR(term_args)) ? 
                 CLOSURE(VOID,NIL) :
-                CLOSURE(AST(CADDR(term_args)),env);
+                CLOSURE(REDEX(CADDR(term_args)),env);
             return STATE(cond, sc_make_k_if(sc, k, yes,no));
                                               
         }
@@ -675,7 +675,7 @@ static _ _sc_step(sc *sc, _ o_state) {
             if (NIL == term_args) ERROR("syntax",term);
             if (NIL == CDR(term_args)) ERROR("syntax",term);
             _ var = CLOSURE(CAR(term_args),env);
-            _ cl  = CLOSURE(AST(CADR(term_args)),env);
+            _ cl  = CLOSURE(REDEX(CADR(term_args)),env);
             return STATE(cl, sc_make_k_set(sc, k, var));
         }
         if (term_f == sc->s_begin) {
@@ -692,7 +692,7 @@ static _ _sc_step(sc *sc, _ o_state) {
             if (NIL == CDR(term_args)) ERROR("syntax",term);
             _ var = CAR(term_args);
             env   = CONS(CONS(var,k),env);
-            _ cl  = CLOSURE(AST(CADR(term_args)),env);
+            _ cl  = CLOSURE(REDEX(CADR(term_args)),env);
             return STATE(cl, k);
         }
         _ macro;
@@ -719,7 +719,7 @@ static _ _sc_step(sc *sc, _ o_state) {
        all (open) subterms, and binding them to the current
        environment. */
     _ closed_args = sc_close_args(sc, term_args, env);
-    return STATE(CLOSURE(AST(term_f), env),
+    return STATE(CLOSURE(REDEX(term_f), env),
                  sc_make_k_apply(sc, k, NIL, closed_args));
 }
 
@@ -916,7 +916,7 @@ sc *_sc_new(void) {
     sc->toplevel_macro = NIL;
 
     /* Toplevel continuation */
-    _ abort = AST(CONS(SYMBOL("fatal"),NIL));
+    _ abort = REDEX(CONS(SYMBOL("fatal"),NIL));
     sc->state_abort = STATE(abort,MT);
 
     /* Cached identifiers */
