@@ -1,7 +1,7 @@
 typedef object _;
 _ sc_apply_ktx(sc* sc, _ k, _ fn, _ args);
 _ sc_gc(sc* sc);
-_ sc_interpreter_step(sc *sc, _ state);
+_ sc_eval_step(sc *sc, _ state);
 _ sc_close_args(sc *sc, _ lst, _ E);
 _ sc_fatal(sc *sc);
 _ sc_post(sc* sc, _ o);
@@ -31,8 +31,8 @@ _ sc_make_k_seq(sc *sc, _ P, _ T);
 _ sc_make_k_set(sc *sc, _ P, _ V);
 _ sc_make_k_if(sc *sc, _ P, _ Y, _ N);
 _ sc_make_k_apply(sc *sc, _ P, _ D, _ T);
+_ sc_eval(sc *sc, _ D);
 _ sc_make_error(sc *sc, _ T, _ A, _ K);
-_ sc_make_ast(sc *sc, _ D);
 _ sc_make_lambda(sc *sc, _ F, _ R, _ S);
 _ sc_make_closure(sc *sc, _ T, _ E);
 _ sc_make_state(sc *sc, _ C, _ K);
@@ -58,7 +58,7 @@ _ sc_is_integer(sc *sc, _ o);
 static inline void _sc_def_prims(sc *sc){
     DEF("apply-ktx", sc_apply_ktx, 3);
     DEF("gc", sc_gc, 0);
-    DEF("interpreter-step", sc_interpreter_step, 1);
+    DEF("eval-step", sc_eval_step, 1);
     DEF("close-args", sc_close_args, 2);
     DEF("fatal", sc_fatal, 0);
     DEF("post", sc_post, 1);
@@ -88,8 +88,8 @@ static inline void _sc_def_prims(sc *sc){
     DEF("make-k-set", sc_make_k_set, 2);
     DEF("make-k-if", sc_make_k_if, 3);
     DEF("make-k-apply", sc_make_k_apply, 3);
+    DEF("eval", sc_eval, 1);
     DEF("make-error", sc_make_error, 3);
-    DEF("make-ast", sc_make_ast, 1);
     DEF("make-lambda", sc_make_lambda, 3);
     DEF("make-closure", sc_make_closure, 2);
     DEF("make-state", sc_make_state, 2);

@@ -265,6 +265,7 @@ sc    *_sc_new(void);
 
 // renames
 #define sc_make_pair sc_cons
+#define sc_make_ast  sc_eval
 
 
 // Geneterated bootstrap code

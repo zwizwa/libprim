@@ -784,8 +784,9 @@ Actually, this already exists: k_seq.
 
 Indeed:  Using a continuation like this:
          
-         (fn a1 a2 (begin _ value))
+         _ -> (fn a1 a2 (begin _ a3))
 
+will also ignore the supplied value and reduce to (fn a1 a2 a3).
 
     
 Entry: closures and values
@@ -801,8 +802,6 @@ Let's make it such that:
 
       - if there is no reduction, the value is packed.
 
-This is not so simple, as there are many forms that need the
-environment: lambda, set!, 
 
 
 Entry: magic values
@@ -810,4 +809,37 @@ Date: Sat Aug  8 12:47:55 CEST 2009
 
 Because closures and ast's have a special meaning in the interpreter,
 they cannot be used as values in Scheme.
+
+
+
+Entry: Interesting
+Date: Sat Aug  8 15:28:07 CEST 2009
+
+Implementing this Scheme interpreter without relying on cons or
+closures has been most revealing.  I never knew I knew so little about
+the mechanics.  Arrogance tends to get in the way of learning..
+
+There are some meta-confusion things in the syntax representation that
+are a bit fishy still:
+
+  - Syntax is wrapped in a weird way (tagged s-expressions.  a full
+    parse into an AST so values and terms can never be confused would
+    probably be better).
+
+  - Because of this confusion, primitives can return reducable
+    expressions (make-ast) and closures (make-closure) that will not
+    behave as literal data.
+
+As I've mentioned before, this makes make-ast behave as eval.
+
+Maybe the solution is to explicitly represent non-reducable values as
+VALUE?
+
+
+
+
+
+
+
+
 

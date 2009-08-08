@@ -148,12 +148,14 @@ _ sc_k_parent(sc *sc, _ o) {
 // P = parent continuation
 // D = datum
 
+
+
 _ sc_cons(sc *sc, _ car, _ cdr)          {STRUCT(TAG_PAIR,    2, car,cdr);}
 _ sc_make_state(sc *sc, _ C, _ K)        {STRUCT(TAG_STATE,   2, C,K);}
 _ sc_make_closure(sc *sc, _ T, _ E)      {STRUCT(TAG_CLOSURE, 2, T,E);}
 _ sc_make_lambda(sc *sc, _ F, _ R, _ S)  {STRUCT(TAG_LAMBDA , 3, F,R,S);}
-_ sc_make_ast(sc *sc, _ D)               {STRUCT(TAG_AST,     1, D);}
 _ sc_make_error(sc *sc, _ T, _ A, _ K)   {STRUCT(TAG_ERROR,   3, T,A,K);}
+_ sc_eval(sc *sc, _ D)                   {STRUCT(TAG_AST,     1, D);}
 
 // 'P' is in slot 0
 _ sc_make_k_apply(sc *sc, _ P, _ D, _ T) {STRUCT(TAG_K_APPLY,  3, P,D,T);}
@@ -734,7 +736,7 @@ static _ _sc_step(sc *sc, _ o_state) {
    Only GC and the topmost STEP are allowed to access sc->state.
 */
 
-_ sc_interpreter_step(sc *sc, _ state) {
+_ sc_eval_step(sc *sc, _ state) {
     int exception;
     object rv = NIL;
     jmp_buf save;
@@ -762,7 +764,7 @@ _ sc_interpreter_step(sc *sc, _ state) {
 
 
 
-/* While sc_interpreter_step() is a pure function, some primitives
+/* While sc_eval_step() is a pure function, some primitives
    require direct modification of the continuation.  We do this using
    assignment of sc->state and the SC_EX_RESTART exception. */
 
@@ -819,7 +821,7 @@ _ sc_apply_ktx(sc* sc, _ k, _ fn, _ args) {
 /* Toplevel eval.  This function captures the GC restart.
 
      - This function is NOT re-entrant.  The primitive
-       sc_interpreter_step() however can be called recursively.
+       sc_eval_step() however can be called recursively.
 
      - It is allowed to use gc_alloc() outside this loop to create
        data (to pass to this function) as long as you can prove that
@@ -838,7 +840,7 @@ _ _sc_eval(sc *sc, _ expr){
     case SC_EX_TRY:
         do {
             // sc_post(sc, sc->state);
-            sc->state = sc_interpreter_step(sc, sc->state); 
+            sc->state = sc_eval_step(sc, sc->state); 
         } while (FALSE == sc_is_error(sc, sc->state));
         /* Handle error states */
         error *e = object_to_error(sc->state);
