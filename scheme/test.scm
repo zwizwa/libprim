@@ -1,3 +1,4 @@
+(write (apply post '(foefel)))
 (letcc k (begin
            (post 'one)
            (k 123)

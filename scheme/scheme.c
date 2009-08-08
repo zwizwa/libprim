@@ -259,12 +259,16 @@ _ sc_find_toplevel_macro(sc *sc, _ var) {
 }
 /*  Add to or mutate toplevel. */
 _ sc_bang_def_toplevel(sc* sc, _ var, _ val) {
+    symbol *s;
+    if (!(s=object_to_symbol(var, sc))) TYPE_ERROR(var);
+    // printf("DEF %s: ",s->name); sc_post(sc, val);
     if (FALSE == sc_env_set(sc, sc->toplevel, var, val)) {
         sc->toplevel = CONS(CONS(var,val), sc->toplevel);
     }
     return VOID;
 }
 _ sc_bang_def_toplevel_macro(sc* sc, _ var, _ val) {
+    if (!object_to_symbol(var, sc)) TYPE_ERROR(var);
     if (FALSE == sc_env_set(sc, sc->toplevel_macro, var, val)) {
         sc->toplevel_macro = CONS(CONS(var,val), sc->toplevel_macro);
     }
@@ -791,26 +795,27 @@ _ sc_gc(sc* sc) {
 
 /* Continuation transformer for apply.  This uses k_ignore to pass a
    value to a k_apply continuation.  (It would be simpler if k_apply
-   evaluated from right to left, in which case `fn' would be the final
-   value.) */
-/* _ __sc_apply_ktx(sc* sc, _ k, _ fn, _ args) { */
-/*     object done; */
-/*     object value; */
-/*     if (NIL == args) { */
-/*         done = nil; */
-/*         value = closure_pack(sc, fn, NIL); */
-/*     } */
-/*     else { */
-
-/*  = CONS(closure_pack(sc, fn, NIL), NIL); */
-
-/*     while(NIL != args) { */
-/*         done = CONS(closure_pack(sc, CAR(args), NIL), done); */
-/*         args = CDR(args); */
-/*     } */
-/*     object app = sc_make_k_apply(sc, k, CDR(done), NIL); // all but last */
-/*     return sc_make_sc_ignore(sc, app, CAR(done); // last argument */
-/* } */
+   evaluated from right to left, so the awkwardness here is due to
+   implementation: I need evaluation from left to right.) */
+_ sc_apply_ktx(sc* sc, _ k, _ fn, _ args) {
+    object done;
+    object value;
+    if (NIL == args) {
+        done = NIL;
+        value = fn;
+    }
+    else {
+        done = CONS(fn, NIL);
+        pair *p;
+        while ((p = CAST(pair,args)) && (NIL != p->cdr)) {
+            done = CONS(p->car, done);
+            args = p->cdr;
+        }
+        value = p->car;
+    }
+    object app = sc_make_k_apply(sc, k, done, NIL); // all but last
+    return sc_make_k_ignore(sc, app, value);       // last argument
+}
 
 
 

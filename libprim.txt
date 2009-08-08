@@ -780,6 +780,8 @@ value, but passes closure to its parent continuation.
 Basicly, such a continuation takes a value, ignores it, and passes
 another value to its parent continuation.
 
+Actually, this already exists: k_seq.
+
     
 Entry: closures and values
 Date: Sat Aug  8 12:33:11 CEST 2009

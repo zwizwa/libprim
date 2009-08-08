@@ -29,3 +29,5 @@
      (map car (cadr form))
      (map cadr (cadr form))
      (cddr form))))
+(define apply (lambda (fn args)
+                (letcc k ((apply-ktx k fn args) 0))))
