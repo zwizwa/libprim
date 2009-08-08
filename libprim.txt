@@ -730,7 +730,39 @@ step() function that generated them, and return them as values
 containing the continuation.  Except for GC restarts: they need to go
 all the way up to make sure data is not corrupted.
 
+Ok. errors are now local to step() allowing for recursive step() but
+GC restart goes all the way up the chain.
+
+Then a surprise: eval is (make-ast '(post 'foo-foo))
+
+If a primitive returns a reducable term (represented by the ast
+wrapper type), it will be evaluated.
+
+Maybe apply can be made in a similar way?  Well.. I found something
+that uses eval and map and quote.  Not pretty..
+
+Looks like manipulating the continuation is best.
 
 
+Entry: letcc -> apply
+Date: Sat Aug  8 10:22:47 CEST 2009
 
+It seems better to stick with the way things work right now, and use
+only a single type of primitive.  This makes integration with C (the
+eventual goal) a lot easier, and will prevent a lot of if-type style
+code.
+
+With `letcc' implemented as a special form, it is now possible to
+create primitives that operate on continuations as data, creating new
+continuations.  These values can themselves be applied.  This means
+`apply' can be implemented as a continuation modification followed by
+an application.
+
+Yes, but.  The current k_apply type is a bit awkward, because it
+evaluates from left to right, it will wait for the final argument
+before coninuing with application.  Maybe it's simplest to support a
+right-to-left app frame?
+
+Before continuing, let's make the continuations somewhat abstract:
+each with a parent slot in the first position.
 

@@ -170,8 +170,9 @@ struct _scheme {
     object s_lambda;
     object s_quote;
     object s_if;
-    object s_setbang;
+    object s_bang_set;
     object s_begin;
+    object s_letcc;
 
     jmp_buf step;   // current CEKS step abort
     jmp_buf run;    // full interpreter C stack unwind (i.e. for GC)
@@ -214,10 +215,12 @@ static inline prim* object_to_prim(object ob, sc *sc) {
 #define CADDR(o) CAR(CDDR(o))
 
 /* Booleans anv void are encoded as constant pointers. */
-#define BOOLVALUE(x) const_to_object((void*)((((x)<<1)|1)<<GC_TAG_SHIFT))
-#define VOID  BOOLVALUE(2)
-#define TRUE  BOOLVALUE(1)
-#define FALSE BOOLVALUE(0)
+#define CONSTANT(x) const_to_object((void*)((((x)<<1)|1)<<GC_TAG_SHIFT))
+#define FALSE CONSTANT(0)
+#define TRUE  CONSTANT(1)
+#define VOID  CONSTANT(2)
+#define MT    CONSTANT(3)
+
 
 /* Scheme primitives */
 #define MAX_PRIM_ARGS 3

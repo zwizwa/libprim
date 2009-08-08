@@ -114,6 +114,7 @@ _ sc_is_k_macro(sc *sc, _ o) { return vector_type(o, TAG_K_MACRO); }
 
 _ sc_is_continuation(sc *sc, _ o) {
     vector *v;
+    if (MT == o) return TRUE;
     if ((v = object_to_vector(o))) {
         switch(vector_to_tag(v)) {
         case TAG_K_APPLY:
@@ -327,7 +328,8 @@ _ sc_write(sc *sc, _ o) {
     if (TRUE == sc_is_k_if(sc, o))    return write_vector(sc, "k_if", o);
     if (TRUE == sc_is_k_seq(sc, o))   return write_vector(sc, "k_seq", o);
     if (TRUE == sc_is_k_set(sc, o))   return write_vector(sc, "k_set", o);
-    if (TRUE == sc_is_k_macro(sc, o))   return write_vector(sc, "k_macro", o);
+    if (TRUE == sc_is_k_macro(sc, o)) return write_vector(sc, "k_macro", o);
+    if (MT   == o) printf("k_mt");
 
     if (TRUE == sc_is_prim(sc, o)) {
         prim *p = object_to_prim(o,sc);
@@ -426,6 +428,13 @@ _ sc_close_args(sc *sc, _ lst, _ E) {
 
 static _ _sc_step_internal(sc *sc, _ o_state) {
 
+    /* The state consists of a closure (a possibly reducable, possibly
+       open term and its environment) and a continuation (a data
+       structure that encodes what to do with a fully reduced value).
+       The machine tries to either reduce the current closure, or
+       updates the current continuation with the current value (=
+       non-reducable closure). */
+
     state *s = CAST(state, o_state);
     closure *c = CAST(closure, s->closure);
     _ term = c->term;  // (open) term
@@ -484,7 +493,7 @@ static _ _sc_step_internal(sc *sc, _ o_state) {
                                  sc_make_k_if(sc,yes,no,
                                               s->continuation));
                 }
-                if (term_f == sc->s_setbang) {
+                if (term_f == sc->s_bang_set) {
                     if (NIL == term_args) ERROR("syntax",term);
                     if (NIL == CDR(term_args)) ERROR("syntax",term);
                     _ var = CLOSURE(CAR(term_args),env);
@@ -497,6 +506,14 @@ static _ _sc_step_internal(sc *sc, _ o_state) {
                     return STATE(CAR(todo),
                                  sc_make_k_seq(sc, CDR(todo),
                                                s->continuation));
+                }                
+                if (term_f == sc->s_letcc) {
+                    if (NIL == term_args) ERROR("syntax",term);
+                    if (NIL == CDR(term_args)) ERROR("syntax",term);
+                    _ var = CAR(term_args);
+                    env   = CONS(CONS(var,s->continuation),env);
+                    _ cl  = CLOSURE(AST(CADR(term_args)),env);
+                    return STATE(cl, s->continuation);
                 }
                 _ macro;
                 if (FALSE != (macro = sc_find(sc, sc->toplevel_macro, term_f))) {
@@ -556,7 +573,7 @@ static _ _sc_step_internal(sc *sc, _ o_state) {
 
     /* A fully reduced value in an empty continuation means the
        evaluation is finished, and the machine can be halted. */
-    if (NIL == s->continuation) {
+    if (MT == s->continuation) {
         sc_error(sc, SYMBOL("halt"), s->closure);
     }
     if (TRUE == sc_is_k_if(sc, s->continuation)) {
@@ -637,9 +654,8 @@ static _ _sc_step_internal(sc *sc, _ o_state) {
                    be restarted unless it's their own fault. */
                 _ closure = CLOSURE(NIL, NIL);
                 _ state   = STATE(closure, k->parent); // drop frame
-                closure_pack(sc,
-                             _sc_call(sc, prim_fn(p), n-1, rev_args),
-                             closure);
+                _ rv      = _sc_call(sc, prim_fn(p), n-1, rev_args);
+                closure_pack(sc, rv, closure);
                 return state;
             }
             /* Application extends the fn_env environment. */
@@ -681,7 +697,8 @@ static _ _sc_step_internal(sc *sc, _ o_state) {
             /* Continuation */
             if (TRUE==sc_is_continuation(sc, fn_term)) {
                 if (n != 2) ERROR("nargs", fn_term);
-                return STATE(CAR(rev_args), CADR(rev_args));
+                closure *c = CAST(closure, CADR(rev_args));
+                return STATE(CAR(rev_args), c->term);
             }
 
             /* Unknown applicant type */
@@ -754,9 +771,8 @@ _ sc_gc(sc* sc) {
     return NIL;
 }
 
-/* Apply: Insert a k_apply frame. */
-_ sc_apply(sc* sc, _ fn, _ args) {
-    object k = _sc_prim_k(sc);
+/* Continuation transformer for apply. */
+_ sc_apply_ktx(sc* sc, _ k, _ fn, _ args) {
     object done = CONS(closure_pack(sc, fn, NIL), NIL);
 
     while(NIL != args) {
@@ -775,7 +791,7 @@ _ sc_apply(sc* sc, _ fn, _ args) {
    halt. */
 _ sc_datum_to_state(sc *sc, _ expr) {
     _ c = CLOSURE(expr,NIL);  // empty environment
-    _ k = NIL;                // empty continuation
+    _ k = MT;                 // empty continuation
     return STATE(c,k);
 }
 
@@ -881,11 +897,12 @@ sc *_sc_new(void) {
     sc->state_abort = sc_datum_to_state(sc, abort);
 
     /* Cached identifiers */
-    sc->s_lambda  = SYMBOL("lambda");
-    sc->s_if      = SYMBOL("if");
-    sc->s_setbang = SYMBOL("set!");
-    sc->s_quote   = SYMBOL("quote");
-    sc->s_begin   = SYMBOL("begin");
+    sc->s_lambda   = SYMBOL("lambda");
+    sc->s_if       = SYMBOL("if");
+    sc->s_bang_set = SYMBOL("set!");
+    sc->s_quote    = SYMBOL("quote");
+    sc->s_begin    = SYMBOL("begin");
+    sc->s_letcc    = SYMBOL("letcc");
 
     /* Primitive defs */
     _sc_def_prims(sc); // defined in scheme.h_

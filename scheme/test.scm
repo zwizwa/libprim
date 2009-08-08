@@ -1,5 +1,22 @@
-;; (gc)
+(letcc k (begin
+           (post 'one)
+           (k 123)
+           (post 'two)))
+(post 'three)
+       
 
+(define apply
+  (lambda (fn args)
+    (make-ast
+     (cons fn
+           (map (lambda (x)
+                  (list 'quote x))
+                args)))))
+
+
+(apply post '(bar-bar))
+
+(make-ast '(post 'foo-foo))
 
 (let ((foo 123)) foo)
 (words)
