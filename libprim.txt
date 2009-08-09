@@ -893,3 +893,32 @@ a loop without performing allocation?  It would need to overwrite
 variables.
 
 So..  What is scheme without GC?
+
+
+
+Entry: Reader task
+Date: Sun Aug  9 11:32:40 CEST 2009
+
+I got distracted..  Getting a front row view of how Scheme is
+implemented on top of a bare machine is fascinating.
+
+Anyways.  Now that the core of the interpreter seems to work, let's
+make the first attempt at re-usable code: a reader = tokenizer +
+"compressed ast parser" for s-expressions.
+
+A compressed ast is a binary flat representation of a tree, consisting
+of a stream of words.  This is important, because it will be the main
+interface between two communicating processes that do not share
+memory (or not all memory: they might share constant pointers.).
+
+
+
+Entry: Keeping track of value names
+Date: Sun Aug  9 12:05:38 CEST 2009
+
+How to tag values with names?  Every time a value is lifted from the
+environment, it could be recorded in the VALUE struct for debugging
+purposes.  When there is an error, the current value's name could be
+used for reporting.
+
+

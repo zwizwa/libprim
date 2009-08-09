@@ -4,6 +4,8 @@ OBJ=$(SRC:.c=.o)
 DEBUG_CFLAGS=-Wall -g
 # OPTI_CFLAGS=-Os
 
+# CC = gcc -m32
+
 all: scheme
 
 test.o: test.c_

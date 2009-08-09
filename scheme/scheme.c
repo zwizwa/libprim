@@ -159,6 +159,7 @@ _ sc_make_error(sc *sc, _ T, _ A, _ K)       {STRUCT(TAG_ERROR,   3, T,A,K);}
 _ sc_make_redex(sc *sc, _ D, _ E)            {STRUCT(TAG_REDEX,   2, D,E);}
 _ sc_make_value(sc *sc, _ D)                 {STRUCT(TAG_VALUE,   1, D);}
 
+
 // 'P' is in slot 0
 // continuations are created with an empty mark list
 _ sc_make_k_apply(sc *sc, _ P, _ D, _ T)     {STRUCT(TAG_K_APPLY,  4, P,NIL,D,T);}

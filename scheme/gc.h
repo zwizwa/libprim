@@ -6,11 +6,26 @@
 #include <stdio.h>
 #include <stdarg.h>
 
-// GC type tagging
+/* The size field in the _vector struct can be used to store
+   additional tag bits.  GC_TAG_MASK tells the GC what to ignore. */
 
 #define GC_TAG_SHIFT 2
+
+#ifndef GC_VECTOR_TAG_MASK
+#ifdef _LP64
+#define GC_VECTOR_TAG_MASK 0xFFFFFFFFFFFFFFFFL
+#else
+#define GC_VECTOR_TAG_MASK 0xFFFFFFFF
+#endif
+#endif
+
+
 static inline long GC_TAG(long x) { return x&((1<<GC_TAG_SHIFT)-1); }
-static inline void* GC_POINTER(long x) { return (void*)(x&(0xFFFFFFFFFFFFFFFFL<<GC_TAG_SHIFT)); }
+static inline void* GC_POINTER(long x) { 
+    long mask = -1;
+    mask <<= GC_TAG_SHIFT;
+    return (void*)(x&mask);
+}
 
 #define GC_CONST   0   /* pointer untyped, not managed */
 #define GC_ATOM    1   /*         typed,   finalized */
@@ -34,12 +49,6 @@ struct _atom_class {
 struct _atom {
     atom_class *op;
 };
-
-/* The size field in the _vector struct can be used to store
-   additional tag bits.  GC_TAG_MASK tells the GC what to ignore. */
-#ifndef GC_VECTOR_TAG_MASK
-#define GC_VECTOR_TAG_MASK 0xFFFFFFFFFFFFFFFFL
-#endif
 
 struct _vector {
     unsigned long header;  // [ struct_tags | length | GC tags ]
