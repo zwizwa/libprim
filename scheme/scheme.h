@@ -71,6 +71,7 @@ typedef struct {
     object tag;
     object arg;
     object state;
+    object prim;
 } error;
 
 typedef struct {
@@ -166,6 +167,10 @@ DEF_CAST (k_macro)
 #define sc_slot_state           integer_to_object(2)
 #define sc_slot_abort_k         integer_to_object(3)
 
+typedef struct {
+    jmp_buf step;  // current CEKS step abort
+    object prim;
+} scheme_r;
 
 struct _scheme {
     /* Highlevel global state data is accessible from Scheme. */
@@ -187,13 +192,14 @@ struct _scheme {
     atom_class op_prim;
 
     /* Lowlevel control flow */
-    jmp_buf step;      // current CEKS step abort + semaphore
     jmp_buf top;       // full interpreter C stack unwind (i.e. for GC)
     long step_entries; // semaphores
     long top_entries;
-    object error_tag;  // temp storage for step() exceptions 
-    object error_arg;
+    scheme_r r;  // saved on step() entry
 
+    /* Temp storage: does not need to be marked. */
+    object error_tag;
+    object error_arg;
 };
 
 static inline symbol* object_to_symbol(object ob, sc *sc) {
@@ -208,6 +214,10 @@ typedef struct {
     atom a;
     void *fn;
     long nargs;
+    /* Note: in general it is not allowed to place objects in atom
+       structs, but in this case it's a symbol, so will never
+       change. */
+    object var;
 } prim;
 static inline long prim_nargs(prim *p){ return p->nargs; }
 static inline void *prim_fn(prim *p)  { return p->fn; }
@@ -278,11 +288,9 @@ sc    *_sc_new(void);
 // renames
 #define sc_make_pair sc_cons
 
-
-// Geneterated bootstrap code
+// for geneterated bootstrap code
 void _sc_def_prim(sc *sc, object var, void *fn, long nargs);
 #define DEF(str,fn,nargs) _sc_def_prim (sc,SYMBOL(str),fn,nargs)
-#include "scheme.h_"
 
 
 #endif

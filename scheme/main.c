@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include "scheme.h"
+#include "scheme.h_"
 #include "gc.h"
 #include <setjmp.h>
 
@@ -28,14 +29,9 @@ void debug_gc(gc_test *x) {
     // gc_collect(gc);
 }
 
-
+#include "test.h_"
 void test_scheme(sc *sc) {
-//    for (;;) {
-// generated from test.scm
-        // gc_collect(sc->gc);
-#include "test.c_"
-        // sc_trap(sc);
-//    }
+    _load(sc); // inline fn from generated test.h_
 }
 
 void mark_roots(gc_test *x){

@@ -7,6 +7,10 @@
 #include "symbol.h"
 #include "scheme.h"
 
+// generated
+#include "scheme.h_"
+#include "boot.h_"
+
 /* --- PRIMITIVES --- */
 
 /* To simplify the implementation, as much as possible functions are
@@ -155,7 +159,7 @@ _ sc_k_parent(sc *sc, _ o) {
 _ sc_cons(sc *sc, _ car, _ cdr)              {STRUCT(TAG_PAIR,    2, car,cdr);}
 _ sc_make_state(sc *sc, _ C, _ K)            {STRUCT(TAG_STATE,   2, C,K);}
 _ sc_make_lambda(sc *sc, _ F, _ R, _ S, _ E) {STRUCT(TAG_LAMBDA , 4, F,R,S,E);}
-_ sc_make_error(sc *sc, _ T, _ A, _ K)       {STRUCT(TAG_ERROR,   3, T,A,K);}
+_ sc_make_error(sc *sc, _ T, _ A, _ K, _ X)  {STRUCT(TAG_ERROR,   4, T,A,K,X);}
 _ sc_make_redex(sc *sc, _ D, _ E)            {STRUCT(TAG_REDEX,   2, D,E);}
 _ sc_make_value(sc *sc, _ D)                 {STRUCT(TAG_VALUE,   1, D);}
 
@@ -182,7 +186,7 @@ _ sc_error(sc *sc, _ sym_o, _ arg_o) {
     sc->error_tag = sym_o;
     sc->error_arg = arg_o;
     // if (sym_o != SYMBOL("halt")) sc_trap(sc);
-    if (sc->step_entries) longjmp(sc->step, SC_EX_ABORT);
+    if (sc->step_entries) longjmp(sc->r.step, SC_EX_ABORT);
     fprintf(stderr, "ERROR: attempt to abort primitive outside of the main loop.\n");
     sc_trap(sc);
     exit(1);
@@ -215,7 +219,9 @@ _ sc_length(sc *sc, _ lst) {
     _ nb;
     _ rest;
     _sc_length_rest(sc, lst, &nb, &rest);
-    if (FALSE == sc_is_null(sc, rest)) TYPE_ERROR(lst);
+    if (FALSE == sc_is_null(sc, rest)) {
+        TYPE_ERROR(lst);
+    }
     return nb;
 }
 
@@ -409,7 +415,13 @@ _ sc_is_eq(sc *sc, _ a, _ b) {
 _ sc_fatal(sc *sc, _ err) {
     if (TRUE == sc_is_error(sc, err)) {
         error *e = object_to_error(err);
-        printf("ERROR: ");
+        printf("ERROR");
+        if (TRUE == sc_is_prim(sc, e->prim)) {
+            prim *p = object_to_prim(e->prim, sc);
+            symbol *s = object_to_symbol(p->var, sc);
+            if (s) printf(" in `%s'", s->name); 
+        }
+        printf(": ");
         sc_write(sc, e->tag); printf(": ");
         sc_write(sc, e->arg); printf("\n");
     }
@@ -545,6 +557,7 @@ _ _sc_step_value(sc *sc, _ v, _ k) {
             /* Application of primitive function results in C call. */
             if (TRUE==sc_is_prim(sc, fn)) {
                 prim *p = object_to_prim(fn,sc);
+                sc->r.prim = fn; // for debug
                 if (prim_nargs(p) != (n-1)) {
                     return ERROR("nargs", fn);
                 }
@@ -779,23 +792,26 @@ static _ _sc_step(sc *sc, _ o_state) {
 _ sc_eval_step(sc *sc, _ state) {
     int exception;
     object rv = NIL;
-    jmp_buf save;
-    memcpy(&save, &sc->step, sizeof(save));
+    scheme_r save;
+
+    memcpy(&save, &sc->r, sizeof(save));
     sc->step_entries++;
 
-    switch(exception = setjmp(sc->step)) {
+    switch(exception = setjmp(sc->r.step)) {
         case SC_EX_TRY:
             rv = _sc_step(sc, state);
             break;
         case SC_EX_ABORT: 
-            rv = sc_make_error(sc, sc->error_tag, sc->error_arg, state);
+            rv = sc_make_error(sc, sc->error_tag, sc->error_arg, 
+                               state, sc->r.prim);
             sc->error_arg = NIL;
             sc->error_tag = NIL;
             break;
         default:
             break;
     }
-    memcpy(&sc->step, &save, sizeof(save));
+
+    memcpy(&sc->r, &save, sizeof(save));
     sc->step_entries--;
     return rv;
 }
@@ -885,6 +901,7 @@ _ _sc_top(sc *sc, _ expr){
     for(;;) {
         if (setjmp(sc->top)){
             sc->step_entries = 0;  // full tower unwind
+            sc->r.prim = FALSE;
         }
         for(;;) {
             _ state;
@@ -928,15 +945,16 @@ static void _sc_mark_roots(sc *sc, gc_finalize fin) {
     */
     _sc_restart(sc);
 }
-static _ _sc_make_prim(sc *sc, void *fn, long nargs) {
+static _ _sc_make_prim(sc *sc, void *fn, long nargs, _ var) {
     prim *p = malloc(sizeof(*p));
     p->a.op = &sc->op_prim; // class
     p->fn = fn;
     p->nargs = nargs;
+    p->var = var;
     return atom_to_object(&p->a);
 }
 void _sc_def_prim(sc *sc, _ var, void *fn, long nargs) {
-    sc_bang_def_toplevel(sc, var, _sc_make_prim(sc, fn, nargs));
+    sc_bang_def_toplevel(sc, var, _sc_make_prim(sc, fn, nargs, var));
 }
 sc *_sc_new(void) {
     sc *sc = malloc(sizeof(*sc));
@@ -973,7 +991,7 @@ sc *_sc_new(void) {
     sc_bang_set_global(sc, sc_slot_abort_k, abort_k);
 
     /* Highlevel bootstrap */
-#include "boot.c_"
+    _load(sc);  // from boot.h_
     return sc;
 }
 

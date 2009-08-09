@@ -8,14 +8,17 @@ DEBUG_CFLAGS=-Wall -g
 
 all: scheme
 
-test.o: test.c_
-scheme.o: boot.c_ scheme.h_
 
+# generated files
+%.h_: %.scm unparse.ss
+	mzscheme unparse.ss <$< >$@
+%.h_: %.c prims.ss
+	mzscheme prims.ss <$< >$@
 
-GEN = scheme.h_ test.c_ boot.c_
+GEN = test.h_ scheme.h_ boot.h_
 
 # make deps from .c file
-%.d: %.c $(GEN) Makefile
+%.d: %.c Makefile $(GEN)
 	set -e; rm -f $@; \
 		$(CC) -M $(CPPFLAGS) $< > $@.$$$$; \
 		sed 's,\($*\)\.o[ :]*,\1.o $@ : ,g' < $@.$$$$ > $@; \
@@ -23,14 +26,8 @@ GEN = scheme.h_ test.c_ boot.c_
 
 -include $(SRC:.c=.d)
 
-%.o: %.c Makefile $(GEN)
+%.o: %.c Makefile
 	$(CC) $(CPPFLAGS) $(CFLAGS) $(OPTI_CFLAGS) $(DEBUG_CFLAGS) -o $@ -c $<
-
-%.c_: %.scm unparse.ss
-	mzscheme unparse.ss <$< >$@	
-%.h_: %.c prims.ss
-	mzscheme prims.ss <$< >$@
-
 
 
 scheme: $(OBJ)

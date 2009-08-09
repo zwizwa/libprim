@@ -1,3 +1,4 @@
+#include "scheme.h"
 typedef object _;
 _ sc_eval_ktx(sc *sc, _ k, _ expr);
 _ sc_apply_ktx(sc* sc, _ k, _ fn, _ args);
@@ -50,7 +51,7 @@ _ sc_make_k_if(sc *sc, _ P, _ Y, _ N);
 _ sc_make_k_apply(sc *sc, _ P, _ D, _ T);
 _ sc_make_value(sc *sc, _ D);
 _ sc_make_redex(sc *sc, _ D, _ E);
-_ sc_make_error(sc *sc, _ T, _ A, _ K);
+_ sc_make_error(sc *sc, _ T, _ A, _ K, _ X);
 _ sc_make_lambda(sc *sc, _ F, _ R, _ S, _ E);
 _ sc_make_state(sc *sc, _ C, _ K);
 _ sc_cons(sc *sc, _ car, _ cdr);
@@ -124,7 +125,7 @@ static inline void _sc_def_prims(sc *sc){
     DEF("make-k-apply", sc_make_k_apply, 3);
     DEF("make-value", sc_make_value, 1);
     DEF("make-redex", sc_make_redex, 2);
-    DEF("make-error", sc_make_error, 3);
+    DEF("make-error", sc_make_error, 4);
     DEF("make-lambda", sc_make_lambda, 4);
     DEF("make-state", sc_make_state, 2);
     DEF("cons", sc_cons, 2);

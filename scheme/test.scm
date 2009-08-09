@@ -1,4 +1,7 @@
+(length 123)
+(car '())
 (eq? 1 0)
+
 (define lparen 40)
 (define rparen 41)
 

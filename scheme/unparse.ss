@@ -17,10 +17,19 @@
 
 (define (evl x) (format "EVAL(~a);\n" (unparse x)))
 
+(define (slurp)
+  (let next ((lst '()))
+    (let ((x (read)))
+      (if (eof-object? x)
+          (reverse lst)
+          (next (cons x lst))))))
+
 (define (convert)
-  (let ((expr (read)))
-    (unless (eof-object? expr)
-      (display (evl expr))
-      (convert))))
+  (define xs (slurp)) ;; make sure this succeeds before generating output
+  (printf "static inline void _load(sc *sc){\n")
+  (for ((x xs)) (display (evl x)))
+  (printf "}\n"))
 
 (convert)
+
+

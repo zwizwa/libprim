@@ -42,6 +42,7 @@
       (printf "~aDEF(~s, ~a, ~s);\n" prefix (mangle name) name n))))
 
 (define (gen-header ds)
+  (display "#include \"scheme.h\"\n")
   (decls ds)
   (printf  "static inline void _sc_def_prims(sc *sc){\n")
   (defs ds "    ")

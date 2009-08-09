@@ -921,4 +921,8 @@ environment, it could be recorded in the VALUE struct for debugging
 purposes.  When there is an error, the current value's name could be
 used for reporting.
 
+Hmm..  It's not so simple..  It's probably easier to tag the primitive
+struct itself with names.
+
+
 
