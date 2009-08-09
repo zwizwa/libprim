@@ -51,47 +51,6 @@ typedef struct {
     object continuation;    // current continuation
 } state;
 
-/* The k_apply continuation frame is used to sequence the order of
-   reductions.  Each application will create a new list of reducible
-   closures, which will be reduced one by one from left to right.
-   When done, the reduced terms are passed to a primitive, or an
-   application creates a new reducible closure with reduced closures
-   bound to variables. */
-
-typedef struct {
-    vector v;
-    object parent; // link
-    object done;   // reversed list of reduced 
-    object todo;   // todo
-} k_apply;
-
-typedef struct {
-    vector v;
-    object parent;
-    object yes;  // non-reduced closures for the 2 branches
-    object no;
-} k_if;
-
-typedef struct {
-    vector v;
-    object parent;
-    object var;
-    object env;
-    object tl_slot; // state vector slot containing toplevel
-} k_set;
-
-typedef struct {
-    vector v;
-    object parent;
-    object todo;  
-} k_seq;
-
-typedef struct {
-    vector v;
-    object parent;
-    object env;
-} k_macro;
-
 
 typedef struct {
     vector v;
@@ -124,6 +83,49 @@ typedef struct {
     vector v;
     object datum;
 } value;
+
+/* All continuation frames have a parent frame, and a continuation
+   mark dictionary. */
+typedef struct {
+    vector v;
+    object parent;
+    object marks;
+} k_frame;
+
+/* Arguments are evaluated left to right. */
+typedef struct {
+    k_frame k;
+    object done;   // reversed list of values
+    object todo;   // list of redexes
+} k_apply;
+
+typedef struct {
+    k_frame k;
+    object yes;  // non-reduced closures for the 2 branches
+    object no;
+} k_if;
+
+typedef struct {
+    k_frame k;
+    object var;
+    object env;
+    object tl_slot; // state vector slot containing toplevel
+} k_set;
+
+/* Sequences are evaluated left to right.  Frame is popped before the
+   last redex. */
+typedef struct {
+    k_frame k;
+    object todo;  
+} k_seq;
+
+/* Value is transformed into a redex using the env. */
+typedef struct {
+    k_frame k;
+    object env;
+} k_macro;
+
+
 
 
 static inline unsigned long vector_to_tag(vector *v) {

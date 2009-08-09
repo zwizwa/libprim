@@ -160,11 +160,12 @@ _ sc_make_redex(sc *sc, _ D, _ E)            {STRUCT(TAG_REDEX,   2, D,E);}
 _ sc_make_value(sc *sc, _ D)                 {STRUCT(TAG_VALUE,   1, D);}
 
 // 'P' is in slot 0
-_ sc_make_k_apply(sc *sc, _ P, _ D, _ T)     {STRUCT(TAG_K_APPLY,  3, P,D,T);}
-_ sc_make_k_if(sc *sc, _ P, _ Y, _ N)        {STRUCT(TAG_K_IF,     3, P,Y,N);}
-_ sc_make_k_set(sc *sc, _ P, _ V, _ E, _ Et) {STRUCT(TAG_K_SET,    4, P,V,E,Et);}
-_ sc_make_k_seq(sc *sc, _ P, _ T)            {STRUCT(TAG_K_SEQ,    2, P,T);}
-_ sc_make_k_macro(sc *sc, _ P, _ E)          {STRUCT(TAG_K_MACRO,  2, P,E);}
+// continuations are created with an empty mark list
+_ sc_make_k_apply(sc *sc, _ P, _ D, _ T)     {STRUCT(TAG_K_APPLY,  4, P,NIL,D,T);}
+_ sc_make_k_if(sc *sc, _ P, _ Y, _ N)        {STRUCT(TAG_K_IF,     4, P,NIL,Y,N);}
+_ sc_make_k_set(sc *sc, _ P, _ V, _ E, _ Et) {STRUCT(TAG_K_SET,    5, P,NIL,V,E,Et);}
+_ sc_make_k_seq(sc *sc, _ P, _ T)            {STRUCT(TAG_K_SEQ,    3, P,NIL,T);}
+_ sc_make_k_macro(sc *sc, _ P, _ E)          {STRUCT(TAG_K_MACRO,  3, P,NIL,E);}
 
 
 _ sc_car(sc *sc, _ o) { pair *p = CAST(pair, o); return p->car; }
@@ -488,12 +489,12 @@ _ _sc_step_value(sc *sc, _ v, _ k) {
     if (TRUE == sc_is_k_if(sc, k)) {
         k_if *kx = object_to_k_if(k);
         _ rc = (FALSE == value) ? kx->no : kx->yes;
-        return STATE(rc, kx->parent);
+        return STATE(rc, kx->k.parent);
     }
     if (TRUE == sc_is_k_set(sc, k)) {
         k_set *kx = object_to_k_set(k);
         // allocate before mutation
-        _ rv = STATE(VALUE(VOID), kx->parent);
+        _ rv = STATE(VALUE(VOID), kx->k.parent);
         if (FALSE == sc_env_set(sc, kx->env, kx->var, value)) {
             if (FALSE == sc_env_set(sc, 
                                     sc_global(sc, kx->tl_slot),  // global toplevel
@@ -509,14 +510,14 @@ _ _sc_step_value(sc *sc, _ v, _ k) {
         pair *top = CAST(pair, kx->todo);
         /* If this is the last one, replace the continuation, else
            update k_seq. */
-        if (NIL == top->cdr) return STATE(top->car, kx->parent);
-        return STATE(top->car, sc_make_k_seq(sc, kx->parent, top->cdr));
+        if (NIL == top->cdr) return STATE(top->car, kx->k.parent);
+        return STATE(top->car, sc_make_k_seq(sc, kx->k.parent, top->cdr));
     }
     if (TRUE == sc_is_k_macro(sc, k)) {
         /* The _ returned by the macro is wrapped as an AST wich
            triggers its further reduction. */
         k_macro *kx = object_to_k_macro(k);
-        return STATE(REDEX(value,kx->env), kx->parent);
+        return STATE(REDEX(value,kx->env), kx->k.parent);
     }
     if (TRUE == sc_is_k_apply(sc, k)) {
         /* If there are remaining closures to evaluate, push the value
@@ -524,7 +525,7 @@ _ _sc_step_value(sc *sc, _ v, _ k) {
         k_apply *kx = object_to_k_apply(k);
         if (TRUE==sc_is_pair(sc, kx->todo)) {
             return STATE(CAR(kx->todo),
-                         sc_make_k_apply(sc, kx->parent,
+                         sc_make_k_apply(sc, kx->k.parent,
                                          CONS(value, kx->done),
                                          CDR(kx->todo)));
         }
@@ -552,7 +553,7 @@ _ _sc_step_value(sc *sc, _ v, _ k) {
                    primitive has executed.  Meaning, a primitive won't
                    be restarted if it doesn't call gc_alloc(). */
                 _ value   = VALUE(VOID);
-                _ state   = STATE(value, kx->parent); // drop frame
+                _ state   = STATE(value, kx->k.parent); // drop frame
                 _ rv      = _sc_call(sc, prim_fn(p), n-1, rev_args);
                 object_to_value(value)->datum = rv;
                     
@@ -589,7 +590,7 @@ _ _sc_step_value(sc *sc, _ v, _ k) {
                     rev_args = CDR(rev_args);
                 }
                 return STATE(REDEX(l->term, fn_env),  // close term
-                             kx->parent);             // drop frame
+                             kx->k.parent);           // drop frame
             } 
 
             /* Continuation */
