@@ -6,7 +6,6 @@
     (list 'def-toplevel!
           (list 'quote (car (cdr form)))
           (car (cdr (cdr form))))))
-;; (define dbg (lambda (x) (post x) x))
 (define cadr  (lambda (x) (car (cdr x))))
 (define cddr  (lambda (x) (cdr (cdr x))))
 (define caddr (lambda (x) (car (cdr (cdr x)))))
@@ -32,7 +31,7 @@
     (mapn fn lsts)))
         
 
-;; Implemented in terms of continuation transformers (ktx).
+;; Implemented in terms of primitive continuation transformers (ktx).
 (define apply (lambda (fn args) (letcc k ((apply-ktx k fn args)))))
 (define eval  (lambda (eval expr) (letcc k ((eval-ktx k expr)))))
 
@@ -84,7 +83,7 @@
 (define (words) (map1 car (toplevel)))
 (define (macro) (map1 car (toplevel-macro)))
 
-(define (call-with-letform bindings.body fn)
+(define (with-letform-transpose bindings.body fn)
   (fn (map1 car (car bindings.body))
       (map1 cadr (car bindings.body))
       (cdr bindings.body)))
@@ -92,7 +91,7 @@
 (define-macro (let form)
   (if (symbol? (cadr form))
       ;; named let
-      (call-with-letform
+      (with-letform-transpose
        (cddr form)
        (lambda (names values body)
          (let ((name (cadr form)))
@@ -100,10 +99,18 @@
                  (list (list name (list* 'lambda names body)))
                  (cons name values)))))
       ;; normal let
-      (call-with-letform
+      (with-letform-transpose
        (cdr form)
        (lambda (names values body)
          (list* (list* 'lambda names body) values)))))
+
+(define (dbg x) (post x) x)
+(define-macro (*** form)
+  (list 'begin
+        ;; (list 'post ''FORM:)
+        (list 'post (list 'quote (cdr form)))
+        (list 'write ''=>)
+        (list 'dbg (cdr form))))
 
 (define-macro (cond form)
   (let next ((f (cdr form)))

@@ -1,13 +1,10 @@
-(cond '(cond ((a? a) a!) ((b? b) b!) (else c!)))
+(let ((broebel 123)) broebel)
+(let foo ((n 10))
+  (if (zero? n) 0
+      (begin
+        (post 'bla)
+        (foo (sub1 n)))))
 
-(let-tx '(let ((abc 123) (def 345)) abc def))
-(let-tx '(let foo ((abc 123) (def 345)) abc def (foo 1 2)))
-
-
-(letrec ((foo (lambda (n)
-                (post 'bla)
-                (if (zero? n) 0 (foo (sub1 n))))))
-  (foo 10))
 
 (letrec-tx '(letrec ((x 123)) foo))
 (list* 1 2 '(a b c))
