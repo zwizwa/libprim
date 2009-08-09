@@ -394,6 +394,14 @@ _ sc_post(sc* sc, _ o) {
     }
     return VOID;
 }
+_ sc_read_char(sc *sc) {
+    return integer_to_object(fgetc(stdin));
+}
+_ sc_is_eq(sc *sc, _ a, _ b) {
+    if (a == b) return TRUE;
+    return FALSE;
+}
+
 
 _ sc_fatal(sc *sc, _ err) {
     if (TRUE == sc_is_error(sc, err)) {
@@ -865,22 +873,24 @@ _ sc_eval_ktx(sc *sc, _ k, _ expr) {
        have moved).
 */
 
-_ _sc_eval(sc *sc, _ expr){
+_ _sc_top(sc *sc, _ expr){
     if (sc->top_entries) {
-        printf("WARNING: multiple _sc_eval() entries.\n");
+        printf("WARNING: multiple _sc_top() entries.\n");
         return NIL;
     }
     sc->top_entries++;
-    _ state = STATE(REDEX(expr,NIL),MT);
+    sc_bang_set_global(sc, sc_slot_state, STATE(REDEX(expr,NIL),MT));
     for(;;) {
         if (setjmp(sc->top)){
             sc->step_entries = 0;  // full tower unwind
         }
-        else {
+        for(;;) {
+            _ state;
             /* Run */
             do {
-                sc_bang_set_global(sc, sc_slot_state, state); // save start
-                state = sc_eval_step(sc, state); // purely functional state tx
+                state = sc_global(sc, sc_slot_state);         // get
+                state = sc_eval_step(sc, state);              // update (functional)
+                sc_bang_set_global(sc, sc_slot_state, state); // set
             }
             while (FALSE == sc_is_error(sc, state));
             
@@ -892,14 +902,16 @@ _ _sc_eval(sc *sc, _ expr){
             }
             
             /* Abort */
-            state = STATE(VALUE(state), sc_global(sc, sc_slot_abort_k));
+            sc_bang_set_global(sc, sc_slot_state,
+                               STATE(VALUE(state), 
+                                     sc_global(sc, sc_slot_abort_k)));
         }
     }
 }
 
 static void _sc_mark_roots(sc *sc, gc_finalize fin) {
     // sc_trap(sc);
-    // printf("GC mark()\n");
+    printf("GC mark()\n");
     // sc_post(sc, sc->state);
     sc->global = gc_mark(sc->gc, sc->global);
     fin(sc->gc);

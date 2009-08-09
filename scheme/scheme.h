@@ -221,13 +221,13 @@ static inline prim* object_to_prim(object ob, sc *sc) {
 /* List macros */
 #define CAR(o)  object_to_pair(o)->car
 #define CDR(o)  object_to_pair(o)->cdr
-#define NIL ((object)0)
 #define CAAR(o) CAR(CAR(o))
 #define CADR(o) CAR(CDR(o))
 #define CDDR(o) CDR(CDR(o))
 #define CADDR(o) CAR(CDDR(o))
 
 /* Booleans anv void are encoded as constant pointers. */
+#define NIL   ((object)0)
 #define CONSTANT(x) const_to_object((void*)((((x)<<1)|1)<<GC_TAG_SHIFT))
 #define FALSE CONSTANT(0)
 #define TRUE  CONSTANT(1)
@@ -247,8 +247,7 @@ typedef object (*sc_3)(sc* sc, object, object, object);
 #define ROOT_ENV 0
 
 /* Setup */
-void   _sc_run(sc *sc);
-object _sc_eval(sc *sc, object expr);
+object _sc_top(sc *sc, object expr);
 sc    *_sc_new(void);
 
 /* Interpreter exceptions. */
@@ -269,7 +268,7 @@ sc    *_sc_new(void);
 #define TYPE_ERROR(o) ERROR("type",o)
     
 /* Toplevel evaluation */
-#define EVAL(expr)    sc_post(sc, _sc_eval(sc, expr))
+#define EVAL(expr)    sc_post(sc, _sc_top(sc, expr))
 
 // safe cast to C struct
 #define CAST(type,x) object_to_##type(_sc_assert(sc, sc_is_##type, x))

@@ -1,3 +1,10 @@
+(eq? 1 0)
+(define lparen 40)
+(define rparen 41)
+
+;; (read-char)
+
+
 ((make-definer 'def-toplevel-macro!) '(define (abc asdf) 123))
 (eval '(post 123))
 (gc-used)
