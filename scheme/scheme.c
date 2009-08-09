@@ -7,20 +7,21 @@
 #include "symbol.h"
 #include "scheme.h"
 
-
-
-
 /* --- PRIMITIVES --- */
 
 /* To simplify the implementation, as much as possible functions are
-   implemented as Scheme primitives operating on tagged values.  They
-   are named sc_xxx for ease of lifting them from the source file for
-   environment bootstrap.
+   implemented as Scheme primitives operating on Scheme values.  They
+   use the prefix "sc_".
 
    The functions operating on *sc that are too lowlevel to respect the
-   sc_xxx ABI (because they use values that cannot be represented as a
+   "sc_" ABI (because they use values that cannot be represented as a
    Scheme object, or because they violate behavioural constraints) are
-   named _sc_xxx.  These are kept to a minimum to avoid duplication.
+   prefixed "_sc".  These are kept to a minimum to avoid duplication
+   and make most of the functionality available to scheme.
+
+   Note in particular that "sc_eval_step()" is re-entrant, and that
+   interpreter data constructors are available in Scheme to construct
+   modified interpreters.
 
 */
 
@@ -526,25 +527,24 @@ _ _sc_step_value(sc *sc, _ v, _ k) {
                          sc_make_k_apply(sc, kx->parent,
                                          CONS(value, kx->done),
                                          CDR(kx->todo)));
-                                          
         }
         /* No more expressions to be reduced in the current k_apply:
            perform application. */
         else {
             _ rev_args = CONS(value, kx->done);
-            _ p=rev_args, fn_term=NIL;
+            _ p=rev_args, fn=NIL;
             int n = 0;
             while (TRUE==sc_is_pair(sc,p)) {
-                n++; fn_term = CAR(p); p = CDR(p);
+                n++; fn = CAR(p); p = CDR(p);
             }
             // n  == 1 + nb_args
-            // fn == primitive or lambda
+            // fn == primitive, lambda or continuation
 
             /* Application of primitive function results in C call. */
-            if (TRUE==sc_is_prim(sc, fn_term)) {
-                prim *p = object_to_prim(fn_term,sc);
+            if (TRUE==sc_is_prim(sc, fn)) {
+                prim *p = object_to_prim(fn,sc);
                 if (prim_nargs(p) != (n-1)) {
-                    return ERROR("nargs", fn_term);
+                    return ERROR("nargs", fn);
                 }
                 /* Perform all allocation _before_ the execution of
                    the primitive.  This is to make sure that we won't
@@ -559,8 +559,8 @@ _ _sc_step_value(sc *sc, _ v, _ k) {
                 return state;
             }
             /* Application of abstraction extends the fn_env environment. */
-            if (TRUE==sc_is_lambda(sc, fn_term)) {
-                lambda *l = CAST(lambda, fn_term);
+            if (TRUE==sc_is_lambda(sc, fn)) {
+                lambda *l = CAST(lambda, fn);
                 vector *v = CAST(vector, l->formals);
                 _ fn_env = l->env;
 
@@ -570,7 +570,7 @@ _ _sc_step_value(sc *sc, _ v, _ k) {
 
                 if ((nb_rest_args < 0) 
                     || ((NIL == l->rest) &&
-                        (nb_rest_args != 0))) return ERROR("nargs", fn_term);
+                        (nb_rest_args != 0))) return ERROR("nargs", fn);
 
                 /* If any, add the rest arguments accumulated in a list. */
                 _ rest_args = NIL;
@@ -593,15 +593,15 @@ _ _sc_step_value(sc *sc, _ v, _ k) {
             } 
 
             /* Continuation */
-            if (TRUE==sc_is_k(sc, fn_term)) {
+            if (TRUE==sc_is_k(sc, fn)) {
                 _ arg = VOID; // no args to k -> inserts void.
-                if (n > 2) ERROR("nargs", fn_term);
+                if (n > 2) ERROR("nargs", fn);
                 if (n == 2) arg = CAR(rev_args);
-                return STATE(VALUE(arg), fn_term);
+                return STATE(VALUE(arg), fn);
             }
 
             /* Unknown applicant type */
-            return ERROR("apply", fn_term);
+            return ERROR("apply", fn);
         }
     }
     /* Unknown continuation type */
