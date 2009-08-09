@@ -55,8 +55,6 @@
         (list* 'let (map1 (lambda (n) (list n 0)) names)
                (cons 'begin (map (lambda (n v) (list 'set! n v)) names values))
                (cddr form))))))
-            
-
 
 ;; Overwrite define + define-macro with more complete implementations.
 (define make-definer
@@ -70,6 +68,7 @@
               (set! name _name)
               (set! value (list* 'lambda _formals (cddr form)))))
         (list def! (list 'quote name) value)))))
+
 (define-macro define (make-definer 'def-toplevel!))
 (define-macro define-macro (make-definer 'def-toplevel-macro!))
 
@@ -96,8 +95,41 @@
                       (next (cdr f))))))))
     (next (cdr form))))
 
-              
+(define (call-with-letform bindings.body fn)
+  (fn (map1 car (car bindings.body))
+      (map1 cadr (car bindings.body))
+      (cdr bindings.body)))
+
+(define-macro (let form)
+  (if (symbol? (cadr form))
+      ;; named let
+      (call-with-letform
+       (cddr form)
+       (lambda (names values body)
+         (let ((name (cadr form)))
+           (list 'letrec
+                 (list (list name
+                             (list* 'lambda names body)))
+                 (cons name values)))))
+      ;; normal let
+      (call-with-letform
+       (cdr form)
+       (lambda (names values body)
+         (list* (list* 'lambda names body) values)))))
+
+
+    
         
+;;         ((lambda (name names values body)
+;;            (list 'letrec
+;;                  (list (list name (list* 'lambda names body)))
+;;                  (cons name values)))
+;;          (cadr form)
+;;          (map1 car (caddr form))
+;;          (map1 cadr (caddr form))
+        
+               
+         
 
 
 (post 'init-OK)

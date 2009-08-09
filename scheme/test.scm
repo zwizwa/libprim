@@ -1,3 +1,6 @@
+(let-tx '(let ((abc 123) (def 345)) abc def))
+(let-tx '(let foo ((abc 123) (def 345)) abc def (foo 1 2)))
+
 (cond-tx '(cond ((a? a) a!) ((b? b) b!) (else c!)))
 (letrec ((foo (lambda (n)
                 (post 'bla)
