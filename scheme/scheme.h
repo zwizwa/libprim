@@ -75,7 +75,9 @@ typedef struct {
 typedef struct {
     vector v;
     object parent;
-    object var;  
+    object var;
+    object env;
+    object tl_slot; // state vector slot containing toplevel
 } k_set;
 
 typedef struct {
@@ -156,31 +158,40 @@ DEF_CAST (k_set)
 DEF_CAST (k_seq)
 DEF_CAST (k_macro)
 
+/* Global Scheme State*/
+#define sc_slot_toplevel        integer_to_object(0)
+#define sc_slot_toplevel_macro  integer_to_object(1)
+#define sc_slot_state           integer_to_object(2)
+#define sc_slot_abort_k         integer_to_object(3)
+
+
 struct _scheme {
-    gc *gc;
-    symstore *syms;
+    /* Highlevel global state data is accessible from Scheme. */
+    object global;
 
-    object state;
-    object abort_k;
-    object toplevel;
-    object toplevel_macro;
+    /* Lowlevel implementation data */
 
-    object error_tag;
-    object error_arg;
-
+    /* Special form symbol cache */
     object s_lambda;
+    object s_begin;
     object s_quote;
     object s_if;
     object s_bang_set;
-    object s_begin;
     object s_letcc;
 
-    jmp_buf step;   // current CEKS step abort
-    jmp_buf top;    // full interpreter C stack unwind (i.e. for GC)
-
+    /* Objects and classes */
+    gc *gc;
+    symstore *syms;
     atom_class op_prim;
-    long entries;
-    long step_entries;
+
+    /* Lowlevel control flow */
+    jmp_buf step;      // current CEKS step abort + semaphore
+    jmp_buf top;       // full interpreter C stack unwind (i.e. for GC)
+    long step_entries; // semaphores
+    long top_entries;
+    object error_tag;  // temp storage for step() exceptions 
+    object error_arg;
+
 };
 
 static inline symbol* object_to_symbol(object ob, sc *sc) {

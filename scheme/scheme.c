@@ -145,7 +145,7 @@ _ sc_k_parent(sc *sc, _ o) {
 // S = syntax term (REDEX)
 // D = done (list of reduced closures)
 // T = todo (list of non-reduced closures)
-// E = environment
+// E = environment (Et = toplevel)
 // P = parent continuation
 // D = datum
 
@@ -159,11 +159,11 @@ _ sc_make_redex(sc *sc, _ D, _ E)            {STRUCT(TAG_REDEX,   2, D,E);}
 _ sc_make_value(sc *sc, _ D)                 {STRUCT(TAG_VALUE,   1, D);}
 
 // 'P' is in slot 0
-_ sc_make_k_apply(sc *sc, _ P, _ D, _ T) {STRUCT(TAG_K_APPLY,  3, P,D,T);}
-_ sc_make_k_if(sc *sc, _ P, _ Y, _ N)    {STRUCT(TAG_K_IF,     3, P,Y,N);}
-_ sc_make_k_set(sc *sc, _ P, _ V)        {STRUCT(TAG_K_SET,    2, P,V);}
-_ sc_make_k_seq(sc *sc, _ P, _ T)        {STRUCT(TAG_K_SEQ,    2, P,T);}
-_ sc_make_k_macro(sc *sc, _ P, _ E)      {STRUCT(TAG_K_MACRO,  2, P,E);}
+_ sc_make_k_apply(sc *sc, _ P, _ D, _ T)     {STRUCT(TAG_K_APPLY,  3, P,D,T);}
+_ sc_make_k_if(sc *sc, _ P, _ Y, _ N)        {STRUCT(TAG_K_IF,     3, P,Y,N);}
+_ sc_make_k_set(sc *sc, _ P, _ V, _ E, _ Et) {STRUCT(TAG_K_SET,    4, P,V,E,Et);}
+_ sc_make_k_seq(sc *sc, _ P, _ T)            {STRUCT(TAG_K_SEQ,    2, P,T);}
+_ sc_make_k_macro(sc *sc, _ P, _ E)          {STRUCT(TAG_K_MACRO,  2, P,E);}
 
 
 _ sc_car(sc *sc, _ o) { pair *p = CAST(pair, o); return p->car; }
@@ -179,7 +179,10 @@ _ sc_error(sc *sc, _ sym_o, _ arg_o) {
     sc->error_tag = sym_o;
     sc->error_arg = arg_o;
     // if (sym_o != SYMBOL("halt")) sc_trap(sc);
-    longjmp(sc->step, SC_EX_ABORT);
+    if (sc->step_entries) longjmp(sc->step, SC_EX_ABORT);
+    fprintf(stderr, "ERROR: attempt to abort primitive outside of the main loop.\n");
+    sc_trap(sc);
+    exit(1);
 }
 _ sc_make_vector(sc *sc, _ slots, _ init) {
     long i,n = CAST(integer, slots);
@@ -252,32 +255,62 @@ _ sc_env_set(sc *sc, _ E, _ var, _ value) {
     CDR(rv)=value;
     return VOID;
 }
+static _ *vector_index(sc *sc, _ vec, _ n) {
+    vector *v = CAST(vector, vec);
+    long index = CAST(integer, n);
+    if ((index < 0) || (index >= vector_size(v))) ERROR("ref", n);
+    return &v->slot[index];
+}
+_ sc_vector_ref(sc *sc, _ vec, _ n) {
+    return *vector_index(sc, vec, n);
+}
+_ sc_bang_vector_set(sc *sc, _ vec, _ n, _ val) {
+    *vector_index(sc, vec, n) = val;
+    return VOID;
+}
+
+
+_ sc_global(sc *sc, _ n) { 
+    return sc_vector_ref(sc, sc->global, n); 
+}
+_ sc_bang_set_global(sc *sc, _ n, _ val) { 
+    return sc_bang_vector_set(sc, sc->global, n, val); 
+}
+
+#define GLOBAL(name) return sc_global(sc, sc_slot_##name)
+#define GLOBAL_SET(name, val) return sc_bang_set_global(sc, sc_slot_##name, val)
+
+_ sc_toplevel(sc *sc)       { GLOBAL(toplevel); }
+_ sc_toplevel_macro(sc *sc) { GLOBAL(toplevel_macro); }
+_ sc_state(sc *sc)          { GLOBAL(state); }
+_ sc_abort_k(sc *sc)        { GLOBAL(abort_k); }
+
+_ sc_bang_set_toplevel(sc *sc, _ val)       { GLOBAL_SET(toplevel, val); }
+_ sc_bang_set_toplevel_macro(sc *sc, _ val) { GLOBAL_SET(toplevel_macro, val); }
+
 _ sc_find_toplevel(sc *sc, _ var) {
-    return sc_find(sc, sc->toplevel, var);
+    return sc_find(sc, sc_toplevel(sc), var);
 }
 _ sc_find_toplevel_macro(sc *sc, _ var) {
-    return sc_find(sc, sc->toplevel_macro, var);
+    return sc_find(sc, sc_toplevel_macro(sc), var);
 }
-/*  Add to or mutate toplevel. */
-_ sc_bang_def_toplevel(sc* sc, _ var, _ val) {
+/*  Add to or mutate toplevel env. */
+_ sc_bang_def_global(sc* sc, _ slot, _ var, _ val) {
     symbol *s;
+    _ env = sc_global(sc, slot);
     if (!(s=object_to_symbol(var, sc))) TYPE_ERROR(var);
     // printf("DEF %s: ",s->name); sc_post(sc, val);
-    if (FALSE == sc_env_set(sc, sc->toplevel, var, val)) {
-        sc->toplevel = CONS(CONS(var,val), sc->toplevel);
+    if (FALSE == sc_env_set(sc, env, var, val)) {
+        sc_bang_set_global(sc, slot, CONS(CONS(var,val), env));
     }
     return VOID;
+}
+_ sc_bang_def_toplevel(sc* sc, _ var, _ val) {
+    return sc_bang_def_global(sc, sc_slot_toplevel, var, val);
 }
 _ sc_bang_def_toplevel_macro(sc* sc, _ var, _ val) {
-    if (!object_to_symbol(var, sc)) TYPE_ERROR(var);
-    if (FALSE == sc_env_set(sc, sc->toplevel_macro, var, val)) {
-        sc->toplevel_macro = CONS(CONS(var,val), sc->toplevel_macro);
-    }
-    return VOID;
+    return sc_bang_def_global(sc, sc_slot_toplevel_macro, var, val);
 }
-_ sc_toplevel(sc *sc) { return sc->toplevel; }
-_ sc_toplevel_macro(sc *sc) { return sc->toplevel_macro; }
-
 _ sc_is_list(sc *sc, _ o) {
     if(TRUE==sc_is_null(sc, o)) return TRUE;
     if(FALSE==sc_is_pair(sc, o)) return FALSE;
@@ -450,12 +483,13 @@ _ _sc_step_value(sc *sc, _ v, _ k) {
     }
     if (TRUE == sc_is_k_set(sc, k)) {
         k_set *kx = object_to_k_set(k);
-        redex *v = CAST(redex, kx->var);  // term=id + env
         // allocate before mutation
         _ rv = STATE(VALUE(VOID), kx->parent);
-        if (FALSE == sc_env_set(sc, v->env, v->term, value)) {
-            if (FALSE == sc_env_set(sc, sc->toplevel, v->term, value)) {
-                return ERROR("undefined", v->term);
+        if (FALSE == sc_env_set(sc, kx->env, kx->var, value)) {
+            if (FALSE == sc_env_set(sc, 
+                                    sc_global(sc, kx->tl_slot),  // global toplevel
+                                    kx->var, value)) {
+                return ERROR("undefined", kx->var);
             }
         }
         return rv;
@@ -552,8 +586,10 @@ _ _sc_step_value(sc *sc, _ v, _ k) {
 
             /* Continuation */
             if (TRUE==sc_is_k(sc, fn_term)) {
-                if (n != 2) ERROR("nargs", fn_term);
-                return STATE(VALUE(CAR(rev_args)), fn_term);
+                _ arg = VOID; // no args to k -> inserts void.
+                if (n > 2) ERROR("nargs", fn_term);
+                if (n == 2) arg = CAR(rev_args);
+                return STATE(VALUE(arg), fn_term);
             }
 
             /* Unknown applicant type */
@@ -669,11 +705,8 @@ static _ _sc_step(sc *sc, _ o_state) {
             if (FALSE == sc_is_symbol(sc, var)) ERROR("syntax",term);
             if (NIL == CDR(term_args)) ERROR("syntax",term);
             _ expr = CADR(term_args);
-            /* The variable name won't be reduced: the REDEX struct is
-               used just for bundling the sym + env. */
-            _ lvalue = REDEX(var,env); 
             return STATE(REDEX(expr, env),
-                         sc_make_k_set(sc, k, lvalue));
+                         sc_make_k_set(sc, k, var, env, sc_slot_toplevel));
         }
         if (term_f == sc->s_begin) {
             if (FALSE == sc_is_pair(sc, term_args)) ERROR("syntax",term);
@@ -693,7 +726,7 @@ static _ _sc_step(sc *sc, _ o_state) {
             return STATE(cl, k);
         }
         _ macro;
-        if (FALSE != (macro = sc_find(sc, sc->toplevel_macro, term_f))) {
+        if (FALSE != (macro = sc_find(sc, sc_toplevel_macro(sc), term_f))) {
             /* Macro continuation is based on a completed
                k_apply frame that will trigger the fn
                application, linked to a k_macro frame that
@@ -761,15 +794,23 @@ _ sc_eval_step(sc *sc, _ state) {
 
 
 
-static _ _sc_restart(sc *sc) { longjmp(sc->top, SC_EX_RESTART); }
+static _ _sc_restart(sc *sc) {
+    if (sc->top_entries) {
+        longjmp(sc->top, SC_EX_RESTART); 
+    }
+    fprintf(stderr, "ERROR: attempt restart outside of the main loop.\n");
+    sc_trap(sc);
+    exit(1);
+}
    
 /* GC: set continuation manually, since since the interpreter aborts
    and restarts the current step. */
 _ sc_gc(sc* sc) {
-    state *s = CAST(state, sc->state);
+    state *s = CAST(state, sc_global(sc, sc_slot_state));
     _ k = sc_k_parent(sc, s->continuation); // drop `gc' k_apply frame
-    sc->state = STATE(VALUE(VOID), k);      // update state manually
-    gc_collect(sc->gc);                     // collect will restart at sc->state
+    sc_bang_set_global(sc, sc_slot_state, 
+                       STATE(VALUE(VOID), k)); // update state manually
+    gc_collect(sc->gc);                        // collect will restart at sc->state
     return NIL; // not reached
 }
 
@@ -825,44 +866,42 @@ _ sc_eval_ktx(sc *sc, _ k, _ expr) {
 */
 
 _ _sc_eval(sc *sc, _ expr){
-    if (sc->entries) {
+    if (sc->top_entries) {
         printf("WARNING: multiple _sc_eval() entries.\n");
         return NIL;
     }
-    sc->entries++;
-    sc->state = STATE(REDEX(expr,NIL),MT);
-
+    sc->top_entries++;
+    _ state = STATE(REDEX(expr,NIL),MT);
     for(;;) {
         if (setjmp(sc->top)){
             sc->step_entries = 0;  // full tower unwind
         }
         else {
             /* Run */
-            do sc->state = sc_eval_step(sc, sc->state); 
-            while (FALSE == sc_is_error(sc, sc->state));
+            do {
+                sc_bang_set_global(sc, sc_slot_state, state); // save start
+                state = sc_eval_step(sc, state); // purely functional state tx
+            }
+            while (FALSE == sc_is_error(sc, state));
             
             /* Halt */
-            error *e = object_to_error(sc->state);
+            error *e = object_to_error(state);
             if (e->tag == SYMBOL("halt")) {
-                sc->entries--;
+                sc->top_entries--;
                 return e->arg;
             }
             
             /* Abort */
-            sc->state = STATE(VALUE(sc->state), sc->abort_k);
+            state = STATE(VALUE(state), sc_global(sc, sc_slot_abort_k));
         }
     }
 }
 
-#define MARK(field) sc->field = gc_mark(sc->gc, sc->field)
 static void _sc_mark_roots(sc *sc, gc_finalize fin) {
     // sc_trap(sc);
     // printf("GC mark()\n");
     // sc_post(sc, sc->state);
-    MARK(state);
-    MARK(abort_k);
-    MARK(toplevel);
-    MARK(toplevel_macro);
+    sc->global = gc_mark(sc->gc, sc->global);
     fin(sc->gc);
     // sc_post(sc, sc->state);
     /* Abort C stack, since it now contains invalid refs.
@@ -873,8 +912,7 @@ static void _sc_mark_roots(sc *sc, gc_finalize fin) {
              evaluation step won't make it to the next before
              triggering collection).
     */
-    if (sc->entries) _sc_restart(sc);
-    printf("WARNING: triggering GC outside of the main loop.\n");
+    _sc_restart(sc);
 }
 static _ _sc_make_prim(sc *sc, void *fn, long nargs) {
     prim *p = malloc(sizeof(*p));
@@ -888,7 +926,7 @@ void _sc_def_prim(sc *sc, _ var, void *fn, long nargs) {
 }
 sc *_sc_new(void) {
     sc *sc = malloc(sizeof(*sc));
-    sc->entries = 0;
+    sc->top_entries = 0;
     sc->step_entries = 0;
 
     /* Garbage collector. */
@@ -898,9 +936,11 @@ sc *_sc_new(void) {
     sc->syms = symstore_new(1000);
     sc->op_prim.free = NULL;
 
-    /* Environments */
-    sc->toplevel       = NIL;
-    sc->toplevel_macro = NIL;
+    sc->global = gc_vector(sc->gc, 4,
+                           NIL,  // toplevel
+                           NIL,  // macro
+                           NIL,  // state
+                           NIL); // abort
 
     /* Cached identifiers */
     sc->s_lambda   = SYMBOL("lambda");
@@ -913,10 +953,10 @@ sc *_sc_new(void) {
     /* Primitive defs */
     _sc_def_prims(sc); // defined in scheme.h_
 
-    /* Bootstrap toplevel continuation */
+    /* Toplevel abort continuation */
     _ done = CONS(sc_find_toplevel(sc, SYMBOL("fatal")),NIL);
-    sc->abort_k = sc_make_k_apply(sc, MT, done, NIL);
-
+    _ abort_k = sc_make_k_apply(sc, MT, done, NIL);
+    sc_bang_set_global(sc, sc_slot_abort_k, abort_k);
 
     /* Highlevel bootstrap */
 #include "boot.c_"

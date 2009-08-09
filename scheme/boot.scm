@@ -30,9 +30,25 @@
        (map car (cadr form))
        (map cadr (cadr form))
        (cddr form))))
+
+  (define make-definer
+    (lambda (def!)
+      (lambda (form)
+        (let ((name (cadr form))
+              (value (caddr form)))
+          ;; (define (_name . _formals) . body)
+          (if (pair? name)
+              (let ((_name (car name))
+                    (_formals (cdr name)))
+                (set! name _name)
+                (set! value (cons 'lambda
+                                  (cons _formals
+                                        (cddr form))))))
+          (list def! name value)))))
+  
   (define apply (lambda (fn args)
-                  (letcc k ((apply-ktx k fn args) 0))))
+                  (letcc k ((apply-ktx k fn args)))))
   (define eval (lambda (expr)
-                 (letcc k ((eval-ktx k expr) 0))))
+                 (letcc k ((eval-ktx k expr)))))
 
   (post 'init-OK))

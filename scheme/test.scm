@@ -1,3 +1,4 @@
+((make-definer 'def-toplevel-macro!) '(define (abc asdf) 123))
 (eval '(post 123))
 (gc-used)
 (gc)

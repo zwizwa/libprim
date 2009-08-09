@@ -885,3 +885,11 @@ Seems to work now.  I can call the interpreter step from within scheme
 => #error(halt 123 #state(#value(123) #k_mt))
 
 
+Entry: Loop without cons
+Date: Sun Aug  9 01:09:22 CEST 2009
+
+So..  What would be necessary to make an interpreter that can perform
+a loop without performing allocation?  It would need to overwrite
+variables.
+
+So..  What is scheme without GC?
