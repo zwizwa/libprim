@@ -84,17 +84,6 @@
 (define (words) (map1 car (toplevel)))
 (define (macro) (map1 car (toplevel-macro)))
 
-(define-macro (cond form)
-  (letrec
-      ((next
-        (lambda (f)
-          (let ((c  (car f)))
-            (if (eq? 'else (car c))
-                (cadr c)
-                (list 'if (car c) (cadr c)
-                      (next (cdr f))))))))
-    (next (cdr form))))
-
 (define (call-with-letform bindings.body fn)
   (fn (map1 car (car bindings.body))
       (map1 cadr (car bindings.body))
@@ -108,8 +97,7 @@
        (lambda (names values body)
          (let ((name (cadr form)))
            (list 'letrec
-                 (list (list name
-                             (list* 'lambda names body)))
+                 (list (list name (list* 'lambda names body)))
                  (cons name values)))))
       ;; normal let
       (call-with-letform
@@ -117,19 +105,13 @@
        (lambda (names values body)
          (list* (list* 'lambda names body) values)))))
 
-
-    
-        
-;;         ((lambda (name names values body)
-;;            (list 'letrec
-;;                  (list (list name (list* 'lambda names body)))
-;;                  (cons name values)))
-;;          (cadr form)
-;;          (map1 car (caddr form))
-;;          (map1 cadr (caddr form))
-        
-               
-         
+(define-macro (cond form)
+  (let next ((f (cdr form)))
+    (let ((c  (car f)))
+      (if (eq? 'else (car c))
+          (cadr c)
+          (list 'if (car c) (cadr c)
+                (next (cdr f)))))))
 
 
 (post 'init-OK)
