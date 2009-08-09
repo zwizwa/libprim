@@ -35,7 +35,7 @@ static _ _sc_assert(sc *sc, sc_1 predicate, _ o) {
 }
 
 /* Booleans are GC_CONST */
-_ sc_is_bool (sc *sc, _ o) {
+_ sc_is_bool(sc *sc, _ o) {
     void *x;
     if ((x = object_to_const(o)) &&
         (0 == (((long)x) & (~TRUE)))) { return TRUE; }
@@ -45,11 +45,20 @@ _ sc_is_integer(sc *sc, _ o) {
     if (GC_INTEGER == GC_TAG(o)) return TRUE;
     return FALSE;
 }
-_ sc_is_zero (sc *sc, _ o) {
+_ sc_is_zero(sc *sc, _ o) {
     long i = CAST(integer, o);
     if (i) return FALSE;
     return TRUE;
 }
+_ sc_add1(sc *sc, _ o) {
+    long i = CAST(integer, o);
+    return integer_to_object(i + 1);
+}
+_ sc_sub1(sc *sc, _ o) {
+    long i = CAST(integer, o);
+    return integer_to_object(i - 1);
+}
+
 /* Symbols are encoded as GC_ATOM. */
 _ sc_is_symbol(sc *sc, _ o) {
     if(object_to_symbol(o, sc)) return TRUE;

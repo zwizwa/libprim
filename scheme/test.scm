@@ -1,3 +1,9 @@
+
+(letrec ((foo (lambda (n)
+                (post 'bla)
+                (if (zero? n) 0 (foo (sub1 n))))))
+  (foo 10))
+
 (letrec-tx '(letrec ((x 123)) foo))
 (list* 1 2 '(a b c))
 (length 123)
