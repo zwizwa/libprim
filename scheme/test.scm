@@ -1,3 +1,5 @@
+(letrec-tx '(letrec ((x 123)) foo))
+(list* 1 2 '(a b c))
 (length 123)
 (car '())
 (eq? 1 0)

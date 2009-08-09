@@ -795,6 +795,7 @@ _ sc_eval_step(sc *sc, _ state) {
     scheme_r save;
 
     memcpy(&save, &sc->r, sizeof(save));
+    sc->r.prim = FALSE; // means error comes from step() itself
     sc->step_entries++;
 
     switch(exception = setjmp(sc->r.step)) {

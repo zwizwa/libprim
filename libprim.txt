@@ -892,8 +892,9 @@ So..  What would be necessary to make an interpreter that can perform
 a loop without performing allocation?  It would need to overwrite
 variables.
 
-So..  What is scheme without GC?
-
+So..  What is scheme without GC?  This should be split in two: Scheme
+with closures, but without continuations (using a stack) vs. Scheme
+without closures, or only downward closures.
 
 
 Entry: Reader task
@@ -923,6 +924,20 @@ used for reporting.
 
 Hmm..  It's not so simple..  It's probably easier to tag the primitive
 struct itself with names.
+
+Ok: solution was this: tag the sc struct with the primitive before
+executing it: exceptions come from the call chain, or the interpreter.
+
+
+Entry: Byte code
+Date: Sun Aug  9 13:40:28 CEST 2009
+
+More procrastination.  What would Scheme byte code look like?  It is
+essentially creating a cached representation of the interpreter
+sequencing.
+
+The answer seems to be CPS conversion.
+
 
 
 
