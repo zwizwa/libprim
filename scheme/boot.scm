@@ -50,11 +50,8 @@
 (define-macro letrec
   (lambda (form)
     (let ((bindings (cadr form)))
-      ;(post bindings)
       (let ((names (map1 car bindings))
             (values (map1 cadr bindings)))
-        ;(post names)
-        ;(post values)
         (list* 'let (map1 (lambda (n) (list n 0)) names)
                (cons 'begin (map (lambda (n v) (list 'set! n v)) names values))
                (cddr form))))))
@@ -88,19 +85,17 @@
 (define (words) (map1 car (toplevel)))
 (define (macro) (map1 car (toplevel-macro)))
 
+(define-macro (cond form)
+  (letrec
+      ((next
+        (lambda (f)
+          (let ((c  (car f)))
+            (if (eq? 'else (car c))
+                (cadr c)
+                (list 'if (car c) (cadr c)
+                      (next (cdr f))))))))
+    (next (cdr form))))
 
-;; (Define (_cond form)
-;;   (let ((c  (cadr form))
-;;         (cs (cddr form)))
-;;     (if (eq? 'else (car c))
-;;         (cadr c)
-;;         (cons 'if
-;;               (cons (car c)
-;;                     (cons (cadr c)
-;;                           (cons (cond 
-;;               (car c)
-;;               (cadr c)
-;;               (cond 
               
         
 

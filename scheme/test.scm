@@ -1,4 +1,4 @@
-
+(cond-tx '(cond ((a? a) a!) ((b? b) b!) (else c!)))
 (letrec ((foo (lambda (n)
                 (post 'bla)
                 (if (zero? n) 0 (foo (sub1 n))))))
