@@ -969,4 +969,16 @@ structured procrastination:
 
 
 
+Entry: Tasks: one-shot + continuations
+Date: Mon Aug 10 11:52:16 CEST 2009
 
+It looks like the simplest approach is to use a `prompt'.  The current
+tinyscheme implementation has a transparent mechanism: any C primitive
+can be suspended relative to the setjmp right before primitive
+execution.  The setjmp is also used for implementing exceptions.
+
+The scheme in this project has a different structure: there is some
+state unpacking between the mark and the actual primitive call.
+
+This makes me thing it might be better to implement c continuations
+and one-shot tasks using a primitive that marks the context.

@@ -1,5 +1,5 @@
 
-SRC=gc.c symbol.c scheme.c main.c
+SRC=gc.c task.c symbol.c scheme.c main.c
 OBJ=$(SRC:.c=.o)
 DEBUG_CFLAGS=-Wall -g
 # OPTI_CFLAGS=-Os
@@ -18,13 +18,15 @@ all: scheme
 GEN = test.h_ scheme.h_ boot.h_
 
 # Order is important!  ../gc contains default config which we override.
-CPPFLAGS += -I../scheme/ -I../gc/
+CPPFLAGS += -I../scheme/ -I../gc/ -I../task/ -DTASK_DEBUG=0
 
 
 COMPILE = $(CC) $(CPPFLAGS) $(CFLAGS) $(OPTI_CFLAGS) $(DEBUG_CFLAGS) 
 
 
 gc.o: ../gc/gc.c
+	$(COMPILE) -o $@ -c $<
+task.o: ../task/task.c
 	$(COMPILE) -o $@ -c $<
 
 # make deps from .c file

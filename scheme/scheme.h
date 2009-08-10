@@ -4,6 +4,7 @@
 #include <setjmp.h>
 #include "gc_config.h"
 #include "symbol.h"
+#include "task.h"
 
 typedef struct _scheme sc;
 sc *scheme_new(void);
@@ -189,6 +190,7 @@ struct _scheme {
     /* Objects and classes */
     gc *gc;
     symstore *syms;
+    ck_manager *ck_manager;
     atom_class op_prim;
 
     /* Lowlevel control flow */
@@ -207,6 +209,14 @@ static inline symbol* object_to_symbol(object ob, sc *sc) {
     if ((a = object_to_atom(ob)) && 
         (a->op == &(sc->syms->op)))
         return (symbol*)a;
+    else return NULL;
+}
+
+static inline ck* object_to_ck(object ob, sc *sc) {
+    atom *a;
+    if ((a = object_to_atom(ob)) && 
+        (a->op == (atom_class*)sc->ck_manager)) 
+        return (ck*)a;
     else return NULL;
 }
 
@@ -267,6 +277,7 @@ sc    *_sc_new(void);
 #define SC_EX_RESTART 1  /* restart from current sc->state. */
 #define SC_EX_ABORT   2  /* abort to default toplevel continuation. */
 #define SC_EX_HALT    3  /* halt leaves the interpreter loop. */
+#define SC_EX_CK      4  /* wrap up C continuation */
 
 /* Macros valid in sc context. */
 #define CONS(a,b)    sc_make_pair(sc,a,b)

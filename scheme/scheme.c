@@ -887,6 +887,15 @@ _ sc_eval_ktx(sc *sc, _ k, _ expr) {
 
 
 
+
+/* Invoke a C continuation */
+_ sc_with_ck(sc *sc, _ o_ck, _ value) {
+    return NIL;
+    
+}
+
+
+
 /* --- SETUP & GC --- */
 
 /* Toplevel eval.  This function captures the GC restart.
@@ -975,6 +984,7 @@ sc *_sc_new(void) {
     sc->gc = gc_new(100000, (gc_mark_roots)_sc_mark_roots, sc);
 
     /* Atom classes. */
+    sc->ck_manager = ck_manager_new();
     sc->syms = symstore_new(1000);
     sc->op_prim.free = NULL;
 
