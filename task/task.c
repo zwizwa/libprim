@@ -24,10 +24,10 @@
 /* Note that memory allocated by a task cannot be reclaimed.  Either a
    task needs to use only the C stack for storage, or it needs to
    cleanup after itself _and_ be run until exit by the host. */
-static void default_free(ck *ck) {
-    printf("task_free(%p)\n", ck);
-    free(ck->segment);
-    free(ck);
+static void default_free(ck *x) {
+    printf("task_free(%p)\n", x);
+    free(x->segment);
+    free(x);
 }
 static void default_jump(ck_manager *m) {
     longjmp(m->prompt, 1);

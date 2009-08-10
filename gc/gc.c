@@ -105,11 +105,12 @@ object gc_mark(gc *gc, object o_old) {
 static void _finalize(gc *gc) {
     long i;
     for (i=0; i<gc->old_index; i++){
-        atom *a;
-        if ((a = object_to_atom(gc->old[i]))) {
-            if (a->op && a->op->free) a->op->free(a);
+        fin *f;
+        if ((f = object_to_fin(gc->old[i]))) {
+            (*f)(object_to_const(gc->old[i+1]));
+            i++;
         }
-        gc->old[i] = 0;
+        // gc->old[i] = 0;
     }
     gc->old_index = 0;
 }

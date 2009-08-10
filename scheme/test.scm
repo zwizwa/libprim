@@ -1,7 +1,7 @@
-(define x (with-ck () 123)) x
-(define x (with-ck (cdr x) 124)) x
-(define x (with-ck (cdr x) 125)) x
-(define x (with-ck (cdr x) 126)) x
+;(define x (with-ck () 123)) x
+;(define x (with-ck (cdr x) 124)) x
+;(define x (with-ck (cdr x) 125)) x
+;(define x (with-ck (cdr x) 126)) x
 (gc)
 
 

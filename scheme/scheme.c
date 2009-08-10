@@ -161,14 +161,13 @@ _ sc_k_parent(sc *sc, _ o) {
 // D = datum
 
 
-
 _ sc_cons(sc *sc, _ car, _ cdr)              {STRUCT(TAG_PAIR,    2, car,cdr);}
 _ sc_make_state(sc *sc, _ C, _ K)            {STRUCT(TAG_STATE,   2, C,K);}
 _ sc_make_lambda(sc *sc, _ F, _ R, _ S, _ E) {STRUCT(TAG_LAMBDA , 4, F,R,S,E);}
 _ sc_make_error(sc *sc, _ T, _ A, _ K, _ X)  {STRUCT(TAG_ERROR,   4, T,A,K,X);}
 _ sc_make_redex(sc *sc, _ D, _ E)            {STRUCT(TAG_REDEX,   2, D,E);}
 _ sc_make_value(sc *sc, _ D)                 {STRUCT(TAG_VALUE,   1, D);}
-_ sc_make_aref(sc *sc, _ A)                  {STRUCT(TAG_AREF,    1, A);}
+_ sc_make_aref(sc *sc, _ F, _ O)             {STRUCT(TAG_AREF,    2, F,O);}
 
 
 // 'P' is in slot 0
@@ -915,7 +914,7 @@ _ sc_with_ck(sc *sc, _ o_ck, _ value) {
        invariant that a single ck atom only occurs in one aref. */
 
     // alloc before call
-    _ ref = sc_make_aref(sc, NIL);
+    _ ref = sc_make_aref(sc, fin_to_object((fin *)sc->ck_manager), NIL);
     _ stream = CONS(NIL, ref);  
     
     ck_invoke(sc->ck_manager, fn, &ck, (void**)&value);
@@ -923,7 +922,7 @@ _ sc_with_ck(sc *sc, _ o_ck, _ value) {
     if (!ck) return value;
     else {
         object_to_pair(stream)->car = value;
-        object_to_aref(ref)->atom = atom_to_object((atom*)ck);
+        object_to_aref(ref)->atom = const_to_object(ck);
         return stream;
     }
 }
@@ -1000,11 +999,11 @@ static void _sc_mark_roots(sc *sc, gc_finalize fin) {
 }
 static _ _sc_make_prim(sc *sc, void *fn, long nargs, _ var) {
     prim *p = malloc(sizeof(*p));
-    p->a.op = &sc->op_prim; // class
+    p->type = sc->prim_class;
     p->fn = fn;
     p->nargs = nargs;
     p->var = var;
-    return atom_to_object(&p->a);
+    return const_to_object(p);
 }
 void _sc_def_prim(sc *sc, _ var, void *fn, long nargs) {
     sc_bang_def_toplevel(sc, var, _sc_make_prim(sc, fn, nargs, var));
@@ -1020,7 +1019,7 @@ sc *_sc_new(void) {
     /* Atom classes. */
     sc->ck_manager = ck_manager_new();
     sc->syms = symstore_new(1000);
-    sc->op_prim.finalize = NULL;
+    sc->prim_class = (void*)(123); // FIXME
 
     sc->global = gc_vector(sc->gc, 4,
                            NIL,  // toplevel

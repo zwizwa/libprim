@@ -91,6 +91,7 @@ typedef struct {
    each garbage copy that's encountered. */
 typedef struct {
     vector v;
+    object fin;
     object atom;
 } aref;
 
@@ -200,7 +201,7 @@ struct _scheme {
     gc *gc;
     symstore *syms;
     ck_manager *ck_manager;
-    atom_class op_prim;
+    void *prim_class;
 
     /* Lowlevel control flow */
     jmp_buf top;       // full interpreter C stack unwind (i.e. for GC)
@@ -213,28 +214,46 @@ struct _scheme {
     object error_arg;
 };
 
+
+/* All primitive structs used in sc are identifiable by the pointer
+   they contain as a first member.  These are represented as GC_CONST.
+   The addresses 0x000->0xFFF (first 4K page) are reserved for
+   constants. */
+
+#define SC_CONST_MASK 0xFFF
+
+/* Booleans and void are encoded as constant pointers. */
+#define NIL   ((object)0)
+#define CONSTANT(x) const_to_object((void*)((((x)<<1)|1)<<GC_TAG_SHIFT))
+#define FALSE CONSTANT(0)
+#define TRUE  CONSTANT(1)
+#define VOID  CONSTANT(2)
+#define MT    CONSTANT(3)
+
+static inline void *object_struct(object ob, void *type){
+    void *x = object_to_const(ob);
+    if ((((long)x) & SC_CONST_MASK) == 0) return NULL; // constant
+    if (type != *((void**)x)) return NULL;
+    return x;
+}
+
+
 static inline symbol* object_to_symbol(object ob, sc *sc) {
-    atom *a;
-    if ((a = object_to_atom(ob)) && 
-        (a->op == &(sc->syms->op)))
-        return (symbol*)a;
-    else return NULL;
+    return (symbol *)object_struct(ob, sc->syms);
 }
 
 /* The ck atoms have a free() finalizer, so need to be wrapped in an
    aref struct */
 static inline ck* object_to_ck(object ob, sc *sc) {
     aref *ref;
-    atom *a;
+    void *x;
     if ((ref = object_to_aref(ob)) &&
-        (a = object_to_atom(ref->atom)) &&
-        (a->op == (atom_class*)sc->ck_manager))
-        return (ck*)a;
+        (x = object_struct(ref->atom, sc->ck_manager))) return (ck*)x;
     else return NULL;
 }
 
 typedef struct {
-    atom a;
+    void *type;
     void *fn;
     long nargs;
     /* Note: in general it is not allowed to place objects in atom
@@ -245,13 +264,8 @@ typedef struct {
 static inline long prim_nargs(prim *p){ return p->nargs; }
 static inline void *prim_fn(prim *p)  { return p->fn; }
 static inline prim* object_to_prim(object ob, sc *sc) {
-    atom *a;
-    if ((a = object_to_atom(ob)) && 
-        (a->op == &(sc->op_prim)))
-        return (prim*)a;
-    else 
-        return NULL;  
-}
+    return (prim *)object_struct(ob, sc->prim_class);
+}   
 
 /* List macros */
 #define CAR(o)  object_to_pair(o)->car
@@ -260,15 +274,6 @@ static inline prim* object_to_prim(object ob, sc *sc) {
 #define CADR(o) CAR(CDR(o))
 #define CDDR(o) CDR(CDR(o))
 #define CADDR(o) CAR(CDDR(o))
-
-/* Booleans anv void are encoded as constant pointers. */
-#define NIL   ((object)0)
-#define CONSTANT(x) const_to_object((void*)((((x)<<1)|1)<<GC_TAG_SHIFT))
-#define FALSE CONSTANT(0)
-#define TRUE  CONSTANT(1)
-#define VOID  CONSTANT(2)
-#define MT    CONSTANT(3)
-
 
 /* Scheme primitives */
 #define MAX_PRIM_ARGS 3
@@ -299,7 +304,7 @@ sc    *_sc_new(void);
 #define VALUE(d)     sc_make_value(sc,d)
 
 #define NUMBER(n)     integer_to_object(n)
-#define SYMBOL(str)   atom_to_object((atom*)(string_to_symbol(sc->syms, str)))
+#define SYMBOL(str)   const_to_object((void*)(string_to_symbol(sc->syms, str)))
 #define ERROR(msg, o) sc_error(sc, SYMBOL(msg), o)
 #define TYPE_ERROR(o) sc_type_error(sc, o)
     

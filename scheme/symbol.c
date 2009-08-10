@@ -7,10 +7,6 @@
 #include "gc_config.h"
 
 
-int atom_is_symbol(atom *a, symstore *s) {
-    return (a->op == &(s->op));
-}
-
 symbol *string_to_symbol(symstore *s, const char *str){
     int i;
     for (i=0; i<s->nb_syms; i++){
@@ -34,7 +30,6 @@ const char *symbol_to_string(symstore *s, symbol *sym) {
 
 symstore *symstore_new(int total) {
     symstore *s = malloc(sizeof(*s));
-    s->op.finalize = NULL;
     s->nb_syms = 0;
     s->total = total;
     s->syms = malloc(sizeof(symbol) * total);

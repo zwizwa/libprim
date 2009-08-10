@@ -17,34 +17,19 @@ static inline void* GC_POINTER(long x) {
 }
 
 #define GC_CONST   0   /* pointer untyped, not managed */
-#define GC_ATOM    1   /*         typed,   finalized */
-#define GC_VECTOR  2   /*         vector,  managed */
-#define GC_INTEGER 3   /* integer number (shifted) */
+#define GC_VECTOR  1   /*         vector,  managed */
+#define GC_INTEGER 2   /* integer number (shifted) */
+#define GC_FIN     3   /* finalizer */
+
 
 /* Note that GC_INTEGER (which would make integer addition and
    subtraction simpler) can't be 0 when we want NIL == 0 */
 
-typedef struct _atom atom;
-typedef struct _atom_class atom_class;
-typedef void (*atom_free)(void *);
+typedef void (*fin)(void *);
 typedef struct _vector vector;
 typedef unsigned long object;
 typedef long integer;
 typedef struct _gc gc;
-
-/* Important note: the `finalize' operation is called for every _copy_
-   of the atom that has become unreachable.  In short: it can't be (a
-   derivative of) libc's `free', unless you make sure there is only a
-   single copy residing in the heap, i.e. by wrapping an atom in a
-   vector. */
-
-struct _atom_class {
-    atom_free finalize;
-};
-
-struct _atom {
-    atom_class *op;
-};
 
 struct _vector {
     unsigned long header;  // [ struct_tags | length | GC tags ]
@@ -103,8 +88,13 @@ static inline vector *object_to_vector(object ob) {
     if(GC_VECTOR == GC_TAG(ob)) return (vector*)GC_POINTER(ob);
     else return NULL;
 }
-static inline atom *object_to_atom(object ob) {
-    if (GC_ATOM == GC_TAG(ob)) return (atom*)GC_POINTER(ob);
+
+/* Note: this is a _pointer_ to fin.  Code isn't always aligned to
+   accomodate GC tag bits, but data alignment can be enforced, plus
+   malloc() already returns aligned data.  Embedding the code pointer
+   in a data structure seems to be the right approach. */
+static inline fin *object_to_fin(object ob) {
+    if (GC_FIN == GC_TAG(ob)) return (fin*)GC_POINTER(ob);
     else return NULL;
 }
 static inline void *object_to_const(object ob) {
@@ -126,8 +116,8 @@ static inline long object_to_vector_size(object o) {
 static inline object vector_to_object(vector *v) {
     return ((object)v) + GC_VECTOR;
 }
-static inline object atom_to_object(atom *a) {
-    return ((object)a) + GC_ATOM;
+static inline object fin_to_object(fin *f) {
+    return ((object)f) + GC_FIN;
 }
 static inline object const_to_object(void *c) {
     return ((object)c) + GC_CONST;
