@@ -1029,3 +1029,19 @@ the intermediate operation doesn't alloc, it might be simpler to see
 if there is enough space and then postpone the allocation, in order
 not to create garbage.
 
+
+Entry: 0xbad
+Date: Mon Aug 10 19:31:34 CEST 2009
+
+A coincidence: usually this indicates problems :)
+
+1: test_ck()
+(123 . #aref(#fin<0xba6270:0x40123c> #data<0xbad420>))
+2: test_ck()
+(124 . #aref(#fin<0xba6270:0x40123c> #data<0xbad5b0>))
+2: test_ck()
+(124 . #aref(#fin<0xba6270:0x40123c> #data<0xbad740>))
+2: test_ck()
+(124 . #aref(#fin<0xba6270:0x40123c> #data<0xbad8d0>))
+3: test_ck()
+125

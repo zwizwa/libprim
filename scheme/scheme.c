@@ -358,9 +358,7 @@ _ sc_write(sc *sc, _ o) {
         printf("()");
         return VOID;
     }
-   if (TRUE == sc_is_vector(sc, o))  return write_vector(sc, "", o);
-    // FIXME: this doesn't print improper lists other than pairs.
-    if(TRUE == sc_is_list(sc, o)) {
+    if (TRUE == sc_is_pair(sc, o)) {
         printf("(");
         for(;;) {
             sc_write(sc, CAR(o));
@@ -369,17 +367,16 @@ _ sc_write(sc *sc, _ o) {
                 printf(")");
                 return VOID;
             }
+            if (FALSE == sc_is_pair(sc, o)) {
+                printf(" . ");
+                sc_write(sc, o);
+                printf(")");
+                return VOID;
+            }
             printf(" ");
         }
     }
-    if(TRUE == sc_is_pair(sc, o)) {
-        printf("(");
-        sc_write(sc, CAR(o));
-        printf(" . ");
-        sc_write(sc, CDR(o));
-        printf(")");
-        return VOID;
-    }
+    if (TRUE == sc_is_vector(sc, o))  return write_vector(sc, "", o);
     if (TRUE == sc_is_symbol(sc, o)) {
         printf("%s", object_to_symbol(o,sc)->name);
         return VOID;
@@ -404,8 +401,10 @@ _ sc_write(sc *sc, _ o) {
         return VOID;
     }
     void *x;
-    if ((x = object_to_fin(o)))  {printf("#fin<%p>",x); return VOID; }
-    if ((x = object_to_const(o))){printf("#data<%p>",x); return VOID; }
+    if ((x = object_to_fin(o))) { 
+        printf("#fin<%p:%p>", x, *((void**)x)); return VOID; 
+    }
+    if ((x = object_to_const(o))) { printf("#data<%p>",x); return VOID; }
     printf("#object<%p>",(void*)o);
     return VOID;
 }

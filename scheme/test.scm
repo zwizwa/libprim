@@ -1,3 +1,7 @@
+(list* 1 2 3)
+(list 1 2 3)
+(list* 1 2)
+
 (define x (with-ck () 123)) x
 (with-ck (cdr x) 124)
 (with-ck (cdr x) 124)
