@@ -17,7 +17,10 @@ all: scheme
 
 GEN = test.h_ scheme.h_ boot.h_
 
-CPPFLAGS += -I../gc/ -I../scheme/
+# Order is important!  ../gc contains default config which we override.
+CPPFLAGS += -I../scheme/ -I../gc/
+
+
 COMPILE = $(CC) $(CPPFLAGS) $(CFLAGS) $(OPTI_CFLAGS) $(DEBUG_CFLAGS) 
 
 

@@ -972,7 +972,7 @@ sc *_sc_new(void) {
     sc->step_entries = 0;
 
     /* Garbage collector. */
-    sc->gc = gc_new(10000, (gc_mark_roots)_sc_mark_roots, sc);
+    sc->gc = gc_new(100000, (gc_mark_roots)_sc_mark_roots, sc);
 
     /* Atom classes. */
     sc->syms = symstore_new(1000);

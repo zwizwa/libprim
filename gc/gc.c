@@ -1,7 +1,10 @@
 #include <stdlib.h>
 #include <stdio.h>
+#include <signal.h>
+#include <sys/types.h>
+#include <unistd.h>
 
-/* Simple copying GC for allocating graphs of vectors and atoms.
+/* Simple stop-and-copy GC for allocating graphs of vectors and atoms.
 
    The GC uses the following annotations:
 
@@ -24,14 +27,7 @@
 
 */
 
-/* LSbit TYPE TAGS:
 
-00 atom pointing to struct with free() method
-01 vector
-10 integer
-11 not used
-
-*/
 
 #include "gc_config.h"
 
@@ -115,9 +111,11 @@ static void _finalize(gc *gc) {
         }
         gc->old[i] = 0;
     }
+    gc->old_index = 0;
 }
 
 static void _swap(gc *gc) {
+
     object *current   = gc->current;
     object *old       = gc->old;
 
@@ -128,6 +126,14 @@ static void _swap(gc *gc) {
 }
 
 void gc_collect(gc *gc) {
+
+    if (gc->old_index) {
+        /* If gc_collect() can't be called by a gc_alloc() triggered
+           by a gc_collect() because the data did fit before. */
+        fprintf(stderr, "ERROR: re-entering gc_collect(): "
+                "corrupt heap.\n");
+        kill(getpid(), SIGTRAP);
+    }
 
     /* Record the current used size and swap buffers.  After this
        gc_alloc() will take from the new space. */

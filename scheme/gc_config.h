@@ -7,7 +7,10 @@
 /* Scheme uses the top 4 bits to tag records.  
    0000 = vector
    1xxx = continuation frame
-   0xxx = other */
+   0xxx = other 
+
+   The remaining bits are for vector size.
+*/
 
 #ifdef _LP64
 #define GC_VECTOR_TAG_SHIFT 60
