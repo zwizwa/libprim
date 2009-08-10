@@ -403,7 +403,10 @@ _ sc_write(sc *sc, _ o) {
         printf("#prim<%p:%ld>", (void*)(p->fn),p->nargs);
         return VOID;
     }
-    printf("#<%p>",(void*)o);
+    void *x;
+    if ((x = object_to_fin(o)))  {printf("#fin<%p>",x); return VOID; }
+    if ((x = object_to_const(o))){printf("#data<%p>",x); return VOID; }
+    printf("#object<%p>",(void*)o);
     return VOID;
 }
 _ sc_post(sc* sc, _ o) {
@@ -902,27 +905,32 @@ static _ test_ck(ck_manager *m, _ o) {
     return o;
 }
 
-_ sc_with_ck(sc *sc, _ o_ck, _ value) {
-    ck *ck = NULL;
+_ sc_with_ck(sc *sc, _ in_ref, _ value) {
+    ck *task = NULL;
     ck_start fn = NULL;
-
-    if (!(ck = object_to_ck(o_ck, sc))) {
+    if (!(task = object_to_ck(in_ref, sc))) {
         fn = (ck_start)test_ck;
     }
-
-    /* FIXME: reuse wrapper when the ck didn't change to maintain the
-       invariant that a single ck atom only occurs in one aref. */
+    ck *in_task = task;
 
     // alloc before call
-    _ ref = sc_make_aref(sc, fin_to_object((fin *)sc->ck_manager), NIL);
+    _ ref = sc_make_aref(sc, NIL, NIL);
     _ stream = CONS(NIL, ref);  
     
-    ck_invoke(sc->ck_manager, fn, &ck, (void**)&value);
+    ck_invoke(sc->ck_manager, fn, &task, (void**)&value);
 
-    if (!ck) return value;
+    if (!task) return value;
     else {
-        object_to_pair(stream)->car = value;
-        object_to_aref(ref)->atom = const_to_object(ck);
+        pair *p = object_to_pair(stream);
+        p->car = value;
+        if (in_task == task) {
+            p->cdr  = in_ref;
+        }
+        else {
+            aref *r = object_to_aref(ref);
+            r->atom = const_to_object(task);
+            r->fin  = fin_to_object((fin *)sc->ck_manager);
+        }
         return stream;
     }
 }

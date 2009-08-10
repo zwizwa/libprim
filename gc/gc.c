@@ -110,7 +110,6 @@ static void _finalize(gc *gc) {
             (*f)(object_to_const(gc->old[i+1]));
             i++;
         }
-        // gc->old[i] = 0;
     }
     gc->old_index = 0;
 }

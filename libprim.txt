@@ -1013,6 +1013,13 @@ Let's start from what we need in the GC:
 An object that needs finalization which is not idempotent needs to be
 wrapped in a vector.
 
+OK: solved by removing the 'atom' type, but requiring that every
+finalizer found in the heap is followed a pointer to finalize.  This
+gives a simple mechanism to build wrapper vectors around arbitrary
+(aligned) pointers: the client just needs to ensure that each object
+occurs only in a single vector, and use that vector as the opaque
+representation of the object.
+
 
 Entry: Alloc before call
 Date: Mon Aug 10 17:03:12 CEST 2009
