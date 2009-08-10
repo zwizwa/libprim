@@ -29,10 +29,7 @@
 
 */
 
-static _ _sc_assert(sc *sc, sc_1 predicate, _ o) {
-    if (FALSE == predicate(sc, o)) { TYPE_ERROR(o); }
-    return o;
-}
+
 
 /* Booleans are GC_CONST */
 _ sc_is_bool(sc *sc, _ o) {
@@ -46,16 +43,16 @@ _ sc_is_integer(sc *sc, _ o) {
     return FALSE;
 }
 _ sc_is_zero(sc *sc, _ o) {
-    long i = CAST(integer, o);
+    long i = CAST_INTEGER(o);
     if (i) return FALSE;
     return TRUE;
 }
 _ sc_add1(sc *sc, _ o) {
-    long i = CAST(integer, o);
+    long i = CAST_INTEGER(o);
     return integer_to_object(i + 1);
 }
 _ sc_sub1(sc *sc, _ o) {
-    long i = CAST(integer, o);
+    long i = CAST_INTEGER(o);
     return integer_to_object(i - 1);
 }
 
@@ -68,7 +65,10 @@ _ sc_is_prim(sc *sc, _ o) {
     if(object_to_prim(o,sc)) return TRUE;
     return FALSE;
 }
-
+_ sc_is_ck(sc *sc, _ o) {
+    if(object_to_ck(o, sc)) return TRUE;
+    return FALSE;
+}
 
 /* The empty list is the NULL pointer */
 _ sc_is_null(sc *sc, _ o) {
@@ -200,8 +200,11 @@ _ sc_error(sc *sc, _ sym_o, _ arg_o) {
     sc_trap(sc);
     exit(1);
 }
+_ sc_type_error(sc *sc, _ arg_o) {
+    return sc_error(sc, SYMBOL("type"), arg_o);
+}
 _ sc_make_vector(sc *sc, _ slots, _ init) {
-    long i,n = CAST(integer, slots);
+    long i,n = CAST_INTEGER(slots);
     _ o = gc_alloc(sc->gc, n);
     vector *v = object_to_vector(o);
     for(i=0; i<n; i++) v->slot[i] = init;
@@ -240,7 +243,7 @@ _ sc_length(sc *sc, _ lst) {
 // Take n elements from the head of a list and place them in a vector.
 _ sc_take_vector(sc *sc, _ n, _ in_lst) {
     _ lst = in_lst;
-    long slots = CAST(integer, n);
+    long slots = CAST_INTEGER(n);
     _ vo = gc_alloc(sc->gc, slots);
     vector *v = object_to_vector(vo);
     long i;
@@ -275,7 +278,7 @@ _ sc_env_set(sc *sc, _ E, _ var, _ value) {
 }
 static _ *vector_index(sc *sc, _ vec, _ n) {
     vector *v = CAST(vector, vec);
-    long index = CAST(integer, n);
+    long index = CAST_INTEGER(n);
     if ((index < 0) || (index >= vector_size(v))) ERROR("ref", n);
     return &v->slot[index];
 }
@@ -888,10 +891,24 @@ _ sc_eval_ktx(sc *sc, _ k, _ expr) {
 
 
 
-/* Invoke a C continuation */
+/* Invoke a C continuation 
+   
+   This is a data barrier: C tasks can never have access to Scheme
+   objects.  All data passes through a converter in the ck_manager.
+*/
 _ sc_with_ck(sc *sc, _ o_ck, _ value) {
-    return NIL;
+    ck *_ck;
+    _ck = CAST(ck, o_ck);
+
+    // alloc before call
+    _ stream = CONS(NIL,NIL);  
     
+    ck_invoke(&_ck, (void**)&value);
+    if (!_ck) return value;
+    pair *p = object_to_pair(stream);
+    p->car = value;
+    p->cdr = atom_to_object(_ck);
+    return stream;
 }
 
 

@@ -288,13 +288,22 @@ sc    *_sc_new(void);
 #define NUMBER(n)     integer_to_object(n)
 #define SYMBOL(str)   atom_to_object((atom*)(string_to_symbol(sc->syms, str)))
 #define ERROR(msg, o) sc_error(sc, SYMBOL(msg), o)
-#define TYPE_ERROR(o) ERROR("type",o)
+#define TYPE_ERROR(o) sc_type_error(sc, o)
     
 /* Toplevel evaluation */
 #define EVAL(expr)    sc_post(sc, _sc_top(sc, expr))
 
 // safe cast to C struct
-#define CAST(type,x) object_to_##type(_sc_assert(sc, sc_is_##type, x))
+#define unlikely(x) __builtin_expect((x),0)
+typedef void* (*object_to_pointer)(object, sc*);
+object sc_type_error(sc *sc, object arg_o);
+static inline void* _sc_unwrap(sc *sc, void *_unwrap, sc_1 is, object o) {
+    object_to_pointer unwrap = (object_to_pointer)_unwrap;
+    if (unlikely(FALSE == is(sc, o))) TYPE_ERROR(o);
+    return unwrap(o, sc);
+}
+#define CAST(type,x) ((type*)(_sc_unwrap(sc, object_to_##type, sc_is_##type, x)))
+#define CAST_INTEGER(x) ((integer)(CAST(integer, x)))
 
 // renames
 #define sc_make_pair sc_cons

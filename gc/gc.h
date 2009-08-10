@@ -29,6 +29,7 @@ typedef struct _atom_class atom_class;
 typedef void (*atom_free)(void *);
 typedef struct _vector vector;
 typedef unsigned long object;
+typedef long integer;
 typedef struct _gc gc;
 
 struct _atom_class {

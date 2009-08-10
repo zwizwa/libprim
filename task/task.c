@@ -1,4 +1,5 @@
 #include <stdlib.h>
+#include <stdio.h>
 #include <string.h>
 #include "task.h"
 
@@ -31,26 +32,37 @@ static void default_free(ck *ck) {
 }
 
 /* Jump to primitive invocation point. */
-static void default_jump(ck *ck, void *value) {
-    ck_manager *x = ck->manager;
-    x->channel = value;
-    longjmp(x->prompt, 1);
+static void default_jump(ck *ck) {
+    longjmp(ck->manager->prompt, 1);
 }
+
+/* Data conversion. */
+static void *default_dont_convert(ck_manager *m, void *x) { return x; }
 
 ck_manager *ck_manager_new(void) {
     ck_manager *x = malloc(sizeof(*x));
     x->free = default_free;
     x->jump = default_jump;
+    x->to_task   = default_dont_convert;
+    x->from_task = default_dont_convert;
     return x;
 }
 
 
 // invoke continuation
+static void resume(ck *_ck, void *base, void *value) {
+    thread_static ck *ck; ck = _ck;// variable not on C stack.
+    ck_manager *m = ck->manager;
 
-void ck_resume(ck *_ck, void *value) {
-    thread_static ck *ck; // variable not on C stack.
-    ck = _ck; 
-    ck->manager->channel = value;
+    if (base != ck->base) {
+        fprintf(stderr, "ERROR: resume(): wrong base pointer.");
+        exit(1);
+    }
+
+    /* Transport the value after conversion. */
+    m->channel = m->to_task(m, value);
+
+    /* Copy stack */
     void *sp = ck->base - ck->size;
 
     /* Reserve stack space so function call/return keeps working after
@@ -63,11 +75,29 @@ void ck_resume(ck *_ck, void *value) {
     longjmp(ck->resume, (int)((long)reserve));
 }
 
+void ck_invoke(ck **ck, void **value) {
+    ck_manager *m = (*ck)->manager;
+    if (setjmp(m->prompt)) {
+        resume(*ck, &m, *value);
+        // Normal return;
+        *ck = NULL;
+    }
+    else {
+        // Suspended return;
+        *ck = m->ck_new;
+    }
+    *value = m->from_task(m, m->channel);
+    return;
+}
+
 ck *ck_new(ck_manager *ck_manager) {
     ck *ck = malloc(sizeof*ck);
     ck->manager = ck_manager;
     return ck;
 }
+
+
+
 
 // create continuation
 void* ck_suspend(ck_manager *ck_manager, void *base, void *value) {
@@ -82,14 +112,12 @@ void* ck_suspend(ck_manager *ck_manager, void *base, void *value) {
         memcpy(ck->segment, top, ck->size);
 
         /* abort to sequencing context */
-        ck_manager->jump(ck,value);
+        ck_manager->channel = value;
+        ck_manager->jump(ck);
         exit(1); // not reached
     }
     else {
-        /* Resuming.  We don't need to do anything to the ck struct
-           since it is managed by the GC. (It can be used multiple
-           times.)  */
-        /* The `sc' arg gets borked so we take the one from `ck'. */
+        /* Resuming... */
         return ck_manager->channel;
     }
 }
