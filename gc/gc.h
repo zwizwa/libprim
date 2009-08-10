@@ -32,8 +32,14 @@ typedef unsigned long object;
 typedef long integer;
 typedef struct _gc gc;
 
+/* Important note: the `finalize' operation is called for every _copy_
+   of the atom that has become unreachable.  In short: it can't be (a
+   derivative of) libc's `free', unless you make sure there is only a
+   single copy residing in the heap, i.e. by wrapping an atom in a
+   vector. */
+
 struct _atom_class {
-    atom_free free;
+    atom_free finalize;
 };
 
 struct _atom {
@@ -134,5 +140,14 @@ static inline object integer_to_object(long i) {
 static inline long vector_size(vector *v) {
     return object_to_vector_size(v->header);
 }
+
+
+/* Atoms
+
+   An atom is a C struct, who's first member is a pointer that can be
+   used to identify it.
+
+*/
+
 
 #endif

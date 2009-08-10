@@ -982,3 +982,43 @@ state unpacking between the mark and the actual primitive call.
 
 This makes me thing it might be better to implement c continuations
 and one-shot tasks using a primitive that marks the context.
+
+OK. Continuations are working: they create a new ck struct on each
+suspend.  It's probably to make one-shot continuations if the context
+is reused + a context size check is performed.
+
+
+
+Entry: GC
+Date: Mon Aug 10 15:48:22 CEST 2009
+
+Apparently there's a problem with finalization of atoms: if the
+unreachable garbage space contains more than one reference to an atom,
+its finalization will be called twice.
+
+Hmm..
+
+It looks like atoms that have a free() method need to be wrapped in a
+vector, to make sure they only appear once in the heap.
+
+So, the data needs a different encoding.
+
+Let's start from what we need in the GC:
+
+- vectors
+- constants
+- integers
+- finalizers
+
+An object that needs finalization which is not idempotent needs to be
+wrapped in a vector.
+
+
+Entry: Alloc before call
+Date: Mon Aug 10 17:03:12 CEST 2009
+
+Instead of allocating before calling a primitive, in the case where
+the intermediate operation doesn't alloc, it might be simpler to see
+if there is enough space and then postpone the allocation, in order
+not to create garbage.
+

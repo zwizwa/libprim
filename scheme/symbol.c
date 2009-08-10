@@ -34,7 +34,7 @@ const char *symbol_to_string(symstore *s, symbol *sym) {
 
 symstore *symstore_new(int total) {
     symstore *s = malloc(sizeof(*s));
-    s->op.free = NULL;
+    s->op.finalize = NULL;
     s->nb_syms = 0;
     s->total = total;
     s->syms = malloc(sizeof(symbol) * total);

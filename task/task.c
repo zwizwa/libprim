@@ -21,8 +21,11 @@
 #define thread_static register
 #endif
 
-
+/* Note that memory allocated by a task cannot be reclaimed.  Either a
+   task needs to use only the C stack for storage, or it needs to
+   cleanup after itself _and_ be run until exit by the host. */
 static void default_free(ck *ck) {
+    printf("task_free(%p)\n", ck);
     free(ck->segment);
     free(ck);
 }
@@ -34,8 +37,8 @@ static void *default_dont_convert(ck_manager *m, void *x) {
 }
 ck_manager *ck_manager_new(void) {
     ck_manager *x = malloc(sizeof(*x));
-    x->free = default_free;
-    x->jump = default_jump;
+    x->free       = default_free;
+    x->jump       = default_jump;
     x->to_task   = default_dont_convert;
     x->from_task = default_dont_convert;
     x->base      = NULL; // filled in on first invoke

@@ -26,7 +26,6 @@
    Note in particular that "sc_eval_step()" is re-entrant, and that
    interpreter data constructors are available in Scheme to construct
    modified interpreters.
-
 */
 
 
@@ -65,10 +64,6 @@ _ sc_is_prim(sc *sc, _ o) {
     if(object_to_prim(o,sc)) return TRUE;
     return FALSE;
 }
-_ sc_is_ck(sc *sc, _ o) {
-    if(object_to_ck(o, sc)) return TRUE;
-    return FALSE;
-}
 
 /* The empty list is the NULL pointer */
 _ sc_is_null(sc *sc, _ o) {
@@ -101,6 +96,7 @@ static _ _sc_make_struct(sc *sc, long tag, long slots, ...) {
 #define TAG_VALUE     4
 #define TAG_REDEX     5
 #define TAG_ERROR     6
+#define TAG_AREF      7
 
 
 #define TAG_K_IF      8
@@ -125,6 +121,7 @@ _ sc_is_state(sc *sc, _ o)   { return vector_type(o, TAG_STATE); }
 _ sc_is_redex(sc *sc, _ o)   { return vector_type(o, TAG_REDEX); }
 _ sc_is_value(sc *sc, _ o)   { return vector_type(o, TAG_VALUE); }
 _ sc_is_error(sc *sc, _ o)   { return vector_type(o, TAG_ERROR); }
+_ sc_is_aref(sc *sc, _ o)    { return vector_type(o, TAG_AREF); }
 
 _ sc_is_k_if(sc *sc, _ o)    { return vector_type(o, TAG_K_IF); }
 _ sc_is_k_apply(sc *sc, _ o) { return vector_type(o, TAG_K_APPLY); }
@@ -171,6 +168,7 @@ _ sc_make_lambda(sc *sc, _ F, _ R, _ S, _ E) {STRUCT(TAG_LAMBDA , 4, F,R,S,E);}
 _ sc_make_error(sc *sc, _ T, _ A, _ K, _ X)  {STRUCT(TAG_ERROR,   4, T,A,K,X);}
 _ sc_make_redex(sc *sc, _ D, _ E)            {STRUCT(TAG_REDEX,   2, D,E);}
 _ sc_make_value(sc *sc, _ D)                 {STRUCT(TAG_VALUE,   1, D);}
+_ sc_make_aref(sc *sc, _ A)                  {STRUCT(TAG_AREF,    1, A);}
 
 
 // 'P' is in slot 0
@@ -392,6 +390,7 @@ _ sc_write(sc *sc, _ o) {
     if (TRUE == sc_is_redex(sc, o))   return write_vector(sc, "redex", o);
     if (TRUE == sc_is_value(sc, o))   return write_vector(sc, "value", o);
     if (TRUE == sc_is_error(sc, o))   return write_vector(sc, "error", o);
+    if (TRUE == sc_is_aref(sc, o))    return write_vector(sc, "aref", o);
 
     if (TRUE == sc_is_k_apply(sc, o)) return write_vector(sc, "k_apply", o);
     if (TRUE == sc_is_k_if(sc, o))    return write_vector(sc, "k_if", o);
@@ -898,9 +897,8 @@ _ sc_eval_ktx(sc *sc, _ k, _ expr) {
 */
 
 static _ test_ck(ck_manager *m, _ o) {
-    _ o_x = o;
-    printf("1: test_ck()\n"); o = ck_yield(m, o);
-    printf("2: test_ck()\n"); o = ck_yield(m, o);
+    printf("1: test_ck()\n"); o = (object)ck_yield(m, (void*)o);
+    printf("2: test_ck()\n"); o = (object)ck_yield(m, (void*)o);
     printf("3: test_ck()\n");
     return o;
 }
@@ -913,15 +911,21 @@ _ sc_with_ck(sc *sc, _ o_ck, _ value) {
         fn = (ck_start)test_ck;
     }
 
+    /* FIXME: reuse wrapper when the ck didn't change to maintain the
+       invariant that a single ck atom only occurs in one aref. */
+
     // alloc before call
-    _ stream = CONS(NIL,NIL);  
+    _ ref = sc_make_aref(sc, NIL);
+    _ stream = CONS(NIL, ref);  
     
     ck_invoke(sc->ck_manager, fn, &ck, (void**)&value);
+
     if (!ck) return value;
-    pair *p = object_to_pair(stream);
-    p->car = value;
-    p->cdr = atom_to_object((atom*)ck);
-    return stream;
+    else {
+        object_to_pair(stream)->car = value;
+        object_to_aref(ref)->atom = atom_to_object((atom*)ck);
+        return stream;
+    }
 }
 
 
@@ -1016,7 +1020,7 @@ sc *_sc_new(void) {
     /* Atom classes. */
     sc->ck_manager = ck_manager_new();
     sc->syms = symstore_new(1000);
-    sc->op_prim.free = NULL;
+    sc->op_prim.finalize = NULL;
 
     sc->global = gc_vector(sc->gc, 4,
                            NIL,  // toplevel

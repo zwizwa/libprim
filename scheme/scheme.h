@@ -86,6 +86,14 @@ typedef struct {
     object datum;
 } value;
 
+/* Atoms that need finalization must be wrapped to esure that they
+   occur only once in the heap: the finalize() method is called for
+   each garbage copy that's encountered. */
+typedef struct {
+    vector v;
+    object atom;
+} aref;
+
 /* All continuation frames have a parent frame, and a continuation
    mark dictionary. */
 typedef struct {
@@ -155,6 +163,7 @@ DEF_CAST (lambda)
 DEF_CAST (redex)
 DEF_CAST (error)
 DEF_CAST (value)
+DEF_CAST (aref)
 
 DEF_CAST (k_apply)
 DEF_CAST (k_if)
@@ -212,10 +221,14 @@ static inline symbol* object_to_symbol(object ob, sc *sc) {
     else return NULL;
 }
 
+/* The ck atoms have a free() finalizer, so need to be wrapped in an
+   aref struct */
 static inline ck* object_to_ck(object ob, sc *sc) {
+    aref *ref;
     atom *a;
-    if ((a = object_to_atom(ob)) && 
-        (a->op == (atom_class*)sc->ck_manager)) 
+    if ((ref = object_to_aref(ob)) &&
+        (a = object_to_atom(ref->atom)) &&
+        (a->op == (atom_class*)sc->ck_manager))
         return (ck*)a;
     else return NULL;
 }

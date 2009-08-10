@@ -2,49 +2,50 @@
 (define x (with-ck (cdr x) 124)) x
 (define x (with-ck (cdr x) 125)) x
 (define x (with-ck (cdr x) 126)) x
-
-
-(when 123 broebel)
-
-(let ((broebel 123)) broebel)
-(let foo ((n 10))
-  (if (zero? n) 0
-      (begin
-        (post 'bla)
-        (foo (sub1 n)))))
-
-
-(letrec-tx '(letrec ((x 123)) foo))
-(list* 1 2 '(a b c))
-(length 123)
-(car '())
-(eq? 1 0)
-
-(define lparen 40)
-(unless 123 broebel)
-
-(define rparen 41)
-
-;; (read-char)
-
-
-((make-definer 'def-toplevel-macro!) '(define (abc asdf) 123))
-(eval '(post 123))
-(gc-used)
 (gc)
-(gc-used)
-
-(make-value 123)
-(eval-step (make-state (make-redex 'a '((a . 123))) (mt)))
 
 
+;; (when 123 broebel)
 
-(bla)
-(gc)
-(apply post '(bar-bar))
-(define foo
-  (lambda ()
-    (foo)))
+;; (let ((broebel 123)) broebel)
+;; (let foo ((n 10))
+;;   (if (zero? n) 0
+;;       (begin
+;;         (post 'bla)
+;;         (foo (sub1 n)))))
+
+
+;; (letrec-tx '(letrec ((x 123)) foo))
+;; (list* 1 2 '(a b c))
+;; (length 123)
+;; (car '())
+;; (eq? 1 0)
+
+;; (define lparen 40)
+;; (unless 123 broebel)
+
+;; (define rparen 41)
+
+;; ;; (read-char)
+
+
+;; ((make-definer 'def-toplevel-macro!) '(define (abc asdf) 123))
+;; (eval '(post 123))
+;; (gc-used)
+;; (gc)
+;; (gc-used)
+
+;; (make-value 123)
+;; (eval-step (make-state (make-redex 'a '((a . 123))) (mt)))
+
+
+
+;; (bla)
+;; (gc)
+;; (apply post '(bar-bar))
+;; (define foo
+;;   (lambda ()
+;;     (foo)))
 
 ;; (foo)
 
