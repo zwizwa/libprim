@@ -37,7 +37,10 @@ static void default_jump(ck *ck) {
 }
 
 /* Data conversion. */
-static void *default_dont_convert(ck_manager *m, void *x) { return x; }
+static void *default_dont_convert(ck_manager *m, void *x) { 
+    
+    return x; 
+}
 
 ck_manager *ck_manager_new(void) {
     ck_manager *x = malloc(sizeof(*x));
@@ -45,25 +48,17 @@ ck_manager *ck_manager_new(void) {
     x->jump = default_jump;
     x->to_task   = default_dont_convert;
     x->from_task = default_dont_convert;
+    x->base      = NULL; // filled in on first invoke
     return x;
 }
 
 
 // invoke continuation
-static void resume(ck *_ck, void *base, void *value) {
+static void resume(ck *_ck, void *base) {
     thread_static ck *ck; ck = _ck;// variable not on C stack.
-    ck_manager *m = ck->manager;
-
-    if (base != ck->base) {
-        fprintf(stderr, "ERROR: resume(): wrong base pointer.");
-        exit(1);
-    }
-
-    /* Transport the value after conversion. */
-    m->channel = m->to_task(m, value);
 
     /* Copy stack */
-    void *sp = ck->base - ck->size;
+    void *sp = ck->manager->base - ck->size;
 
     /* Reserve stack space so function call/return keeps working after
        a part of the stack is overwritten. */
@@ -75,17 +70,21 @@ static void resume(ck *_ck, void *base, void *value) {
     longjmp(ck->resume, (int)((long)reserve));
 }
 
-void ck_invoke(ck **ck, void **value) {
-    ck_manager *m = (*ck)->manager;
-    if (setjmp(m->prompt)) {
-        resume(*ck, &m, *value);
-        // Normal return;
-        *ck = NULL;
+void ck_invoke(ck_manager *m, ck_start fn, ck **ck, void **value) {
+    void *base;
+    if (!setjmp(m->prompt)) {
+        base = &base;
+        if (!m->base) m->base = base;
+        if (base != m->base) {
+            fprintf(stderr, "ERROR: resume(): wrong base pointer.");
+            exit(1);
+        }
+        m->ck_new = NULL;
+        m->channel = m->to_task(m, *value);
+        if (!fn) resume(*ck, base);
+        else m->channel = fn(m, *value);
     }
-    else {
-        // Suspended return;
-        *ck = m->ck_new;
-    }
+    *ck = m->ck_new;
     *value = m->from_task(m, m->channel);
     return;
 }
@@ -100,24 +99,27 @@ ck *ck_new(ck_manager *ck_manager) {
 
 
 // create continuation
-void* ck_suspend(ck_manager *ck_manager, void *base, void *value) {
-    ck *ck = ck_new(ck_manager);
+void* ck_yield(ck_manager *m, void *value) {
+    ck *ck = ck_new(m);
     if (0 == setjmp(ck->resume)) {
 
-        /* copy C stack segment */
+        /* Record context and value. */
+        m->channel = value;
+        m->ck_new  = ck;
+
+
+        /* Copy C stack segment */
         void *top = &ck;
-        ck->base = base;
-        ck->size = base - top;  // grows downward
+        ck->size = m->base - top;  // grows downward
         ck->segment = malloc(ck->size);
         memcpy(ck->segment, top, ck->size);
 
-        /* abort to sequencing context */
-        ck_manager->channel = value;
-        ck_manager->jump(ck);
+        /* Abort to sequencer. */
+        m->jump(ck);
         exit(1); // not reached
     }
     else {
         /* Resuming... */
-        return ck_manager->channel;
+        return m->channel;
     }
 }

@@ -7,6 +7,7 @@
 
 typedef struct _ck ck;
 typedef struct _ck_manager ck_manager;
+typedef void* (*ck_start)(ck_manager *, void *);
 typedef void (*ck_free)(ck *);
 typedef void (*ck_jump)(ck *);
 typedef void* (*ck_convert)(ck_manager *, void*);
@@ -17,6 +18,7 @@ struct _ck_manager {
     ck_jump jump;
     ck_convert to_task;
     ck_convert from_task;
+    void *base;  // this needs to be the same for all tasks!
 
     /* Temp storage for value transport and control transfer. */
     void *channel;
@@ -27,14 +29,18 @@ struct _ck_manager {
 struct _ck {
     ck_manager *manager;
     jmp_buf resume;
-    void *base;
     void *segment;
     int size;
 };
 
 ck_manager* ck_manager_new(void);
 
-void ck_invoke(ck **ck, void **value);
+// C side
+void *ck_yield(ck_manager *m, void *value);
+
+// Host side
+void ck_invoke(ck_manager *m, ck_start fn, ck **ck, void **value);
+
 
 
 #endif

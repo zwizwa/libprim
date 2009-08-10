@@ -1,3 +1,7 @@
+(define x (with-ck () 123)) x
+(define x (with-ck (cdr x) 124)) x
+
+
 (when 123 broebel)
 
 (let ((broebel 123)) broebel)

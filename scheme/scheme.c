@@ -896,18 +896,30 @@ _ sc_eval_ktx(sc *sc, _ k, _ expr) {
    This is a data barrier: C tasks can never have access to Scheme
    objects.  All data passes through a converter in the ck_manager.
 */
+
+static _ test_ck(ck_manager *m, _ o) {
+    printf("1: test_ck()\n"); o = ck_yield(m, o);
+//    printf("2: test_ck()\n"); o = ck_yield(m, o);
+//    printf("3: test_ck()\n"); o = ck_yield(m, o);
+    return o;
+}
+
 _ sc_with_ck(sc *sc, _ o_ck, _ value) {
-    ck *_ck;
-    _ck = CAST(ck, o_ck);
+    ck *ck = NULL;
+    ck_start fn = NULL;
+
+    if (!(ck = object_to_ck(o_ck, sc))) {
+        fn = (ck_start)test_ck;
+    }
 
     // alloc before call
     _ stream = CONS(NIL,NIL);  
     
-    ck_invoke(&_ck, (void**)&value);
-    if (!_ck) return value;
+    ck_invoke(sc->ck_manager, fn, &ck, (void**)&value);
+    if (!ck) return value;
     pair *p = object_to_pair(stream);
     p->car = value;
-    p->cdr = atom_to_object(_ck);
+    p->cdr = atom_to_object((atom*)ck);
     return stream;
 }
 
