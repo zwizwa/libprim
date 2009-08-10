@@ -17,6 +17,13 @@ all: scheme
 
 GEN = test.h_ scheme.h_ boot.h_
 
+CPPFLAGS += -I../gc/ -I../scheme/
+COMPILE = $(CC) $(CPPFLAGS) $(CFLAGS) $(OPTI_CFLAGS) $(DEBUG_CFLAGS) 
+
+
+gc.o: ../gc/gc.c
+	$(COMPILE) -o $@ -c $<
+
 # make deps from .c file
 %.d: %.c Makefile $(GEN)
 	set -e; rm -f $@; \
@@ -27,7 +34,7 @@ GEN = test.h_ scheme.h_ boot.h_
 -include $(SRC:.c=.d)
 
 %.o: %.c Makefile
-	$(CC) $(CPPFLAGS) $(CFLAGS) $(OPTI_CFLAGS) $(DEBUG_CFLAGS) -o $@ -c $<
+	$(COMPILE) -o $@ -c $<
 
 
 scheme: $(OBJ)

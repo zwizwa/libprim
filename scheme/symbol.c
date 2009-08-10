@@ -2,8 +2,9 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include "gc.h"
 #include "symbol.h"
+#include "gc.h"
+#include "gc_config.h"
 
 
 int atom_is_symbol(atom *a, symstore *s) {

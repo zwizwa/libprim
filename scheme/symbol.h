@@ -1,7 +1,7 @@
 #ifndef _SYMBOL_H_
 #define _SYMBOL_H_
 
-#include "gc.h"
+#include "gc_config.h"
 
 typedef struct _symbol  symbol;
 typedef struct _symstore symstore;

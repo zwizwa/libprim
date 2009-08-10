@@ -33,7 +33,6 @@
 
 */
 
-#include "gc.h"
 #include "gc_config.h"
 
 

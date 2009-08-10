@@ -2,7 +2,6 @@
 #include <stdlib.h>
 #include "scheme.h"
 #include "scheme.h_"
-#include "gc.h"
 #include <setjmp.h>
 
 void free_dummy(void *x){

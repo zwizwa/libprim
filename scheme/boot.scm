@@ -120,5 +120,11 @@
           (list 'if (car c) (cadr c)
                 (next (cdr f)))))))
 
+(define-macro (when form)
+  (list 'if (cadr form)
+        (cons 'begin (cddr form))))
+(define-macro (unless form)
+  (list 'if (cadr form) (void)
+        (cons 'begin (cddr form))))
 
 (post 'init-OK)

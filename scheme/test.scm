@@ -1,3 +1,5 @@
+(when 123 broebel)
+
 (let ((broebel 123)) broebel)
 (let foo ((n 10))
   (if (zero? n) 0
@@ -13,6 +15,8 @@
 (eq? 1 0)
 
 (define lparen 40)
+(unless 123 broebel)
+
 (define rparen 41)
 
 ;; (read-char)

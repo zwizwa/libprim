@@ -2,7 +2,7 @@
 #define _SCHEME_H_
 
 #include <setjmp.h>
-#include "gc.h"
+#include "gc_config.h"
 #include "symbol.h"
 
 typedef struct _scheme sc;
