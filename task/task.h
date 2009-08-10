@@ -9,7 +9,7 @@ typedef struct _ck ck;
 typedef struct _ck_manager ck_manager;
 typedef void* (*ck_start)(ck_manager *, void *);
 typedef void (*ck_free)(ck *);
-typedef void (*ck_jump)(ck *);
+typedef void (*ck_jump)(ck_manager *);
 typedef void* (*ck_convert)(ck_manager *, void*);
 
 /* It feels wrong to call this `class' because of the data fields. */

@@ -32,8 +32,8 @@ static void default_free(ck *ck) {
 }
 
 /* Jump to primitive invocation point. */
-static void default_jump(ck *ck) {
-    longjmp(ck->manager->prompt, 1);
+static void default_jump(ck_manager *m) {
+    longjmp(m->prompt, 1);
 }
 
 /* Data conversion. */
@@ -74,8 +74,8 @@ void ck_invoke(ck_manager *m, ck_start fn, ck **ck, void **value) {
     void *base;
     if (!setjmp(m->prompt)) {
         base = &base;
-        if (!m->base) m->base = base;
-        if (base != m->base) {
+        if (!m->base) m->base = base; // init @ first run
+        if (base != m->base) { // subsequent need same base
             fprintf(stderr, "ERROR: resume(): wrong base pointer.");
             exit(1);
         }
@@ -99,14 +99,9 @@ ck *ck_new(ck_manager *ck_manager) {
 
 
 // create continuation
-void* ck_yield(ck_manager *m, void *value) {
-    ck *ck = ck_new(m);
+static void suspend(ck_manager *m) {
+    ck *ck = m->ck_new = ck_new(m);
     if (0 == setjmp(ck->resume)) {
-
-        /* Record context and value. */
-        m->channel = value;
-        m->ck_new  = ck;
-
 
         /* Copy C stack segment */
         void *top = &ck;
@@ -115,11 +110,14 @@ void* ck_yield(ck_manager *m, void *value) {
         memcpy(ck->segment, top, ck->size);
 
         /* Abort to sequencer. */
-        m->jump(ck);
+        m->jump(m);
         exit(1); // not reached
     }
-    else {
-        /* Resuming... */
-        return m->channel;
-    }
+}
+
+
+void* ck_yield(ck_manager *m, void *value) {
+    m->channel = value;
+    suspend(m);
+    return m->channel;
 }

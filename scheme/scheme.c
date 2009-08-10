@@ -898,9 +898,10 @@ _ sc_eval_ktx(sc *sc, _ k, _ expr) {
 */
 
 static _ test_ck(ck_manager *m, _ o) {
+    _ o_x = o;
     printf("1: test_ck()\n"); o = ck_yield(m, o);
-//    printf("2: test_ck()\n"); o = ck_yield(m, o);
-//    printf("3: test_ck()\n"); o = ck_yield(m, o);
+    printf("2: test_ck()\n"); o = ck_yield(m, o);
+    printf("3: test_ck()\n");
     return o;
 }
 
