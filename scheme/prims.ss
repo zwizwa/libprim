@@ -31,7 +31,6 @@
   lst)
 
 (define (decls ds)
-  (display "typedef object _;\n")
   (for ((d ds))
     (printf "~a;\n" d)))
 

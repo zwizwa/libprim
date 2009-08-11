@@ -100,7 +100,6 @@ static inline long tag_is_k(long tag) {
 }
 
 
-typedef _ o;  // This file is quasi-Huffman encoded ;)
 
 /* Predicates */
 _ sc_is_vector(sc *sc, _ o)  { return vector_type(o, TAG_VECTOR); }
@@ -150,21 +149,21 @@ _ sc_k_parent(sc *sc, _ o) {
 // D = datum
 
 
-_ sc_cons(sc *sc, _ car, _ cdr)                   {STRUCT2(TAG_PAIR,    car,cdr);}
-_ sc_make_state(sc *sc, _ C, _ K)                 {STRUCT2(TAG_STATE,   C,K);}
-_ sc_make_lambda(sc *sc, _ F, _ R, _ S, _ E, _ M) {STRUCT5(TAG_LAMBDA , F,R,S,E,M);}
-_ sc_make_error(sc *sc, _ T, _ A, _ K, _ X)       {STRUCT4(TAG_ERROR,   T,A,K,X);}
-_ sc_make_redex(sc *sc, _ D, _ E, _ M)            {STRUCT3(TAG_REDEX,   D,E,M);}
-_ sc_make_value(sc *sc, _ D)                      {STRUCT1(TAG_VALUE,   D);}
-_ sc_make_aref(sc *sc, _ F, _ O)                  {STRUCT2(TAG_AREF,    F,O);}
+_ sc_cons(sc *sc, _ car, _ cdr)                   {STRUCT(TAG_PAIR,    2, car,cdr);}
+_ sc_make_state(sc *sc, _ C, _ K)                 {STRUCT(TAG_STATE,   2, C,K);}
+_ sc_make_lambda(sc *sc, _ F, _ R, _ S, _ E, _ M) {STRUCT(TAG_LAMBDA,  5, F,R,S,E,M);}
+_ sc_make_error(sc *sc, _ T, _ A, _ K, _ X)       {STRUCT(TAG_ERROR,   4, T,A,K,X);}
+_ sc_make_redex(sc *sc, _ D, _ E, _ M)            {STRUCT(TAG_REDEX,   3, D,E,M);}
+_ sc_make_value(sc *sc, _ D)                      {STRUCT(TAG_VALUE,   1, D);}
+_ sc_make_aref(sc *sc, _ F, _ O)                  {STRUCT(TAG_AREF,    2, F,O);}
 
 // 'P' is in slot 0
 // continuations are created with an empty mark list
-_ sc_make_k_apply(sc *sc, _ P, _ D, _ T)     {STRUCT4(TAG_K_APPLY,  P,NIL,D,T);}
-_ sc_make_k_if(sc *sc, _ P, _ Y, _ N)        {STRUCT4(TAG_K_IF,     P,NIL,Y,N);}
-_ sc_make_k_set(sc *sc, _ P, _ V, _ E, _ Et) {STRUCT5(TAG_K_SET,    P,NIL,V,E,Et);}
-_ sc_make_k_seq(sc *sc, _ P, _ T)            {STRUCT3(TAG_K_SEQ,    P,NIL,T);}
-_ sc_make_k_macro(sc *sc, _ P, _ E, _ M)     {STRUCT4(TAG_K_MACRO,  P,NIL,E,M);}
+_ sc_make_k_apply(sc *sc, _ P, _ D, _ T)     {STRUCT(TAG_K_APPLY,  4, P,NIL,D,T);}
+_ sc_make_k_if(sc *sc, _ P, _ Y, _ N)        {STRUCT(TAG_K_IF,     4, P,NIL,Y,N);}
+_ sc_make_k_set(sc *sc, _ P, _ V, _ E, _ Et) {STRUCT(TAG_K_SET,    5, P,NIL,V,E,Et);}
+_ sc_make_k_seq(sc *sc, _ P, _ T)            {STRUCT(TAG_K_SEQ,    3, P,NIL,T);}
+_ sc_make_k_macro(sc *sc, _ P, _ E, _ M)     {STRUCT(TAG_K_MACRO,  4, P,NIL,E,M);}
 
 
 _ sc_car(sc *sc, _ o)  { pair *p = CAST(pair, o); return p->car; }

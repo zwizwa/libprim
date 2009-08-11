@@ -43,49 +43,52 @@ sc *scheme_new(void);
 */
 
 
+typedef object _;  // Highly effective noise reduction.
+
+
 /* The machine will attempt to reduce the current term (which is a
    closure = open term + variable bindings) or continue with the
    computation context (a list of reducible closures). */
 typedef struct {
     vector v;
-    object redex_or_value;  // naked value or reducible/value closure
-    object continuation;    // current continuation
+    _ redex_or_value;  // naked value or reducible/value closure
+    _ continuation;    // current continuation
 } state;
 
 
 typedef struct {
     vector v;
-    object car;
-    object cdr;
+    _ car;
+    _ cdr;
 } pair;
 
 typedef struct {
     vector v;
-    object formals;
-    object rest;
-    object term;
-    object env;
-    object menv;
+    _ formals;
+    _ rest;
+    _ term;
+    _ env;
+    _ menv;
 } lambda;
 
 typedef struct {
     vector v;
-    object tag;
-    object arg;
-    object state;
-    object prim;
+    _ tag;
+    _ arg;
+    _ state;
+    _ prim;
 } error;
 
 typedef struct {
     vector v;
-    object term;
-    object env;
-    object menv;
+    _ term;
+    _ env;
+    _ menv;
 } redex;
 
 typedef struct {
     vector v;
-    object datum;
+    _ datum;
 } value;
 
 /* Atoms that need finalization must be wrapped to esure that they
@@ -93,50 +96,50 @@ typedef struct {
    each garbage copy that's encountered. */
 typedef struct {
     vector v;
-    object fin;
-    object atom;
+    _ fin;
+    _ atom;
 } aref;
 
 /* All continuation frames have a parent frame, and a continuation
    mark dictionary. */
 typedef struct {
     vector v;
-    object parent;
-    object marks;
+    _ parent;
+    _ marks;
 } k_frame;
 
 /* Arguments are evaluated left to right. */
 typedef struct {
     k_frame k;
-    object done;   // reversed list of values
-    object todo;   // list of redexes
+    _ done;   // reversed list of values
+    _ todo;   // list of redexes
 } k_apply;
 
 typedef struct {
     k_frame k;
-    object yes;  // non-reduced closures for the 2 branches
-    object no;
+    _ yes;  // non-reduced closures for the 2 branches
+    _ no;
 } k_if;
 
 typedef struct {
     k_frame k;
-    object var;
-    object env;
-    object tl_slot; // state vector slot containing toplevel
+    _ var;
+    _ env;
+    _ tl_slot; // state vector slot containing toplevel
 } k_set;
 
 /* Sequences are evaluated left to right.  Frame is popped before the
    last redex. */
 typedef struct {
     k_frame k;
-    object todo;  
+    _ todo;  
 } k_seq;
 
 /* Value is transformed into a redex using the env. */
 typedef struct {
     k_frame k;
-    object env;
-    object menv;
+    _ env;
+    _ menv;
 } k_macro;
 
 
@@ -184,22 +187,23 @@ DEF_CAST (k_macro)
 
 typedef struct {
     jmp_buf step;  // current CEKS step abort
-    object prim;
+    _ prim;
 } scheme_r;
 
 struct _scheme {
     /* Highlevel global state data is accessible from Scheme. */
-    object global;
+    _ global;
 
-    /* Lowlevel implementation data */
+    /* Lowlevel implementation data.  The object values below don't
+       need to be marked because they are short-lived, or constant. */
 
     /* Special form symbol cache */
-    object s_lambda;
-    object s_begin;
-    object s_quote;
-    object s_if;
-    object s_bang_set;
-    object s_letcc;
+    _ s_lambda;
+    _ s_begin;
+    _ s_quote;
+    _ s_if;
+    _ s_bang_set;
+    _ s_letcc;
 
     /* Objects and classes */
     gc *gc;
@@ -214,8 +218,8 @@ struct _scheme {
     scheme_r r;  // saved on step() entry
 
     /* Temp storage: does not need to be marked. */
-    object error_tag;
-    object error_arg;
+    _ error_tag;
+    _ error_arg;
 };
 
 
@@ -281,10 +285,10 @@ static inline prim* object_to_prim(object ob, sc *sc) {
 
 /* Scheme primitives */
 #define MAX_PRIM_ARGS 3
-typedef object (*sc_0)(sc* sc);
-typedef object (*sc_1)(sc* sc, object);
-typedef object (*sc_2)(sc* sc, object, object);
-typedef object (*sc_3)(sc* sc, object, object, object);
+typedef _ (*sc_0)(sc* sc);
+typedef _ (*sc_1)(sc* sc, _);
+typedef _ (*sc_2)(sc* sc, _, _);
+typedef _ (*sc_3)(sc* sc, _, _, _);
 
 
 /* ROOT OBJECTS */
@@ -342,66 +346,5 @@ static inline object _sc_make_struct(sc *sc, long tag, long slots, ...) {
     vector_set_tag(object_to_vector(o), tag);
     return o;
 }
-#if 0
-#define STRUCT1(tag, a) STRUCT(tag, 1, a)
-#define STRUCT2(tag, a, b) STRUCT(tag, 2, a, b)
-#define STRUCT3(tag, a, b, c) STRUCT(tag, 3, a, b, c)
-#define STRUCT4(tag, a, b, c, d) STRUCT(tag, 4, a, b, c, d)
-#define STRUCT5(tag, a, b, c, d, e) STRUCT(tag, 5, a, b, c, d, e)
-
-#else
-/* This produces smaller and more direct code. */
-#define STRUCT1(tag, a) return _sc_make_struct1(sc, tag, a)
-#define STRUCT2(tag, a, b) return _sc_make_struct2(sc, tag, a, b)
-#define STRUCT3(tag, a, b, c) return _sc_make_struct3(sc, tag, a, b, c)
-#define STRUCT4(tag, a, b, c, d) return _sc_make_struct4(sc, tag, a, b, c, d)
-#define STRUCT5(tag, a, b, c, d, e) return _sc_make_struct5(sc, tag, a, b, c, d, e)
-static inline object _sc_make_struct1(sc *sc, long tag, object a) {
-    vector *v = gc_alloc(sc->gc, 1);
-    vector_set_tag(v, tag);
-    v->slot[0] = a;
-    return vector_to_object(v);
-}
-static inline object _sc_make_struct2(sc *sc, long tag, 
-                                      object a, object b) {
-    vector *v = gc_alloc(sc->gc, 2);
-    vector_set_tag(v, tag);
-    v->slot[0] = a;
-    v->slot[1] = b;
-    return vector_to_object(v);
-}
-static inline object _sc_make_struct3(sc *sc, long tag, 
-                                      object a, object b, object c) {
-    vector *v = gc_alloc(sc->gc, 3);
-    vector_set_tag(v, tag);
-    v->slot[0] = a;
-    v->slot[1] = b;
-    v->slot[2] = c;
-    return vector_to_object(v);
-}
-static inline object _sc_make_struct4(sc *sc, long tag, 
-                                      object a, object b, object c,
-                                      object d) {
-    vector *v = gc_alloc(sc->gc, 4);
-    vector_set_tag(v, tag);
-    v->slot[0] = a;
-    v->slot[1] = b;
-    v->slot[2] = c;
-    v->slot[3] = d;
-    return vector_to_object(v);
-}
-static inline object _sc_make_struct5(sc *sc, long tag, 
-                                      object a, object b, object c,
-                                      object d, object e) {
-    vector *v = gc_alloc(sc->gc, 5);
-    vector_set_tag(v, tag);
-    v->slot[0] = a;
-    v->slot[1] = b;
-    v->slot[2] = c;
-    v->slot[3] = d;
-    v->slot[4] = e;
-    return vector_to_object(v);
-}
-#endif
 
 #endif
