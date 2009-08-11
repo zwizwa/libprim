@@ -1228,3 +1228,36 @@ Date: Tue Aug 11 17:45:36 CEST 2009
 
 Heeding good advice: removing all optimizations that make code look
 more complicated.
+
+
+Entry: Real-time Garbage Collection
+Date: Tue Aug 11 22:20:29 CEST 2009
+
+Supercollider uses [1] while libgarbagecollector[2] is used in Io.
+This one[3] is a rework of Metronome.
+
+I'd like to know how this works..
+
+
+[1] http://citeseerx.ist.psu.edu/viewdoc/summary?doi=10.1.1.39.4550
+[2] http://www.dekorte.com/projects/opensource/libgarbagecollector/
+[3] http://lambda-the-ultimate.org/node/2393
+
+Entry: GC stuff
+Date: Tue Aug 11 22:49:43 CEST 2009
+
+Generational collection.
+
+One of the key points seems to be that one mostly collects the
+`nursery', a pool of recently allocated objects.  The assumption is
+that most of the elements in the nursery will become garbage soon
+after allocation (child mortality).  In order for this to work there
+needs to be a cheap way of finding pointers that point from the heap
+at large into the (much smaller) nursery.
+
+
+Finalization: Instead of scanning the from space after copying, it's
+also possible to perform the finalization later, when allocating anew:
+the data will be moved to the cache anyway because of initialization,
+so we might just as well access it then.
+
