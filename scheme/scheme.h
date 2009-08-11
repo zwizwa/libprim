@@ -200,7 +200,6 @@ struct _scheme {
     object s_if;
     object s_bang_set;
     object s_letcc;
-    object s_let;
 
     /* Objects and classes */
     gc *gc;

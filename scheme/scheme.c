@@ -158,7 +158,6 @@ _ sc_make_redex(sc *sc, _ D, _ E, _ M)            {STRUCT3(TAG_REDEX,   D,E,M);}
 _ sc_make_value(sc *sc, _ D)                      {STRUCT1(TAG_VALUE,   D);}
 _ sc_make_aref(sc *sc, _ F, _ O)                  {STRUCT2(TAG_AREF,    F,O);}
 
-
 // 'P' is in slot 0
 // continuations are created with an empty mark list
 _ sc_make_k_apply(sc *sc, _ P, _ D, _ T)     {STRUCT4(TAG_K_APPLY,  P,NIL,D,T);}
@@ -536,6 +535,13 @@ _ sc_close_args(sc *sc, _ lst, _ E, _ M) {
                      sc_close_args(sc, CDR(lst), E, M)); 
 }
 
+static inline void length_and_last(sc *sc, _ p, long* n, _*last) {
+    *n = 0;
+    while (TRUE==sc_is_pair(sc,p)) {
+        (*n)++; (*last) = CAR(p); p = CDR(p);
+    }
+}
+
 _ _sc_step_value(sc *sc, _ v, _ k) {
 
     /* Look at the continuation to determine what to do with the value. 
@@ -604,13 +610,11 @@ _ _sc_step_value(sc *sc, _ v, _ k) {
            perform application. */
         else {
             _ rev_args = CONS(value, kx->done);
-            _ p=rev_args, fn=NIL;
-            int n = 0;
-            while (TRUE==sc_is_pair(sc,p)) {
-                n++; fn = CAR(p); p = CDR(p);
-            }
+            _ fn=NIL;
+            long n;
+            length_and_last(sc, rev_args, &n, &fn);
             // n  == 1 + nb_args
-            // fn == primitive, lambda or continuation
+            // fn == primitive | lambda | continuation
 
             /* Application of primitive function results in C call. */
             if (TRUE==sc_is_prim(sc, fn)) {
@@ -824,19 +828,6 @@ static _ _sc_step(sc *sc, _ o_state) {
                  NIL);             // todo list
             return STATE(VALUE(term), k_a);
         }
-#if 0
-        if (term_f == sc->s_let) {
-            /* Use an application frame. */
-            if (NIL == term_args) goto syntax_error;
-            if (NIL == CDR(term_args)) goto syntax_error;
-            _ names = sc_list_to_vector
-                (sc, _sc_map1_prim(sc, sc_car,  CAR(term_args)));
-            _ redxs = sc_close_args
-                (sc, _sc_map1_prim(sc, sc_cadr, CAR(term_args)), env, menv);
-            _ body  = CDR(term_args);
-            return ...
-        }
-#endif
         /* Fallthrough: symbol must be bound to applicable values. */
     }
 
@@ -1117,7 +1108,6 @@ sc *_sc_new(void) {
     sc->s_quote    = SYMBOL("quote");
     sc->s_begin    = SYMBOL("begin");
     sc->s_letcc    = SYMBOL("letcc");
-    sc->s_let      = SYMBOL("let");
 
     /* Primitive defs */
 #if USE_TABLE_PRIMS

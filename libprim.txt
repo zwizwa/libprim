@@ -645,6 +645,9 @@ with a macro.
 Note that PreScheme[1] is much more than this: it compiles a
 significantly larger subset of Scheme.
 
+Use pattern matching.
+
+
 [1] http://en.wikipedia.org/wiki/PreScheme
 [2] http://citeseerx.ist.psu.edu/viewdoc/summary?doi=10.1.1.3.4031
 
@@ -1183,5 +1186,39 @@ Let's support those by also recording the macro environment.  Looks
 like it's easier to first support `let' as a special form, and then
 reuse that code for `letmacro'.
 
-`let' would use an application frame.
+`let' would use an application frame, where the first value is already
+filled in (a lambda created from the body).  The same could be done
+with `letmacro'.
+
+What would be a `lambda' where the names are bound to macros instead
+of values?  Maybe that's the simpler route?
+
+Time to take a break, this is confusing..
+
+
+Entry: Compiling to C and pattern matching
+Date: Tue Aug 11 16:48:29 CEST 2009
+
+Take the interpreter's main loop and write it as a pattern match in
+Scheme syntax.  Actually: a pattern matcher is a language for writing
+interpreters.
+
+Basicly, all the C structs, predicates, and if/then/else blocks can be
+automated easily, as long as it maps data -> data.  Otoh, the C code
+itself isn't so difficult.
+
+
+
+Entry: Dynamic languages workshop
+Date: Tue Aug 11 17:05:08 CEST 2009
+
+http://www.ai.mit.edu/projects/dynlangs/wizards-panels.html
+
+David Moon:
+
+ ``Start with a small working system and expand it incrementally,
+   adding functionality and adding performance.  The big bang way only
+   works for God.  Everyone else has to use evolution.''
+
+ ``Sometimes an error message means exactly what it says.''
 
