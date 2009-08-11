@@ -1132,4 +1132,56 @@ constant data.
 Another thing that leads to bloat is the tag shifting.  Can this be
 simplified to a single AND + compare?
 
+After separating the bootstrap code to lib.o i get these stripped sizes:
+
+# gcc -m32
+-rw-r--r-- 1 tom tom  1256 2009-08-11 12:48 gc.o
+-rw-r--r-- 1 tom tom 16116 2009-08-11 12:48 lib.o
+-rw-r--r-- 1 tom tom  2032 2009-08-11 12:48 main.o
+-rw-r--r-- 1 tom tom 12456 2009-08-11 12:48 scheme.o
+-rw-r--r-- 1 tom tom   676 2009-08-11 12:48 symbol.o
+-rw-r--r-- 1 tom tom  1136 2009-08-11 12:48 task.o
+
+# gcc -m64
+-rw-r--r-- 1 tom tom  1904 2009-08-11 12:49 gc.o
+-rw-r--r-- 1 tom tom 18040 2009-08-11 12:49 lib.o
+-rw-r--r-- 1 tom tom  2640 2009-08-11 12:49 main.o
+-rw-r--r-- 1 tom tom 17344 2009-08-11 12:49 scheme.o
+-rw-r--r-- 1 tom tom  1176 2009-08-11 12:49 symbol.o
+-rw-r--r-- 1 tom tom  1832 2009-08-11 12:49 task.o
+
+
+Entry: Compressing an s-expression into a serial protocol.
+Date: Tue Aug 11 12:53:48 CEST 2009
+
+What about this: create a small stack based VM spec that can can
+create a data structure from an atom stack, and send the instructions
+over the wire.
+
+Hmm.. confusing..  Really I want a proper one-shot abstraction without
+copying before attempting this.
+
+What I really want is expanded AST compression or compilation to CPS
+bytecode.
+
+
+Entry: CPS conversion
+Date: Tue Aug 11 13:57:19 CEST 2009
+
+(lambda (x y) (fn (- x 1) (+ y 2)))
+
+(lambda (x y k)
+  a1 <- (- x 1)
+  a2 <- (+ y 2)
+  (fn a1 a2 k))
+
+
+Entry: Local macros
+Date: Tue Aug 11 14:06:20 CEST 2009
+
+Let's support those by also recording the macro environment.  Looks
+like it's easier to first support `let' as a special form, and then
+reuse that code for `letmacro'.
+
+`let' would use an application frame.
 

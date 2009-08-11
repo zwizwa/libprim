@@ -1,8 +1,8 @@
 
-SRC=gc.c task.c symbol.c scheme.c main.c
+SRC=gc.c task.c symbol.c lib.c scheme.c main.c
 OBJ=$(SRC:.c=.o)
 DEBUG_CFLAGS=-Wall -g
-OPTI_CFLAGS=-Os
+# OPTI_CFLAGS=-Os
 
 # CC = gcc -m32
 
@@ -45,10 +45,11 @@ task.o: ../task/task.c
 scheme: $(OBJ)
 	$(CC) -o scheme $(OBJ)
 
-strip: scheme
-	strip scheme
-	ls -l scheme
-
+strip: 
+	make clean
+	make scheme
+	strip *.o
+	ls -l *.o
 
 
 .PHONY: clean

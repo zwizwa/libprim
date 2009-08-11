@@ -9,7 +9,6 @@
 
 // generated
 #include "scheme.h_"
-#include "boot.h_"
 
 /* --- PRIMITIVES --- */
 
@@ -146,17 +145,18 @@ _ sc_k_parent(sc *sc, _ o) {
 // D = done (list of reduced closures)
 // T = todo (list of non-reduced closures)
 // E = environment (Et = toplevel)
+// M = macro environment (Et = toplevel)
 // P = parent continuation
 // D = datum
 
 
-_ sc_cons(sc *sc, _ car, _ cdr)              {STRUCT2(TAG_PAIR,    car,cdr);}
-_ sc_make_state(sc *sc, _ C, _ K)            {STRUCT2(TAG_STATE,   C,K);}
-_ sc_make_lambda(sc *sc, _ F, _ R, _ S, _ E) {STRUCT4(TAG_LAMBDA , F,R,S,E);}
-_ sc_make_error(sc *sc, _ T, _ A, _ K, _ X)  {STRUCT4(TAG_ERROR,   T,A,K,X);}
-_ sc_make_redex(sc *sc, _ D, _ E)            {STRUCT2(TAG_REDEX,   D,E);}
-_ sc_make_value(sc *sc, _ D)                 {STRUCT1(TAG_VALUE,   D);}
-_ sc_make_aref(sc *sc, _ F, _ O)             {STRUCT2(TAG_AREF,    F,O);}
+_ sc_cons(sc *sc, _ car, _ cdr)                   {STRUCT2(TAG_PAIR,    car,cdr);}
+_ sc_make_state(sc *sc, _ C, _ K)                 {STRUCT2(TAG_STATE,   C,K);}
+_ sc_make_lambda(sc *sc, _ F, _ R, _ S, _ E, _ M) {STRUCT5(TAG_LAMBDA , F,R,S,E,M);}
+_ sc_make_error(sc *sc, _ T, _ A, _ K, _ X)       {STRUCT4(TAG_ERROR,   T,A,K,X);}
+_ sc_make_redex(sc *sc, _ D, _ E, _ M)            {STRUCT3(TAG_REDEX,   D,E,M);}
+_ sc_make_value(sc *sc, _ D)                      {STRUCT1(TAG_VALUE,   D);}
+_ sc_make_aref(sc *sc, _ F, _ O)                  {STRUCT2(TAG_AREF,    F,O);}
 
 
 // 'P' is in slot 0
@@ -165,11 +165,12 @@ _ sc_make_k_apply(sc *sc, _ P, _ D, _ T)     {STRUCT4(TAG_K_APPLY,  P,NIL,D,T);}
 _ sc_make_k_if(sc *sc, _ P, _ Y, _ N)        {STRUCT4(TAG_K_IF,     P,NIL,Y,N);}
 _ sc_make_k_set(sc *sc, _ P, _ V, _ E, _ Et) {STRUCT5(TAG_K_SET,    P,NIL,V,E,Et);}
 _ sc_make_k_seq(sc *sc, _ P, _ T)            {STRUCT3(TAG_K_SEQ,    P,NIL,T);}
-_ sc_make_k_macro(sc *sc, _ P, _ E)          {STRUCT3(TAG_K_MACRO,  P,NIL,E);}
+_ sc_make_k_macro(sc *sc, _ P, _ E, _ M)     {STRUCT4(TAG_K_MACRO,  P,NIL,E,M);}
 
 
-_ sc_car(sc *sc, _ o) { pair *p = CAST(pair, o); return p->car; }
-_ sc_cdr(sc *sc, _ o) { pair *p = CAST(pair, o); return p->cdr; }
+_ sc_car(sc *sc, _ o)  { pair *p = CAST(pair, o); return p->car; }
+_ sc_cdr(sc *sc, _ o)  { pair *p = CAST(pair, o); return p->cdr; }
+_ sc_cadr(sc *sc, _ o) { pair *p = CAST(pair, sc_cdr(sc, o)); return p->car; }
 
 /* Error handling:
    FIXME: The machine step() is protected with setjmp(). */
@@ -432,6 +433,64 @@ _ sc_true(sc *sc)  { return TRUE; }
 _ sc_false(sc *sc) { return FALSE; }
 _ sc_void(sc *sc)  { return VOID; }
 
+
+_ sc_list_clone(sc *sc, _ lst) {
+    if (NIL == lst) return lst;
+    _ res = CONS(VOID, NIL);
+    pair *in,*out;
+    out = object_to_pair(res);
+    for(;;) {
+        in  = CAST(pair, lst);
+        if (NIL == in->cdr) return res;
+        out->cdr = CONS(VOID,NIL);
+        out = object_to_pair(out->cdr);
+        lst = in->cdr;
+    }
+}
+
+#define NARGS_ERROR(fn) ERROR("nargs", fn)
+
+/* Primitive map to make some interpret code a bit easier. */
+static _ _sc_map1_prim(sc *sc, sc_1 fn, _ l_in) {
+    _ res = sc_list_clone(sc, l_in);
+    _ l_out = res;
+    pair *in, *out;
+    for(;;) {
+        in  = object_to_pair(l_in);
+        out = object_to_pair(l_out);
+        if (!in) return res;
+        out->car = fn(sc, in->car);
+        l_in  = in->cdr;
+        l_out = out->cdr;
+    }
+}
+_ sc_map1_prim(sc *sc, _ fn, _ l_in) {
+    prim *p = CAST(prim, fn);
+    if (1 != p->nargs) NARGS_ERROR(fn);
+    return _sc_map1_prim(sc, (sc_1)(p->fn), l_in);
+}
+static _ _sc_map2_prim(sc *sc, sc_2 fn, _ l_in1, _ l_in2) {
+    _ res = sc_list_clone(sc, l_in1);
+    _ l_out = res;
+    pair *in1, *in2, *out;
+    for(;;) {
+        in1 = object_to_pair(l_in1);
+        in2 = object_to_pair(l_in2);
+        out = object_to_pair(l_out);
+        if ((!in1) || (!in2)) return res;
+        out->car = fn(sc, in1->car, in2->car);
+        l_in1 = in1->cdr;
+        l_in2 = in2->cdr;
+        l_out = out->cdr;
+    }
+}
+_ sc_map2_prim(sc *sc, _ fn, _ l_in1, _ l_in2) {
+    prim *p = CAST(prim, fn);
+    if (2 != p->nargs) NARGS_ERROR(fn);
+    return _sc_map2_prim(sc, (sc_2)(p->fn), l_in1, l_in2);
+}
+
+
 /* INTERPRETER */
 
 /* If we pick evaluation to go from left to right, a continuation
@@ -471,10 +530,10 @@ static inline _ _sc_call(sc *sc, void *p, int nargs, _ ra) {
 }
 
 /* Propagate environment during reduction. */
-_ sc_close_args(sc *sc, _ lst, _ E) {
+_ sc_close_args(sc *sc, _ lst, _ E, _ M) {
     if ((TRUE==sc_is_null(sc, lst))) return NIL;
-    else return CONS(REDEX(CAR(lst), E),
-                     sc_close_args(sc, CDR(lst), E)); 
+    else return CONS(REDEX(CAR(lst), E, M),
+                     sc_close_args(sc, CDR(lst), E, M)); 
 }
 
 _ _sc_step_value(sc *sc, _ v, _ k) {
@@ -529,7 +588,7 @@ _ _sc_step_value(sc *sc, _ v, _ k) {
         /* The _ returned by the macro is wrapped as an AST wich
            triggers its further reduction. */
         k_macro *kx = object_to_k_macro(k);
-        return STATE(REDEX(value,kx->env), kx->k.parent);
+        return STATE(REDEX(value,kx->env,kx->menv), kx->k.parent);
     }
     if (TRUE == sc_is_k_apply(sc, k)) {
         /* If there are remaining closures to evaluate, push the value
@@ -577,6 +636,7 @@ _ _sc_step_value(sc *sc, _ v, _ k) {
                 lambda *l = CAST(lambda, fn);
                 vector *v = CAST(vector, l->formals);
                 _ fn_env = l->env;
+                _ fn_menv = l->menv;
 
                 long nb_named_args    = vector_size(v);
                 long nb_received_args = n - 1;
@@ -602,8 +662,8 @@ _ _sc_step_value(sc *sc, _ v, _ k) {
                     fn_env = CONS(CONS(v->slot[i], CAR(rev_args)), fn_env);
                     rev_args = CDR(rev_args);
                 }
-                return STATE(REDEX(l->term, fn_env),  // close term
-                             kx->k.parent);           // drop frame
+                return STATE(REDEX(l->term, fn_env, fn_menv),  // close term
+                             kx->k.parent);                    // drop frame
             } 
 
             /* Continuation */
@@ -637,7 +697,9 @@ static _ _sc_step(sc *sc, _ o_state) {
        current continuation with the current value (= non-reducible
        closure). */
 
-    _ term, env, k;  // C E K
+    _ term;      // C
+    _ env, menv; // E
+    _ k;         // K
 
     state *s = CAST(state, o_state);
     k = s->continuation;
@@ -651,6 +713,7 @@ static _ _sc_step(sc *sc, _ o_state) {
     else {
         redex *r = CAST(redex, s->redex_or_value);
         env  = r->env;
+        menv = r->menv;
         term = r->term;
     }
 
@@ -702,7 +765,7 @@ static _ _sc_step(sc *sc, _ o_state) {
             _ body = CDR(term_args);
             if (NIL == CDR(body)) body = CAR(body);
             else body = CONS(sc->s_begin, body);
-            _ l = sc_make_lambda(sc, formals, rest, body, env);
+            _ l = sc_make_lambda(sc, formals, rest, body, env, menv);
             return STATE(VALUE(l), k);
         }
         if (term_f == sc->s_quote) {
@@ -712,12 +775,12 @@ static _ _sc_step(sc *sc, _ o_state) {
         if (term_f == sc->s_if) {
             if (NIL == term_args) goto syntax_error;
             if (NIL == CDR(term_args)) goto syntax_error;
-            _ cond = REDEX(CAR(term_args),env);
-            _ yes  = REDEX(CADR(term_args),env);
+            _ cond = REDEX(CAR(term_args),env,menv);
+            _ yes  = REDEX(CADR(term_args),env,menv);
             _ no   = 
                 (NIL == CDDR(term_args)) ? 
                 VALUE(VOID) :
-                REDEX(CADDR(term_args),env);
+                REDEX(CADDR(term_args),env,menv);
             return STATE(cond, sc_make_k_if(sc, k, yes,no));
                                               
         }
@@ -727,12 +790,12 @@ static _ _sc_step(sc *sc, _ o_state) {
             if (FALSE == sc_is_symbol(sc, var)) goto syntax_error;
             if (NIL == CDR(term_args)) goto syntax_error;
             _ expr = CADR(term_args);
-            return STATE(REDEX(expr, env),
+            return STATE(REDEX(expr, env, menv),
                          sc_make_k_set(sc, k, var, env, sc_slot_toplevel));
         }
         if (term_f == sc->s_begin) {
             if (FALSE == sc_is_pair(sc, term_args)) goto syntax_error;
-            _ todo = sc_close_args(sc, term_args, env);
+            _ todo = sc_close_args(sc, term_args, env, menv);
             pair *body = object_to_pair(todo);
             /* Don't create a contination frame if there's only a
                single expression. */
@@ -744,7 +807,7 @@ static _ _sc_step(sc *sc, _ o_state) {
             if (NIL == CDR(term_args)) goto syntax_error;
             _ var = CAR(term_args);
             env   = CONS(CONS(var,k),env);
-            _ cl  = REDEX(CADR(term_args),env);
+            _ cl  = REDEX(CADR(term_args),env,menv);
             return STATE(cl, k);
         }
         _ macro;
@@ -754,14 +817,26 @@ static _ _sc_step(sc *sc, _ o_state) {
                application, linked to a k_macro frame that
                will steer the result back to the AST
                reducer. */
-            _ k_m = sc_make_k_macro(sc, k, env);
+            _ k_m = sc_make_k_macro(sc, k, env, menv);
             _ k_a = sc_make_k_apply
                 (sc, k_m,
                  CONS(macro, NIL), // done list
                  NIL);             // todo list
             return STATE(VALUE(term), k_a);
         }
-
+#if 0
+        if (term_f == sc->s_let) {
+            /* Use an application frame. */
+            if (NIL == term_args) goto syntax_error;
+            if (NIL == CDR(term_args)) goto syntax_error;
+            _ names = sc_list_to_vector
+                (sc, _sc_map1_prim(sc, sc_car,  CAR(term_args)));
+            _ redxs = sc_close_args
+                (sc, _sc_map1_prim(sc, sc_cadr, CAR(term_args)), env, menv);
+            _ body  = CDR(term_args);
+            return ...
+        }
+#endif
         /* Fallthrough: symbol must be bound to applicable values. */
     }
 
@@ -770,8 +845,8 @@ static _ _sc_step(sc *sc, _ o_state) {
     /* Extend the continuation with a new frame by collecting
        all (open) subterms, and binding them to the current
        environment. */
-    _ closed_args = sc_close_args(sc, term_args, env);
-    return STATE(REDEX(term_f, env),
+    _ closed_args = sc_close_args(sc, term_args, env, menv);
+    return STATE(REDEX(term_f, env, menv),
                  sc_make_k_apply(sc, k, NIL, closed_args));
   syntax_error:
     return ERROR("syntax",term);
@@ -874,7 +949,7 @@ _ sc_apply_ktx(sc* sc, _ k, _ fn, _ args) {
 }
 
 _ sc_eval_ktx(sc *sc, _ k, _ expr) {
-    return sc_make_k_seq(sc, k, CONS(REDEX(expr, NIL),NIL));
+    return sc_make_k_seq(sc, k, CONS(REDEX(expr, NIL, NIL),NIL));
 }
 
 
@@ -945,7 +1020,7 @@ _ _sc_top(sc *sc, _ expr){
         return NIL;
     }
     sc->top_entries++;
-    sc_bang_set_global(sc, sc_slot_state, STATE(REDEX(expr,NIL),MT));
+    sc_bang_set_global(sc, sc_slot_state, STATE(REDEX(expr,NIL,NIL),MT));
     for(;;) {
         if (setjmp(sc->top)){
             sc->step_entries = 0;  // full tower unwind
@@ -1015,6 +1090,7 @@ void _sc_def_prim(sc *sc, const char *str, void *fn, long nargs) {
     _ var = SYMBOL(str);
     sc_bang_def_toplevel(sc, var, _sc_make_prim(sc, fn, nargs, var));
 }
+void _sc_load_lib(sc* sc);
 sc *_sc_new(void) {
     sc *sc = malloc(sizeof(*sc));
     sc->top_entries = 0;
@@ -1041,6 +1117,7 @@ sc *_sc_new(void) {
     sc->s_quote    = SYMBOL("quote");
     sc->s_begin    = SYMBOL("begin");
     sc->s_letcc    = SYMBOL("letcc");
+    sc->s_let      = SYMBOL("let");
 
     /* Primitive defs */
 #if USE_TABLE_PRIMS
@@ -1059,7 +1136,7 @@ sc *_sc_new(void) {
     sc_bang_set_global(sc, sc_slot_abort_k, abort_k);
 
     /* Highlevel bootstrap */
-    _load(sc);  // from boot.h_
+    _sc_load_lib(sc);
     return sc;
 }
 

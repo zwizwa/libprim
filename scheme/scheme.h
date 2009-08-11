@@ -65,6 +65,7 @@ typedef struct {
     object rest;
     object term;
     object env;
+    object menv;
 } lambda;
 
 typedef struct {
@@ -79,6 +80,7 @@ typedef struct {
     vector v;
     object term;
     object env;
+    object menv;
 } redex;
 
 typedef struct {
@@ -134,6 +136,7 @@ typedef struct {
 typedef struct {
     k_frame k;
     object env;
+    object menv;
 } k_macro;
 
 
@@ -197,6 +200,7 @@ struct _scheme {
     object s_if;
     object s_bang_set;
     object s_letcc;
+    object s_let;
 
     /* Objects and classes */
     gc *gc;
@@ -233,7 +237,7 @@ struct _scheme {
 
 static inline void *object_struct(object ob, void *type){
     void *x = object_to_const(ob);
-    if ((((long)x) & SC_CONST_MASK) == 0) return NULL; // constant
+    if ((((long)x) & (~SC_CONST_MASK)) == 0) return NULL; // constant
     if (type != *((void**)x)) return NULL;
     return x;
 }
@@ -301,7 +305,7 @@ sc    *_sc_new(void);
 /* Macros valid in sc context. */
 #define CONS(a,b)    sc_make_pair(sc,a,b)
 #define STATE(c,k)   sc_make_state(sc,c,k)
-#define REDEX(t,e)   sc_make_redex(sc,t,e)
+#define REDEX(t,e,m) sc_make_redex(sc,t,e,m)
 #define VALUE(d)     sc_make_value(sc,d)
 
 #define NUMBER(n)     integer_to_object(n)

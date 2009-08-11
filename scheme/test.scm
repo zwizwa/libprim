@@ -1,3 +1,9 @@
+(map2-prim cons '(a b c) '(1 2 3))
+
+
+(list-clone '(a b c))
+(list-clone '())
+(list-clone '(a . b))
 (list* 1 2 3)
 (list 1 2 3)
 (list* 1 2)
