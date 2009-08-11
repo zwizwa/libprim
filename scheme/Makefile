@@ -2,7 +2,7 @@
 SRC=gc.c task.c symbol.c scheme.c main.c
 OBJ=$(SRC:.c=.o)
 DEBUG_CFLAGS=-Wall -g
-# OPTI_CFLAGS=-Os
+OPTI_CFLAGS=-Os
 
 # CC = gcc -m32
 

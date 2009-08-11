@@ -29,7 +29,6 @@
 */
 
 
-
 /* Booleans are GC_CONST */
 _ sc_is_bool(sc *sc, _ o) {
     void *x;
@@ -75,15 +74,6 @@ static _ vector_type(_ o, long tag) {
     if ((v = object_to_vector(o)) &&
         (tag == vector_to_tag(v))) { return TRUE; }
     return FALSE;
-}
-
-static _ _sc_make_struct(sc *sc, long tag, long slots, ...) {
-    va_list ap;
-    va_start(ap, slots);
-    _ o = gc_vector_v(sc->gc, slots, ap);
-    va_end(ap);   
-    vector_set_tag(o, tag);
-    return o;
 }
 
 
@@ -146,7 +136,6 @@ _ sc_k_parent(sc *sc, _ o) {
     return TYPE_ERROR(o);
 }
 
-#define STRUCT(tag, size, ...) return _sc_make_struct(sc, tag, size, __VA_ARGS__)
 
 /* Constructors */
 // C = closure
@@ -161,22 +150,22 @@ _ sc_k_parent(sc *sc, _ o) {
 // D = datum
 
 
-_ sc_cons(sc *sc, _ car, _ cdr)              {STRUCT(TAG_PAIR,    2, car,cdr);}
-_ sc_make_state(sc *sc, _ C, _ K)            {STRUCT(TAG_STATE,   2, C,K);}
-_ sc_make_lambda(sc *sc, _ F, _ R, _ S, _ E) {STRUCT(TAG_LAMBDA , 4, F,R,S,E);}
-_ sc_make_error(sc *sc, _ T, _ A, _ K, _ X)  {STRUCT(TAG_ERROR,   4, T,A,K,X);}
-_ sc_make_redex(sc *sc, _ D, _ E)            {STRUCT(TAG_REDEX,   2, D,E);}
-_ sc_make_value(sc *sc, _ D)                 {STRUCT(TAG_VALUE,   1, D);}
-_ sc_make_aref(sc *sc, _ F, _ O)             {STRUCT(TAG_AREF,    2, F,O);}
+_ sc_cons(sc *sc, _ car, _ cdr)              {STRUCT2(TAG_PAIR,    car,cdr);}
+_ sc_make_state(sc *sc, _ C, _ K)            {STRUCT2(TAG_STATE,   C,K);}
+_ sc_make_lambda(sc *sc, _ F, _ R, _ S, _ E) {STRUCT4(TAG_LAMBDA , F,R,S,E);}
+_ sc_make_error(sc *sc, _ T, _ A, _ K, _ X)  {STRUCT4(TAG_ERROR,   T,A,K,X);}
+_ sc_make_redex(sc *sc, _ D, _ E)            {STRUCT2(TAG_REDEX,   D,E);}
+_ sc_make_value(sc *sc, _ D)                 {STRUCT1(TAG_VALUE,   D);}
+_ sc_make_aref(sc *sc, _ F, _ O)             {STRUCT2(TAG_AREF,    F,O);}
 
 
 // 'P' is in slot 0
 // continuations are created with an empty mark list
-_ sc_make_k_apply(sc *sc, _ P, _ D, _ T)     {STRUCT(TAG_K_APPLY,  4, P,NIL,D,T);}
-_ sc_make_k_if(sc *sc, _ P, _ Y, _ N)        {STRUCT(TAG_K_IF,     4, P,NIL,Y,N);}
-_ sc_make_k_set(sc *sc, _ P, _ V, _ E, _ Et) {STRUCT(TAG_K_SET,    5, P,NIL,V,E,Et);}
-_ sc_make_k_seq(sc *sc, _ P, _ T)            {STRUCT(TAG_K_SEQ,    3, P,NIL,T);}
-_ sc_make_k_macro(sc *sc, _ P, _ E)          {STRUCT(TAG_K_MACRO,  3, P,NIL,E);}
+_ sc_make_k_apply(sc *sc, _ P, _ D, _ T)     {STRUCT4(TAG_K_APPLY,  P,NIL,D,T);}
+_ sc_make_k_if(sc *sc, _ P, _ Y, _ N)        {STRUCT4(TAG_K_IF,     P,NIL,Y,N);}
+_ sc_make_k_set(sc *sc, _ P, _ V, _ E, _ Et) {STRUCT5(TAG_K_SET,    P,NIL,V,E,Et);}
+_ sc_make_k_seq(sc *sc, _ P, _ T)            {STRUCT3(TAG_K_SEQ,    P,NIL,T);}
+_ sc_make_k_macro(sc *sc, _ P, _ E)          {STRUCT3(TAG_K_MACRO,  P,NIL,E);}
 
 
 _ sc_car(sc *sc, _ o) { pair *p = CAST(pair, o); return p->car; }
@@ -202,10 +191,9 @@ _ sc_type_error(sc *sc, _ arg_o) {
 }
 _ sc_make_vector(sc *sc, _ slots, _ init) {
     long i,n = CAST_INTEGER(slots);
-    _ o = gc_alloc(sc->gc, n);
-    vector *v = object_to_vector(o);
+    vector *v = gc_alloc(sc->gc, n);
     for(i=0; i<n; i++) v->slot[i] = init;
-    return o;
+    return vector_to_object(v);
 }
 _ sc_reverse(sc *sc, _ lst) {
     _ rlst = NIL;
@@ -241,8 +229,7 @@ _ sc_length(sc *sc, _ lst) {
 _ sc_take_vector(sc *sc, _ n, _ in_lst) {
     _ lst = in_lst;
     long slots = CAST_INTEGER(n);
-    _ vo = gc_alloc(sc->gc, slots);
-    vector *v = object_to_vector(vo);
+    vector *v = gc_alloc(sc->gc, slots);
     long i;
     for(i=0; i<slots; i++){
         if (FALSE == sc_is_pair(sc, lst)) return TYPE_ERROR(in_lst);
@@ -250,7 +237,7 @@ _ sc_take_vector(sc *sc, _ n, _ in_lst) {
         v->slot[i] = p->car;
         lst = p->cdr;
     }
-    return vo;
+    return vector_to_object(v);
 }
 _ sc_list_to_vector(sc *sc, _ lst){
     return sc_take_vector(sc, sc_length(sc, lst), lst);
@@ -494,8 +481,8 @@ _ _sc_step_value(sc *sc, _ v, _ k) {
 
     /* Look at the continuation to determine what to do with the value. 
        
-       - empty continuation: halt
-       - argument evaluation: eval next, or apply
+       - empty continuation -> halt
+       - argument evaluation -> eval next, or apply
        - macro expansion result -> interpret the new term.
        - predicate position of an 'if' -> pick yes or no
        - value position of 'set!' -> mutate environment
@@ -700,14 +687,14 @@ static _ _sc_step(sc *sc, _ o_state) {
     /* Special Form */
     if (TRUE==sc_is_symbol(sc, term_f)) {
         if (term_f == sc->s_lambda) {
-            if (NIL == term_args) ERROR("syntax",term);
+            if (NIL == term_args) goto syntax_error;
             _ argspec = CAR(term_args);
             _ named;
             _ rest;
             _sc_length_rest(sc, argspec, &named, &rest);
             if ((NIL   != rest) &&
                 (FALSE == sc_is_symbol(sc,rest))) {
-                ERROR("syntax",term);
+                goto syntax_error;
             }
             _ formals = sc_take_vector(sc, named, argspec);
             /* Implement the expression sequence in a `lambda'
@@ -719,12 +706,12 @@ static _ _sc_step(sc *sc, _ o_state) {
             return STATE(VALUE(l), k);
         }
         if (term_f == sc->s_quote) {
-            if (NIL == term_args) ERROR("syntax",term);
+            if (NIL == term_args) goto syntax_error;
             return STATE(VALUE(CAR(term_args)), k);
         }
         if (term_f == sc->s_if) {
-            if (NIL == term_args) ERROR("syntax",term);
-            if (NIL == CDR(term_args)) ERROR("syntax",term);
+            if (NIL == term_args) goto syntax_error;
+            if (NIL == CDR(term_args)) goto syntax_error;
             _ cond = REDEX(CAR(term_args),env);
             _ yes  = REDEX(CADR(term_args),env);
             _ no   = 
@@ -735,16 +722,16 @@ static _ _sc_step(sc *sc, _ o_state) {
                                               
         }
         if (term_f == sc->s_bang_set) {
-            if (NIL == term_args) ERROR("syntax",term);
+            if (NIL == term_args) goto syntax_error;
             _ var = CAR(term_args);
-            if (FALSE == sc_is_symbol(sc, var)) ERROR("syntax",term);
-            if (NIL == CDR(term_args)) ERROR("syntax",term);
+            if (FALSE == sc_is_symbol(sc, var)) goto syntax_error;
+            if (NIL == CDR(term_args)) goto syntax_error;
             _ expr = CADR(term_args);
             return STATE(REDEX(expr, env),
                          sc_make_k_set(sc, k, var, env, sc_slot_toplevel));
         }
         if (term_f == sc->s_begin) {
-            if (FALSE == sc_is_pair(sc, term_args)) ERROR("syntax",term);
+            if (FALSE == sc_is_pair(sc, term_args)) goto syntax_error;
             _ todo = sc_close_args(sc, term_args, env);
             pair *body = object_to_pair(todo);
             /* Don't create a contination frame if there's only a
@@ -753,8 +740,8 @@ static _ _sc_step(sc *sc, _ o_state) {
             return STATE(body->car, sc_make_k_seq(sc, k, body->cdr));
         }                
         if (term_f == sc->s_letcc) {
-            if (NIL == term_args) ERROR("syntax",term);
-            if (NIL == CDR(term_args)) ERROR("syntax",term);
+            if (NIL == term_args) goto syntax_error;
+            if (NIL == CDR(term_args)) goto syntax_error;
             _ var = CAR(term_args);
             env   = CONS(CONS(var,k),env);
             _ cl  = REDEX(CADR(term_args),env);
@@ -786,6 +773,8 @@ static _ _sc_step(sc *sc, _ o_state) {
     _ closed_args = sc_close_args(sc, term_args, env);
     return STATE(REDEX(term_f, env),
                  sc_make_k_apply(sc, k, NIL, closed_args));
+  syntax_error:
+    return ERROR("syntax",term);
 }
 
 
@@ -987,6 +976,16 @@ _ _sc_top(sc *sc, _ expr){
     }
 }
 
+#define USE_TABLE_PRIMS 1
+#if USE_TABLE_PRIMS
+typedef struct {
+    const char *name;
+    void *fn;
+    int nargs;
+} prim_def;
+static prim_def prims[] = prims_init;
+#endif
+
 static void _sc_mark_roots(sc *sc, gc_finalize fin) {
     // sc_trap(sc);
     printf("GC mark()\n");
@@ -1012,7 +1011,8 @@ static _ _sc_make_prim(sc *sc, void *fn, long nargs, _ var) {
     p->var = var;
     return const_to_object(p);
 }
-void _sc_def_prim(sc *sc, _ var, void *fn, long nargs) {
+void _sc_def_prim(sc *sc, const char *str, void *fn, long nargs) {
+    _ var = SYMBOL(str);
     sc_bang_def_toplevel(sc, var, _sc_make_prim(sc, fn, nargs, var));
 }
 sc *_sc_new(void) {
@@ -1028,11 +1028,11 @@ sc *_sc_new(void) {
     sc->syms = symstore_new(1000);
     sc->prim_class = (void*)(123); // FIXME
 
-    sc->global = gc_vector(sc->gc, 4,
-                           NIL,  // toplevel
-                           NIL,  // macro
-                           NIL,  // state
-                           NIL); // abort
+    sc->global = gc_make(sc->gc, 4,
+                         NIL,  // toplevel
+                         NIL,  // macro
+                         NIL,  // state
+                         NIL); // abort
 
     /* Cached identifiers */
     sc->s_lambda   = SYMBOL("lambda");
@@ -1043,7 +1043,15 @@ sc *_sc_new(void) {
     sc->s_letcc    = SYMBOL("letcc");
 
     /* Primitive defs */
+#if USE_TABLE_PRIMS
+    prim_def *prim;
+    for (prim = prims; prim->name; prim++) {
+        DEF(prim->name, prim->fn, prim->nargs);
+    }
+#else
+    // apparently this gives smaller code
     _sc_def_prims(sc); // defined in scheme.h_
+#endif
 
     /* Toplevel abort continuation */
     _ done = CONS(sc_find_toplevel(sc, SYMBOL("fatal")),NIL);

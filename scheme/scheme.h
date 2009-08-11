@@ -137,6 +137,7 @@ typedef struct {
 } k_macro;
 
 
+// #define VECTOR_TAG(x) ((x) << GC_VECTOR_TAG_SHIFT)
 
 
 static inline unsigned long vector_to_tag(vector *v) {
@@ -148,8 +149,8 @@ static inline unsigned long object_get_vector_tag(object o){
     if (!v) return -1;
     return vector_to_tag(v);
 }
-static inline void vector_set_tag(object o, long tag){
-    object_to_vector(o)->header |= (tag << GC_VECTOR_TAG_SHIFT);
+static inline void vector_set_tag(vector* v, long tag){
+    v->header |= (tag << GC_VECTOR_TAG_SHIFT);
 }
 
 
@@ -312,7 +313,6 @@ sc    *_sc_new(void);
 #define EVAL(expr)    sc_post(sc, _sc_top(sc, expr))
 
 // safe cast to C struct
-#define unlikely(x) __builtin_expect((x),0)
 typedef void* (*object_to_pointer)(object, sc*);
 object sc_type_error(sc *sc, object arg_o);
 static inline void* _sc_unwrap(sc *sc, void *_unwrap, sc_1 is, object o) {
@@ -327,8 +327,78 @@ static inline void* _sc_unwrap(sc *sc, void *_unwrap, sc_1 is, object o) {
 #define sc_make_pair sc_cons
 
 // for geneterated bootstrap code
-void _sc_def_prim(sc *sc, object var, void *fn, long nargs);
-#define DEF(str,fn,nargs) _sc_def_prim (sc,SYMBOL(str),fn,nargs)
+void _sc_def_prim(sc *sc, const char *str, void *fn, long nargs);
+#define DEF(str,fn,nargs) _sc_def_prim (sc,str,fn,nargs)
 
+#define STRUCT(tag, size, ...) return _sc_make_struct(sc, tag, size, __VA_ARGS__)
+static inline object _sc_make_struct(sc *sc, long tag, long slots, ...) {
+    va_list ap;
+    va_start(ap, slots);
+    object o = gc_make_v(sc->gc, slots, ap);
+    va_end(ap);   
+    vector_set_tag(object_to_vector(o), tag);
+    return o;
+}
+#if 0
+#define STRUCT1(tag, a) STRUCT(tag, 1, a)
+#define STRUCT2(tag, a, b) STRUCT(tag, 2, a, b)
+#define STRUCT3(tag, a, b, c) STRUCT(tag, 3, a, b, c)
+#define STRUCT4(tag, a, b, c, d) STRUCT(tag, 4, a, b, c, d)
+#define STRUCT5(tag, a, b, c, d, e) STRUCT(tag, 5, a, b, c, d, e)
+
+#else
+/* This produces smaller and more direct code. */
+#define STRUCT1(tag, a) return _sc_make_struct1(sc, tag, a)
+#define STRUCT2(tag, a, b) return _sc_make_struct2(sc, tag, a, b)
+#define STRUCT3(tag, a, b, c) return _sc_make_struct3(sc, tag, a, b, c)
+#define STRUCT4(tag, a, b, c, d) return _sc_make_struct4(sc, tag, a, b, c, d)
+#define STRUCT5(tag, a, b, c, d, e) return _sc_make_struct5(sc, tag, a, b, c, d, e)
+static inline object _sc_make_struct1(sc *sc, long tag, object a) {
+    vector *v = gc_alloc(sc->gc, 1);
+    vector_set_tag(v, tag);
+    v->slot[0] = a;
+    return vector_to_object(v);
+}
+static inline object _sc_make_struct2(sc *sc, long tag, 
+                                      object a, object b) {
+    vector *v = gc_alloc(sc->gc, 2);
+    vector_set_tag(v, tag);
+    v->slot[0] = a;
+    v->slot[1] = b;
+    return vector_to_object(v);
+}
+static inline object _sc_make_struct3(sc *sc, long tag, 
+                                      object a, object b, object c) {
+    vector *v = gc_alloc(sc->gc, 3);
+    vector_set_tag(v, tag);
+    v->slot[0] = a;
+    v->slot[1] = b;
+    v->slot[2] = c;
+    return vector_to_object(v);
+}
+static inline object _sc_make_struct4(sc *sc, long tag, 
+                                      object a, object b, object c,
+                                      object d) {
+    vector *v = gc_alloc(sc->gc, 4);
+    vector_set_tag(v, tag);
+    v->slot[0] = a;
+    v->slot[1] = b;
+    v->slot[2] = c;
+    v->slot[3] = d;
+    return vector_to_object(v);
+}
+static inline object _sc_make_struct5(sc *sc, long tag, 
+                                      object a, object b, object c,
+                                      object d, object e) {
+    vector *v = gc_alloc(sc->gc, 5);
+    vector_set_tag(v, tag);
+    v->slot[0] = a;
+    v->slot[1] = b;
+    v->slot[2] = c;
+    v->slot[3] = d;
+    v->slot[4] = e;
+    return vector_to_object(v);
+}
+#endif
 
 #endif

@@ -987,6 +987,9 @@ OK. Continuations are working: they create a new ck struct on each
 suspend.  It's probably to make one-shot continuations if the context
 is reused + a context size check is performed.
 
+NEXT: 
+  - allocate before running (run on separate stack)
+  - one-shot
 
 
 Entry: GC
@@ -1045,3 +1048,88 @@ A coincidence: usually this indicates problems :)
 (124 . #aref(#fin<0xba6270:0x40123c> #data<0xbad8d0>))
 3: test_ck()
 125
+
+
+Entry: Dybvig Danfest 2004
+Date: Mon Aug 10 23:19:58 CEST 2009
+
+"The macro writers bill of rights"[1].
+
+Check out KFFD hygienic expansion algo[4].  This lead me to hygienic
+macros on top of unhygienic ones[2].
+
+Apparently my letrec is wrong: all evaluations need to happen before
+all assignments.
+
+Optimizations: constant folding, copy propagation, inlining, dead code
+elimnation.  Inlining (deciding to inline) isn't as easy as copy
+propagation: you want your compiler to terminate and prevent code
+explosion.
+
+[1] http://video.google.com/videoplay?docid=-6899972066795135270
+[2] http://p-cos.net/documents/hygiene.pdf
+[3] http://people.csail.mit.edu/jaffer/r4rs_12.html
+[4] http://www.cs.ucdavis.edu/~devanbu/teaching/260/kohlbecker.pdf
+
+Entry: Sequential code
+Date: Tue Aug 11 09:39:04 CEST 2009
+
+Visually I associate left-aligned code in Scheme with side-effects
+(begin).  However, parallel code also looks like this, and is not
+necessarily bad from a mutation pov.
+
+
+Entry: GCC
+Date: Tue Aug 11 10:19:25 CEST 2009
+
+Looking at the assembly output of scheme.c and it seems that it
+performs the inlining well, except for the allocation, which uses a
+vararg function _sc_make_struct that looks rather expensive to call.
+
+Also, gc_alloc won't line.  I guess the `full' check prevents that.
+It's probably easier to implement GC boundaries with unmapped pages.
+
+
+Entry: bootstrap in forth
+Date: Tue Aug 11 10:44:02 CEST 2009
+
+Now, in order to get to a smaller code size.  What about writing the
+step function in threaded code?  Does this make at all sense?
+
+I don't think so: the features that are used to write the interpreter
+are GC's vector construct (library) and C lexical scope and C
+structure member scope.  It's rather awkward to write something like
+that in a combinator language.
+
+
+Entry: size
+Date: Tue Aug 11 11:21:40 CEST 2009
+
+Looks like the real culprit is the primitive registration code.  This
+can be done in a table.
+
+strip scheme
+ls -l scheme
+
+# currently
+-rwxr-xr-x 1 tom tom 44592 2009-08-11 11:28 scheme
+
+# Ha!
+# The prim table actually made it bigger :)
+-rwxr-xr-x 1 tom tom 45912 2009-08-11 11:34 scheme
+
+# Changing the prototype of the function to take strings instead of
+# symbols made it smaller:
+-rwxr-xr-x 1 tom tom 43936 2009-08-11 12:02 scheme
+
+So it's really the code that generates the boot code that bloats the
+binary.  Looks like a reader is what's needed to compress further.
+
+Also, part of the data structures could be loaded as constants:
+symbols and primitives are not GC-managed, so they could be defined as
+constant data.
+
+Another thing that leads to bloat is the tag shifting.  Can this be
+simplified to a single AND + compare?
+
+

@@ -31,6 +31,14 @@
 
 #include "gc_config.h"
 
+void gc_when_full(gc *gc, long slots) {
+    gc_collect(gc);
+    if (gc_full(gc, slots)) {
+        if (!gc_grow(gc, slots)) {
+            fprintf(stderr, "ERROR: Can't grow GC pool.\n");
+        }
+    }
+}
 
 int gc_grow(gc *gc, long add_slots) {
     /* grow pool */
@@ -46,25 +54,6 @@ int gc_grow(gc *gc, long add_slots) {
     return 1;
 }
 
-
-static inline int gc_full(gc *gc, int slots) {
-    return (gc->current_index + slots) >= gc->slot_total;
-}
-
-/* Allocate a vector. */
-object gc_alloc(gc *gc, long size) {
-    long slots = size + 1;
-    if (gc_full(gc, slots)) {
-        gc_collect(gc);
-        if (gc_full(gc, slots)) {
-            if (!gc_grow(gc, slots)) return 0;
-        }
-    }
-    vector *v = (vector *)(&gc->current[gc->current_index]);
-    v->header = integer_to_object(size);
-    gc->current_index += slots;
-    return vector_to_object(v);
-}
 
 /* The size field is used to store redirections during GC. */
 static inline object vector_moved(vector *v) {
@@ -84,8 +73,8 @@ object gc_mark(gc *gc, object o_old) {
 
     /* Allocate empty vector. */
     long nb = vector_size(v_old);
-    object o_new = gc_alloc(gc, nb);
-    vector *v_new = object_to_vector(o_new);
+    vector *v_new = gc_alloc(gc, nb);
+    object o_new =  vector_to_object(v_new);
 
     /* Copy the tag bits. */
     v_new->header = v_old->header;
@@ -157,20 +146,4 @@ gc *gc_new(long total, gc_mark_roots fn, void *ctx) {
     return x;
 }
 
-object gc_vector_v(gc *gc, long slots, va_list ap) {
-    object o = gc_alloc(gc, slots);
-    vector *v = object_to_vector(o);
-    long i = 0;
-    for (i=0; i<slots; i++) {
-        v->slot[i] = va_arg(ap, object);
-    }
-    return o;
-}
 
-object gc_vector(gc *gc, long slots, ...) {
-    va_list ap;
-    va_start(ap, slots);
-    object o = gc_vector_v(gc, slots, ap);
-    va_end(ap);   
-    return o;
-}

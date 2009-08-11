@@ -1,6 +1,8 @@
 #ifndef _GC_H_
 #define _GC_H_
 
+#define unlikely(x) __builtin_expect((x),0)
+
 #include <stdio.h>
 #include <stdarg.h>
 
@@ -73,10 +75,6 @@ gc *gc_new(long total, gc_mark_roots fn, void *ctx);
 void gc_collect(gc *gc);
 object gc_mark(gc *gc, object o_old);
 
-object gc_alloc(gc *gc, long slots);
-object gc_vector(gc *gc, long slots, ...);
-object gc_vector_v(gc *gc, long slots, va_list ap);
-
 
 /* Conversion from tagged objects to one of the 4 C data types.  When
    the tag doesn't match, NULL is returned.  Conversion to integer
@@ -132,12 +130,42 @@ static inline long vector_size(vector *v) {
 }
 
 
-/* Atoms
+/* Basic allocation functions are inline. */
+int gc_grow(gc *gc, long add_slots);
+static inline int gc_full(gc *gc, int slots) {
+    return (gc->current_index + slots) >= gc->slot_total;
+}
+/* User must fill the allocated space with valid tagged values before
+   calling gc_alloc again. */
+void gc_when_full(gc *gc, long size);
+static inline vector *gc_alloc(gc *gc, long size) {
+    long slots = size + 1;
+    if (unlikely(gc_full(gc, slots))) {
+        gc_when_full(gc, slots);
+    }
+    vector *v = (vector *)(&gc->current[gc->current_index]);
+    v->header = integer_to_object(size);
+    gc->current_index += slots;
+    return v;
+}
 
-   An atom is a C struct, who's first member is a pointer that can be
-   used to identify it.
-
-*/
+#if 1
+static inline object gc_make_v(gc *gc, long slots, va_list ap) {
+    vector *v = gc_alloc(gc, slots);
+    long i = 0;
+    for (i=0; i<slots; i++) {
+        v->slot[i] = va_arg(ap, object);
+    }
+    return vector_to_object(v);
+}
+static inline object gc_make(gc *gc, long slots, ...) {
+    va_list ap;
+    va_start(ap, slots);
+    object o = gc_make_v(gc, slots, ap);
+    va_end(ap);   
+    return o;
+}
+#endif
 
 
 #endif
