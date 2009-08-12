@@ -1251,13 +1251,30 @@ Generational collection.
 One of the key points seems to be that one mostly collects the
 `nursery', a pool of recently allocated objects.  The assumption is
 that most of the elements in the nursery will become garbage soon
-after allocation (child mortality).  In order for this to work there
-needs to be a cheap way of finding pointers that point from the heap
-at large into the (much smaller) nursery.
+after allocation (child mortality) AND that there are a lot of objects
+that don't.  In order for this to work there needs to be a cheap way
+of finding pointers that point from the heap at large into the (much
+smaller) nursery.
 
 
 Finalization: Instead of scanning the from space after copying, it's
 also possible to perform the finalization later, when allocating anew:
 the data will be moved to the cache anyway because of initialization,
 so we might just as well access it then.
+
+
+
+Entry: Cheyney GC
+Date: Wed Aug 12 10:13:23 CEST 2009
+
+Like a recursive mark and copy collector, but using a breadth-first
+search.
+
+  1 Copy all root objects. This set is S_0.
+
+  2 Copy all objects referred by objects in S_n, ignoring those that
+    have been copied already.  This is set S_{n+1}.
+
+  3 Repeat step 2 until the sequence S_0, S_1, ... is terminated by
+    the empty set.
 
