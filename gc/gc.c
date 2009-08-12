@@ -95,37 +95,50 @@ static inline object vector_moved(vector *v) {
 
 /* Go over all objects in the last moved set, and move all the objects
    they point to, to tospace.*/
-void gc_cheney_move(gc *gc, long start, long end, object o_old) {
+static object _gc_move_vector(gc *gc, object o_old) {
+    vector *v_old = object_to_vector(o_old);
+    object o_new;
+    /* Copy if object hasn't alredy been moved. */
+    if (!(o_new = vector_moved(v_old))) {
+        long size = vector_size(v_old);
+        long bytes = sizeof(long) * size;
+        vector *v_new = _gc_allot(gc, size);
+        o_new = vector_to_object(v_new);
+        memcpy(v_new->slot, v_old->slot, bytes); // copy contents
+        memset(v_old->slot, 0, bytes);           // remove finalizers
+        v_old->header = o_new;                   // forward old
+    }
+    return o_new;
+}
+static void _gc_move_queue(gc *gc, long start, long endx) {
     long j = start;
-    while(j < end) {
+    while(j < endx) {
         vector *v = (vector*)(&gc->current[j]);
         long size = vector_size(v);
         long i;
         for (i=0; i<size; i++) {
             object o = v->slot[i];
-            if (gc_is_old(gc, o)) {
-                vector *v_old = object_to_vector(o);
-                /* If object has already moved, update the reference.
-                   Otherwise alloc and copy. */
-                if (!(v->slot[i] = vector_moved(v_old))) {
-                    long bytes = sizeof(long)*size;
-                    vector *v_new = _gc_allot(gc, size);
-                    object o_new = vector_to_object(v_new);
-                    memcpy(v_new->slot, v_old->slot, bytes); // copy contents
-                    memset(v_old->slot, 0, bytes);           // remove finalizers
-                    v_old->header = o_new;                   // forward old
-                    v->slot[i] = o_new;                      // update new
-                }
-            }
+            if (gc_is_old(gc, o)) v->slot[i] = _gc_move_vector(gc, o);
             /* PC: v->slot[i] contains a reference to a vector in the
                    new space. */
         }
         j += 1 + size;
     }
 }
-void gc_cheney_mark(gc *gc, object root) {
-    long start, end; // 2 fingers
-
+object gc_mark_cheney(gc *gc, object root) {
+    long start, endx; // 2 fingers marking S_n
+    /* Start with moving the root, mark this as set S_0 */
+    start = 0;
+    root = _gc_move_vector(gc, root);
+    endx = gc->current_index;
+    /* Now iteratively move all references in S_n to obtain
+       S_{n+1} until it becomes zero. */
+    while(start < endx) {
+        _gc_move_queue(gc, start, endx);
+        start = endx;
+        endx  = gc->current_index;
+    }
+    return root;
 }
 
 object gc_mark(gc *gc, object o_old) {

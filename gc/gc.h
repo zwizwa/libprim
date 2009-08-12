@@ -74,6 +74,7 @@ struct _gc {
 gc *gc_new(long total, gc_mark_roots fn, void *ctx);
 void gc_collect(gc *gc);
 object gc_mark(gc *gc, object o_old);
+object gc_mark_cheney(gc *gc, object o_old);
 
 
 /* Conversion from tagged objects to one of the 4 C data types.  When
