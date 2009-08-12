@@ -138,16 +138,7 @@ static inline int gc_full(gc *gc, int slots) {
 /* User must fill the allocated space with valid tagged values before
    calling gc_alloc again. */
 void gc_when_full(gc *gc, long size);
-static inline vector *gc_alloc(gc *gc, long size) {
-    long slots = size + 1;
-    if (unlikely(gc_full(gc, slots))) {
-        gc_when_full(gc, slots);
-    }
-    vector *v = (vector *)(&gc->current[gc->current_index]);
-    v->header = integer_to_object(size);
-    gc->current_index += slots;
-    return v;
-}
+vector *gc_alloc(gc *gc, long size);
 
 #if 1
 static inline object gc_make_v(gc *gc, long slots, va_list ap) {

@@ -91,15 +91,36 @@ object gc_mark(gc *gc, object o_old) {
     return o_new;                        
 }
 
-static void _finalize(gc *gc) {
+
+void gc_fin_slots(gc *gc, object *o, long slots) {
     long i;
-    for (i=0; i<gc->old_index; i++){
+    for (i=0; i<slots; i++){
         fin *f;
-        if ((f = object_to_fin(gc->old[i]))) {
-            (*f)(object_to_const(gc->old[i+1]));
+        if ((f = object_to_fin(o[i]))) {
+            o[i] = 0;
+            (*f)(object_to_const(o[i+1]));
             i++;
         }
     }
+}
+
+vector *gc_alloc(gc *gc, long size) {
+    long slots = size + 1;
+    if (unlikely(gc_full(gc, slots))) {
+        gc_when_full(gc, slots);
+    }
+    // finalize data before overwriting
+    gc_fin_slots(gc, &gc->current[gc->current_index], slots);
+
+    vector *v = (vector *)(&gc->current[gc->current_index]);
+    v->header = integer_to_object(size);
+    gc->current_index += slots;
+    return v;
+}
+
+
+static void _finalize(gc *gc) {
+    // gc_fin_slots(gc, gc->old, gc->old_index);
     gc->old_index = 0;
 }
 
@@ -137,8 +158,8 @@ void gc_collect(gc *gc) {
 gc *gc_new(long total, gc_mark_roots fn, void *ctx) {
     gc* x = (gc*)malloc(sizeof(gc));
     x->slot_total     = total;
-    x->current        = (object*)malloc(total * sizeof(object));
-    x->old            = (object*)malloc(total * sizeof(object));
+    x->current        = (object*)calloc(total, sizeof(object));
+    x->old            = (object*)calloc(total, sizeof(object));
     x->current_index  = 0;
     x->old_index      = 0;
     x->mark_roots     = fn;

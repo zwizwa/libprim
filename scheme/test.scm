@@ -14,17 +14,15 @@
 (define x (with-ck (cdr x) 124)) x
 (define x (with-ck (cdr x) 125)) x
 (define x (with-ck (cdr x) 126)) x
-(gc)
-
 
 ;; (when 123 broebel)
 
-;; (let ((broebel 123)) broebel)
-;; (let foo ((n 10))
-;;   (if (zero? n) 0
-;;       (begin
-;;         (post 'bla)
-;;         (foo (sub1 n)))))
+(let ((broebel 123)) broebel)
+(let foo ((n 100))
+  (if (zero? n) 0
+      (begin
+        (post 'bla)
+        (foo (sub1 n)))))
 
 
 ;; (letrec-tx '(letrec ((x 123)) foo))
