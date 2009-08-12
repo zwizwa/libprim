@@ -83,7 +83,7 @@ static int gc_is_old(gc *gc, object o) {
 static vector *_gc_allot(gc *gc, long size) {
     vector *v = &gc->current[gc->current_index];
     // finalize data before overwriting
-    gc_fin_slots(gc, &v->header, size + 1);
+    // gc_fin_slots(gc, &v->header, size + 1);
     // allot
     v->header = integer_to_object(size);
     gc->current_index += size + 1;
@@ -95,55 +95,49 @@ static inline object vector_moved(vector *v) {
     else return 0;
 }
 
-/* Go over all objects in the last moved set, and move all the objects
-   they point to, to tospace.*/
-static object _gc_move_vector(gc *gc, object o_old) {
-    vector *v_old = object_to_vector(o_old);
+
+/* Move an object.
+   - atom: copy reference
+   - vector: - moved? simply return forwarding pointer
+             - old space? move it and return new address. */
+
+
+static object _gc_move_object(gc *gc, object o_old) {
     object o_new;
-    /* Copy if object hasn't already been moved. */
-    if (!(o_new = vector_moved(v_old))) {
-        long size = vector_size(v_old);
-        long bytes = sizeof(long) * size;
-        vector *v_new = _gc_allot(gc, size);
-        o_new = vector_to_object(v_new);
-        memcpy(v_new->slot, v_old->slot, bytes); // copy contents
-        memset(v_old->slot, 0, bytes);           // remove finalizers
-        v_old->header = o_new;                   // forward old
-    }
+    vector *v_old = object_to_vector(o_old);
+
+    /* Keep atom pointers. */
+    if (!v_old) return o_old;
+
+    /* Already moved -> copy forwarding pointer. */
+    if ((o_new = vector_moved(v_old))) return o_new;
+
+    /* Copy object */
+    long size = vector_size(v_old);
+    long bytes = sizeof(long) * size;
+    vector *v_new = _gc_allot(gc, size);
+    o_new = vector_to_object(v_new);
+    memcpy(v_new->slot, v_old->slot, bytes); // copy contents
+    memset(v_old->slot, 0, bytes);           // remove finalizers
+    v_old->header = o_new;                   // forward old
     return o_new;
 }
-/* static void _gc_move_queue(gc *gc, long start, long endx) { */
-/*     long j = start; */
-/*     while(j < endx) { */
-/*         vector *v = (vector*)(&gc->current[j]); */
-/*         long size = vector_size(v); */
-/*         long i; */
-/*         for (i=0; i<size; i++) { */
-/*             object o = v->slot[i]; */
-/*             if (gc_is_old(gc, o)) v->slot[i] = _gc_move_vector(gc, o); */
-/*             /\* PC: v->slot[i] contains a reference to a vector in the */
-/*                    new space. *\/ */
-/*         } */
-/*         j += 1 + size; */
-/*     } */
-/* } */
+/* FIXME: it blows up. */
 object gc_mark_cheney(gc *gc, object root) {
-    long pass = 0;
-    long todo = 0;
-    /* Start with moving the root, mark this as set S_0 */
-    root = _gc_move_vector(gc, root);
-    /* Now iteratively move all references in S_n to obtain
-       S_{n+1} until it becomes zero. */
+    long todo = gc->current_index;
+    /* Start with moving the root. */
+    root = _gc_move_object(gc, root);
+    /* Now move all objects referenced in moved objects. */
     while(todo < gc->current_index) {
-#if 0
-        vector *v = (
-        printf("S_%d %d-%d\n", pass, start, endx);
-        _gc_move_queue(gc, start, endx);
-        start = endx;
-        endx  = gc->current_index;
-        pass++;
-#endif
+        vector *v = &gc->current[todo];
+        long size = vector_size(v);
+        long i;
+        for (i=0; i<size; i++) {
+            v->slot[i] = _gc_move_object(gc, v->slot[i]);
+        }
+        todo += size + 1;
     }
+    printf("%ld\n", todo);
     return root;
 }
 
@@ -189,7 +183,7 @@ vector *gc_alloc(gc *gc, long size) {
 
 
 static void _finalize(gc *gc) {
-    // gc_fin_slots(gc, gc->old, gc->old_index);
+    gc_fin_slots(gc, (object *)gc->old, gc->old_index);
     gc->old_index = 0;
 }
 

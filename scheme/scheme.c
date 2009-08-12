@@ -1053,10 +1053,15 @@ static prim_def prims[] = prims_init;
 
 static void _sc_mark_roots(sc *sc, gc_finalize fin) {
     // sc_trap(sc);
-    printf("GC mark()\n");
+    // printf("gc_mark()\n");
     // sc_post(sc, sc->state);
     sc->global = gc_mark_recursive(sc->gc, sc->global);
     fin(sc->gc);
+    {
+        long used = sc->gc->current_index;
+        long free = sc->gc->slot_total - used;
+        printf(";; gc %d:%d\n", used, free);
+    }
     // sc_post(sc, sc->state);
     /* Abort C stack, since it now contains invalid refs.
 

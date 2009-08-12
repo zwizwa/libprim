@@ -1279,4 +1279,6 @@ search.
     the empty set.
 
 
-OK: typed in, compiling, not working: it blows up.
+OK: typed in, compiling, not working: it blows up.  Simplified, but I
+can't see it.  Guess it's time for a proof.
+
