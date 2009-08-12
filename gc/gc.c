@@ -3,6 +3,7 @@
 #include <signal.h>
 #include <sys/types.h>
 #include <unistd.h>
+#include <string.h>
 
 /* Simple stop-and-copy GC for allocating graphs of vectors and atoms.
 
@@ -55,10 +56,76 @@ int gc_grow(gc *gc, long add_slots) {
 }
 
 
+void gc_fin_slots(gc *gc, object *o, long slots) {
+    long i;
+    for (i=0; i<slots; i++){
+        fin *f;
+        if ((f = object_to_fin(o[i]))) {
+            o[i] = 0;
+            (*f)(object_to_const(o[i+1]));
+            i++;
+        }
+    }
+}
+
+
+/* The recursive mark algorithm traverses objects depth-first from a
+   root object, using the C-stack for traversal state.  The Cheney
+   algorithm uses the tospace as a queue to sequence a breadth-first
+   search. */
+
+static int gc_is_old(gc *gc, object o) {
+    long i = ((vector*)o) - ((vector*)gc->old);
+    return ((i >= 0) && (i < gc->old_index));
+}
+static vector *_gc_allot(gc *gc, long size) {
+    vector *v = (vector*)(&gc->current[gc->current_index]);
+    // finalize data before overwriting
+    gc_fin_slots(gc, &v->header, size + 1);
+    // allot
+    v->header = integer_to_object(size);
+    gc->current_index += size + 1;
+    return v;
+}
 /* The size field is used to store redirections during GC. */
 static inline object vector_moved(vector *v) {
     if (object_to_vector(v->header)) return v->header;
     else return 0;
+}
+
+/* Go over all objects in the last moved set, and move all the objects
+   they point to, to tospace.*/
+void gc_cheney_move(gc *gc, long start, long end, object o_old) {
+    long j = start;
+    while(j < end) {
+        vector *v = (vector*)(&gc->current[j]);
+        long size = vector_size(v);
+        long i;
+        for (i=0; i<size; i++) {
+            object o = v->slot[i];
+            if (gc_is_old(gc, o)) {
+                vector *v_old = object_to_vector(o);
+                /* If object has already moved, update the reference.
+                   Otherwise alloc and copy. */
+                if (!(v->slot[i] = vector_moved(v_old))) {
+                    long bytes = sizeof(long)*size;
+                    vector *v_new = _gc_allot(gc, size);
+                    object o_new = vector_to_object(v_new);
+                    memcpy(v_new->slot, v_old->slot, bytes); // copy contents
+                    memset(v_old->slot, 0, bytes);           // remove finalizers
+                    v_old->header = o_new;                   // forward old
+                    v->slot[i] = o_new;                      // update new
+                }
+            }
+            /* PC: v->slot[i] contains a reference to a vector in the
+                   new space. */
+        }
+        j += 1 + size;
+    }
+}
+void gc_cheney_mark(gc *gc, object root) {
+    long start, end; // 2 fingers
+
 }
 
 object gc_mark(gc *gc, object o_old) {
@@ -92,30 +159,13 @@ object gc_mark(gc *gc, object o_old) {
 }
 
 
-void gc_fin_slots(gc *gc, object *o, long slots) {
-    long i;
-    for (i=0; i<slots; i++){
-        fin *f;
-        if ((f = object_to_fin(o[i]))) {
-            o[i] = 0;
-            (*f)(object_to_const(o[i+1]));
-            i++;
-        }
-    }
-}
-
 vector *gc_alloc(gc *gc, long size) {
     long slots = size + 1;
     if (unlikely(gc_full(gc, slots))) {
         gc_when_full(gc, slots);
     }
-    // finalize data before overwriting
-    gc_fin_slots(gc, &gc->current[gc->current_index], slots);
-
-    vector *v = (vector *)(&gc->current[gc->current_index]);
-    v->header = integer_to_object(size);
-    gc->current_index += slots;
-    return v;
+    // get new
+    return _gc_allot(gc, size);
 }
 
 
