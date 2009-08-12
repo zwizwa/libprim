@@ -1270,14 +1270,12 @@ Date: Wed Aug 12 10:13:23 CEST 2009
 Like a recursive mark and copy collector, but using a breadth-first
 search.
 
-  1 Copy all root objects. This set is S_0.
+  1 Copy all root objects: copy atoms, update moved vectors and copy
+    vectors not yet moved.
 
-  2 Copy all objects referred by objects in S_n, ignoring those that
-    have been copied already.  This is set S_{n+1}.
+  2 Copy all references in newly allocated objects.
 
-  3 Repeat step 2 until the sequence S_0, S_1, ... is terminated by
-    the empty set.
-
+  3 Repeat until heap stops growing (all reachable objects are moved).
 
 OK: typed in, compiling, not working: it blows up.  Simplified, but I
 can't see it.  Guess it's time for a proof.
