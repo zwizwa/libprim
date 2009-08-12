@@ -1278,3 +1278,5 @@ search.
   3 Repeat step 2 until the sequence S_0, S_1, ... is terminated by
     the empty set.
 
+
+OK: typed in, compiling, not working: it blows up.

@@ -75,11 +75,13 @@ void gc_fin_slots(gc *gc, object *o, long slots) {
    search. */
 
 static int gc_is_old(gc *gc, object o) {
-    long i = ((vector*)o) - ((vector*)gc->old);
+    vector *v;
+    if (!(v = object_to_vector(o))) return 0;
+    long i = v - gc->old;
     return ((i >= 0) && (i < gc->old_index));
 }
 static vector *_gc_allot(gc *gc, long size) {
-    vector *v = (vector*)(&gc->current[gc->current_index]);
+    vector *v = &gc->current[gc->current_index];
     // finalize data before overwriting
     gc_fin_slots(gc, &v->header, size + 1);
     // allot
@@ -98,7 +100,7 @@ static inline object vector_moved(vector *v) {
 static object _gc_move_vector(gc *gc, object o_old) {
     vector *v_old = object_to_vector(o_old);
     object o_new;
-    /* Copy if object hasn't alredy been moved. */
+    /* Copy if object hasn't already been moved. */
     if (!(o_new = vector_moved(v_old))) {
         long size = vector_size(v_old);
         long bytes = sizeof(long) * size;
@@ -110,38 +112,42 @@ static object _gc_move_vector(gc *gc, object o_old) {
     }
     return o_new;
 }
-static void _gc_move_queue(gc *gc, long start, long endx) {
-    long j = start;
-    while(j < endx) {
-        vector *v = (vector*)(&gc->current[j]);
-        long size = vector_size(v);
-        long i;
-        for (i=0; i<size; i++) {
-            object o = v->slot[i];
-            if (gc_is_old(gc, o)) v->slot[i] = _gc_move_vector(gc, o);
-            /* PC: v->slot[i] contains a reference to a vector in the
-                   new space. */
-        }
-        j += 1 + size;
-    }
-}
+/* static void _gc_move_queue(gc *gc, long start, long endx) { */
+/*     long j = start; */
+/*     while(j < endx) { */
+/*         vector *v = (vector*)(&gc->current[j]); */
+/*         long size = vector_size(v); */
+/*         long i; */
+/*         for (i=0; i<size; i++) { */
+/*             object o = v->slot[i]; */
+/*             if (gc_is_old(gc, o)) v->slot[i] = _gc_move_vector(gc, o); */
+/*             /\* PC: v->slot[i] contains a reference to a vector in the */
+/*                    new space. *\/ */
+/*         } */
+/*         j += 1 + size; */
+/*     } */
+/* } */
 object gc_mark_cheney(gc *gc, object root) {
-    long start, endx; // 2 fingers marking S_n
+    long pass = 0;
+    long todo = 0;
     /* Start with moving the root, mark this as set S_0 */
-    start = 0;
     root = _gc_move_vector(gc, root);
-    endx = gc->current_index;
     /* Now iteratively move all references in S_n to obtain
        S_{n+1} until it becomes zero. */
-    while(start < endx) {
+    while(todo < gc->current_index) {
+#if 0
+        vector *v = (
+        printf("S_%d %d-%d\n", pass, start, endx);
         _gc_move_queue(gc, start, endx);
         start = endx;
         endx  = gc->current_index;
+        pass++;
+#endif
     }
     return root;
 }
 
-object gc_mark(gc *gc, object o_old) {
+object gc_mark_recursive(gc *gc, object o_old) {
 
     /* Can only mark vectors.  Other objects are copied. */
     vector *v_old = object_to_vector(o_old); 
@@ -165,7 +171,7 @@ object gc_mark(gc *gc, object o_old) {
     /* Mark all and move elements and erase tracks. */
     long i;
     for (i=0; i<nb; i++) {
-        v_new->slot[i] = gc_mark(gc, v_old->slot[i]);
+        v_new->slot[i] = gc_mark_recursive(gc, v_old->slot[i]);
         v_old->slot[i] = 0;
     }
     return o_new;                        
@@ -189,8 +195,8 @@ static void _finalize(gc *gc) {
 
 static void _swap(gc *gc) {
 
-    object *current   = gc->current;
-    object *old       = gc->old;
+    vector *current   = gc->current;
+    vector *old       = gc->old;
 
     gc->old           = current;
     gc->old_index     = gc->current_index;
@@ -221,8 +227,8 @@ void gc_collect(gc *gc) {
 gc *gc_new(long total, gc_mark_roots fn, void *ctx) {
     gc* x = (gc*)malloc(sizeof(gc));
     x->slot_total     = total;
-    x->current        = (object*)calloc(total, sizeof(object));
-    x->old            = (object*)calloc(total, sizeof(object));
+    x->current        = (vector*)calloc(total, sizeof(object));
+    x->old            = (vector*)calloc(total, sizeof(object));
     x->current_index  = 0;
     x->old_index      = 0;
     x->mark_roots     = fn;

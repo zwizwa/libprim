@@ -42,9 +42,9 @@ typedef void (*gc_finalize)(gc *);
 typedef void (*gc_mark_roots)(void *ctx, gc_finalize finalize);
 
 struct _gc {
-    object *current;
+    vector  *current;
     long    current_index;
-    object *old;
+    vector  *old;
     long    old_index;
     long    slot_total;
     gc_mark_roots mark_roots; // (1)
@@ -73,7 +73,7 @@ struct _gc {
 
 gc *gc_new(long total, gc_mark_roots fn, void *ctx);
 void gc_collect(gc *gc);
-object gc_mark(gc *gc, object o_old);
+object gc_mark_recursive(gc *gc, object o_old);
 object gc_mark_cheney(gc *gc, object o_old);
 
 
