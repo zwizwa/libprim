@@ -1060,7 +1060,7 @@ static void _sc_mark_roots(sc *sc, gc_finalize fin) {
     {
         long used = sc->gc->current_index;
         long free = sc->gc->slot_total - used;
-        printf(";; gc %d:%d\n", used, free);
+        printf(";; gc %d:%d\n", (int)used, (int)free);
     }
     // sc_post(sc, sc->state);
     /* Abort C stack, since it now contains invalid refs.

@@ -1280,3 +1280,15 @@ search.
 OK: typed in, compiling, not working: it blows up.  Simplified, but I
 can't see it.  Guess it's time for a proof.
 
+An interesting challenge this is: I've always stayed away from
+implementing graph algorithms in C.  It requires a lot of discipline
+to get the invariants right.  The cause is usually due to embedding
+and premature optimization, i.e. using the same field to represent two
+distinct values in different modes when there are subtle cases where
+this is not valid.  The Cheney algo is a simple one, but I couldn't
+get it right ``just writing it down''.
+
+Next: add assertions and error handling for the whole project.
+
+[1] http://en.wikipedia.org/wiki/Cheney%27s_algorithm
+

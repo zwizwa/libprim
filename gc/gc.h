@@ -160,4 +160,9 @@ static inline object gc_make(gc *gc, long slots, ...) {
 #endif
 
 
+void gc_do_assert(const char*, const char*, int);
+// __FUNCTION__
+#define gc_assert(x) {if (!(x)) gc_do_assert(#x, __FILE__, __LINE__);}
+
+
 #endif

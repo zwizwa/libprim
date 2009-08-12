@@ -80,6 +80,14 @@ static int gc_is_old(gc *gc, object o) {
     long i = v - gc->old;
     return ((i >= 0) && (i < gc->old_index));
 }
+static int gc_is_new(gc *gc, object o) {
+    vector *v;
+    if (!(v = object_to_vector(o))) return 0;
+    long i = v - gc->current;
+    return ((i >= 0) && (i < gc->current_index));
+}
+
+
 static vector *_gc_allot(gc *gc, long size) {
     vector *v = &gc->current[gc->current_index];
     // finalize data before overwriting
@@ -122,6 +130,15 @@ static object _gc_move_object(gc *gc, object o_old) {
     v_old->header = o_new;                   // forward old
     return o_new;
 }
+
+
+
+void gc_do_assert(const char *cond, const char *file, int line) {
+    fprintf(stderr, "%s: %d: gc_assert(%s)\n", file, line, cond);
+    kill(getpid(), SIGTRAP);
+    exit(1);
+}
+
 /* FIXME: it blows up. */
 object gc_mark_cheney(gc *gc, object root) {
     long todo = gc->current_index;
@@ -133,7 +150,9 @@ object gc_mark_cheney(gc *gc, object root) {
         long size = vector_size(v);
         long i;
         for (i=0; i<size; i++) {
-            v->slot[i] = _gc_move_object(gc, v->slot[i]);
+            object new = _gc_move_object(gc, v->slot[i]);
+            gc_assert(gc_is_new(gc, new));
+            v->slot[i] = new;
         }
         todo += size + 1;
     }
@@ -200,13 +219,9 @@ static void _swap(gc *gc) {
 
 void gc_collect(gc *gc) {
 
-    if (gc->old_index) {
-        /* If gc_collect() can't be called by a gc_alloc() triggered
-           by a gc_collect() because the data did fit before. */
-        fprintf(stderr, "ERROR: re-entering gc_collect(): "
-                "corrupt heap.\n");
-        kill(getpid(), SIGTRAP);
-    }
+    /* gc_collect() can't be called by a gc_alloc() triggered by a
+       gc_collect() because the data did fit before. */
+    gc_assert(!gc->old_index);
 
     /* Record the current used size and swap buffers.  After this
        gc_alloc() will take from the new space. */
