@@ -63,6 +63,7 @@ _ sc_is_symbol(sc *sc, _ o) { OBJECT_PREDICATE(object_to_symbol); }
 _ sc_is_prim(sc *sc, _ o)   { OBJECT_PREDICATE(object_to_prim); }
 _ sc_is_ck(sc *sc, _ o)     { OBJECT_PREDICATE(object_to_ck); }
 _ sc_is_port(sc *sc, _ o)   { OBJECT_PREDICATE(object_to_port); }
+_ sc_is_bytes(sc *sc, _ o)  { OBJECT_PREDICATE(object_to_bytes); }
 
 
 /* The empty list is the NULL pointer */
@@ -159,10 +160,6 @@ _ sc_make_redex(sc *sc, _ D, _ E, _ M)            {STRUCT(TAG_REDEX,   3, D,E,M)
 _ sc_make_value(sc *sc, _ D)                      {STRUCT(TAG_VALUE,   1, D);}
 _ sc_make_aref(sc *sc, _ F, _ O)                  {STRUCT(TAG_AREF,    2, F,O);}
 
-/* Lowlevel finalized object wrapper. */
-static _ _sc_make_aref(sc *sc, void *fin, void *ptr) {
-    return sc_make_aref(sc, fin_to_object(fin), const_to_object(ptr));
-}
 
 // 'P' is in slot 0
 // continuations are created with an empty mark list
@@ -171,6 +168,19 @@ _ sc_make_k_if(sc *sc, _ P, _ Y, _ N)        {STRUCT(TAG_K_IF,     4, P,NIL,Y,N)
 _ sc_make_k_set(sc *sc, _ P, _ V, _ E, _ Et) {STRUCT(TAG_K_SET,    5, P,NIL,V,E,Et);}
 _ sc_make_k_seq(sc *sc, _ P, _ T)            {STRUCT(TAG_K_SEQ,    3, P,NIL,T);}
 _ sc_make_k_macro(sc *sc, _ P, _ E, _ M)     {STRUCT(TAG_K_MACRO,  4, P,NIL,E,M);}
+
+
+_ _sc_make_aref(sc *sc, void *fin, void *ptr) {
+    return sc_make_aref(sc, fin_to_object(fin), const_to_object(ptr));
+}
+
+_ _sc_make_symbol(sc *sc, const char *str) {
+    return const_to_object((void*)(string_to_symbol(sc->symbol_type, str)));
+}
+_ _sc_make_string(sc *sc, const char *str) {
+    return _sc_make_aref(sc, sc->bytes_type,
+                         bytes_from_cstring(sc->bytes_type, str));
+}
 
 
 _ sc_car(sc *sc, _ o)  { pair *p = CAST(pair, o); return p->car; }
@@ -374,6 +384,21 @@ _ sc_write(sc *sc,  _ o, _ out) {
         port_printf(p, "%s", object_to_symbol(o,sc)->name);
         return VOID;
     }
+    if (TRUE == sc_is_prim(sc, o)) {
+        prim *pr = object_to_prim(o,sc);
+        port_printf(p, "#prim<%p:%ld>", (void*)(pr->fn),pr->nargs);
+        return VOID;
+    }
+    void *x;
+    if ((x = object_to_fin(o))) { 
+        port_printf(p, "#fin<%p:%p>", x, *((void**)x)); return VOID; 
+    }
+    if ((x = object_to_const(o))) { port_printf(p, "#data<%p>",x); return VOID; }
+
+    if (TRUE == sc_is_bytes(sc, o)) {
+        bytes_write_string(object_to_bytes(o, sc), p->stream);
+        return VOID;
+    }
     if (TRUE == sc_is_state(sc, o))   return write_vector(sc, "state", o, out);
     if (TRUE == sc_is_lambda(sc, o))  return write_vector(sc, "lambda", o, out);
     if (TRUE == sc_is_redex(sc, o))   return write_vector(sc, "redex", o, out);
@@ -388,16 +413,6 @@ _ sc_write(sc *sc,  _ o, _ out) {
     if (TRUE == sc_is_k_macro(sc, o)) return write_vector(sc, "k_macro", o, out);
     if (MT   == o) { port_printf(p, "#k_mt"); return VOID; }
 
-    if (TRUE == sc_is_prim(sc, o)) {
-        prim *pr = object_to_prim(o,sc);
-        port_printf(p, "#prim<%p:%ld>", (void*)(pr->fn),pr->nargs);
-        return VOID;
-    }
-    void *x;
-    if ((x = object_to_fin(o))) { 
-        port_printf(p, "#fin<%p:%p>", x, *((void**)x)); return VOID; 
-    }
-    if ((x = object_to_const(o))) { port_printf(p, "#data<%p>",x); return VOID; }
     port_printf(p, "#object<%p>",(void*)o);
     return VOID;
 }
@@ -970,7 +985,18 @@ _ sc_eval_ktx(sc *sc, _ k, _ expr) {
    objects.  All data passes through a converter in the ck_manager.
 */
 
-static _ test_ck(ck_manager *m, _ o) {
+_ sc_symbol_to_string(sc *sc, _ sym) {
+    symbol *s = CAST(symbol, sym);
+    return _sc_make_string(sc, s->name);
+}
+_ sc_string_to_symbol(sc *sc, _ sym) {
+    bytes *b = CAST(bytes, sym);
+    return _sc_make_symbol(sc, b->bytes);
+}
+_ sc_test_string(sc *sc) { 
+    return _sc_make_string(sc, "foo!\n");
+}
+static _ test_ck(ck_class *m, _ o) {
     printf("1: test_ck()\n"); o = (object)ck_yield(m, (void*)o);
     printf("2: test_ck()\n"); o = (object)ck_yield(m, (void*)o);
     printf("3: test_ck()\n");
@@ -989,7 +1015,7 @@ _ sc_with_ck(sc *sc, _ in_ref, _ value) {
     _ ref = sc_make_aref(sc, NIL, NIL);
     _ stream = CONS(NIL, ref);  
     
-    ck_invoke(sc->ck_manager, fn, &task, (void**)&value);
+    ck_invoke(sc->ck_type, fn, &task, (void**)&value);
 
     if (!task) return value;
     else {
@@ -1001,7 +1027,7 @@ _ sc_with_ck(sc *sc, _ in_ref, _ value) {
         else {
             aref *r = object_to_aref(ref);
             r->atom = const_to_object(task);
-            r->fin  = fin_to_object((fin *)sc->ck_manager);
+            r->fin  = fin_to_object((fin *)sc->ck_type);
         }
         return stream;
     }
@@ -1106,7 +1132,7 @@ static void _sc_mark_roots(sc *sc, gc_finalize fin) {
 }
 static _ _sc_make_prim(sc *sc, void *fn, long nargs, _ var) {
     prim *p = malloc(sizeof(*p));
-    p->type = sc->prim_class;
+    p->type = sc->prim_type;
     p->fn = fn;
     p->nargs = nargs;
     p->var = var;
@@ -1130,12 +1156,12 @@ sc *_sc_new(void) {
                     
 
     /* Atom classes. */
-    sc->ck_manager = ck_manager_new();
-    sc->syms = symstore_new(1000);
-    sc->prim_class = (void*)(123); // FIXME
-    sc->port_class = port_class_new();
-    _ out = _sc_make_aref(sc, sc->port_class, 
-                          port_new(sc->port_class, stderr));
+    sc->ck_type = ck_class_new();
+    sc->symbol_type = symbol_class_new(1000);
+    sc->prim_type = (void*)(123); // FIXME: dummy class
+    sc->port_type = port_class_new();
+    _ out = _sc_make_aref(sc, sc->port_type, 
+                          port_new(sc->port_type, stderr));
 
     sc->global = gc_make(sc->gc, 5,
                          NIL,  // toplevel

@@ -29,24 +29,24 @@ static void default_free(ck *x) {
     free(x->segment);
     free(x);
 }
-static void default_jump(ck_manager *m) {
+static void default_jump(ck_class *m) {
     longjmp(m->prompt, 1);
 }
-static void *default_dont_convert(ck_manager *m, void *x) { 
+static void *default_dont_convert(ck_class *m, void *x) { 
     return x; 
 }
-ck_manager *ck_manager_new(void) {
-    ck_manager *x = malloc(sizeof(*x));
-    x->free       = default_free;
-    x->jump       = default_jump;
+ck_class *ck_class_new(void) {
+    ck_class *x  = malloc(sizeof(*x));
+    x->free      = default_free;
+    x->jump      = default_jump;
     x->to_task   = default_dont_convert;
     x->from_task = default_dont_convert;
     x->base      = NULL; // filled in on first invoke
     return x;
 }
-ck *ck_new(ck_manager *ck_manager) {
+ck *ck_new(ck_class *ck_class) {
     ck *ck = malloc(sizeof*ck);
-    ck->manager = ck_manager;
+    ck->type = ck_class;
     return ck;
 }
 
@@ -55,7 +55,7 @@ static void resume(ck *_ck, void *base) {
     thread_static ck *ck; ck = _ck;// variable not on C stack.
 
     /* Copy stack */
-    void *sp = ck->manager->base - ck->size;
+    void *sp = ck->type->base - ck->size;
 
     /* Reserve stack space so function call/return keeps working after
        a part of the stack is overwritten. */
@@ -66,7 +66,7 @@ static void resume(ck *_ck, void *base) {
        optimized away. */
     longjmp(ck->resume, (int)((long)reserve));
 }
-void ck_invoke(ck_manager *m, ck_start fn, ck **ck, void **value) {
+void ck_invoke(ck_class *m, ck_start fn, ck **ck, void **value) {
     void *base;
     if (!setjmp(m->prompt)) {
         base = &base;
@@ -87,7 +87,7 @@ void ck_invoke(ck_manager *m, ck_start fn, ck **ck, void **value) {
 
 
 /* C TASK SIDE */
-static void suspend(ck_manager *m) {
+static void suspend(ck_class *m) {
     ck *ck = m->ck_new = ck_new(m);
     if (0 == setjmp(ck->resume)) {
 
@@ -102,7 +102,7 @@ static void suspend(ck_manager *m) {
         exit(1); // not reached
     }
 }
-void* ck_yield(ck_manager *m, void *value) {
+void* ck_yield(ck_class *m, void *value) {
     m->channel = value;
     suspend(m);
     return m->channel;

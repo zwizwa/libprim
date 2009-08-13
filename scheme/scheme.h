@@ -6,6 +6,7 @@
 #include "symbol.h"
 #include "task.h"
 #include "port.h"
+#include "bytes.h"
 
 
 typedef struct _scheme sc;
@@ -184,6 +185,21 @@ DEF_CAST (k_set)
 DEF_CAST (k_seq)
 DEF_CAST (k_macro)
 
+
+/* primitive function wrapper */
+typedef struct {
+} prim_class;
+typedef struct {
+    void *type;
+    void *fn;
+    long nargs;
+    /* Note: in general it is not allowed to place objects in atom
+       structs, but in this case it's a symbol, so will never
+       change. */
+    object var;
+} prim;
+
+
 /* Global Scheme State*/
 #define sc_slot_toplevel        integer_to_object(0)
 #define sc_slot_toplevel_macro  integer_to_object(1)
@@ -211,12 +227,15 @@ struct _scheme {
     _ s_bang_set;
     _ s_letcc;
 
-    /* Objects and classes */
+    /* Primitive datatypes. */
+    symbol_class *symbol_type;
+    ck_class *ck_type;
+    prim_class *prim_type;
+    port_class *port_type;
+    bytes_class *bytes_type;
+
+    /* Delegate objects. */
     gc *gc;
-    symstore *syms;
-    ck_manager *ck_manager;
-    void *prim_class;
-    void *port_class;
 
     /* Lowlevel control flow */
     jmp_buf top;       // full interpreter C stack unwind (i.e. for GC)
@@ -253,10 +272,6 @@ static inline void *object_struct(object ob, void *type){
 }
 
 
-static inline symbol* object_to_symbol(object ob, sc *sc) {
-    return (symbol *)object_struct(ob, sc->syms);
-}
-
 /* The ck atoms have a free() finalizer, so need to be wrapped in an
    aref struct */
 static inline void *object_aref_struct(object ob, sc *sc, void *type) {
@@ -267,29 +282,28 @@ static inline void *object_aref_struct(object ob, sc *sc, void *type) {
     else return NULL;
 }
 
-static inline ck* object_to_ck(object ob, sc *sc) {
-    return (ck*)object_aref_struct(ob, sc, sc->ck_manager);
-}
+#define DEF_AREF_TYPE(name)                                            \
+    static inline name *object_to_##name(object ob, sc *sc) {          \
+        return (name*)object_aref_struct(ob,sc,sc->name##_type); }
+#define DEF_CONST_TYPE(name)                                           \
+    static inline name *object_to_##name(object ob, sc *sc) {          \
+        return (name*)object_struct(ob,sc->name##_type); }
 
-static inline port* object_to_port(object ob, sc *sc) {
-    return (port*)object_aref_struct(ob, sc, sc->port_class);
-}
+
+// GC finalized objects
+DEF_AREF_TYPE(ck)
+DEF_AREF_TYPE(port)
+DEF_AREF_TYPE(bytes)
+
+// permanent constant objects
+DEF_CONST_TYPE(prim)
+DEF_CONST_TYPE(symbol)
 
 
-typedef struct {
-    void *type;
-    void *fn;
-    long nargs;
-    /* Note: in general it is not allowed to place objects in atom
-       structs, but in this case it's a symbol, so will never
-       change. */
-    object var;
-} prim;
+
+
 static inline long prim_nargs(prim *p){ return p->nargs; }
 static inline void *prim_fn(prim *p)  { return p->fn; }
-static inline prim* object_to_prim(object ob, sc *sc) {
-    return (prim *)object_struct(ob, sc->prim_class);
-}   
 
 /* List macros */
 #define CAR(o)  object_to_pair(o)->car
@@ -328,7 +342,8 @@ sc    *_sc_new(void);
 #define VALUE(d)     sc_make_value(sc,d)
 
 #define NUMBER(n)     integer_to_object(n)
-#define SYMBOL(str)   const_to_object((void*)(string_to_symbol(sc->syms, str)))
+#define SYMBOL(str)   _sc_make_symbol(sc, str)
+#define STRING(str)   _sc_make_string(sc, str)
 #define ERROR(msg, o) sc_error(sc, SYMBOL(msg), o)
 #define TYPE_ERROR(o) sc_type_error(sc, o)
     
@@ -371,6 +386,12 @@ static inline object _sc_make_struct(sc *sc, long tag, long slots, ...) {
     vector_set_tag(object_to_vector(o), tag);
     return o;
 }
+
+
+/* Lowlevel finalized object wrapper. */
+_ _sc_make_aref(sc *sc, void *fin, void *ptr);
+_ _sc_make_symbol(sc *sc, const char *str);
+_ _sc_make_string(sc *sc, const char *str);
 
 _ _sc_printf(sc *sc, char *fmt, ...);
 

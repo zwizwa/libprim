@@ -1,5 +1,5 @@
 
-SRC=port.c symbol.c lib.c scheme.c main.c
+SRC=port.c bytes.c symbol.c lib.c scheme.c main.c
 OBJ=$(SRC:.c=.o)
 DEBUG_CFLAGS=-Wall -g -Wno-unused
 # OPTI_CFLAGS=-Os

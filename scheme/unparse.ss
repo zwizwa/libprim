@@ -9,10 +9,12 @@
     (format "CONS(~a,~a)"
             (unparse (car x))
             (unparse (cdr x))))
-   ((number? x)
-    (format "NUMBER(~s)" x))
    ((symbol? x)
     (format "SYMBOL(~s)" (symbol->string x)))
+   ((string? x)
+    (format "STRING(~s)" x))
+   ((number? x)
+    (format "NUMBER(~s)" x))
    (else "#<unprintable>")))
 
 (define (evl x) (format "EVAL(~a);\n" (unparse x)))
