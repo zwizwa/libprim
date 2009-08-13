@@ -71,34 +71,34 @@ _ sc_is_null(sc *sc, _ o) {
     if (!o) return TRUE; else return FALSE;
 }
 /* Pairs and lambdas are tagged vectors. */
-static _ vector_type(_ o, long tag) {
+static _ vector_type(_ o, long flags) {
     vector *v;
     if ((v = object_to_vector(o)) &&
-        (tag == vector_to_tag(v))) { return TRUE; }
+        (flags == vector_to_flags(v))) { return TRUE; }
     return FALSE;
 }
 
 
 // vector tags for interpreter data types
-#define TAG_VECTOR    0
+#define TAG_VECTOR    VECTOR_TAG(0)
 
-#define TAG_PAIR      1
-#define TAG_LAMBDA    2
-#define TAG_STATE     3
-#define TAG_VALUE     4
-#define TAG_REDEX     5
-#define TAG_ERROR     6
-#define TAG_AREF      7
+#define TAG_PAIR      VECTOR_TAG(1)
+#define TAG_LAMBDA    VECTOR_TAG(2)
+#define TAG_STATE     VECTOR_TAG(3)
+#define TAG_VALUE     VECTOR_TAG(4)
+#define TAG_REDEX     VECTOR_TAG(5)
+#define TAG_ERROR     VECTOR_TAG(6)
+#define TAG_AREF      VECTOR_TAG(7)
 
-#define TAG_K_IF      8
-#define TAG_K_SET     9
-#define TAG_K_APPLY  10
-#define TAG_K_SEQ    11
-#define TAG_K_MACRO  12
-#define TAG_K_IGNORE 13
+#define TAG_K_IF      VECTOR_TAG(8)
+#define TAG_K_SET     VECTOR_TAG(9)
+#define TAG_K_APPLY   VECTOR_TAG(10)
+#define TAG_K_SEQ     VECTOR_TAG(11)
+#define TAG_K_MACRO   VECTOR_TAG(12)
+#define TAG_K_IGNORE  VECTOR_TAG(13)
 // reserved 14 15
-static inline long tag_is_k(long tag) {
-    return (0x8L == (tag & (~0x7L)));
+static inline long flags_is_k(long flag) {
+    return flag & VECTOR_TAG(8);
 }
 
 /* Predicates */
@@ -121,7 +121,7 @@ _ sc_is_k(sc *sc, _ o) {
     vector *v;
     if (MT == o) return TRUE;
     if ((v = object_to_vector(o))) {
-        if (tag_is_k(vector_to_tag(v))) return TRUE;
+        if (flags_is_k(vector_to_flags(v))) return TRUE;
     }
     return FALSE;
 }
@@ -129,7 +129,7 @@ _ sc_k_parent(sc *sc, _ o) {
     vector *v;
     if (MT == o) TYPE_ERROR(o);
     if ((v = object_to_vector(o))) {
-        if (tag_is_k(vector_to_tag(v))) return v->slot[0];
+        if (flags_is_k(vector_to_flags(v))) return v->slot[0];
     }
     return TYPE_ERROR(o);
 }

@@ -149,19 +149,19 @@ typedef struct {
 } k_macro;
 
 
-// #define VECTOR_TAG(x) ((x) << GC_VECTOR_TAG_SHIFT)
-
-static inline unsigned long vector_to_tag(vector *v) {
-    return (v->header) >> GC_VECTOR_TAG_SHIFT;
+static inline unsigned long VECTOR_TAG(unsigned long x) {
+    return x << GC_VECTOR_TAG_SHIFT;
 }
-
-static inline unsigned long object_get_vector_tag(object o){
+static inline unsigned long vector_to_flags(vector *v) {
+    return (v->header) & (~GC_VECTOR_TAG_MASK);
+}
+static inline void vector_set_flags(vector* v, long flags){
+    v->header |= flags;
+}
+static inline unsigned long object_get_vector_flags(object o){
     vector *v = object_to_vector(o);
     if (!v) return -1;
-    return vector_to_tag(v);
-}
-static inline void vector_set_tag(vector* v, long tag){
-    v->header |= (tag << GC_VECTOR_TAG_SHIFT);
+    return vector_to_flags(v);
 }
 
 
@@ -355,13 +355,14 @@ static inline long _sc_unwrap_integer(sc *sc, object o) {
 void _sc_def_prim(sc *sc, const char *str, void *fn, long nargs);
 #define DEF(str,fn,nargs) _sc_def_prim (sc,str,fn,nargs)
 
-#define STRUCT(tag, size, ...) return _sc_make_struct(sc, tag, size, __VA_ARGS__)
-static inline object _sc_make_struct(sc *sc, long tag, long slots, ...) {
+#define STRUCT(flags, size, ...) \
+    return _sc_make_tagged_struct(sc, flags, size, __VA_ARGS__)
+static inline object _sc_make_tagged_struct(sc *sc, long flags, long slots, ...) {
     va_list ap;
     va_start(ap, slots);
     object o = gc_make_v(sc->gc, slots, ap);
     va_end(ap);   
-    vector_set_tag(object_to_vector(o), tag);
+    vector_set_flags(object_to_vector(o), flags);
     return o;
 }
 

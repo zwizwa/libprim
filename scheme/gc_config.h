@@ -10,6 +10,9 @@
    0xxx = other 
 
    The remaining bits are for vector size.
+
+   The GC needs to be able to strip these tag bits from the header
+   field to obtain the size.
 */
 
 #ifdef _LP64
