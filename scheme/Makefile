@@ -1,13 +1,12 @@
 
-SRC=gc.c task.c symbol.c lib.c scheme.c main.c
+SRC=symbol.c lib.c scheme.c main.c
 OBJ=$(SRC:.c=.o)
-DEBUG_CFLAGS=-Wall -g
+DEBUG_CFLAGS=-Wall -g -Wno-unused
 # OPTI_CFLAGS=-Os
 
 # CC = gcc -m32
 
 all: scheme
-
 
 # generated files
 %.h_: %.scm unparse.ss
@@ -23,12 +22,6 @@ CPPFLAGS += -I../scheme/ -I../gc/ -I../task/ -DTASK_DEBUG=0
 
 COMPILE = $(CC) $(CPPFLAGS) $(CFLAGS) $(OPTI_CFLAGS) $(DEBUG_CFLAGS) 
 
-
-gc.o: ../gc/gc.c
-	$(COMPILE) -o $@ -c $<
-task.o: ../task/task.c
-	$(COMPILE) -o $@ -c $<
-
 # make deps from .c file
 %.d: %.c Makefile $(GEN)
 	set -e; rm -f $@; \
@@ -42,8 +35,11 @@ task.o: ../task/task.c
 	$(COMPILE) -o $@ -c $<
 
 
+../task/task.o:
+	make -C ../task
+
 scheme: $(OBJ)
-	$(CC) -o scheme $(OBJ)
+	$(CC) -o scheme $(OBJ) ../task/task.o
 
 strip: 
 	make clean
@@ -54,6 +50,7 @@ strip:
 
 .PHONY: clean
 clean:
+	make -C ../task clean
 	rm -f scheme *.o *.d *.d.* *~
 
 .PHONY: mrproper
