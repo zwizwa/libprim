@@ -111,11 +111,12 @@ struct _gc {
 
 
 
-
 static gc *gc_new(long total, void *ctx, gc_mark_roots mark, 
                   gc_overflow  overflow);
 static void gc_collect(gc *gc);
 static object gc_mark(gc *gc, object o_old);
+static int gc_grow(gc *gc, long add_slots);
+
 #define GC_CHENEY 1
 
 
@@ -174,17 +175,21 @@ static inline long vector_size(vector *v) {
 }
 
 
+
+
+
+/* PRIVATE + implementation */
+
+
 /* Basic allocation functions are inline. */
-static int gc_grow(gc *gc, long add_slots);
 static inline int gc_full(gc *gc, int slots) {
     return (gc->current_index + slots) >= gc->slot_total;
 }
 /* User must fill the allocated space with valid tagged values before
    calling gc_alloc again. */
-static void gc_when_full(gc *gc, long size);
+static void _gc_when_full(gc *gc, long size);
 static vector *gc_alloc(gc *gc, long size);
 
-#if 1
 static inline object gc_make_v(gc *gc, long slots, va_list ap) {
     vector *v = gc_alloc(gc, slots);
     long i = 0;
@@ -200,24 +205,18 @@ static inline object gc_make(gc *gc, long slots, ...) {
     va_end(ap);   
     return o;
 }
-#endif
 
 
-static void gc_do_assert(const char*, const char*, int);
-// __FUNCTION__
-#define gc_assert(x) {if (!(x)) gc_do_assert(#x, __FILE__, __LINE__);}
-
-
-
-
-static void gc_when_full(gc *gc, long slots) {
-    /* Record request size that triggered GC to check if it will fit
-       _after_ collection. */
-    gc->want = slots;
-    gc_collect(gc);
+static void _gc_assert(const char *cond, const char *file, int line) {
+    fprintf(stderr, "%s: %d: gc_assert(%s)\n", file, line, cond);
+    kill(getpid(), SIGTRAP);
+    exit(1);
 }
+// __FUNCTION__
+#define gc_assert(x)
+// #define gc_assert(x) {if (!(x)) _gc_assert(#x, __FILE__, __LINE__);}
 
-static void gc_fin_slots(gc *gc, object *o, long slots) {
+static void _gc_fin_slots(gc *gc, object *o, long slots) {
     long i;
     for (i=0; i<slots; i++){
         fin *f;
@@ -235,13 +234,13 @@ static void gc_fin_slots(gc *gc, object *o, long slots) {
    algorithm uses the tospace as a queue to sequence a breadth-first
    search. */
 
-static void gc_assert_old(gc *gc, object o) {
+static inline void _gc_assert_old(gc *gc, object o) {
     vector *v = object_to_vector(o);
     gc_assert((!v) ||
               ((v >= gc->old) &&
                (v <  gc->old + gc->old_index)));
 }
-static void gc_assert_current(gc *gc, object o) {
+static inline void _gc_assert_current(gc *gc, object o) {
     vector *v = object_to_vector(o);
     gc_assert((!v) ||
               ((v >= gc->current) &&
@@ -252,7 +251,7 @@ static void gc_assert_current(gc *gc, object o) {
 static vector *_gc_allot(gc *gc, long size) {
     vector *v = &gc->current[gc->current_index];
     // finalize data before overwriting
-    // gc_fin_slots(gc, &v->header, size + 1);
+    // _gc_fin_slots(gc, &v->header, size + 1);
     // allot
     v->header = integer_to_object(size);
     gc->current_index += size + 1;
@@ -273,7 +272,7 @@ static inline object vector_moved(vector *v) {
 
 static object _gc_move_object(gc *gc, object o_old) {
     /* Input objects need to be in the old space. */
-    /**/ gc_assert_old(gc, o_old);
+    /**/ _gc_assert_old(gc, o_old);
 
     object o_new;
     vector *v_old = object_to_vector(o_old);
@@ -295,26 +294,9 @@ static object _gc_move_object(gc *gc, object o_old) {
         v_old->header = o_new;                   // forward old
     }
     /* Output vectors need to be in new space. */
-    /**/ gc_assert_current(gc, o_new);
+    /**/ _gc_assert_current(gc, o_new);
     return o_new;
 }
-
-
-
-static void gc_do_assert(const char *cond, const char *file, int line) {
-    fprintf(stderr, "%s: %d: gc_assert(%s)\n", file, line, cond);
-    kill(getpid(), SIGTRAP);
-    exit(1);
-}
-
-static void gc_assert_all_current(gc *gc) {
-    long i;
-    object *o = (object*)gc->current;
-    for (i=0; i<gc->current_index; i++) {
-        gc_assert_current(gc, o[i]);
-    }
-}
-
 #if GC_CHENEY
 static object gc_mark(gc *gc, object root) {
     long todo = gc->current_index;
@@ -331,8 +313,6 @@ static object gc_mark(gc *gc, object root) {
         }
         todo += size + 1;
     }
-    /**/ gc_assert_all_current(gc);
-    // printf("%ld\n", todo);
     return root;
 }
 #else
@@ -368,35 +348,32 @@ static object gc_mark(gc *gc, object o_old) {
 }
 #endif
 
+static void _gc_when_full(gc *gc, long slots) {
+    /* Record request size that triggered GC to check if it will fit
+       _after_ collection. */
+    gc->want = slots;
+    gc_collect(gc);
+}
 static vector *gc_alloc(gc *gc, long size) {
     long slots = size + 1;
     if (unlikely(gc_full(gc, slots))) {
-        gc_when_full(gc, slots);
+        _gc_when_full(gc, slots);
     }
-    // get new
     return _gc_allot(gc, size);
 }
-
-
 static void _gc_call_finalizers(gc *gc) {
-    gc_fin_slots(gc, (object *)gc->old, gc->old_index);
+    _gc_fin_slots(gc, (object *)gc->old, gc->old_index);
     gc->old_index = 0;
-    // memset(gc->old, 0, sizeof(long) * gc->slot_total);
 }
-
 static void _gc_finalize(gc *gc) {
     _gc_call_finalizers(gc);
-
     /* If we need to grow, send a message to the client. */
     long nb_extra = gc->want - (gc->slot_total - gc->current_index);
     if (nb_extra > 0) gc->overflow(gc->client_ctx, nb_extra);
 }
-
 static void _gc_swap(gc *gc) {
-
     vector *current   = gc->current;
     vector *old       = gc->old;
-
     gc->old           = current;
     gc->old_index     = gc->current_index;
     gc->current       = old;
@@ -405,25 +382,23 @@ static void _gc_swap(gc *gc) {
 
 static void _gc_collect_with_fin(gc *gc, gc_finalize fin) {
 
-    /* gc_collect() can't be called by a gc_alloc() triggered by a
-       gc_collect() because the data did fit before. */
+    /* Won't re-enter. */
     gc_assert(!gc->old_index);
 
-    /* Record the current used size and swap buffers.  After this
-       gc_alloc() will take from the new space. */
+    /* After this gc_alloc() will take from the new space. */
     _gc_swap(gc);
 
     /* Call client to mark the root pointers and pass the continuation
-       so client can abort the C stack when a collection is
-       triggered. */
+       so client can abort the C stack when a collection is triggered.
+       If this passes fin == NULL, the client needs to return. */
     gc->mark_roots(gc->client_ctx, fin);
 }
 
 static void gc_collect(gc *gc) { 
     _gc_collect_with_fin(gc, _gc_finalize); 
 }
-static void _gc_collect_direct(gc *gc) {
-    /* Client is not allowed to abort if we pass no finalizer. */
+static void _gc_collect_no_abort(gc *gc) {
+    /* Client is not allowed to abort if we pass NULL finalizer. */
     _gc_collect_with_fin(gc, NULL);
     _gc_call_finalizers(gc);
 }
@@ -435,18 +410,14 @@ static int gc_grow(gc *gc, long add_slots) {
     long bytes = total * sizeof(object);
     
     if (!(gc->old = realloc(gc->old, bytes))) return 0;
-    _gc_collect_direct(gc);
+    _gc_collect_no_abort(gc);
     if (!(gc->old = realloc(gc->old, bytes))) return 0;
     gc->slot_total = total;
     return 1;
 }
 
-
-
-
 static gc *gc_new(long total, void *ctx, gc_mark_roots mark, 
                   gc_overflow  overflow) {
-
     gc* x = (gc*)malloc(sizeof(gc));
     x->slot_total     = total;
     x->current        = (vector*)calloc(total, sizeof(object));

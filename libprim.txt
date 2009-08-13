@@ -1320,3 +1320,20 @@ interpreter.
 Entry: Ports
 Date: Thu Aug 13 12:36:27 CEST 2009
 
+Added a ports struct (GCd aref) + a debug port until dynamic scope is
+implemented.
+
+
+Entry: Current scheme implementation wrt. generated code.
+Date: Thu Aug 13 13:58:21 CEST 2009
+
+Code is generated for declaring primitive functions and defining boot
+code in C (as long as there is no reader).  This could be augmented by
+generating all code that has to do with data structures: struct def,
+lowlevel casts, and highlevel predicates and constructors.
+Additionally, all primitive trampoline code could be generated.
+
+Definitely: when the primitive struct accessors need to be available,
+it would be simpler to use a code generator.
+
+

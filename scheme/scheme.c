@@ -310,7 +310,7 @@ _ sc_bang_def_global(sc* sc, _ slot, _ var, _ val) {
     symbol *s;
     _ env = sc_global(sc, slot);
     if (!(s=object_to_symbol(var, sc))) TYPE_ERROR(var);
-    // printf("DEF %s: ",s->name); sc_post(sc, val);
+    // _sc_printf(sc, "DEF %s: ",s->name); sc_post(sc, val);
     if (FALSE == sc_env_set(sc, env, var, val)) {
         sc_bang_set_global(sc, slot, CONS(CONS(var,val), env));
     }
@@ -327,7 +327,8 @@ _ sc_is_list(sc *sc, _ o) {
     if(FALSE==sc_is_pair(sc, o)) return FALSE;
     return sc_is_list(sc, CDR(o));
 }
-_ sc_newline(sc *sc) { printf("\n"); return VOID; }
+_ sc_newline(sc *sc, _ out) { port_printf(CAST(port, out), "\n"); return VOID; }
+
 static _ write_vector(sc *sc, char *type, _ o, _ output_port) {
     port *p = CAST(port, output_port);
     vector *v = object_to_vector(o);
@@ -912,7 +913,7 @@ static _ _sc_restart(sc *sc) {
     if (sc->top_entries) {
         longjmp(sc->top, SC_EX_RESTART); 
     }
-    fprintf(stderr, "ERROR: attempt restart outside of the main loop.\n");
+    _sc_printf(sc, "ERROR: attempt restart outside of the main loop.\n");
     sc_trap(sc);
     exit(1);
 }
@@ -1027,7 +1028,7 @@ _ sc_with_ck(sc *sc, _ in_ref, _ value) {
 
 _ _sc_top(sc *sc, _ expr){
     if (sc->top_entries) {
-        printf("WARNING: multiple _sc_top() entries.\n");
+        _sc_printf(sc, "WARNING: multiple _sc_top() entries.\n");
         return NIL;
     }
     sc->top_entries++;
@@ -1077,7 +1078,7 @@ void _sc_overflow(sc *sc, long extra) {
        allocation doesn't fit.  We need to grow.  Take at least the
        requested size + grow by a fraction of the total heap. */
     long request = extra + (sc->gc->slot_total/4);
-    printf(";; gc-overflow %ld:%ld\n", extra, request);
+    _sc_printf(sc, ";; gc-overflow %ld:%ld\n", extra, request);
     gc_grow(sc->gc, request);
     _sc_restart(sc);
 }
@@ -1096,7 +1097,7 @@ static void _sc_mark_roots(sc *sc, gc_finalize fin) {
         fin(sc->gc);
         long used = sc->gc->current_index;
         long free = sc->gc->slot_total - used;
-        printf(";; gc %d:%d\n", (int)used, (int)free);
+        _sc_printf(sc, ";; gc %d:%d\n", (int)used, (int)free);
         _sc_restart(sc);
     }
     else {
