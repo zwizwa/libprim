@@ -5,6 +5,8 @@
 #include "gc_config.h"
 #include "symbol.h"
 #include "task.h"
+#include "port.h"
+
 
 typedef struct _scheme sc;
 sc *scheme_new(void);
@@ -15,9 +17,9 @@ sc *scheme_new(void);
 
    All data structures and function primitives are Scheme values.
 
-   The GC is a stop-and-copy type supporting 4 data types: integers,
-   vectors, finalized atoms and unmanaged constants.  Note that it is
-   not safe to perform allocation outside of the main interpreter
+   The GC is a stop-and-copy type Cheney algorithm supporting 4 data
+   types: integers, vectors, finalizers and constants.  Note that it
+   is not safe to perform allocation outside of the main interpreter
    loop, and the main loop is not re-entrant.
 
    When GC is triggered in the context of a primitive, it will be
@@ -32,13 +34,14 @@ sc *scheme_new(void);
        (or impure functions that do not perform allocation _after_
        mutation).
 
-     * ABSTRACT: C code that does not refer to any Scheme data.
+     * ABSTRACT: C code that does not refer to any Scheme data, and
+       thus cannot trigger GC.
 
    The disadvantage of not being able to access Scheme data from
    impure C code can be largely removed by providing a suspension
    mechanism for primitives.  In this case the C code could behave as
    a coroutine, which allows the use of enumerators / iterators
-   instead of construction of intermediate data.
+   instead of construction of intermediate (Scheme) data structures.
 
 */
 
@@ -108,7 +111,9 @@ typedef struct {
     _ marks;
 } k_frame;
 
-/* Arguments are evaluated left to right. */
+/* Arguments are evaluated left to right.  In retrospect it would have
+   been simpler to evaluate from right to left: this makes it easier
+   to use k_apply continuations for other purposes. */
 typedef struct {
     k_frame k;
     _ done;   // reversed list of values
@@ -184,6 +189,7 @@ DEF_CAST (k_macro)
 #define sc_slot_toplevel_macro  integer_to_object(1)
 #define sc_slot_state           integer_to_object(2)
 #define sc_slot_abort_k         integer_to_object(3)
+#define sc_slot_debug_port      integer_to_object(4)
 
 typedef struct {
     jmp_buf step;  // current CEKS step abort
@@ -210,6 +216,7 @@ struct _scheme {
     symstore *syms;
     ck_manager *ck_manager;
     void *prim_class;
+    void *port_class;
 
     /* Lowlevel control flow */
     jmp_buf top;       // full interpreter C stack unwind (i.e. for GC)
@@ -252,13 +259,22 @@ static inline symbol* object_to_symbol(object ob, sc *sc) {
 
 /* The ck atoms have a free() finalizer, so need to be wrapped in an
    aref struct */
-static inline ck* object_to_ck(object ob, sc *sc) {
+static inline void *object_aref_struct(object ob, sc *sc, void *type) {
     aref *ref;
     void *x;
     if ((ref = object_to_aref(ob)) &&
-        (x = object_struct(ref->atom, sc->ck_manager))) return (ck*)x;
+        (x = object_struct(ref->atom, type))) return x;
     else return NULL;
 }
+
+static inline ck* object_to_ck(object ob, sc *sc) {
+    return (ck*)object_aref_struct(ob, sc, sc->ck_manager);
+}
+
+static inline port* object_to_port(object ob, sc *sc) {
+    return (port*)object_aref_struct(ob, sc, sc->port_class);
+}
+
 
 typedef struct {
     void *type;
@@ -322,13 +338,22 @@ sc    *_sc_new(void);
 // safe cast to C struct
 typedef void* (*object_to_pointer)(object, sc*);
 object sc_type_error(sc *sc, object arg_o);
-static inline void* _sc_unwrap(sc *sc, void *_unwrap, sc_1 is, object o) {
-    object_to_pointer unwrap = (object_to_pointer)_unwrap;
-    if (unlikely(FALSE == is(sc, o))) TYPE_ERROR(o);
-    return unwrap(o, sc);
+
+/* Pointer casts (just like predicates) are derived from the
+   object_to_pointer function, _except_ for integers: there we use the
+   predicate. */
+static inline void* _sc_unwrap_pointer(sc *sc, void *unwrap, object o){
+    void *x = ((object_to_pointer)unwrap)(o, sc);
+    if (unlikely(!x)) TYPE_ERROR(o);
+    return x;
 }
-#define CAST(type,x) ((type*)(_sc_unwrap(sc, object_to_##type, sc_is_##type, x)))
-#define CAST_INTEGER(x) ((integer)(CAST(integer, x)))
+_ sc_is_integer(sc*, _);
+static inline long _sc_unwrap_integer(sc *sc, object o) {
+    if ((FALSE == sc_is_integer(sc, o))) return TYPE_ERROR(o);
+    return object_to_integer(o);
+}
+#define CAST(type,x) ((type*)(_sc_unwrap_pointer(sc, object_to_##type, x)))
+#define CAST_INTEGER(x) _sc_unwrap_integer(sc, x)
 
 // renames
 #define sc_make_pair sc_cons
@@ -346,5 +371,8 @@ static inline object _sc_make_struct(sc *sc, long tag, long slots, ...) {
     vector_set_tag(object_to_vector(o), tag);
     return o;
 }
+
+_ _sc_printf(sc *sc, char *fmt, ...);
+
 
 #endif

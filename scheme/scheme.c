@@ -4,7 +4,6 @@
 #include <unistd.h>
 #include <string.h>
 
-#include "symbol.h"
 #include "scheme.h"
 
 // generated
@@ -54,14 +53,17 @@ _ sc_sub1(sc *sc, _ o) {
 }
 
 /* Symbols are encoded as GC_ATOM. */
-_ sc_is_symbol(sc *sc, _ o) {
-    if(object_to_symbol(o, sc)) return TRUE;
-    return FALSE;
-}
-_ sc_is_prim(sc *sc, _ o) {
-    if(object_to_prim(o,sc)) return TRUE;
-    return FALSE;
-}
+
+/* Predicates for primitive objects are derived from their
+   object_to_pointer cast: if it returns NULL, the type isn't
+   correct. */
+#define OBJECT_PREDICATE(cast) \
+    {if (cast(o, sc)) return TRUE; else return FALSE;}
+_ sc_is_symbol(sc *sc, _ o) { OBJECT_PREDICATE(object_to_symbol); }
+_ sc_is_prim(sc *sc, _ o)   { OBJECT_PREDICATE(object_to_prim); }
+_ sc_is_ck(sc *sc, _ o)     { OBJECT_PREDICATE(object_to_ck); }
+_ sc_is_port(sc *sc, _ o)   { OBJECT_PREDICATE(object_to_port); }
+
 
 /* The empty list is the NULL pointer */
 _ sc_is_null(sc *sc, _ o) {
@@ -157,6 +159,11 @@ _ sc_make_redex(sc *sc, _ D, _ E, _ M)            {STRUCT(TAG_REDEX,   3, D,E,M)
 _ sc_make_value(sc *sc, _ D)                      {STRUCT(TAG_VALUE,   1, D);}
 _ sc_make_aref(sc *sc, _ F, _ O)                  {STRUCT(TAG_AREF,    2, F,O);}
 
+/* Lowlevel finalized object wrapper. */
+static _ _sc_make_aref(sc *sc, void *fin, void *ptr) {
+    return sc_make_aref(sc, fin_to_object(fin), const_to_object(ptr));
+}
+
 // 'P' is in slot 0
 // continuations are created with an empty mark list
 _ sc_make_k_apply(sc *sc, _ P, _ D, _ T)     {STRUCT(TAG_K_APPLY,  4, P,NIL,D,T);}
@@ -181,7 +188,7 @@ _ sc_error(sc *sc, _ sym_o, _ arg_o) {
     sc->error_arg = arg_o;
     // if (sym_o != SYMBOL("halt")) sc_trap(sc);
     if (sc->step_entries) longjmp(sc->r.step, SC_EX_ABORT);
-    fprintf(stderr, "ERROR: attempt to abort primitive outside of the main loop.\n");
+    _sc_printf(sc, "ERROR: attempt to abort primitive outside of the main loop.\n");
     sc_trap(sc);
     exit(1);
 }
@@ -321,83 +328,96 @@ _ sc_is_list(sc *sc, _ o) {
     return sc_is_list(sc, CDR(o));
 }
 _ sc_newline(sc *sc) { printf("\n"); return VOID; }
-static _ write_vector(sc *sc, char *type, _ o) {
-    printf("#%s(", type);
+static _ write_vector(sc *sc, char *type, _ o, _ output_port) {
+    port *p = CAST(port, output_port);
     vector *v = object_to_vector(o);
     long i,n = vector_size(v);
+    port_printf(p, "#%s(", type);
     for(i=0;i<n;i++){
-        sc_write(sc, v->slot[i]);
-        if (i != n-1) printf(" ");
+        sc_write(sc, v->slot[i], output_port);
+        if (i != n-1) port_printf(p, " ");
     }
-    printf(")");
+    port_printf(p, ")");
     return VOID;
 }
-_ sc_write(sc *sc, _ o) {
-    if (TRUE  == o) { printf("#t"); return VOID; }
-    if (FALSE == o) { printf("#f"); return VOID; }
+_ sc_write(sc *sc,  _ o, _ out) {
+    port *p = CAST(port, out);
+    if (TRUE  == o) { port_printf(p, "#t"); return VOID; }
+    if (FALSE == o) { port_printf(p, "#f"); return VOID; }
     if (TRUE == sc_is_integer(sc, o)) {
-        printf("%ld", object_to_integer(o));
+        port_printf(p, "%ld", object_to_integer(o));
         return VOID;
     }
-    if (VOID  == o) { printf("#<void>"); return VOID; }
+    if (VOID  == o) { port_printf(p, "#<void>"); return VOID; }
     if(TRUE == sc_is_null(sc, o)) {
-        printf("()");
+        port_printf(p, "()");
         return VOID;
     }
     if (TRUE == sc_is_pair(sc, o)) {
-        printf("(");
+        port_printf(p, "(");
         for(;;) {
-            sc_write(sc, CAR(o));
+            sc_write(sc, CAR(o), out);
             o = CDR(o);
             if (TRUE == sc_is_null(sc, o)) {
-                printf(")");
+                port_printf(p, ")");
                 return VOID;
             }
             if (FALSE == sc_is_pair(sc, o)) {
-                printf(" . ");
-                sc_write(sc, o);
-                printf(")");
+                port_printf(p, " . ");
+                sc_write(sc, o, out);
+                port_printf(p, ")");
                 return VOID;
             }
-            printf(" ");
+            port_printf(p, " ");
         }
     }
-    if (TRUE == sc_is_vector(sc, o))  return write_vector(sc, "", o);
+    if (TRUE == sc_is_vector(sc, o))  return write_vector(sc, "", o, out);
     if (TRUE == sc_is_symbol(sc, o)) {
-        printf("%s", object_to_symbol(o,sc)->name);
+        port_printf(p, "%s", object_to_symbol(o,sc)->name);
         return VOID;
     }
-    if (TRUE == sc_is_state(sc, o))   return write_vector(sc, "state", o);
-    if (TRUE == sc_is_lambda(sc, o))  return write_vector(sc, "lambda", o);
-    if (TRUE == sc_is_redex(sc, o))   return write_vector(sc, "redex", o);
-    if (TRUE == sc_is_value(sc, o))   return write_vector(sc, "value", o);
-    if (TRUE == sc_is_error(sc, o))   return write_vector(sc, "error", o);
-    if (TRUE == sc_is_aref(sc, o))    return write_vector(sc, "aref", o);
+    if (TRUE == sc_is_state(sc, o))   return write_vector(sc, "state", o, out);
+    if (TRUE == sc_is_lambda(sc, o))  return write_vector(sc, "lambda", o, out);
+    if (TRUE == sc_is_redex(sc, o))   return write_vector(sc, "redex", o, out);
+    if (TRUE == sc_is_value(sc, o))   return write_vector(sc, "value", o, out);
+    if (TRUE == sc_is_error(sc, o))   return write_vector(sc, "error", o, out);
+    if (TRUE == sc_is_aref(sc, o))    return write_vector(sc, "aref", o, out);
 
-    if (TRUE == sc_is_k_apply(sc, o)) return write_vector(sc, "k_apply", o);
-    if (TRUE == sc_is_k_if(sc, o))    return write_vector(sc, "k_if", o);
-    if (TRUE == sc_is_k_seq(sc, o))   return write_vector(sc, "k_seq", o);
-    if (TRUE == sc_is_k_set(sc, o))   return write_vector(sc, "k_set", o);
-    if (TRUE == sc_is_k_macro(sc, o)) return write_vector(sc, "k_macro", o);
-    if (MT   == o) { printf("#k_mt"); return VOID; }
+    if (TRUE == sc_is_k_apply(sc, o)) return write_vector(sc, "k_apply", o, out);
+    if (TRUE == sc_is_k_if(sc, o))    return write_vector(sc, "k_if", o, out);
+    if (TRUE == sc_is_k_seq(sc, o))   return write_vector(sc, "k_seq", o, out);
+    if (TRUE == sc_is_k_set(sc, o))   return write_vector(sc, "k_set", o, out);
+    if (TRUE == sc_is_k_macro(sc, o)) return write_vector(sc, "k_macro", o, out);
+    if (MT   == o) { port_printf(p, "#k_mt"); return VOID; }
 
     if (TRUE == sc_is_prim(sc, o)) {
-        prim *p = object_to_prim(o,sc);
-        printf("#prim<%p:%ld>", (void*)(p->fn),p->nargs);
+        prim *pr = object_to_prim(o,sc);
+        port_printf(p, "#prim<%p:%ld>", (void*)(pr->fn),pr->nargs);
         return VOID;
     }
     void *x;
     if ((x = object_to_fin(o))) { 
-        printf("#fin<%p:%p>", x, *((void**)x)); return VOID; 
+        port_printf(p, "#fin<%p:%p>", x, *((void**)x)); return VOID; 
     }
-    if ((x = object_to_const(o))) { printf("#data<%p>",x); return VOID; }
-    printf("#object<%p>",(void*)o);
+    if ((x = object_to_const(o))) { port_printf(p, "#data<%p>",x); return VOID; }
+    port_printf(p, "#object<%p>",(void*)o);
     return VOID;
 }
+
+/* Use current output.  Until params work, this is the debug port. */
+_ _sc_printf(sc *sc, char *fmt, ...) {
+    int rv;
+    port *p = CAST(port, sc_global(sc, sc_slot_debug_port));
+    va_list ap; va_start(ap, fmt);
+    rv = port_vprintf(p, fmt, ap);
+    va_end(ap);
+    return rv;
+}
 _ sc_post(sc* sc, _ o) {
+    _ dbg = sc_global(sc, sc_slot_debug_port);
     if (VOID != o) {
-        sc_write(sc, o);
-        printf("\n");
+        sc_write(sc, o, dbg);
+        _sc_printf(sc, "\n");
     }
     return VOID;
 }
@@ -411,17 +431,18 @@ _ sc_is_eq(sc *sc, _ a, _ b) {
 
 
 _ sc_fatal(sc *sc, _ err) {
+    _ dbg = sc_global(sc, sc_slot_debug_port);
     if (TRUE == sc_is_error(sc, err)) {
         error *e = object_to_error(err);
-        printf("ERROR");
+        _sc_printf(sc, "ERROR");
         if (TRUE == sc_is_prim(sc, e->prim)) {
             prim *p = object_to_prim(e->prim, sc);
             symbol *s = object_to_symbol(p->var, sc);
-            if (s) printf(" in `%s'", s->name); 
+            if (s) _sc_printf(sc, " in `%s'", s->name); 
         }
-        printf(": ");
-        sc_write(sc, e->tag); printf(": ");
-        sc_write(sc, e->arg); printf("\n");
+        _sc_printf(sc, ": ");
+        sc_write(sc, e->tag, dbg); _sc_printf(sc, ": ");
+        sc_write(sc, e->arg, dbg); _sc_printf(sc, "\n");
     }
     return VOID;
 }
@@ -1114,12 +1135,16 @@ sc *_sc_new(void) {
     sc->ck_manager = ck_manager_new();
     sc->syms = symstore_new(1000);
     sc->prim_class = (void*)(123); // FIXME
+    sc->port_class = port_class_new();
+    _ out = _sc_make_aref(sc, sc->port_class, 
+                          port_new(sc->port_class, stderr));
 
-    sc->global = gc_make(sc->gc, 4,
+    sc->global = gc_make(sc->gc, 5,
                          NIL,  // toplevel
                          NIL,  // macro
                          NIL,  // state
-                         NIL); // abort
+                         NIL,  // abort
+                         out); // debug port
 
     /* Cached identifiers */
     sc->s_lambda   = SYMBOL("lambda");

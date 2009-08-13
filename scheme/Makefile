@@ -1,5 +1,5 @@
 
-SRC=symbol.c lib.c scheme.c main.c
+SRC=port.c symbol.c lib.c scheme.c main.c
 OBJ=$(SRC:.c=.o)
 DEBUG_CFLAGS=-Wall -g -Wno-unused
 # OPTI_CFLAGS=-Os
@@ -38,7 +38,7 @@ COMPILE = $(CC) $(CPPFLAGS) $(CFLAGS) $(OPTI_CFLAGS) $(DEBUG_CFLAGS)
 ../task/task.o:
 	make -C ../task
 
-scheme: $(OBJ)
+scheme: $(OBJ) ../task/task.o
 	$(CC) -o scheme $(OBJ) ../task/task.o
 
 strip: 

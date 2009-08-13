@@ -1305,3 +1305,18 @@ evaluating one.  This simplifies the form of apply continuations, to
 easier support the `apply' primitive.
 
 
+Entry: Restating goals
+Date: Thu Aug 13 12:27:44 CEST 2009
+
+In libprim I'm trying to explore the idea of non-invasive scripting.
+Essentially, it explores a concurrency-oriented programming style,
+where one of the tasks is a `management core'.
+
+At the same time I'm looking into simple interpreter cores to serve as
+the operating system.  Currently there's a bare-bones scheme
+interpreter.
+
+
+Entry: Ports
+Date: Thu Aug 13 12:36:27 CEST 2009
+
