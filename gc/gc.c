@@ -61,7 +61,7 @@ void gc_fin_slots(gc *gc, object *o, long slots) {
     for (i=0; i<slots; i++){
         fin *f;
         if ((f = object_to_fin(o[i]))) {
-            o[i] = 0;
+            o[i] = 0; // kill the finalizer
             (*f)(object_to_const(o[i+1]));
             i++;
         }
@@ -74,17 +74,17 @@ void gc_fin_slots(gc *gc, object *o, long slots) {
    algorithm uses the tospace as a queue to sequence a breadth-first
    search. */
 
-static int gc_is_old(gc *gc, object o) {
-    vector *v;
-    if (!(v = object_to_vector(o))) return 0;
-    long i = v - gc->old;
-    return ((i >= 0) && (i < gc->old_index));
+static void gc_assert_old(gc *gc, object o) {
+    vector *v = object_to_vector(o);
+    gc_assert((!v) ||
+              ((v >= gc->old) &&
+               (v <  gc->old + gc->old_index)));
 }
-static int gc_is_new(gc *gc, object o) {
-    vector *v;
-    if (!(v = object_to_vector(o))) return 0;
-    long i = v - gc->current;
-    return ((i >= 0) && (i < gc->current_index));
+static void gc_assert_current(gc *gc, object o) {
+    vector *v = object_to_vector(o);
+    gc_assert((!v) ||
+              ((v >= gc->current) &&
+               (v <  gc->current + gc->current_index)));
 }
 
 
@@ -111,6 +111,9 @@ static inline object vector_moved(vector *v) {
 
 
 static object _gc_move_object(gc *gc, object o_old) {
+    /* Input objects need to be in the old space. */
+    /**/ gc_assert_old(gc, o_old);
+
     object o_new;
     vector *v_old = object_to_vector(o_old);
 
@@ -118,16 +121,20 @@ static object _gc_move_object(gc *gc, object o_old) {
     if (!v_old) return o_old;
 
     /* Already moved -> copy forwarding pointer. */
-    if ((o_new = vector_moved(v_old))) return o_new;
+    if (!(o_new = vector_moved(v_old))) {
 
-    /* Copy object */
-    long size = vector_size(v_old);
-    long bytes = sizeof(long) * size;
-    vector *v_new = _gc_allot(gc, size);
-    o_new = vector_to_object(v_new);
-    memcpy(v_new->slot, v_old->slot, bytes); // copy contents
-    memset(v_old->slot, 0, bytes);           // remove finalizers
-    v_old->header = o_new;                   // forward old
+        /* Copy object */
+        long size = vector_size(v_old);
+        long bytes = sizeof(long) * size;
+        vector *v_new = _gc_allot(gc, size);
+        o_new = vector_to_object(v_new);
+        memcpy(v_new->slot, v_old->slot, bytes); // copy contents
+        memset(v_old->slot, 0, bytes);           // remove finalizers
+        v_new->header = v_old->header;           // preserve tags
+        v_old->header = o_new;                   // forward old
+    }
+    /* Output vectors need to be in new space. */
+    /**/ gc_assert_current(gc, o_new);
     return o_new;
 }
 
@@ -137,6 +144,14 @@ void gc_do_assert(const char *cond, const char *file, int line) {
     fprintf(stderr, "%s: %d: gc_assert(%s)\n", file, line, cond);
     kill(getpid(), SIGTRAP);
     exit(1);
+}
+
+static void gc_assert_all_current(gc *gc) {
+    long i;
+    object *o = (object*)gc->current;
+    for (i=0; i<gc->current_index; i++) {
+        gc_assert_current(gc, o[i]);
+    }
 }
 
 /* FIXME: it blows up. */
@@ -151,11 +166,11 @@ object gc_mark_cheney(gc *gc, object root) {
         long i;
         for (i=0; i<size; i++) {
             object new = _gc_move_object(gc, v->slot[i]);
-            gc_assert(gc_is_new(gc, new));
             v->slot[i] = new;
         }
         todo += size + 1;
     }
+    /**/ gc_assert_all_current(gc);
     printf("%ld\n", todo);
     return root;
 }
@@ -204,6 +219,9 @@ vector *gc_alloc(gc *gc, long size) {
 static void _finalize(gc *gc) {
     gc_fin_slots(gc, (object *)gc->old, gc->old_index);
     gc->old_index = 0;
+
+    memset(gc->old, 0, sizeof(long) * gc->slot_total);
+
 }
 
 static void _swap(gc *gc) {

@@ -1288,6 +1288,10 @@ distinct values in different modes when there are subtle cases where
 this is not valid.  The Cheney algo is a simple one, but I couldn't
 get it right ``just writing it down''.
 
+Ha.. Indeed: caused by leaky abstractions: the problem was that vector
+tags didn't get copied, which probably triggered an allocation loop in
+the interpreter due to type errors.
+
 Next: add assertions and error handling for the whole project.
 
 [1] http://en.wikipedia.org/wiki/Cheney%27s_algorithm

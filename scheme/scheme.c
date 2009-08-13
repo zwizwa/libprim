@@ -1051,11 +1051,13 @@ typedef struct {
 static prim_def prims[] = prims_init;
 #endif
 
+
 static void _sc_mark_roots(sc *sc, gc_finalize fin) {
     // sc_trap(sc);
     // printf("gc_mark()\n");
     // sc_post(sc, sc->state);
-    sc->global = gc_mark_recursive(sc->gc, sc->global);
+    sc->global = gc_mark_cheney(sc->gc, sc->global);
+    // sc->global = gc_mark_recursive(sc->gc, sc->global);
     fin(sc->gc);
     {
         long used = sc->gc->current_index;
