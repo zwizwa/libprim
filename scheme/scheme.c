@@ -1056,7 +1056,7 @@ void _sc_overflow(sc *sc, long extra) {
        allocation doesn't fit.  We need to grow.  Take at least the
        requested size + grow by a fraction of the total heap. */
     long request = extra + (sc->gc->slot_total/4);
-    printf(";; gc overflow %ld:%d\n", extra, request);
+    printf(";; gc-overflow %ld:%ld\n", extra, request);
     gc_grow(sc->gc, request);
     _sc_restart(sc);
 }
@@ -1080,8 +1080,8 @@ static void _sc_mark_roots(sc *sc, gc_finalize fin) {
     }
     else {
         /* No finalizer continuation means that this call is part of a
-           grow() operation, and we need to return to caller.  Restart
-           will be handled in _sc_overflow. */
+           gc_grow() operation, called from _sc_overflow(), which will
+           handle restart.  We need to return to caller. */
         return;
     }
 }

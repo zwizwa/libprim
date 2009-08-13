@@ -1296,3 +1296,12 @@ Next: add assertions and error handling for the whole project.
 
 [1] http://en.wikipedia.org/wiki/Cheney%27s_algorithm
 
+
+Entry: Simpler k_apply
+Date: Thu Aug 13 12:17:00 CEST 2009
+
+Next time I write an interpreter, it will be a right-to-left
+evaluating one.  This simplifies the form of apply continuations, to
+easier support the `apply' primitive.
+
+

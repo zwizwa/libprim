@@ -5,28 +5,32 @@
 
    The GC uses the following annotations:
 
-   1. VECTOR-SIZE
+   1. VECTOR-SIZE - For a live object, the first element of a struct
+      vector_ contains the size.
 
-      For a live object, the first element of a struct vector_
-      contains the size.
+   2. VECTORS? - Cells are tagged using 2 tag bits.
 
-   2. VECTORS?
+   3. FINALIZERS - A finalizer on heap location n is a function
+      that will be applied to the constant on heap location n+1
+      whenever the vector containing the finalizer is no longer
+      reachable.
 
-      Cells are tagged using 2 tag bits.
+   4. MOVED? - A moved object contains an an object reference in the
+      size slot.
 
-   3. ATOM-FREE
+   GC is implemented in a header file, since its code depends on
+   configuration that changes the vector tags. 
 
-      An atom is a struct where the first element is a free() method.
+   Note that using this GC in conjuction with C code requires solution
+   of 2 problems: pointers will have changed + C stack isn't scanned.
+   This keeps the implementation of the GC simple.
 
-   4. MOVED?
-
-      A moved object contains an an object reference in the size slot.
+   In the Scheme interpreter this is solved by simply restarting each
+   primitive after a collection, and making sure that this is possible
+   by using purely functional primitives, or always performing side
+   effects _after_ allocation.
 
 */
-
-
-/* GC is implemented in a header file, since its code depends on
-   configuration that changes the binary heap format (vector tags). */
 
 
 #define unlikely(x) __builtin_expect((x),0)

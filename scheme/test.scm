@@ -1,4 +1,4 @@
-(make-vector 10000 123)
+(begin (make-vector 10000 123) 'foo)
 (map2-prim cons '(a b c) '(1 2 3))
 
 
