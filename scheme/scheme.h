@@ -151,7 +151,6 @@ typedef struct {
 
 // #define VECTOR_TAG(x) ((x) << GC_VECTOR_TAG_SHIFT)
 
-
 static inline unsigned long vector_to_tag(vector *v) {
     return (v->header) >> GC_VECTOR_TAG_SHIFT;
 }
@@ -249,27 +248,6 @@ struct _scheme {
 };
 
 
-/* All primitive structs used in sc are identifiable by the pointer
-   they contain as a first member.  These are represented as GC_CONST.
-   The addresses 0x000->0xFFF (first 4K page) are reserved for
-   constants. */
-
-#define SC_CONST_MASK 0xFFF
-
-/* Booleans and void are encoded as constant pointers. */
-#define NIL   ((object)0)
-#define CONSTANT(x) const_to_object((void*)((((x)<<1)|1)<<GC_TAG_SHIFT))
-#define FALSE CONSTANT(0)
-#define TRUE  CONSTANT(1)
-#define VOID  CONSTANT(2)
-#define MT    CONSTANT(3)
-
-static inline void *object_struct(object ob, void *type){
-    void *x = object_to_const(ob);
-    if ((((long)x) & (~SC_CONST_MASK)) == 0) return NULL; // constant
-    if (type != *((void**)x)) return NULL;
-    return x;
-}
 
 
 /* The ck atoms have a free() finalizer, so need to be wrapped in an
@@ -394,5 +372,7 @@ _ _sc_make_string(sc *sc, const char *str);
 
 _ _sc_printf(sc *sc, char *fmt, ...);
 
+// Scheme constants start at 0x100
+#define MT    CONSTANT(0x100)
 
 #endif

@@ -1351,3 +1351,23 @@ in a refcount cell.
 
 tom@zni:~/libprim/leaf$ ls *.c
 bytes.c  port.c  symbol.c  task.c
+
+
+Entry: Naming conventions
+Date: Thu Aug 13 16:25:49 CEST 2009
+
+The trick seems to really be: use decent naming conventions for C
+functions and types.  This way a lot of boilerplate is easily
+generated at compile time.
+
+
+Entry: Stack language
+Date: Thu Aug 13 16:52:32 CEST 2009
+
+With the scheme language as good as finished, let's start the stack
+language.
+
+1. references
+2. cell-base
+3. queues
+

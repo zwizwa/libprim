@@ -11,9 +11,9 @@
 
 /* --- PRIMITIVES --- */
 
-/* To simplify the implementation, as much as possible functions are
-   implemented as Scheme primitives operating on Scheme values.  They
-   use the prefix "sc_".
+/* To simplify the implementation, most C functions are implemented as
+   Scheme primitives operating on Scheme values.  They use the prefix
+   "sc_".
 
    Note in particular that interpreter data constructors are available
    in Scheme, and that "sc_eval_step()" is re-entrant with primitive
@@ -90,7 +90,6 @@ static _ vector_type(_ o, long tag) {
 #define TAG_ERROR     6
 #define TAG_AREF      7
 
-
 #define TAG_K_IF      8
 #define TAG_K_SET     9
 #define TAG_K_APPLY  10
@@ -101,8 +100,6 @@ static _ vector_type(_ o, long tag) {
 static inline long tag_is_k(long tag) {
     return (0x8L == (tag & (~0x7L)));
 }
-
-
 
 /* Predicates */
 _ sc_is_vector(sc *sc, _ o)  { return vector_type(o, TAG_VECTOR); }
