@@ -15,15 +15,15 @@
    implemented as Scheme primitives operating on Scheme values.  They
    use the prefix "sc_".
 
+   Note in particular that interpreter data constructors are available
+   in Scheme, and that "sc_eval_step()" is re-entrant with primitive
+   errors limited to the innermost step.
+
    The functions operating on *sc that are too lowlevel to respect the
    "sc_" ABI (because they use values that cannot be represented as a
-   Scheme object, or because they violate behavioural constraints) are
-   prefixed "_sc".  These are kept to a minimum to avoid duplication
-   and make most of the functionality available to scheme.
-
-   Note in particular that "sc_eval_step()" is re-entrant, and that
-   interpreter data constructors are available in Scheme to construct
-   modified interpreters.
+   Scheme object, or because they otherwize violate behavioural
+   constraints) are prefixed "_sc".  These functions are kept to a
+   minimum.
 */
 
 
@@ -227,9 +227,6 @@ _ sc_length(sc *sc, _ lst) {
     }
     return nb;
 }
-
-//static _ _sc_impure_list_to_vector_and_rest(sc *sc, _* rest) {
-//}
 
 // Take n elements from the head of a list and place them in a vector.
 _ sc_take_vector(sc *sc, _ n, _ in_lst) {
