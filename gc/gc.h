@@ -341,11 +341,11 @@ static object gc_mark(gc *gc, object root) {
         todo += size + 1;
     }
     /**/ gc_assert_all_current(gc);
-    printf("%ld\n", todo);
+    // printf("%ld\n", todo);
     return root;
 }
 #else
-#warning Using recursive GC.
+#warning Using recursive GC (GC_CHENEY=0)
 static object gc_mark(gc *gc, object o_old) {
 
     /* Can only mark vectors.  Other objects are copied. */

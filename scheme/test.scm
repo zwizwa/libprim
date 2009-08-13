@@ -18,7 +18,7 @@
 ;; (when 123 broebel)
 
 (let ((broebel 123)) broebel)
-(let foo ((n 100))
+(let foo ((n 10))
   (if (zero? n) 0
       (begin
         (post 'bla)
