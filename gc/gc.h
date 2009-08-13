@@ -74,6 +74,7 @@ struct _vector {
 
 typedef void (*gc_finalize)(gc *);
 typedef void (*gc_mark_roots)(void *ctx, gc_finalize finalize);
+typedef void (*gc_overflow)(void *ctx, long nb_extra);
 
 struct _gc {
     vector  *current;
@@ -81,8 +82,10 @@ struct _gc {
     vector  *old;
     long    old_index;
     long    slot_total;
+    long    want;             // last data request
     gc_mark_roots mark_roots; // (1)
-    void *mark_roots_ctx;
+    gc_overflow   overflow;
+    void *client_ctx;
 };
 
 /* Client is free to abort the C stack during the execution of (1) but
@@ -105,7 +108,8 @@ struct _gc {
 
 
 
-static gc *gc_new(long total, gc_mark_roots fn, void *ctx);
+static gc *gc_new(long total, void *ctx, gc_mark_roots mark, 
+                  gc_overflow  overflow);
 static void gc_collect(gc *gc);
 static object gc_mark(gc *gc, object o_old);
 #define GC_CHENEY 1
@@ -203,28 +207,11 @@ static void gc_do_assert(const char*, const char*, int);
 
 
 static void gc_when_full(gc *gc, long slots) {
+    /* Record request size that triggered GC to check if it will fit
+       _after_ collection. */
+    gc->want = slots;
     gc_collect(gc);
-    if (gc_full(gc, slots)) {
-        if (!gc_grow(gc, slots)) {
-            fprintf(stderr, "ERROR: Can't grow GC pool.\n");
-        }
-    }
 }
-
-static int gc_grow(gc *gc, long add_slots) {
-    /* grow pool */
-    long total = gc->slot_total;
-    total += add_slots; // make sure there will be enough
-    total += (total/4); // and add a bit more
-    long bytes = total * sizeof(object);
-    
-    if (!(gc->old = realloc(gc->old, bytes))) return 0;
-    gc_collect(gc);
-    if (!(gc->old = realloc(gc->old, bytes))) return 0;
-    gc->slot_total = total;
-    return 1;
-}
-
 
 static void gc_fin_slots(gc *gc, object *o, long slots) {
     long i;
@@ -387,15 +374,21 @@ static vector *gc_alloc(gc *gc, long size) {
 }
 
 
-static void _finalize(gc *gc) {
+static void _gc_call_finalizers(gc *gc) {
     gc_fin_slots(gc, (object *)gc->old, gc->old_index);
     gc->old_index = 0;
-
-    memset(gc->old, 0, sizeof(long) * gc->slot_total);
-
+    // memset(gc->old, 0, sizeof(long) * gc->slot_total);
 }
 
-static void _swap(gc *gc) {
+static void _gc_finalize(gc *gc) {
+    _gc_call_finalizers(gc);
+
+    /* If we need to grow, send a message to the client. */
+    long nb_extra = gc->want - (gc->slot_total - gc->current_index);
+    if (nb_extra > 0) gc->overflow(gc->client_ctx, nb_extra);
+}
+
+static void _gc_swap(gc *gc) {
 
     vector *current   = gc->current;
     vector *old       = gc->old;
@@ -406,7 +399,7 @@ static void _swap(gc *gc) {
     gc->current_index = 0;
 }
 
-static void gc_collect(gc *gc) {
+static void _gc_collect_with_fin(gc *gc, gc_finalize fin) {
 
     /* gc_collect() can't be called by a gc_alloc() triggered by a
        gc_collect() because the data did fit before. */
@@ -414,23 +407,52 @@ static void gc_collect(gc *gc) {
 
     /* Record the current used size and swap buffers.  After this
        gc_alloc() will take from the new space. */
-    _swap(gc);
+    _gc_swap(gc);
 
     /* Call client to mark the root pointers and pass the continuation
        so client can abort the C stack when a collection is
        triggered. */
-    gc->mark_roots(gc->mark_roots_ctx, _finalize);
+    gc->mark_roots(gc->client_ctx, fin);
 }
 
-static gc *gc_new(long total, gc_mark_roots fn, void *ctx) {
+static void gc_collect(gc *gc) { 
+    _gc_collect_with_fin(gc, _gc_finalize); 
+}
+static void _gc_collect_direct(gc *gc) {
+    /* Client is not allowed to abort if we pass no finalizer. */
+    _gc_collect_with_fin(gc, NULL);
+    _gc_call_finalizers(gc);
+}
+
+static int gc_grow(gc *gc, long add_slots) {
+    /* grow pool */
+    long total = gc->slot_total;
+    total += add_slots; // make sure there will be enough
+    long bytes = total * sizeof(object);
+    
+    if (!(gc->old = realloc(gc->old, bytes))) return 0;
+    _gc_collect_direct(gc);
+    if (!(gc->old = realloc(gc->old, bytes))) return 0;
+    gc->slot_total = total;
+    return 1;
+}
+
+
+
+
+static gc *gc_new(long total, void *ctx, gc_mark_roots mark, 
+                  gc_overflow  overflow) {
+
     gc* x = (gc*)malloc(sizeof(gc));
     x->slot_total     = total;
     x->current        = (vector*)calloc(total, sizeof(object));
     x->old            = (vector*)calloc(total, sizeof(object));
     x->current_index  = 0;
     x->old_index      = 0;
-    x->mark_roots     = fn;
-    x->mark_roots_ctx = ctx;
+    x->want           = 0;
+    x->mark_roots     = mark;
+    x->overflow       = overflow;
+    x->client_ctx     = ctx;
     return x;
 }
 

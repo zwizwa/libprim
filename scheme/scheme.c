@@ -1051,29 +1051,39 @@ typedef struct {
 static prim_def prims[] = prims_init;
 #endif
 
+void _sc_overflow(sc *sc, long extra) {
+    /* At this point, the heap is compacted, but the requested
+       allocation doesn't fit.  We need to grow.  Take at least the
+       requested size + grow by a fraction of the total heap. */
+    long request = extra + (sc->gc->slot_total/4);
+    printf(";; gc overflow %ld:%d\n", extra, request);
+    gc_grow(sc->gc, request);
+    _sc_restart(sc);
+}
 
 static void _sc_mark_roots(sc *sc, gc_finalize fin) {
     // sc_trap(sc);
     // printf("gc_mark()\n");
     // sc_post(sc, sc->state);
     sc->global = gc_mark(sc->gc, sc->global);
-    // sc->global = gc_mark_recursive(sc->gc, sc->global);
-    fin(sc->gc);
-    {
+
+    if (fin) {
+        /* We're given a finalizer continuation to aid us in aborting
+           the C context that gave rise to the collection.  We use
+           this to restart the current interpretation step saved in
+           sc->state.  */
+        fin(sc->gc);
         long used = sc->gc->current_index;
         long free = sc->gc->slot_total - used;
         printf(";; gc %d:%d\n", (int)used, (int)free);
+        _sc_restart(sc);
     }
-    // sc_post(sc, sc->state);
-    /* Abort C stack, since it now contains invalid refs.
-
-       Note: This prevents the GC to grow the heap size, which means
-             it becomes _our_ responsability to ensure the restarting
-             doesn't turn into an infinite loop (when the current
-             evaluation step won't make it to the next before
-             triggering collection).
-    */
-    _sc_restart(sc);
+    else {
+        /* No finalizer continuation means that this call is part of a
+           grow() operation, and we need to return to caller.  Restart
+           will be handled in _sc_overflow. */
+        return;
+    }
 }
 static _ _sc_make_prim(sc *sc, void *fn, long nargs, _ var) {
     prim *p = malloc(sizeof(*p));
@@ -1088,13 +1098,17 @@ void _sc_def_prim(sc *sc, const char *str, void *fn, long nargs) {
     sc_bang_def_toplevel(sc, var, _sc_make_prim(sc, fn, nargs, var));
 }
 void _sc_load_lib(sc* sc);
+
 sc *_sc_new(void) {
     sc *sc = malloc(sizeof(*sc));
     sc->top_entries = 0;
     sc->step_entries = 0;
 
     /* Garbage collector. */
-    sc->gc = gc_new(10000, (gc_mark_roots)_sc_mark_roots, sc);
+    sc->gc = gc_new(10000, sc, 
+                    (gc_mark_roots)_sc_mark_roots,
+                    (gc_overflow)_sc_overflow);
+                    
 
     /* Atom classes. */
     sc->ck_manager = ck_manager_new();
