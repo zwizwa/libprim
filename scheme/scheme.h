@@ -238,9 +238,10 @@ static inline void *object_aref_struct(object ob, sc *sc, void *type) {
 #define DEF_AREF_TYPE(name)                                            \
     static inline name *object_to_##name(object ob, sc *sc) {          \
         return (name*)object_aref_struct(ob,sc,sc->name##_type); }
-#define DEF_CONST_TYPE(name)                                           \
+#define DEF_CONST_TYPE(name,classlist)                                 \
     static inline name *object_to_##name(object ob, sc *sc) {          \
         return (name*)object_struct(ob,sc->name##_type); }
+
 
 
 // GC finalized objects

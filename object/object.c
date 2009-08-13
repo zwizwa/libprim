@@ -17,10 +17,17 @@ object object_write_vector(const char *type, vector *v, port *p,
 
 
 
+static object _write_delegate(port *p, object ob) {
+    return object_write(ob, p, NULL, NULL);
+}
 object object_write(object o, port *p,
                     object_write_delegate fn, void *ctx) {
-
     vector *v;
+    if (!fn) {
+        fn = (object_write_delegate)_write_delegate;
+        ctx = p;
+    }
+    
     if (TRUE  == o) { port_printf(p, "#t"); return VOID; }
     if (FALSE == o) { port_printf(p, "#f"); return VOID; }
     if (GC_INTEGER == GC_TAG(o)) {
