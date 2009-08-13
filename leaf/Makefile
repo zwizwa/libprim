@@ -1,5 +1,5 @@
 
-SRC=task.c
+SRC=task.c port.c bytes.c symbol.c 
 
 
 OBJ=$(SRC:.c=.o)
@@ -8,7 +8,7 @@ DEBUG_CFLAGS=-Wall -g
 
 # CC = gcc -m32
 
-all: task.o
+all: $(OBJ)
 
 # Order is important!  ../gc contains default config which we override.
 CPPFLAGS += -I../scheme/ -I../gc/ -I../task/ -DTASK_DEBUG=0

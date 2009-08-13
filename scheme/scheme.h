@@ -388,7 +388,6 @@ static inline object _sc_make_struct(sc *sc, long tag, long slots, ...) {
 }
 
 
-/* Lowlevel finalized object wrapper. */
 _ _sc_make_aref(sc *sc, void *fin, void *ptr);
 _ _sc_make_symbol(sc *sc, const char *str);
 _ _sc_make_string(sc *sc, const char *str);

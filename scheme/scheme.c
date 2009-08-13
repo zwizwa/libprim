@@ -465,7 +465,14 @@ _ sc_true(sc *sc)  { return TRUE; }
 _ sc_false(sc *sc) { return FALSE; }
 _ sc_void(sc *sc)  { return VOID; }
 
-
+_ sc_symbol_to_string(sc *sc, _ sym) {
+    symbol *s = CAST(symbol, sym);
+    return _sc_make_string(sc, s->name);
+}
+_ sc_string_to_symbol(sc *sc, _ sym) {
+    bytes *b = CAST(bytes, sym);
+    return _sc_make_symbol(sc, b->bytes);
+}
 _ sc_list_clone(sc *sc, _ lst) {
     if (NIL == lst) return lst;
     _ res = CONS(VOID, NIL);
@@ -985,17 +992,6 @@ _ sc_eval_ktx(sc *sc, _ k, _ expr) {
    objects.  All data passes through a converter in the ck_manager.
 */
 
-_ sc_symbol_to_string(sc *sc, _ sym) {
-    symbol *s = CAST(symbol, sym);
-    return _sc_make_string(sc, s->name);
-}
-_ sc_string_to_symbol(sc *sc, _ sym) {
-    bytes *b = CAST(bytes, sym);
-    return _sc_make_symbol(sc, b->bytes);
-}
-_ sc_test_string(sc *sc) { 
-    return _sc_make_string(sc, "foo!\n");
-}
 static _ test_ck(ck_class *m, _ o) {
     printf("1: test_ck()\n"); o = (object)ck_yield(m, (void*)o);
     printf("2: test_ck()\n"); o = (object)ck_yield(m, (void*)o);

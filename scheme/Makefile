@@ -1,5 +1,5 @@
 
-SRC=port.c bytes.c symbol.c lib.c scheme.c main.c
+SRC=lib.c scheme.c main.c
 OBJ=$(SRC:.c=.o)
 DEBUG_CFLAGS=-Wall -g -Wno-unused
 # OPTI_CFLAGS=-Os
@@ -17,7 +17,7 @@ all: scheme
 GEN = test.h_ scheme.h_ boot.h_
 
 # Order is important!  ../gc contains default config which we override.
-CPPFLAGS += -I../scheme/ -I../gc/ -I../task/ -DTASK_DEBUG=0
+CPPFLAGS += -I../scheme/ -I../gc/ -I../leaf/ -DTASK_DEBUG=0
 
 
 COMPILE = $(CC) $(CPPFLAGS) $(CFLAGS) $(OPTI_CFLAGS) $(DEBUG_CFLAGS) 
@@ -35,11 +35,14 @@ COMPILE = $(CC) $(CPPFLAGS) $(CFLAGS) $(OPTI_CFLAGS) $(DEBUG_CFLAGS)
 	$(COMPILE) -o $@ -c $<
 
 
-../task/task.o:
-	make -C ../task
+.PHONY: deps
+leaf:
+	make -C ../leaf
 
-scheme: $(OBJ) ../task/task.o
-	$(CC) -o scheme $(OBJ) ../task/task.o
+LEAF_OBJS=../leaf/*.o
+
+scheme: $(OBJ) leaf
+	$(CC) -o scheme $(OBJ) $(LEAF_OBJS)
 
 strip: 
 	make clean
@@ -50,9 +53,9 @@ strip:
 
 .PHONY: clean
 clean:
-	make -C ../task clean
 	rm -f scheme *.o *.d *.d.* *~
 
 .PHONY: mrproper
 mrproper: clean
+	make -C ../leaf clean
 	rm -f *.c_ *.h_	
