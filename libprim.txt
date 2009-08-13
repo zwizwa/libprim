@@ -1371,3 +1371,9 @@ language.
 2. cell-base
 3. queues
 
+Ok.. Separated out the object representation of GC: it can be re-used
+in refcount based memory model.
+
+The first thing to do is to create the memory and object model.
+Essentially: implement CONS.
+

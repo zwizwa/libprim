@@ -1,8 +1,6 @@
 #ifndef _SYMBOL_H_
 #define _SYMBOL_H_
 
-#include "gc_config.h"
-
 typedef struct _symbol  symbol;
 typedef struct _symbol_class symbol_class;
 

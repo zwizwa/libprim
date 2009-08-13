@@ -33,7 +33,6 @@
 */
 
 
-#define unlikely(x) __builtin_expect((x),0)
 
 #include <stdio.h>
 #include <stdlib.h>

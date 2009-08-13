@@ -1,6 +1,7 @@
 #ifndef _OBJECT_H_
 #define _OBJECT_H_
 
+
 /* Tagged objects.  Used in nonlinear and linear GC. */
 
 /* The size field in the _vector struct can be used to store
@@ -20,6 +21,7 @@ static inline void* GC_POINTER(long x) {
 #define GC_INTEGER 2   /* integer number (shifted) */
 #define GC_FIN     3   /* finalizer */
 
+#define unlikely(x) __builtin_expect((x),0)
 
 typedef unsigned long object;
 typedef long integer;
@@ -107,6 +109,25 @@ static inline void *object_struct(object ob, void *type){
     return x;
 }
 
+static inline unsigned long VECTOR_TAG(unsigned long x) {
+    return x << GC_VECTOR_TAG_SHIFT;
+}
+static inline unsigned long vector_to_flags(vector *v) {
+    return (v->header) & (~GC_VECTOR_TAG_MASK);
+}
+static inline void vector_set_flags(vector* v, long flags){
+    v->header |= flags;
+}
+static inline unsigned long object_get_vector_flags(object o){
+    vector *v = object_to_vector(o);
+    if (!v) return -1;
+    return vector_to_flags(v);
+}
+
+
+#define DEF_CAST(type)                                \
+    static inline type *object_to_##type(object o) {       \
+        return (type*)object_to_vector(o); }
 
 
 #endif

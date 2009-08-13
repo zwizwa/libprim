@@ -7,6 +7,7 @@
 #include "task.h"
 #include "port.h"
 #include "bytes.h"
+#include "pair.h"
 
 
 typedef struct _scheme sc;
@@ -59,12 +60,6 @@ typedef struct {
     _ continuation;    // current continuation
 } state;
 
-
-typedef struct {
-    vector v;
-    _ car;
-    _ cdr;
-} pair;
 
 typedef struct {
     vector v;
@@ -149,25 +144,6 @@ typedef struct {
 } k_macro;
 
 
-static inline unsigned long VECTOR_TAG(unsigned long x) {
-    return x << GC_VECTOR_TAG_SHIFT;
-}
-static inline unsigned long vector_to_flags(vector *v) {
-    return (v->header) & (~GC_VECTOR_TAG_MASK);
-}
-static inline void vector_set_flags(vector* v, long flags){
-    v->header |= flags;
-}
-static inline unsigned long object_get_vector_flags(object o){
-    vector *v = object_to_vector(o);
-    if (!v) return -1;
-    return vector_to_flags(v);
-}
-
-
-#define DEF_CAST(type)                                \
-    static inline type *object_to_##type(object o) {       \
-        return (type*)object_to_vector(o); }
 
 // conversion from vector object -> C type
 DEF_CAST (pair)
@@ -282,14 +258,6 @@ DEF_CONST_TYPE(symbol)
 
 static inline long prim_nargs(prim *p){ return p->nargs; }
 static inline void *prim_fn(prim *p)  { return p->fn; }
-
-/* List macros */
-#define CAR(o)  object_to_pair(o)->car
-#define CDR(o)  object_to_pair(o)->cdr
-#define CAAR(o) CAR(CAR(o))
-#define CADR(o) CAR(CDR(o))
-#define CDDR(o) CDR(CDR(o))
-#define CADDR(o) CAR(CDDR(o))
 
 /* Scheme primitives */
 #define MAX_PRIM_ARGS 3

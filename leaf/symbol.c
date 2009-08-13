@@ -3,8 +3,6 @@
 #include <string.h>
 
 #include "symbol.h"
-#include "gc.h"
-#include "gc_config.h"
 
 
 symbol *string_to_symbol(symbol_class *s, const char *str){
