@@ -1337,7 +1337,7 @@ Definitely: when the primitive struct accessors need to be available,
 it would be simpler to use a code generator.
 
 
-Entry: Universal small object model
+Entry: Leaf: small object model
 Date: Thu Aug 13 14:37:22 CEST 2009
 
 So..  Basicly, what's next is to make primitive data extension
@@ -1349,8 +1349,5 @@ For the GC memory model (Scheme), such objects are wrapped in aref
 (finalizer + constant).  For the linear model, they would be wrapped
 in a refcount cell.
 
-
-
-
-
-
+tom@zni:~/libprim/leaf$ ls *.c
+bytes.c  port.c  symbol.c  task.c
