@@ -2,12 +2,12 @@
 #define _SCHEME_H_
 
 #include <setjmp.h>
-#include "gc_config.h"
 #include "symbol.h"
 #include "task.h"
 #include "port.h"
 #include "bytes.h"
 #include "pair.h"
+#include "gc.h"
 
 
 typedef struct _scheme sc;
@@ -146,7 +146,6 @@ typedef struct {
 
 
 // conversion from vector object -> C type
-DEF_CAST (pair)
 DEF_CAST (state)
 DEF_CAST (lambda)
 DEF_CAST (redex)

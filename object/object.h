@@ -1,11 +1,24 @@
 #ifndef _OBJECT_H_
 #define _OBJECT_H_
 
+#include "port.h"   /* For writing. */
 
 /* Tagged objects.  Used in nonlinear and linear GC. */
 
 /* The size field in the _vector struct can be used to store
    additional tag bits.  GC_TAG_MASK tells the GC what to ignore. */
+
+
+/* Vectors can have tags in the upper bits. */
+#ifndef GC_VECTOR_TAG_MASK
+#ifdef _LP64
+#define GC_VECTOR_TAG_SHIFT 60
+#define GC_VECTOR_TAG_MASK ((1L<<GC_VECTOR_TAG_SHIFT)-1L)
+#else
+#define GC_VECTOR_TAG_SHIFT 28
+#define GC_VECTOR_TAG_MASK ((1<<GC_VECTOR_TAG_SHIFT)-1)
+#endif
+#endif
 
 #define GC_TAG_SHIFT 2
 
@@ -128,6 +141,12 @@ static inline unsigned long object_get_vector_flags(object o){
 #define DEF_CAST(type)                                \
     static inline type *object_to_##type(object o) {       \
         return (type*)object_to_vector(o); }
+
+typedef object (*object_write_delegate)(void *ctx, object ob);
+object object_write_vector(const char *type, vector *v, port *p,
+                           object_write_delegate fn, void *ctx);
+object object_write(object ob, port *p,
+                    object_write_delegate fn, void *ctx);
 
 
 #endif

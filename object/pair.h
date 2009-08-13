@@ -1,10 +1,12 @@
 #ifndef _PAIR_H_
 #define _PAIR_H_
 
+#include "object.h"
+
 typedef struct {
     vector v;
-    _ car;
-    _ cdr;
+    object car;
+    object cdr;
 } pair;
 
 /* List macros */
@@ -15,6 +17,11 @@ typedef struct {
 #define CDDR(o) CDR(CDR(o))
 #define CADDR(o) CAR(CDDR(o))
 
+/* Vectors and pairs are known everywhere. */
+#define TAG_VECTOR VECTOR_TAG(0)
+#define TAG_PAIR   VECTOR_TAG(1)
+
+DEF_CAST (pair)
 
 
 #endif

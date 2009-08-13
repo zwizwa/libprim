@@ -1375,5 +1375,21 @@ Ok.. Separated out the object representation of GC: it can be re-used
 in refcount based memory model.
 
 The first thing to do is to create the memory and object model.
-Essentially: implement CONS.
+Essentially: implement `void' and `drop'.
 
+Done.  Next: print objects.  This can be done by factoring out the
+primitive print functions.
+
+
+Entry: Dual regime
+Date: Thu Aug 13 18:46:32 CEST 2009
+
+I started with the basics of pf2.c : stack based alloc and free.
+Maybe the important thing to realize is that it's not going to be
+possible to be completely linear, due to references to code and global
+storage.   However, it might make sense to get to an almost-linear
+regime, where GC is active during load and setup, and after that the
+GC is switched off and only the linear language runs.
+
+Anyway, let's just be carful to make sure pf data types are compatible
+with GC.

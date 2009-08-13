@@ -333,50 +333,31 @@ _ sc_is_list(sc *sc, _ o) {
 }
 _ sc_newline(sc *sc, _ out) { port_printf(CAST(port, out), "\n"); return VOID; }
 
-static _ write_vector(sc *sc, char *type, _ o, _ output_port) {
-    port *p = CAST(port, output_port);
-    vector *v = object_to_vector(o);
-    long i,n = vector_size(v);
-    port_printf(p, "#%s(", type);
-    for(i=0;i<n;i++){
-        sc_write(sc, v->slot[i], output_port);
-        if (i != n-1) port_printf(p, " ");
-    }
-    port_printf(p, ")");
-    return VOID;
+
+/* Callback structs for object_write.  This mainly abstracts port
+   wrapping: object_write knows about the port struct, but not how we
+   represent it. */
+typedef struct {
+    sc *sc;
+    _ port;
+} object_write_ctx;
+_ _write_delegate(object_write_ctx *ctx, object ob) {
+    return sc_write(ctx->sc, ob, ctx->port);
 }
+_ _write_vector(const char *type, object ob, object_write_ctx *ctx) {
+    return object_write_vector(type, 
+                               object_to_vector(ob),
+                               object_to_port(ctx->port, ctx->sc),
+                               (object_write_delegate)_write_delegate,
+                               ctx);
+}
+
 _ sc_write(sc *sc,  _ o, _ out) {
+    object_write_ctx ctx = {sc, out};
     port *p = CAST(port, out);
-    if (TRUE  == o) { port_printf(p, "#t"); return VOID; }
-    if (FALSE == o) { port_printf(p, "#f"); return VOID; }
-    if (TRUE == sc_is_integer(sc, o)) {
-        port_printf(p, "%ld", object_to_integer(o));
+    if (FALSE != object_write(o, p, _write_delegate, &ctx)) {
         return VOID;
     }
-    if (VOID  == o) { port_printf(p, "#<void>"); return VOID; }
-    if(TRUE == sc_is_null(sc, o)) {
-        port_printf(p, "()");
-        return VOID;
-    }
-    if (TRUE == sc_is_pair(sc, o)) {
-        port_printf(p, "(");
-        for(;;) {
-            sc_write(sc, CAR(o), out);
-            o = CDR(o);
-            if (TRUE == sc_is_null(sc, o)) {
-                port_printf(p, ")");
-                return VOID;
-            }
-            if (FALSE == sc_is_pair(sc, o)) {
-                port_printf(p, " . ");
-                sc_write(sc, o, out);
-                port_printf(p, ")");
-                return VOID;
-            }
-            port_printf(p, " ");
-        }
-    }
-    if (TRUE == sc_is_vector(sc, o))  return write_vector(sc, "", o, out);
     if (TRUE == sc_is_symbol(sc, o)) {
         port_printf(p, "%s", object_to_symbol(o,sc)->name);
         return VOID;
@@ -396,18 +377,19 @@ _ sc_write(sc *sc,  _ o, _ out) {
         bytes_write_string(object_to_bytes(o, sc), p->stream);
         return VOID;
     }
-    if (TRUE == sc_is_state(sc, o))   return write_vector(sc, "state", o, out);
-    if (TRUE == sc_is_lambda(sc, o))  return write_vector(sc, "lambda", o, out);
-    if (TRUE == sc_is_redex(sc, o))   return write_vector(sc, "redex", o, out);
-    if (TRUE == sc_is_value(sc, o))   return write_vector(sc, "value", o, out);
-    if (TRUE == sc_is_error(sc, o))   return write_vector(sc, "error", o, out);
-    if (TRUE == sc_is_aref(sc, o))    return write_vector(sc, "aref", o, out);
 
-    if (TRUE == sc_is_k_apply(sc, o)) return write_vector(sc, "k_apply", o, out);
-    if (TRUE == sc_is_k_if(sc, o))    return write_vector(sc, "k_if", o, out);
-    if (TRUE == sc_is_k_seq(sc, o))   return write_vector(sc, "k_seq", o, out);
-    if (TRUE == sc_is_k_set(sc, o))   return write_vector(sc, "k_set", o, out);
-    if (TRUE == sc_is_k_macro(sc, o)) return write_vector(sc, "k_macro", o, out);
+    if (TRUE == sc_is_state(sc, o))   return _write_vector("state", o, &out);
+    if (TRUE == sc_is_lambda(sc, o))  return _write_vector("lambda", o, &ctx);
+    if (TRUE == sc_is_redex(sc, o))   return _write_vector("redex", o, &ctx);
+    if (TRUE == sc_is_value(sc, o))   return _write_vector("value", o, &ctx);
+    if (TRUE == sc_is_error(sc, o))   return _write_vector("error", o, &ctx);
+    if (TRUE == sc_is_aref(sc, o))    return _write_vector("aref", o, &ctx);
+
+    if (TRUE == sc_is_k_apply(sc, o)) return _write_vector("k_apply", o, &ctx);
+    if (TRUE == sc_is_k_if(sc, o))    return _write_vector("k_if", o, &ctx);
+    if (TRUE == sc_is_k_seq(sc, o))   return _write_vector("k_seq", o, &ctx);
+    if (TRUE == sc_is_k_set(sc, o))   return _write_vector("k_set", o, &ctx);
+    if (TRUE == sc_is_k_macro(sc, o)) return _write_vector("k_macro", o, &ctx);
     if (MT   == o) { port_printf(p, "#k_mt"); return VOID; }
 
     port_printf(p, "#object<%p>",(void*)o);
