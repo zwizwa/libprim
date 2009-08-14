@@ -3,6 +3,7 @@
 
 /* primitive function wrapper */
 typedef struct {
+    // void *free;
 } prim_class;
 typedef struct {
     void *type;

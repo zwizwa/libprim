@@ -150,6 +150,7 @@ static void _gc_fin_slots(gc *gc, object *o, long slots) {
 }
 
 static vector *_gc_allot(gc *gc, long size) {
+    // FIXME: check GC_VECTOR_MAX_SIZE !!
     vector *v = &gc->current[gc->current_index];
     // finalize data before overwriting
     // _gc_fin_slots(gc, &v->header, size + 1);

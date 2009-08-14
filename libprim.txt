@@ -1467,8 +1467,8 @@ The mistake I made in the first implementation is to assume that GC
 isn't necessary.  Only after _first_ implementing a Scheme around the
 primitive data types did I realize that this is really an essential
 part: the synergy between a Scheme-like host and a linear stack
-language is essential to the idea.  You need the first to bootstrap
-the second.
+language that can mutate the GC-managed graph is essential to the
+idea.  You need the first to provide "global memory" for the second.
 
 Representing data.
 
@@ -1480,6 +1480,24 @@ The PF primitives should know about (``inside memory'').
 
 The outside model, accessible from Scheme, needs to wrap RC managed
 cells in an aref object.
+
+An ``outside pointer'' TAG_OPAQUE is a data structure that is
+GC-managed, but can be accessed abstractly from the inside.  It is
+treated as a constant.
+
+Basicly, in the linear model, everything could be opaque by default.
+Essentially, PF doesn't need to care about managing anything else than
+CONS cells and RC objects.
+
+Now, whenever an RC value is made accessible to Scheme, it needs to be
+wrapped in an aref, where the finalizer decrements the refcount.  Such
+values are really meant to be kept local to the linear memory, but of
+course it shouldn't be prevented to have them in the global space,
+i.e. embedded in a piece of code as a constant.
+
+
+
+
 
 
 

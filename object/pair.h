@@ -21,7 +21,7 @@ typedef struct {
 #define TAG_VECTOR VECTOR_TAG(0)
 #define TAG_PAIR   VECTOR_TAG(1)
 
-DEF_CAST (pair)
+DEF_STRUCT(pair)
 
 
 #endif

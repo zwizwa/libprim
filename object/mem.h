@@ -25,8 +25,6 @@ typedef struct {
 
 struct _gc;
 
-typedef object _;  // Highly effective noise reduction.
-
 typedef struct {
     void *type;
 
@@ -43,13 +41,13 @@ typedef struct {
     
 } mem;
 
-#define DEF_CONST_TYPE(name)                                           \
+#define DEF_ATOM(name)                                           \
     static inline name *object_to_##name(object ob, mem *m) {          \
         return (name*)object_struct(ob,m->name##_type); }
 
 // permanent constant objects
-DEF_CONST_TYPE(prim)
-DEF_CONST_TYPE(symbol)
+DEF_ATOM(prim)
+DEF_ATOM(symbol)
 
 typedef void* (*object_to_pointer)(object, mem*);
 

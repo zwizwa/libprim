@@ -3,34 +3,17 @@
 
 #include "port.h"   /* For writing. */
 
-/* Tagged objects.  Used in nonlinear and linear GC. */
+/* Objects with type tags.  Used in nonlinear and linear GC.  These
+   can reference integer, opaque leaf objects (and finalizers) or
+   transparent vector objects.
 
-/* The size field in the _vector struct can be used to store
-   additional tag bits.  GC_TAG_MASK tells the GC what to ignore. */
+   Note there are 4 kinds of type tagging:
 
-
-/* Vectors can have tags in the upper bits.  Currently 5 bits are
-   reserved, and the first couple are shared by the Scheme and PF data
-   models. */
-#define GC_VECTOR_TAG_BITS 5
-#ifdef _LP64
-#define GC_VECTOR_TAG_SHIFT (64 - GC_VECTOR_TAG_BITS)
-#define GC_VECTOR_TAG_MASK ((1L<<GC_VECTOR_TAG_SHIFT)-1L)
-#else
-#define GC_VECTOR_TAG_SHIFT (32 - GC_VECTOR_TAG_BITS)
-#define GC_VECTOR_TAG_MASK ((1<<GC_VECTOR_TAG_SHIFT)-1)
-#endif
-static inline unsigned long VECTOR_TAG(unsigned long x) {
-    return x << GC_VECTOR_TAG_SHIFT;
-}
-#define TAG_VECTOR    VECTOR_TAG(0)   /* The flat vector. */
-#define TAG_PAIR      VECTOR_TAG(1)   /* The CONS cell. */
-#define TAG_AREF      VECTOR_TAG(2)   /* Reference with finalization. */
-#define TAG_OPAQUE    VECTOR_TAG(3)   /* An "outside" pointer. */
-
-#define GC_VECTOR_USER_START 8
-
-
+      - LSB of object, distinguishing 4 basic types for GC.
+      - MSB of vector.header to represent high level types (DEF_STRUCT)
+      - a GC_CONST 0:FFF is a numeric constant (i.e. TRUE,FALSE,NIL,VOID)
+      - first pointer field of GC_CONST to identify opaque types (DEF_ATOM)
+ */
 
 /* Base objects have a 2-bit tag. */
 #define GC_TAG_SHIFT 2
@@ -45,18 +28,49 @@ static inline void* GC_POINTER(long x) {
 #define GC_INTEGER 2   /* integer number (shifted) */
 #define GC_FIN     3   /* finalizer */
 
-#define unlikely(x) __builtin_expect((x),0)
 
-typedef unsigned long object;
+/* The vector is the basis of the (transparent) object
+   representation. */
+typedef unsigned long object;   
+typedef object _; // this alias reduces noise a lot.
 typedef long integer;
 typedef void (*fin)(void *);
-
 typedef struct _vector vector;
-
 struct _vector {
-    unsigned long header;  // [ struct_tags | length | GC tags ]
+    unsigned long header;  // [ tags | length | GC tags ]
     object slot[0];
 };
+
+/* Vectors can have tags in the upper bits.  Currently 5 bits are
+   reserved, and the first couple are shared by the Scheme and PF data
+   models. */
+#define GC_VECTOR_TAG_BITS 5
+#ifdef _LP64
+#define GC_VECTOR_TAG_SHIFT (64 - GC_VECTOR_TAG_BITS)
+#define GC_VECTOR_TAG_MASK ((1L<<GC_VECTOR_TAG_SHIFT)-1L)
+#else
+#define GC_VECTOR_TAG_SHIFT (32 - GC_VECTOR_TAG_BITS)
+#define GC_VECTOR_TAG_MASK ((1<<GC_VECTOR_TAG_SHIFT)-1)
+#endif
+#define GC_MAX_VECTOR_SIZE ((1<<(GC_VECTOR_TAG_SHIFT - GC_TAG_SHIFT))-1)
+static inline unsigned long VECTOR_TAG(unsigned long x) {
+    return x << GC_VECTOR_TAG_SHIFT;
+}
+#define TAG_VECTOR    VECTOR_TAG(0)   /* The flat vector. */
+#define TAG_PAIR      VECTOR_TAG(1)   /* The CONS cell. */
+#define TAG_AREF      VECTOR_TAG(2)   /* Reference with finalization. */
+
+// 3-7: reserved
+#define GC_VECTOR_USER_START 8
+
+/* Atoms that need finalization must be wrapped to ensure that they
+   occur only once in the heap: the finalize() method is called for
+   each garbage copy that's encountered. */
+typedef struct {
+    vector v;
+    _ fin;
+    _ atom;
+} aref;
 
 /* Conversion from tagged objects to one of the 4 C data types.  When
    the tag doesn't match, NULL is returned.  Conversion to integer
@@ -68,6 +82,16 @@ static inline vector *object_to_vector(object ob) {
     if(GC_VECTOR == GC_TAG(ob)) return (vector*)GC_POINTER(ob);
     else return NULL;
 }
+
+#define DEF_STRUCT(type)                                   \
+    static inline type *object_to_##type(object o) {       \
+        return (type*)object_to_vector(o); }
+DEF_STRUCT(aref)
+
+
+
+#define unlikely(x) __builtin_expect((x),0)
+
 
 /* Note: this is a _pointer_ to fin.  Code isn't always aligned to
    accomodate GC tag bits, but data alignment can be enforced, plus
@@ -144,11 +168,6 @@ static inline unsigned long object_get_vector_flags(object o){
     if (!v) return -1;
     return vector_to_flags(v);
 }
-
-
-#define DEF_CAST(type)                                \
-    static inline type *object_to_##type(object o) {       \
-        return (type*)object_to_vector(o); }
 
 
 

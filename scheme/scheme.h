@@ -111,15 +111,6 @@ typedef struct {
     _ datum;
 } value;
 
-/* Atoms that need finalization must be wrapped to ensure that they
-   occur only once in the heap: the finalize() method is called for
-   each garbage copy that's encountered. */
-typedef struct {
-    vector v;
-    _ fin;
-    _ atom;
-} aref;
-
 /* All continuation frames have a parent frame, and a continuation
    mark dictionary. */
 typedef struct {
@@ -165,20 +156,18 @@ typedef struct {
 } k_macro;
 
 
-
 // conversion from vector object -> C type
-DEF_CAST (state)
-DEF_CAST (lambda)
-DEF_CAST (redex)
-DEF_CAST (error)
-DEF_CAST (value)
-DEF_CAST (aref)
+DEF_STRUCT(state)
+DEF_STRUCT(lambda)
+DEF_STRUCT(redex)
+DEF_STRUCT(error)
+DEF_STRUCT(value)
 
-DEF_CAST (k_apply)
-DEF_CAST (k_if)
-DEF_CAST (k_set)
-DEF_CAST (k_seq)
-DEF_CAST (k_macro)
+DEF_STRUCT(k_apply)
+DEF_STRUCT(k_if)
+DEF_STRUCT(k_set)
+DEF_STRUCT(k_seq)
+DEF_STRUCT(k_macro)
 
 
 
