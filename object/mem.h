@@ -13,13 +13,14 @@
 #include "object.h"
 
 /* Ref management wrapper. */
+typedef void (*rc_free)(void *);
 typedef struct {
 } rc_class;
 typedef struct {
     rc_class *type;
     void *object;
     int rc;
-    fin free;
+    rc_free free;
     _ wrap;
 } rc;
 
@@ -31,6 +32,8 @@ typedef struct {
 
     /* Garbage collector. */
     struct _gc *gc;
+    jmp_buf top;  // GC unwind
+    long top_entries; // guard semaphore
 
     /* Primitive datatypes. */
     symbol_class *symbol_type;

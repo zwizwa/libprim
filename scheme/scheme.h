@@ -209,9 +209,7 @@ struct _scheme {
     _ s_letcc;
 
     /* Lowlevel control flow */
-    jmp_buf top;       // full interpreter C stack unwind (i.e. for GC)
     long step_entries; // semaphores
-    long top_entries;
     scheme_r r;  // saved on step() entry
 
     /* Temp storage: does not need to be marked. */
@@ -228,7 +226,7 @@ static inline void *object_aref_struct(object ob, mem *m, void *type) {
     aref *ref;
     void *x;
     if ((ref = object_to_aref(ob)) &&
-        (x = object_struct(ref->atom, type))) return x;
+        (x = object_struct(ref->object, type))) return x;
     else return NULL;
 }
 

@@ -1516,12 +1516,12 @@ Looks like this works fine.
 Entry: Code and Variables
 Date: Fri Aug 14 16:26:47 CEST 2009
 
-A key element is that the VM's data structures are not visible inside
-the PF language: the machine is not reflective.  This is a key
-difference with the current PF implementation.  This enables graph
-data to be used to represent PF byte code.  (Note that if reflection
-is necessary, it can be implemented by copying from graph -> linear
-memory).
+The VM's data structures should not be visible inside the PF language:
+the machine is not reflective.  This is a key difference with the
+current PF implementation.  This enables graph data to be used to
+represent PF byte code.  (Note that if reflection is necessary, it can
+be implemented at a greater expense by _copying_ from graph -> linear
+memory and back.)
 
 The remaining problem is then the representation of variables.
 Essentially a variable is a box that's referenced by code.
@@ -1531,11 +1531,41 @@ Essentially a variable is a box that's referenced by code.
 This BOX can then be loaded on the data stack to enable the PF machine
 to modify its contents.
 
-Boxes seem to work to.  The rest is tedios primitive writing, which is
-for some late night zen.
+But.  What can be put in a box?  What if a box disappears?  Hmm.. not
+done yet.  Basicly it seems that a box needs to be an aref.  What if
+an aref contains a list?  Yes.. plenty of pitfalls..
+
+This can be solved by changing the semantics of finalizers: they take
+objects instead of constant's pointer.  By tagging constant with 00
+nothing really changes though.
+
+
+
+Entry: Scheme Primitives in the Stack Machine
+Date: Fri Aug 14 18:00:40 CEST 2009
+
+If a primtive doesn't CONS it can be reused without problems.  Let's
+separate all of them out, making reuse easier.
+
+
+
+Entry: Queues
+Date: Fri Aug 14 18:01:53 CEST 2009
+
+As the CONS of two stacks?  Note that this gives only amortized O(1)
+addittions and removals, and might for that reason not be a good
+candidate.  Otoh, it does allows representation as a tree.
+
+Because of the linear nature however, mutable vector-based solutions
+might work.
+
+
+
+Entry: Interpreter
+Date: Fri Aug 14 18:08:45 CEST 2009
 
 Next: the interpreter.  Should be quite straightforward, only this
 time I'd like to not make the mistake of not having proper tail call
-handling.  Also for some late night zen.
+handling.  For some late night zen.
 
 

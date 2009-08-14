@@ -117,19 +117,21 @@ static inline _ gc_cons(gc *gc, _ car, _ cdr) {
     v->slot[1] = cdr;
     return vector_to_object(v);
 }
-static inline _ gc_aref(gc *gc, void *fn, void *data) {
+static inline _ gc_aref(gc *gc, void *fn, _ ob) {
     vector *v = gc_alloc(gc, 2);
     vector_set_flags(v, TAG_AREF);
     v->slot[0] = fin_to_object(fn);
-    v->slot[1] = const_to_object(data);
+    v->slot[1] = ob;
     return vector_to_object(v);
 }
+#if 0
 static inline _ gc_box(gc *gc, object init) {
     vector *v = gc_alloc(gc, 1);
     vector_set_flags(v, TAG_BOX);
     v->slot[0] = init;
     return vector_to_object(v);
 }
+#endif
 static inline object gc_make_v(gc *gc, long slots, va_list ap) {
     vector *v = gc_alloc(gc, slots);
     long i = 0;
@@ -162,7 +164,7 @@ static void _gc_fin_slots(gc *gc, object *o, long slots) {
         fin *f;
         if ((f = object_to_fin(o[i]))) {
             o[i] = 0; // kill the finalizer
-            (*f)(object_to_const(o[i+1]));
+            (*f)(o[i+1], gc->client_ctx);
             i++;
         }
     }

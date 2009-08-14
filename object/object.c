@@ -67,9 +67,9 @@ object object_write(object o, port *p, mem *m,
                 port_printf(p, " ");
             }
         }
-        if (TAG_BOX == flags) {
-            return object_write_vector("box", v, p, m, fn, ctx);
-        }
+        //if (TAG_BOX == flags) {
+        //    return object_write_vector("box", v, p, m, fn, ctx);
+        // }
         if (TAG_AREF == flags) {
             return object_write_vector("aref", v, p, m, fn, ctx);
         }

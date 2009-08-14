@@ -34,7 +34,7 @@ static inline void* GC_POINTER(long x) {
 typedef unsigned long object;   
 typedef object _; // this alias reduces noise a lot.
 typedef long integer;
-typedef void (*fin)(void *);
+typedef void (*fin)(object, void *gc_ctx);
 typedef struct _vector vector;
 struct _vector {
     unsigned long header;  // [ tags | length | GC tags ]
@@ -59,7 +59,7 @@ static inline unsigned long VECTOR_TAG(unsigned long x) {
 #define TAG_VECTOR    VECTOR_TAG(0)   /* The flat vector. */
 #define TAG_PAIR      VECTOR_TAG(1)   /* The CONS cell. */
 #define TAG_AREF      VECTOR_TAG(2)   /* Reference with finalization. */
-#define TAG_BOX       VECTOR_TAG(3)   /* Variable storage cell. */
+// #define TAG_BOX       VECTOR_TAG(3)   /* Variable storage cell. */
 
 // 3-7: reserved
 #define GC_VECTOR_USER_START 8
@@ -70,7 +70,7 @@ static inline unsigned long VECTOR_TAG(unsigned long x) {
 typedef struct {
     vector v;
     _ fin;
-    _ atom;
+    _ object;
 } aref;
 /* Variables can be implemented using boxes. */
 typedef struct {
@@ -198,7 +198,7 @@ static inline void *object_to_struct(object ob, long tag) {
 
 DEF_STRUCT(pair, TAG_PAIR)
 DEF_STRUCT(aref, TAG_AREF)
-DEF_STRUCT(box,  TAG_BOX)
+// DEF_STRUCT(box,  TAG_BOX)
 
 
 

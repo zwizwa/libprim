@@ -889,8 +889,8 @@ _ sc_eval_step(sc *sc, _ state) {
 
 
 static _ _sc_restart(sc *sc) {
-    if (sc->top_entries) {
-        longjmp(sc->top, SC_EX_RESTART); 
+    if (sc->m.top_entries) {
+        longjmp(sc->m.top, SC_EX_RESTART); 
     }
     _sc_printf(sc, "ERROR: attempt restart outside of the main loop.\n");
     sc_trap(sc);
@@ -982,8 +982,8 @@ _ sc_with_ck(sc *sc, _ in_ref, _ value) {
         }
         else {
             aref *r = object_to_aref(ref);
-            r->atom = const_to_object(task);
-            r->fin  = fin_to_object((fin *)sc->m.ck_type);
+            r->object = const_to_object(task);
+            r->fin    = fin_to_object((fin *)sc->m.ck_type);
         }
         return stream;
     }
@@ -1006,14 +1006,14 @@ _ sc_with_ck(sc *sc, _ in_ref, _ value) {
 */
 
 _ _sc_top(sc *sc, _ expr){
-    if (sc->top_entries) {
+    if (sc->m.top_entries) {
         _sc_printf(sc, "WARNING: multiple _sc_top() entries.\n");
         return NIL;
     }
-    sc->top_entries++;
+    sc->m.top_entries++;
     sc_bang_set_global(sc, sc_slot_state, STATE(REDEX(expr,NIL,NIL),MT));
     for(;;) {
-        if (setjmp(sc->top)){
+        if (setjmp(sc->m.top)){
             sc->step_entries = 0;  // full tower unwind
             sc->r.prim = FALSE;
         }
@@ -1030,7 +1030,7 @@ _ _sc_top(sc *sc, _ expr){
             /* Halt */
             error *e = object_to_error(state);
             if (e->tag == SYMBOL("halt")) {
-                sc->top_entries--;
+                sc->m.top_entries--;
                 return e->arg;
             }
             
@@ -1102,7 +1102,7 @@ void _sc_load_lib(sc* sc);
 
 sc *_sc_new(void) {
     sc *sc = malloc(sizeof(*sc));
-    sc->top_entries = 0;
+    sc->m.top_entries = 0;
     sc->step_entries = 0;
 
     /* Garbage collector. */
