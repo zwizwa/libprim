@@ -132,18 +132,19 @@ static inline _ gc_box(gc *gc, object init) {
     return vector_to_object(v);
 }
 #endif
-static inline object gc_make_v(gc *gc, long slots, va_list ap) {
+static inline object gc_make_tagged_v(gc *gc, long tag, long slots, va_list ap) {
     vector *v = gc_alloc(gc, slots);
     long i = 0;
     for (i=0; i<slots; i++) {
         v->slot[i] = va_arg(ap, object);
     }
+    vector_set_flags(v, tag);
     return vector_to_object(v);
 }
-static inline object gc_make(gc *gc, long slots, ...) {
+static inline object gc_make_tagged(gc *gc, long tag, long slots, ...) {
     va_list ap;
     va_start(ap, slots);
-    object o = gc_make_v(gc, slots, ap);
+    object o = gc_make_tagged_v(gc, tag, slots, ap);
     va_end(ap);   
     return o;
 }

@@ -1231,8 +1231,40 @@ An interesting discussion about finalizers.  For libprim tasks, I'm
 thinking that C++ destructors might be interesting in combination with
 stack-based "pure" tasks: going out of scope due to return or
 exceptions calls destructors.  Will Clinger mentions weak pointers
-[1].  Also ___ talked about reference counting coming back.  Figure
-out what he really meant.
+[1].  Also David Detlefs talked about reference counting coming back.
+Figure out what he really meant.
+
+
+Panel 3: Language design
+
+Jonathan Rees: Tension between distributed programming and OO: an
+  object is essentially "here": all abstractions around that is
+  essentially smoke and mirrors.  (I.e.: physical location/locality
+  becomes more important as systems grow physicaly larger.)  This is
+  about physical things (state) vs. information.  Object != value.
+
+Guy Steele: little known secrets
+
+ - stacks are overrated
+
+ - GC is good, finalizers are bad (finalizers w. good semantics <- GC
+   at every pointer alteration)
+
+ - lexical scoping is good.  easy to screw up when writing
+   interpreter.
+
+ - type inference can be good but error reporting is hard.
+
+ - monads maybe very good
+
+ - higher order functionals are underrated.  thinking in APL can
+   approve your lisp code.
+
+ - keyword arguments are good (PG)
+
+ - pretty printers are vastly underrated
+
+ - rule-based systems. (20 years ago, time to try again). 
 
 [1] http://www.iecc.com/gclist/GC-faq.html
 
@@ -1564,7 +1596,7 @@ might work.
 
 
 
-Entry: Interpreter
+Entry: Packet Forth Interpreter
 Date: Fri Aug 14 18:08:45 CEST 2009
 
 Next: the interpreter.  Should be quite straightforward, only this

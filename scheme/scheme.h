@@ -314,9 +314,8 @@ void _sc_def_prim(sc *sc, const char *str, void *fn, long nargs);
 static inline object _sc_make_tagged_struct(sc *sc, long flags, long slots, ...) {
     va_list ap;
     va_start(ap, slots);
-    object o = gc_make_v(sc->m.gc, slots, ap);
+    object o = gc_make_tagged_v(sc->m.gc, flags, slots, ap);
     va_end(ap);   
-    vector_set_flags(object_to_vector(o), flags);
     return o;
 }
 

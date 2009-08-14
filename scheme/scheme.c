@@ -1119,12 +1119,14 @@ sc *_sc_new(void) {
 
     /* Data roots. */
     _ out = _sc_make_port(sc, stderr, "stderr");
-    sc->global = gc_make(sc->m.gc, 5,
-                         NIL,  // toplevel
-                         NIL,  // macro
-                         NIL,  // state
-                         NIL,  // abort
-                         out); // debug port
+    sc->global = gc_make_tagged(sc->m.gc, 
+                                TAG_VECTOR,
+                                5,
+                                NIL,  // toplevel
+                                NIL,  // macro
+                                NIL,  // state
+                                NIL,  // abort
+                                out); // debug port
 
     /* Cached identifiers */
     sc->s_lambda   = SYMBOL("lambda");

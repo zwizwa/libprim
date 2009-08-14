@@ -49,7 +49,7 @@
   (printf "~a{}}\n" prefix))
   
 (define (gen-header ds)
-  (display "#include \"scheme.h\"\n")
+;  (display "#include \"scheme.h\"\n")
   (decls ds)
   (table-defs ds "")
 ;  (printf  "static inline void _sc_def_prims(sc *sc){\n")
