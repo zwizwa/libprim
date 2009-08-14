@@ -1639,3 +1639,15 @@ This makes the new PF semantics complete.
 
 HA!
 
+
+
+Entry: pf_run()
+Date: Sat Aug 15 00:04:48 CEST 2009
+
+The basic interpreter seems to be running.  Next: exceptions and
+constants (quotation).
+
+For quotations, I'm running into the same problem as for the Scheme
+interpreter: it is necessary to strictly separate language and
+metalanguage: explicit quote tags are necessary to be able to quote
+code.

@@ -72,11 +72,6 @@ typedef struct {
     _ fin;
     _ object;
 } aref;
-/* Variables can be implemented using boxes. */
-typedef struct {
-    vector v;
-    _ var;
-} box;
 
 typedef struct {
     vector v;
