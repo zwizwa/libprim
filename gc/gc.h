@@ -124,6 +124,12 @@ static inline _ gc_aref(gc *gc, void *fn, void *data) {
     v->slot[1] = const_to_object(data);
     return vector_to_object(v);
 }
+static inline _ gc_box(gc *gc, object init) {
+    vector *v = gc_alloc(gc, 1);
+    vector_set_flags(v, TAG_BOX);
+    v->slot[0] = init;
+    return vector_to_object(v);
+}
 static inline object gc_make_v(gc *gc, long slots, va_list ap) {
     vector *v = gc_alloc(gc, slots);
     long i = 0;

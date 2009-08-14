@@ -1513,6 +1513,20 @@ The latter remark is key.
 Looks like this works fine.
 
 
+Entry: Code and Variables
+Date: Fri Aug 14 16:26:47 CEST 2009
 
+A key element is that the VM's data structures are not visible inside
+the PF language: the machine is not reflective.  This is a key
+difference with the current PF implementation.  This enables graph
+data to be used to represent PF byte code.  (Note that if reflection
+is necessary, it can be implemented by copying from graph -> linear
+memory).
 
+The remaining problem is then the representation of variables.
+Essentially a variable is a box that's referenced by code.
 
+            CODE -> BOX
+
+This BOX can then be loaded on the data stack to enable the PF machine
+to modify its contents.

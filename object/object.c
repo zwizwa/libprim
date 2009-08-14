@@ -67,6 +67,9 @@ object object_write(object o, port *p, mem *m,
                 port_printf(p, " ");
             }
         }
+        if (TAG_BOX == flags) {
+            return object_write_vector("box", v, p, m, fn, ctx);
+        }
         if (TAG_AREF == flags) {
             return object_write_vector("aref", v, p, m, fn, ctx);
         }
@@ -94,9 +97,9 @@ object object_write(object o, port *p, mem *m,
     }
     if ((x = object_struct(o, m->rc_type))) {
         rc *r = (rc*)x;
-        port_printf(p, "#rc<");
+        port_printf(p, "#rc:");
         fn(ctx, const_to_object(r->object));  // foefelare
-        port_printf(p, ":%d>", (int)(r->rc));
+        port_printf(p, ":%d", (int)(r->rc));
         return VOID;
     }
     if ((x = object_to_fin(o))) {

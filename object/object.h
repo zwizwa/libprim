@@ -78,6 +78,13 @@ typedef struct {
     _ var;
 } box;
 
+typedef struct {
+    vector v;
+    object car;
+    object cdr;
+} pair;
+
+
 
 /* Conversion from tagged objects to one of the 4 C data types.  When
    the tag doesn't match, NULL is returned.  Conversion to integer
@@ -89,13 +96,6 @@ static inline vector *object_to_vector(object ob) {
     if(GC_VECTOR == GC_TAG(ob)) return (vector*)GC_POINTER(ob);
     else return NULL;
 }
-
-#define DEF_STRUCT(type)                                   \
-    static inline type *object_to_##type(object o) {       \
-        return (type*)object_to_vector(o); }
-DEF_STRUCT(aref)
-DEF_STRUCT(box)
-
 
 
 #define unlikely(x) __builtin_expect((x),0)
@@ -176,6 +176,30 @@ static inline unsigned long object_get_vector_flags(object o){
     if (!v) return -1;
     return vector_to_flags(v);
 }
+
+/* Conversion from object to a transparent struct (tagged vector). */
+static inline void *object_to_struct(object ob, long tag) {
+    vector *v = object_to_vector(ob);
+    if (!v) return NULL;
+    if (tag == vector_to_flags(v)) return (void*)v;
+    else return NULL;
+}
+#define DEF_STRUCT(type, tag)                                  \
+    static inline type *object_to_##type(object o) {       \
+        return (type*)object_to_struct(o, tag); }
+
+/* List macros */
+#define CAR(o)  object_to_pair(o)->car
+#define CDR(o)  object_to_pair(o)->cdr
+#define CAAR(o) CAR(CAR(o))
+#define CADR(o) CAR(CDR(o))
+#define CDDR(o) CDR(CDR(o))
+#define CADDR(o) CAR(CDDR(o))
+
+DEF_STRUCT(pair, TAG_PAIR)
+DEF_STRUCT(aref, TAG_AREF)
+DEF_STRUCT(box,  TAG_BOX)
+
 
 
 #endif
