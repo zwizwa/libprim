@@ -1530,3 +1530,12 @@ Essentially a variable is a box that's referenced by code.
 
 This BOX can then be loaded on the data stack to enable the PF machine
 to modify its contents.
+
+Boxes seem to work to.  The rest is tedios primitive writing, which is
+for some late night zen.
+
+Next: the interpreter.  Should be quite straightforward, only this
+time I'd like to not make the mistake of not having proper tail call
+handling.  Also for some late night zen.
+
+
