@@ -1,3 +1,4 @@
+(open-mode-file "/tmp/blubber" "w")
 (string->symbol "asdfasFD")
 (symbol->string 'asdfasdf)
 (begin (make-vector 10000 123) 'foo)

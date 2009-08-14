@@ -459,6 +459,18 @@ _ sc_list_clone(sc *sc, _ lst) {
         lst = in->cdr;
     }
 }
+_ _sc_make_port(sc *sc, FILE *f) {
+    return _sc_make_aref(sc, sc->m.port_type, 
+                         port_new(sc->m.port_type, f));
+}
+_ sc_open_mode_file(sc *sc, _ path, _ mode) {
+    bytes *b_path = CAST(bytes, path);
+    bytes *b_mode = CAST(bytes, mode);
+    FILE *f = fopen(b_path->bytes, b_mode->bytes);
+    if (!f) ERROR("fopen", path);
+    return _sc_make_port(sc, f);
+}
+
 
 #define NARGS_ERROR(fn) ERROR("nargs", fn)
 
@@ -1065,7 +1077,7 @@ typedef struct {
 static prim_def prims[] = prims_init;
 #endif
 
-void _sc_overflow(sc *sc, long extra) {
+static void _sc_overflow(sc *sc, long extra) {
     /* At this point, the heap is compacted, but the requested
        allocation doesn't fit.  We need to grow.  Take at least the
        requested size + grow by a fraction of the total heap. */
@@ -1112,10 +1124,6 @@ void _sc_def_prim(sc *sc, const char *str, void *fn, long nargs) {
     sc_bang_def_toplevel(sc, var, _sc_make_prim(sc, fn, nargs, var));
 }
 void _sc_load_lib(sc* sc);
-_ _sc_make_port(sc *sc, FILE *f) {
-    return _sc_make_aref(sc, sc->m.port_type, 
-                         port_new(sc->m.port_type, f));
-}
 
 sc *_sc_new(void) {
     sc *sc = malloc(sizeof(*sc));
@@ -1131,10 +1139,11 @@ sc *_sc_new(void) {
     /* Atom classes. */
     sc->m.ck_type = ck_class_new();
     sc->m.symbol_type = symbol_class_new(1000);
-    sc->m.prim_type = (void*)(123); // FIXME: dummy class
+    sc->m.prim_type = (void*)0xF001; // dummy class
     sc->m.port_type = port_class_new();
-    _ out = _sc_make_port(sc, stderr);
 
+    /* Data roots. */
+    _ out = _sc_make_port(sc, stderr);
     sc->global = gc_make(sc->m.gc, 5,
                          NIL,  // toplevel
                          NIL,  // macro

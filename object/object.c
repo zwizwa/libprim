@@ -70,12 +70,18 @@ object object_write(object o, port *p, mem *m,
     }
     /* Opaque leaf types */
     if ((x = object_struct(o, m->symbol_type))) {
-        port_printf(p, "%s", object_to_symbol(o,m)->name);
+        symbol *s = (symbol*)x;
+        port_printf(p, "%s", s->name);
         return VOID;
     }
     if ((x = object_struct(o, m->prim_type))) {
-        prim *pr = object_to_prim(o,m);
+        prim *pr = (prim*)x;
         port_printf(p, "#prim<%p:%ld>", (void*)(pr->fn),pr->nargs);
+        return VOID;
+    }
+    if ((x = object_struct(o, m->port_type))) {
+        port *prt = (port*)x;
+        port_printf(p, "#port<%p>", prt->stream);
         return VOID;
     }
     return FALSE;

@@ -12,6 +12,16 @@
 /* Highlevel transparent object rep and GC */
 #include "object.h"
 
+/* Ref management wrapper. */
+typedef struct {
+} rc_class;
+typedef struct {
+    rc_class *type;
+    void *object;
+    int rc;
+    fin free;
+} rc;
+
 
 struct _gc;
 
@@ -29,6 +39,7 @@ typedef struct {
     prim_class *prim_type;
     port_class *port_type;
     bytes_class *bytes_type;
+    rc_class *rc_type;
     
 } mem;
 
@@ -52,7 +63,6 @@ object object_write_vector(const char *type, vector *v, port *p, mem *m,
                            object_write_delegate fn, void *ctx);
 object object_write(object ob, port *p, mem *m,
                     object_write_delegate fn, void *ctx);
-
 
 
 
