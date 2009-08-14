@@ -1495,6 +1495,22 @@ values are really meant to be kept local to the linear memory, but of
 course it shouldn't be prevented to have them in the global space,
 i.e. embedded in a piece of code as a constant.
 
+This is not trivial however.  The refcounted object should be linked
+to the Scheme wrapper, to keep the representation unique.  However,
+this link must not become stale!
+
+It looks like an rc struct needs to be a GC managed vector.
+Conceptually it's not so hard: my difficulty is with the
+representation.
+
+        LIN -> GRAPH : rc++
+        finalize:      rc--
+
+        wrappers don't need to be unique!
+
+The latter remark is key.
+
+
 
 
 

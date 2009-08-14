@@ -59,6 +59,7 @@ static inline unsigned long VECTOR_TAG(unsigned long x) {
 #define TAG_VECTOR    VECTOR_TAG(0)   /* The flat vector. */
 #define TAG_PAIR      VECTOR_TAG(1)   /* The CONS cell. */
 #define TAG_AREF      VECTOR_TAG(2)   /* Reference with finalization. */
+#define TAG_BOX       VECTOR_TAG(3)   /* Variable storage cell. */
 
 // 3-7: reserved
 #define GC_VECTOR_USER_START 8
@@ -71,6 +72,12 @@ typedef struct {
     _ fin;
     _ atom;
 } aref;
+/* Variables can be implemented using boxes. */
+typedef struct {
+    vector v;
+    _ var;
+} box;
+
 
 /* Conversion from tagged objects to one of the 4 C data types.  When
    the tag doesn't match, NULL is returned.  Conversion to integer
@@ -87,6 +94,7 @@ static inline vector *object_to_vector(object ob) {
     static inline type *object_to_##type(object o) {       \
         return (type*)object_to_vector(o); }
 DEF_STRUCT(aref)
+DEF_STRUCT(box)
 
 
 
@@ -168,8 +176,6 @@ static inline unsigned long object_get_vector_flags(object o){
     if (!v) return -1;
     return vector_to_flags(v);
 }
-
-
 
 
 #endif

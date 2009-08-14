@@ -67,6 +67,9 @@ object object_write(object o, port *p, mem *m,
                 port_printf(p, " ");
             }
         }
+        if (TAG_AREF == flags) {
+            return object_write_vector("aref", v, p, m, fn, ctx);
+        }
     }
     /* Opaque leaf types */
     if ((x = object_struct(o, m->symbol_type))) {
@@ -88,6 +91,18 @@ object object_write(object o, port *p, mem *m,
             port_printf(p, "#port<%p>", prt->stream);
         }
         return VOID;
+    }
+    if ((x = object_struct(o, m->rc_type))) {
+        rc *r = (rc*)x;
+        port_printf(p, "#rc<");
+        fn(ctx, const_to_object(r->object));  // foefelare
+        port_printf(p, ":%d>", (int)(r->rc));
+        return VOID;
+    }
+    if ((x = object_to_fin(o))) {
+        port_printf(p, "#fin");
+        // port_printf(p, "#fin<%p:%p>", x, *((void**)x)); // do we care?
+        return VOID; 
     }
     return FALSE;
 }

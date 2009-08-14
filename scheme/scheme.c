@@ -340,9 +340,6 @@ _ sc_write(sc *sc,  _ o, _ out) {
         return VOID;
     }
     void *x;
-    if ((x = object_to_fin(o))) { 
-        port_printf(p, "#fin<%p:%p>", x, *((void**)x)); return VOID; 
-    }
     if ((x = object_to_const(o))) { port_printf(p, "#data<%p>",x); return VOID; }
 
     if (TRUE == sc_is_bytes(sc, o)) {
@@ -355,7 +352,7 @@ _ sc_write(sc *sc,  _ o, _ out) {
     if (TRUE == sc_is_redex(sc, o))   return _write_vector("redex", o, &ctx);
     if (TRUE == sc_is_value(sc, o))   return _write_vector("value", o, &ctx);
     if (TRUE == sc_is_error(sc, o))   return _write_vector("error", o, &ctx);
-    if (TRUE == sc_is_aref(sc, o))    return _write_vector("aref", o, &ctx);
+    // if (TRUE == sc_is_aref(sc, o))    return _write_vector("aref", o, &ctx);
 
     if (TRUE == sc_is_k_apply(sc, o)) return _write_vector("k_apply", o, &ctx);
     if (TRUE == sc_is_k_if(sc, o))    return _write_vector("k_if", o, &ctx);

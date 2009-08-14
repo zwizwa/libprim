@@ -20,6 +20,7 @@ typedef struct {
     void *object;
     int rc;
     fin free;
+    _ wrap;
 } rc;
 
 
