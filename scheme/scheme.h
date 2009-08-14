@@ -157,17 +157,17 @@ typedef struct {
 
 
 // conversion from vector object -> C type
-DEF_STRUCT(state)
-DEF_STRUCT(lambda)
-DEF_STRUCT(redex)
-DEF_STRUCT(error)
-DEF_STRUCT(value)
+DEF_STRUCT(state,  TAG_STATE)
+DEF_STRUCT(lambda, TAG_LAMBDA)
+DEF_STRUCT(redex,  TAG_REDEX)
+DEF_STRUCT(error,  TAG_ERROR)
+DEF_STRUCT(value,  TAG_VALUE)
 
-DEF_STRUCT(k_apply)
-DEF_STRUCT(k_if)
-DEF_STRUCT(k_set)
-DEF_STRUCT(k_seq)
-DEF_STRUCT(k_macro)
+DEF_STRUCT(k_apply, TAG_K_APPLY)
+DEF_STRUCT(k_if,    TAG_K_IF)
+DEF_STRUCT(k_set,   TAG_K_SET)
+DEF_STRUCT(k_seq,   TAG_K_SEQ)
+DEF_STRUCT(k_macro, TAG_K_MACRO)
 
 
 
