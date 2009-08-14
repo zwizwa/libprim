@@ -142,11 +142,5 @@ static inline unsigned long object_get_vector_flags(object o){
     static inline type *object_to_##type(object o) {       \
         return (type*)object_to_vector(o); }
 
-typedef object (*object_write_delegate)(void *ctx, object ob);
-object object_write_vector(const char *type, vector *v, port *p,
-                           object_write_delegate fn, void *ctx);
-object object_write(object ob, port *p,
-                    object_write_delegate fn, void *ctx);
-
 
 #endif

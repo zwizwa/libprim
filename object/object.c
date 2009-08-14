@@ -1,9 +1,10 @@
 #include "object.h"
 #include "port.h"
 #include "pair.h"
+#include "mem.h"
 
 
-object object_write_vector(const char *type, vector *v, port *p,
+object object_write_vector(const char *type, vector *v, port *p, mem *m,
                            object_write_delegate fn, void *ctx) {
     long i,n = vector_size(v);
     port_printf(p, "#%s(", type);
@@ -15,17 +16,21 @@ object object_write_vector(const char *type, vector *v, port *p,
     return VOID;
 }
 
-
-
-static object _write_delegate(port *p, object ob) {
-    return object_write(ob, p, NULL, NULL);
+struct _write_delegate_ {
+    port *p;
+    mem *m;
+};
+static object _write_delegate(struct _write_delegate_ *ctx, object ob) {
+    return object_write(ob, ctx->p, ctx->m, NULL, NULL);
 }
-object object_write(object o, port *p,
+object object_write(object o, port *p, mem *m,
                     object_write_delegate fn, void *ctx) {
+    struct _write_delegate_ _ctx = {p,m};
     vector *v;
-    if (!fn) {
+    void *x;
+    if (!fn) { 
         fn = (object_write_delegate)_write_delegate;
-        ctx = p;
+        ctx = &_ctx;
     }
     
     if (TRUE  == o) { port_printf(p, "#t"); return VOID; }
@@ -42,7 +47,7 @@ object object_write(object o, port *p,
     if ((v = object_to_vector(o))) {
         long flags = object_get_vector_flags(o);
         if (TAG_VECTOR == flags) { 
-            return object_write_vector("", v, p, fn, ctx);
+            return object_write_vector("", v, p, m, fn, ctx);
         }
         if (TAG_PAIR == flags) {
             port_printf(p, "(");
@@ -63,5 +68,17 @@ object object_write(object o, port *p,
             }
         }
     }
+    /* Opaque leaf types */
+    if ((x = object_struct(o, m->symbol_type))) {
+        port_printf(p, "%s", object_to_symbol(o,m)->name);
+        return VOID;
+    }
+    if ((x = object_struct(o, m->prim_type))) {
+        prim *pr = object_to_prim(o,m);
+        port_printf(p, "#prim<%p:%ld>", (void*)(pr->fn),pr->nargs);
+        return VOID;
+    }
     return FALSE;
 }
+
+

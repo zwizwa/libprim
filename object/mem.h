@@ -11,16 +11,17 @@
 
 /* Highlevel transparent object rep and GC */
 #include "object.h"
-#include "gc.h"
 
+
+struct _gc;
 
 typedef object _;  // Highly effective noise reduction.
 
 typedef struct {
     void *type;
 
-    /* Delegate objects. */
-    gc *gc;
+    /* Garbage collector. */
+    struct _gc *gc;
 
     /* Primitive datatypes. */
     symbol_class *symbol_type;
@@ -28,7 +29,6 @@ typedef struct {
     prim_class *prim_type;
     port_class *port_type;
     bytes_class *bytes_type;
-
     
 } mem;
 
@@ -36,8 +36,24 @@ typedef struct {
     static inline name *object_to_##name(object ob, mem *m) {          \
         return (name*)object_struct(ob,m->name##_type); }
 
+// permanent constant objects
+DEF_CONST_TYPE(prim)
+DEF_CONST_TYPE(symbol)
 
 typedef void* (*object_to_pointer)(object, mem*);
+
+/* Printing is based on the assumption that GC_CONST is either a
+   genuine constant (upper bits = 0) or points to an object which can
+   be identified by its first field.  Primitive leaf types are
+   recognized through the class list in mem. */
+
+typedef object (*object_write_delegate)(void *ctx, object ob);
+object object_write_vector(const char *type, vector *v, port *p, mem *m,
+                           object_write_delegate fn, void *ctx);
+object object_write(object ob, port *p, mem *m,
+                    object_write_delegate fn, void *ctx);
+
+
 
 
 #endif

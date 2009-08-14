@@ -348,6 +348,7 @@ _ _write_vector(const char *type, object ob, object_write_ctx *ctx) {
     return object_write_vector(type, 
                                object_to_vector(ob),
                                object_to_port(ctx->port, &(ctx->sc->m)),
+                               &(ctx->sc->m),
                                (object_write_delegate)_write_delegate,
                                ctx);
 }
@@ -355,16 +356,9 @@ _ _write_vector(const char *type, object ob, object_write_ctx *ctx) {
 _ sc_write(sc *sc,  _ o, _ out) {
     object_write_ctx ctx = {sc, out};
     port *p = CAST(port, out);
-    if (FALSE != object_write(o, p, (object_write_delegate)_write_delegate, &ctx)) {
-        return VOID;
-    }
-    if (TRUE == sc_is_symbol(sc, o)) {
-        port_printf(p, "%s", object_to_symbol(o,&sc->m)->name);
-        return VOID;
-    }
-    if (TRUE == sc_is_prim(sc, o)) {
-        prim *pr = object_to_prim(o,&sc->m);
-        port_printf(p, "#prim<%p:%ld>", (void*)(pr->fn),pr->nargs);
+    if (FALSE != object_write(o, p, &sc->m,
+                              (object_write_delegate)_write_delegate, 
+                              &ctx)) {
         return VOID;
     }
     void *x;

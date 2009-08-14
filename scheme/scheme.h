@@ -3,6 +3,7 @@
 
 #include <setjmp.h>
 #include "mem.h"
+#include "gc.h"
 
 typedef struct _scheme sc;
 sc *scheme_new(void);
@@ -225,10 +226,6 @@ static inline void *object_aref_struct(object ob, mem *m, void *type) {
 DEF_AREF_TYPE(ck)
 DEF_AREF_TYPE(port)
 DEF_AREF_TYPE(bytes)
-
-// permanent constant objects
-DEF_CONST_TYPE(prim)
-DEF_CONST_TYPE(symbol)
 
 
 
