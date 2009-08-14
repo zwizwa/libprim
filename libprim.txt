@@ -1231,7 +1231,8 @@ An interesting discussion about finalizers.  For libprim tasks, I'm
 thinking that C++ destructors might be interesting in combination with
 stack-based "pure" tasks: going out of scope due to return or
 exceptions calls destructors.  Will Clinger mentions weak pointers
-[1].
+[1].  Also ___ talked about reference counting coming back.  Figure
+out what he really meant.
 
 [1] http://www.iecc.com/gclist/GC-faq.html
 
@@ -1428,11 +1429,20 @@ would give a way to make references work (variables and code), which
 would lie outside the reach of stack code, but could be used as jump
 targets and data storage.
 
-Basic idea: the PF machine never CONSes from the GC free space for
-_data_ objects.  It's CONS is a reusing one.
-
 
 
 Entry: Moving the stack language into the Scheme interpreter.
 Date: Fri Aug 14 08:48:30 CEST 2009
+
+Basic idea: the PF machine never CONSes from the GC free space for
+_data_ objects.  It's CONS is a reusing one.
+
+What about doing this differently: separate out the memory model from
+the scheme struct.  This includes GC and all leaf object classes.
+
+The thing to decide is which objects are allowed in the stack machine
+as data objects, and which should remain hidden.  There's no use for
+exporting the Scheme's internal data structures (yet).  Let's start
+with cons cells and atoms.  Maybe the main problem is representing
+RC'd atoms in the Scheme core.
 

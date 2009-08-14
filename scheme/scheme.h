@@ -2,13 +2,7 @@
 #define _SCHEME_H_
 
 #include <setjmp.h>
-#include "symbol.h"
-#include "task.h"
-#include "port.h"
-#include "bytes.h"
-#include "pair.h"
-#include "gc.h"
-
+#include "mem.h"
 
 typedef struct _scheme sc;
 sc *scheme_new(void);
@@ -48,7 +42,7 @@ sc *scheme_new(void);
 */
 
 
-typedef object _;  // Highly effective noise reduction.
+
 
 
 /* The machine will attempt to reduce the current term (which is a
@@ -90,7 +84,7 @@ typedef struct {
     _ datum;
 } value;
 
-/* Atoms that need finalization must be wrapped to esure that they
+/* Atoms that need finalization must be wrapped to ensure that they
    occur only once in the heap: the finalize() method is called for
    each garbage copy that's encountered. */
 typedef struct {
@@ -160,19 +154,6 @@ DEF_CAST (k_seq)
 DEF_CAST (k_macro)
 
 
-/* primitive function wrapper */
-typedef struct {
-} prim_class;
-typedef struct {
-    void *type;
-    void *fn;
-    long nargs;
-    /* Note: in general it is not allowed to place objects in atom
-       structs, but in this case it's a symbol, so will never
-       change. */
-    object var;
-} prim;
-
 
 /* Global Scheme State*/
 #define sc_slot_toplevel        integer_to_object(0)
@@ -186,7 +167,17 @@ typedef struct {
     _ prim;
 } scheme_r;
 
+
+
+/* SCHEME */
+
+
+
 struct _scheme {
+    /* Scheme extends the memory model, which uncludes leaf types and
+       a garbage collector. */
+    mem m;
+
     /* Highlevel global state data is accessible from Scheme. */
     _ global;
 
@@ -200,16 +191,6 @@ struct _scheme {
     _ s_if;
     _ s_bang_set;
     _ s_letcc;
-
-    /* Primitive datatypes. */
-    symbol_class *symbol_type;
-    ck_class *ck_type;
-    prim_class *prim_type;
-    port_class *port_type;
-    bytes_class *bytes_type;
-
-    /* Delegate objects. */
-    gc *gc;
 
     /* Lowlevel control flow */
     jmp_buf top;       // full interpreter C stack unwind (i.e. for GC)
@@ -227,7 +208,7 @@ struct _scheme {
 
 /* The ck atoms have a free() finalizer, so need to be wrapped in an
    aref struct */
-static inline void *object_aref_struct(object ob, sc *sc, void *type) {
+static inline void *object_aref_struct(object ob, mem *m, void *type) {
     aref *ref;
     void *x;
     if ((ref = object_to_aref(ob)) &&
@@ -236,12 +217,8 @@ static inline void *object_aref_struct(object ob, sc *sc, void *type) {
 }
 
 #define DEF_AREF_TYPE(name)                                            \
-    static inline name *object_to_##name(object ob, sc *sc) {          \
-        return (name*)object_aref_struct(ob,sc,sc->name##_type); }
-#define DEF_CONST_TYPE(name,classlist)                                 \
-    static inline name *object_to_##name(object ob, sc *sc) {          \
-        return (name*)object_struct(ob,sc->name##_type); }
-
+    static inline name *object_to_##name(object ob, mem *m) {          \
+        return (name*)object_aref_struct(ob,m,m->name##_type); }
 
 
 // GC finalized objects
@@ -297,14 +274,13 @@ sc    *_sc_new(void);
 #define EVAL(expr)    sc_post(sc, _sc_top(sc, expr))
 
 // safe cast to C struct
-typedef void* (*object_to_pointer)(object, sc*);
 object sc_type_error(sc *sc, object arg_o);
 
 /* Pointer casts (just like predicates) are derived from the
    object_to_pointer function, _except_ for integers: there we use the
    predicate. */
 static inline void* _sc_unwrap_pointer(sc *sc, void *unwrap, object o){
-    void *x = ((object_to_pointer)unwrap)(o, sc);
+    void *x = ((object_to_pointer)unwrap)(o, &sc->m);
     if (unlikely(!x)) TYPE_ERROR(o);
     return x;
 }
@@ -328,7 +304,7 @@ void _sc_def_prim(sc *sc, const char *str, void *fn, long nargs);
 static inline object _sc_make_tagged_struct(sc *sc, long flags, long slots, ...) {
     va_list ap;
     va_start(ap, slots);
-    object o = gc_make_v(sc->gc, slots, ap);
+    object o = gc_make_v(sc->m.gc, slots, ap);
     va_end(ap);   
     vector_set_flags(object_to_vector(o), flags);
     return o;

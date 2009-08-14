@@ -58,7 +58,7 @@ _ sc_sub1(sc *sc, _ o) {
    object_to_pointer cast: if it returns NULL, the type isn't
    correct. */
 #define OBJECT_PREDICATE(cast) \
-    {if (cast(o, sc)) return TRUE; else return FALSE;}
+    {if (cast(o, &sc->m)) return TRUE; else return FALSE;}
 _ sc_is_symbol(sc *sc, _ o) { OBJECT_PREDICATE(object_to_symbol); }
 _ sc_is_prim(sc *sc, _ o)   { OBJECT_PREDICATE(object_to_prim); }
 _ sc_is_ck(sc *sc, _ o)     { OBJECT_PREDICATE(object_to_ck); }
@@ -172,11 +172,11 @@ _ _sc_make_aref(sc *sc, void *fin, void *ptr) {
 }
 
 _ _sc_make_symbol(sc *sc, const char *str) {
-    return const_to_object((void*)(string_to_symbol(sc->symbol_type, str)));
+    return const_to_object((void*)(string_to_symbol(sc->m.symbol_type, str)));
 }
 _ _sc_make_string(sc *sc, const char *str) {
-    return _sc_make_aref(sc, sc->bytes_type,
-                         bytes_from_cstring(sc->bytes_type, str));
+    return _sc_make_aref(sc, sc->m.bytes_type,
+                         bytes_from_cstring(sc->m.bytes_type, str));
 }
 
 
@@ -204,7 +204,7 @@ _ sc_type_error(sc *sc, _ arg_o) {
 }
 _ sc_make_vector(sc *sc, _ slots, _ init) {
     long i,n = CAST_INTEGER(slots);
-    vector *v = gc_alloc(sc->gc, n);
+    vector *v = gc_alloc(sc->m.gc, n);
     for(i=0; i<n; i++) v->slot[i] = init;
     return vector_to_object(v);
 }
@@ -239,7 +239,7 @@ _ sc_length(sc *sc, _ lst) {
 _ sc_take_vector(sc *sc, _ n, _ in_lst) {
     _ lst = in_lst;
     long slots = CAST_INTEGER(n);
-    vector *v = gc_alloc(sc->gc, slots);
+    vector *v = gc_alloc(sc->m.gc, slots);
     long i;
     for(i=0; i<slots; i++){
         if (FALSE == sc_is_pair(sc, lst)) return TYPE_ERROR(in_lst);
@@ -313,7 +313,7 @@ _ sc_find_toplevel_macro(sc *sc, _ var) {
 _ sc_bang_def_global(sc* sc, _ slot, _ var, _ val) {
     symbol *s;
     _ env = sc_global(sc, slot);
-    if (!(s=object_to_symbol(var, sc))) TYPE_ERROR(var);
+    if (!(s=object_to_symbol(var, &sc->m))) TYPE_ERROR(var);
     // _sc_printf(sc, "DEF %s: ",s->name); sc_post(sc, val);
     if (FALSE == sc_env_set(sc, env, var, val)) {
         sc_bang_set_global(sc, slot, CONS(CONS(var,val), env));
@@ -347,7 +347,7 @@ _ _write_delegate(object_write_ctx *ctx, object ob) {
 _ _write_vector(const char *type, object ob, object_write_ctx *ctx) {
     return object_write_vector(type, 
                                object_to_vector(ob),
-                               object_to_port(ctx->port, ctx->sc),
+                               object_to_port(ctx->port, &(ctx->sc->m)),
                                (object_write_delegate)_write_delegate,
                                ctx);
 }
@@ -355,15 +355,15 @@ _ _write_vector(const char *type, object ob, object_write_ctx *ctx) {
 _ sc_write(sc *sc,  _ o, _ out) {
     object_write_ctx ctx = {sc, out};
     port *p = CAST(port, out);
-    if (FALSE != object_write(o, p, _write_delegate, &ctx)) {
+    if (FALSE != object_write(o, p, (object_write_delegate)_write_delegate, &ctx)) {
         return VOID;
     }
     if (TRUE == sc_is_symbol(sc, o)) {
-        port_printf(p, "%s", object_to_symbol(o,sc)->name);
+        port_printf(p, "%s", object_to_symbol(o,&sc->m)->name);
         return VOID;
     }
     if (TRUE == sc_is_prim(sc, o)) {
-        prim *pr = object_to_prim(o,sc);
+        prim *pr = object_to_prim(o,&sc->m);
         port_printf(p, "#prim<%p:%ld>", (void*)(pr->fn),pr->nargs);
         return VOID;
     }
@@ -374,11 +374,11 @@ _ sc_write(sc *sc,  _ o, _ out) {
     if ((x = object_to_const(o))) { port_printf(p, "#data<%p>",x); return VOID; }
 
     if (TRUE == sc_is_bytes(sc, o)) {
-        bytes_write_string(object_to_bytes(o, sc), p->stream);
+        bytes_write_string(object_to_bytes(o, &sc->m), p->stream);
         return VOID;
     }
 
-    if (TRUE == sc_is_state(sc, o))   return _write_vector("state", o, &out);
+    if (TRUE == sc_is_state(sc, o))   return _write_vector("state", o, &ctx);
     if (TRUE == sc_is_lambda(sc, o))  return _write_vector("lambda", o, &ctx);
     if (TRUE == sc_is_redex(sc, o))   return _write_vector("redex", o, &ctx);
     if (TRUE == sc_is_value(sc, o))   return _write_vector("value", o, &ctx);
@@ -428,8 +428,8 @@ _ sc_fatal(sc *sc, _ err) {
         error *e = object_to_error(err);
         _sc_printf(sc, "ERROR");
         if (TRUE == sc_is_prim(sc, e->prim)) {
-            prim *p = object_to_prim(e->prim, sc);
-            symbol *s = object_to_symbol(p->var, sc);
+            prim *p = object_to_prim(e->prim, &sc->m);
+            symbol *s = object_to_symbol(p->var, &sc->m);
             if (s) _sc_printf(sc, " in `%s'", s->name); 
         }
         _sc_printf(sc, ": ");
@@ -637,7 +637,7 @@ _ _sc_step_value(sc *sc, _ v, _ k) {
 
             /* Application of primitive function results in C call. */
             if (TRUE==sc_is_prim(sc, fn)) {
-                prim *p = object_to_prim(fn,sc);
+                prim *p = object_to_prim(fn,&sc->m);
                 sc->r.prim = fn; // for debug
                 if (prim_nargs(p) != (n-1)) {
                     return ERROR("nargs", fn);
@@ -923,12 +923,12 @@ _ sc_gc(sc* sc) {
     _ k = sc_k_parent(sc, s->continuation); // drop `gc' k_apply frame
     sc_bang_set_global(sc, sc_slot_state, 
                        STATE(VALUE(VOID), k)); // update state manually
-    gc_collect(sc->gc);                        // collect will restart at sc->state
+    gc_collect(sc->m.gc);                        // collect will restart at sc->state
     return NIL; // not reached
 }
 
 _ sc_gc_used(sc *sc) {
-    return integer_to_object(sc->gc->current_index);
+    return integer_to_object(sc->m.gc->current_index);
 }
 
 /* Continuation transformer for apply.  
@@ -981,7 +981,7 @@ static _ test_ck(ck_class *m, _ o) {
 _ sc_with_ck(sc *sc, _ in_ref, _ value) {
     ck *task = NULL;
     ck_start fn = NULL;
-    if (!(task = object_to_ck(in_ref, sc))) {
+    if (!(task = object_to_ck(in_ref, &sc->m))) {
         fn = (ck_start)test_ck;
     }
     ck *in_task = task;
@@ -990,7 +990,7 @@ _ sc_with_ck(sc *sc, _ in_ref, _ value) {
     _ ref = sc_make_aref(sc, NIL, NIL);
     _ stream = CONS(NIL, ref);  
     
-    ck_invoke(sc->ck_type, fn, &task, (void**)&value);
+    ck_invoke(sc->m.ck_type, fn, &task, (void**)&value);
 
     if (!task) return value;
     else {
@@ -1002,7 +1002,7 @@ _ sc_with_ck(sc *sc, _ in_ref, _ value) {
         else {
             aref *r = object_to_aref(ref);
             r->atom = const_to_object(task);
-            r->fin  = fin_to_object((fin *)sc->ck_type);
+            r->fin  = fin_to_object((fin *)sc->m.ck_type);
         }
         return stream;
     }
@@ -1075,9 +1075,9 @@ void _sc_overflow(sc *sc, long extra) {
     /* At this point, the heap is compacted, but the requested
        allocation doesn't fit.  We need to grow.  Take at least the
        requested size + grow by a fraction of the total heap. */
-    long request = extra + (sc->gc->slot_total/4);
+    long request = extra + (sc->m.gc->slot_total/4);
     _sc_printf(sc, ";; gc-overflow %ld:%ld\n", extra, request);
-    gc_grow(sc->gc, request);
+    gc_grow(sc->m.gc, request);
     _sc_restart(sc);
 }
 
@@ -1085,16 +1085,16 @@ static void _sc_mark_roots(sc *sc, gc_finalize fin) {
     // sc_trap(sc);
     // printf("gc_mark()\n");
     // sc_post(sc, sc->state);
-    sc->global = gc_mark(sc->gc, sc->global);
+    sc->global = gc_mark(sc->m.gc, sc->global);
 
     if (fin) {
         /* We're given a finalizer continuation to aid us in aborting
            the C context that gave rise to the collection.  We use
            this to restart the current interpretation step saved in
            sc->state.  */
-        fin(sc->gc);
-        long used = sc->gc->current_index;
-        long free = sc->gc->slot_total - used;
+        fin(sc->m.gc);
+        long used = sc->m.gc->current_index;
+        long free = sc->m.gc->slot_total - used;
         _sc_printf(sc, ";; gc %d:%d\n", (int)used, (int)free);
         _sc_restart(sc);
     }
@@ -1107,7 +1107,7 @@ static void _sc_mark_roots(sc *sc, gc_finalize fin) {
 }
 static _ _sc_make_prim(sc *sc, void *fn, long nargs, _ var) {
     prim *p = malloc(sizeof(*p));
-    p->type = sc->prim_type;
+    p->type = sc->m.prim_type;
     p->fn = fn;
     p->nargs = nargs;
     p->var = var;
@@ -1118,6 +1118,10 @@ void _sc_def_prim(sc *sc, const char *str, void *fn, long nargs) {
     sc_bang_def_toplevel(sc, var, _sc_make_prim(sc, fn, nargs, var));
 }
 void _sc_load_lib(sc* sc);
+_ _sc_make_port(sc *sc, FILE *f) {
+    return _sc_make_aref(sc, sc->m.port_type, 
+                         port_new(sc->m.port_type, f));
+}
 
 sc *_sc_new(void) {
     sc *sc = malloc(sizeof(*sc));
@@ -1125,20 +1129,19 @@ sc *_sc_new(void) {
     sc->step_entries = 0;
 
     /* Garbage collector. */
-    sc->gc = gc_new(10000, sc, 
-                    (gc_mark_roots)_sc_mark_roots,
-                    (gc_overflow)_sc_overflow);
+    sc->m.gc = gc_new(10000, sc, 
+                      (gc_mark_roots)_sc_mark_roots,
+                      (gc_overflow)_sc_overflow);
                     
 
     /* Atom classes. */
-    sc->ck_type = ck_class_new();
-    sc->symbol_type = symbol_class_new(1000);
-    sc->prim_type = (void*)(123); // FIXME: dummy class
-    sc->port_type = port_class_new();
-    _ out = _sc_make_aref(sc, sc->port_type, 
-                          port_new(sc->port_type, stderr));
+    sc->m.ck_type = ck_class_new();
+    sc->m.symbol_type = symbol_class_new(1000);
+    sc->m.prim_type = (void*)(123); // FIXME: dummy class
+    sc->m.port_type = port_class_new();
+    _ out = _sc_make_port(sc, stderr);
 
-    sc->global = gc_make(sc->gc, 5,
+    sc->global = gc_make(sc->m.gc, 5,
                          NIL,  // toplevel
                          NIL,  // macro
                          NIL,  // state
