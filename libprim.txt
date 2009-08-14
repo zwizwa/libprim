@@ -1539,6 +1539,9 @@ This can be solved by changing the semantics of finalizers: they take
 objects instead of constant's pointer.  By tagging constant with 00
 nothing really changes though.
 
+So, finalizers take objects: this means that linear structures can be
+embedded in an aref: if an aref becomes unreachable, an RC-- will
+ripple through the list.
 
 
 Entry: Scheme Primitives in the Stack Machine
@@ -1568,4 +1571,39 @@ Next: the interpreter.  Should be quite straightforward, only this
 time I'd like to not make the mistake of not having proper tail call
 handling.  For some late night zen.
 
+One thing though: the return addresses.  What are they?
+
+They need to be real references to guarantee a safe memory model, but
+they need to be distinguishable from ordinary CONS cells.  Maybe just
+add a CODE cell?  Also, this gives a very elegant way to make tail
+recursion work: simply link the CDR to the head of the last word
+called!
+
+Looks like this is ``continuations for free''.
+
+The return stack then becomes a CONS list of CODE pairs.
+
+CODE  = RETURN | (SUB : CODE)    ;; ':' is a GC CONS
+SUB   = PRIM | CODE
+
+RS    = MT | (CODE . RS)         ;; '.' is a linear CONS
+
+Here SUB is either a PRIM which can be invoked to modify the machine
+state, or a CODE list which can be executed by saving the current CODE
+cdr on the return stack and jumping to the SUB CODE.  RETURN pops the
+next CODE from RS and jumps to it.
+
+( Note that RETURN is necessary _only_ if a code definition ends on a
+primitive.  If not, it's simply linked to the tail procedure. )
+
+Essentially, the return stack itself is in this case also just a code
+graph ``constructed at run-time'' : it is a callable function!
+
+Note however that `.' is a _stack_ that's managed linearly, while the
+`:' is graph managed.  I.e. the return stack can't contain loops, but
+the code can.
+
+This makes the new PF semantics complete.
+
+HA!
 
