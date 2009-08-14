@@ -1214,6 +1214,8 @@ Date: Tue Aug 11 17:05:08 CEST 2009
 
 http://www.ai.mit.edu/projects/dynlangs/wizards-panels.html
 
+Panel 1: runtimes
+
 David Moon:
 
  ``Start with a small working system and expand it incrementally,
@@ -1222,6 +1224,16 @@ David Moon:
 
  ``Sometimes an error message means exactly what it says.''
 
+
+Panel 2: compilation
+
+An interesting discussion about finalizers.  For libprim tasks, I'm
+thinking that C++ destructors might be interesting in combination with
+stack-based "pure" tasks: going out of scope due to return or
+exceptions calls destructors.  Will Clinger mentions weak pointers
+[1].
+
+[1] http://www.iecc.com/gclist/GC-faq.html
 
 Entry: removing optimizations
 Date: Tue Aug 11 17:45:36 CEST 2009
@@ -1238,6 +1250,11 @@ This one[3] is a rework of Metronome.
 
 I'd like to know how this works..
 
+After reading a bit, the conclusion I get to is that this isn't really
+a science.  Optimality boils down to figuring out which objects are
+long lived, so they can be ignored most of the time.  There are a
+bunch of heuristic tricks to do this, but none of them are optimal
+for all programs.
 
 [1] http://citeseerx.ist.psu.edu/viewdoc/summary?doi=10.1.1.39.4550
 [2] http://www.dekorte.com/projects/opensource/libgarbagecollector/
@@ -1393,3 +1410,29 @@ GC is switched off and only the linear language runs.
 
 Anyway, let's just be carful to make sure pf data types are compatible
 with GC.
+
+Alternatively: the code/variable space could be made inaccessible to
+the language.  If it is externally managed and accessed abstractly,
+references into this memory _can_ be used.  
+
+
+
+Entry: Reusing primitives
+Date: Thu Aug 13 23:16:55 CEST 2009
+
+There seems to be a real benefit in doing this in a shared way.  All
+Scheme primitives that do not CONS can be directly reused.
+
+Even better: the whole machine might be embeddable inside scheme: this
+would give a way to make references work (variables and code), which
+would lie outside the reach of stack code, but could be used as jump
+targets and data storage.
+
+Basic idea: the PF machine never CONSes from the GC free space for
+_data_ objects.  It's CONS is a reusing one.
+
+
+
+Entry: Moving the stack language into the Scheme interpreter.
+Date: Fri Aug 14 08:48:30 CEST 2009
+
