@@ -9,26 +9,37 @@
    additional tag bits.  GC_TAG_MASK tells the GC what to ignore. */
 
 
-/* Vectors can have tags in the upper bits. */
-#ifndef GC_VECTOR_TAG_MASK
+/* Vectors can have tags in the upper bits.  Currently 5 bits are
+   reserved, and the first couple are shared by the Scheme and PF data
+   models. */
+#define GC_VECTOR_TAG_BITS 5
 #ifdef _LP64
-#define GC_VECTOR_TAG_SHIFT 60
+#define GC_VECTOR_TAG_SHIFT (64 - GC_VECTOR_TAG_BITS)
 #define GC_VECTOR_TAG_MASK ((1L<<GC_VECTOR_TAG_SHIFT)-1L)
 #else
-#define GC_VECTOR_TAG_SHIFT 28
+#define GC_VECTOR_TAG_SHIFT (32 - GC_VECTOR_TAG_BITS)
 #define GC_VECTOR_TAG_MASK ((1<<GC_VECTOR_TAG_SHIFT)-1)
 #endif
-#endif
+static inline unsigned long VECTOR_TAG(unsigned long x) {
+    return x << GC_VECTOR_TAG_SHIFT;
+}
+#define TAG_VECTOR    VECTOR_TAG(0)   /* The flat vector. */
+#define TAG_PAIR      VECTOR_TAG(1)   /* The CONS cell. */
+#define TAG_AREF      VECTOR_TAG(2)   /* Reference with finalization. */
+#define TAG_OPAQUE    VECTOR_TAG(3)   /* An "outside" pointer. */
 
+#define GC_VECTOR_USER_START 8
+
+
+
+/* Base objects have a 2-bit tag. */
 #define GC_TAG_SHIFT 2
-
 static inline long GC_TAG(long x) { return x&((1<<GC_TAG_SHIFT)-1); }
 static inline void* GC_POINTER(long x) { 
     long mask = -1;
     mask <<= GC_TAG_SHIFT;
     return (void*)(x&mask);
 }
-
 #define GC_CONST   0   /* pointer untyped, not managed */
 #define GC_VECTOR  1   /*         vector,  managed */
 #define GC_INTEGER 2   /* integer number (shifted) */
@@ -122,9 +133,6 @@ static inline void *object_struct(object ob, void *type){
     return x;
 }
 
-static inline unsigned long VECTOR_TAG(unsigned long x) {
-    return x << GC_VECTOR_TAG_SHIFT;
-}
 static inline unsigned long vector_to_flags(vector *v) {
     return (v->header) & (~GC_VECTOR_TAG_MASK);
 }
@@ -141,6 +149,8 @@ static inline unsigned long object_get_vector_flags(object o){
 #define DEF_CAST(type)                                \
     static inline type *object_to_##type(object o) {       \
         return (type*)object_to_vector(o); }
+
+
 
 
 #endif

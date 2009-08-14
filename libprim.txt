@@ -1446,3 +1446,41 @@ exporting the Scheme's internal data structures (yet).  Let's start
 with cons cells and atoms.  Maybe the main problem is representing
 RC'd atoms in the Scheme core.
 
+It doesn't seem to be necessary to run PF in SC.  As long as the
+memory management is compatible, they can be made to work together.
+The hairy part is the GC restart, since they would need to share the
+GC next to all the mem classes, but it doesn't seem infeasible.
+
+So, given that we're using the Scheme's data model, how should
+finalization and reference counting be bridged?
+
+
+Entry: Packet Forth
+Date: Fri Aug 14 11:09:11 CEST 2009
+
+It's becoming more clear to me that this is really a rewrite of PF.
+The core idea is to be able to use linear+RC based memory management
+for ``regime programs'' : code that performs some setup and then ends
+up in an infinite loop with very predictable memory patterns.
+
+The mistake I made in the first implementation is to assume that GC
+isn't necessary.  Only after _first_ implementing a Scheme around the
+primitive data types did I realize that this is really an essential
+part: the synergy between a Scheme-like host and a linear stack
+language is essential to the idea.  You need the first to bootstrap
+the second.
+
+Representing data.
+
+The PF primitives should know about (``inside memory'').
+    - constants
+    - cons cells
+    - RC managed leaf objects
+    - opaque references to "outside" memory
+
+The outside model, accessible from Scheme, needs to wrap RC managed
+cells in an aref object.
+
+
+
+

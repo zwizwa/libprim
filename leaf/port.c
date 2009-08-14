@@ -1,4 +1,5 @@
 #include <stdlib.h>
+#include <string.h>
 #include "port.h"
 int port_vprintf(port *p, char *fmt, va_list ap) {
     va_list aq;
@@ -17,6 +18,7 @@ int port_printf(port *p, char *fmt, ...) {
 }
 static void _port_free(port *x) {
     fclose(x->stream);
+    if (x->name) free (x->name);
     free(x);
 }
 port_class *port_class_new(void) {
@@ -24,9 +26,14 @@ port_class *port_class_new(void) {
     x->free = _port_free;
     return x;
 }
-port *port_new(port_class *type, FILE *f) {
+port *port_new(port_class *type, FILE *f, const char *name) {
     port *x = malloc(sizeof(*x));
     x->type = type;
     x->stream = f;
+    x->name = NULL;
+    if (name) {
+        x->name = malloc(1 + strlen(name));
+        strcpy(x->name, name);
+    }
     return x;
 }

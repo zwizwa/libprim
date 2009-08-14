@@ -81,7 +81,12 @@ object object_write(object o, port *p, mem *m,
     }
     if ((x = object_struct(o, m->port_type))) {
         port *prt = (port*)x;
-        port_printf(p, "#port<%p>", prt->stream);
+        if (prt->name) {
+            port_printf(p, "#port<%s>", prt->name);
+        }
+        else {
+            port_printf(p, "#port<%p>", prt->stream);
+        }
         return VOID;
     }
     return FALSE;

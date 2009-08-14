@@ -14,12 +14,13 @@ typedef struct {
 struct _port {
     port_class *type;
     FILE *stream;
+    char *name;
 };
 
 int port_vprintf(port *p, char *fmt, va_list ap);
 int port_printf(port *p, char *fmt, ...);
 port_class* port_class_new(void);
-port *port_new(port_class *type, FILE *f);
+port *port_new(port_class *type, FILE *f, const char *name);
 
 
 

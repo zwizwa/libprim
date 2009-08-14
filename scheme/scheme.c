@@ -79,28 +79,6 @@ static _ vector_type(_ o, long flags) {
 }
 
 
-// vector tags for interpreter data types
-#define TAG_VECTOR    VECTOR_TAG(0)
-
-#define TAG_PAIR      VECTOR_TAG(1)
-#define TAG_LAMBDA    VECTOR_TAG(2)
-#define TAG_STATE     VECTOR_TAG(3)
-#define TAG_VALUE     VECTOR_TAG(4)
-#define TAG_REDEX     VECTOR_TAG(5)
-#define TAG_ERROR     VECTOR_TAG(6)
-#define TAG_AREF      VECTOR_TAG(7)
-
-#define TAG_K_IF      VECTOR_TAG(8)
-#define TAG_K_SET     VECTOR_TAG(9)
-#define TAG_K_APPLY   VECTOR_TAG(10)
-#define TAG_K_SEQ     VECTOR_TAG(11)
-#define TAG_K_MACRO   VECTOR_TAG(12)
-#define TAG_K_IGNORE  VECTOR_TAG(13)
-// reserved 14 15
-static inline long flags_is_k(long flag) {
-    return flag & VECTOR_TAG(8);
-}
-
 /* Predicates */
 _ sc_is_vector(sc *sc, _ o)  { return vector_type(o, TAG_VECTOR); }
 _ sc_is_pair(sc *sc, _ o)    { return vector_type(o, TAG_PAIR); }
@@ -459,16 +437,16 @@ _ sc_list_clone(sc *sc, _ lst) {
         lst = in->cdr;
     }
 }
-_ _sc_make_port(sc *sc, FILE *f) {
+_ _sc_make_port(sc *sc, FILE *f, const char *name) {
     return _sc_make_aref(sc, sc->m.port_type, 
-                         port_new(sc->m.port_type, f));
+                         port_new(sc->m.port_type, f, name));
 }
 _ sc_open_mode_file(sc *sc, _ path, _ mode) {
     bytes *b_path = CAST(bytes, path);
     bytes *b_mode = CAST(bytes, mode);
     FILE *f = fopen(b_path->bytes, b_mode->bytes);
     if (!f) ERROR("fopen", path);
-    return _sc_make_port(sc, f);
+    return _sc_make_port(sc, f, b_path->bytes);
 }
 
 
@@ -1143,7 +1121,7 @@ sc *_sc_new(void) {
     sc->m.port_type = port_class_new();
 
     /* Data roots. */
-    _ out = _sc_make_port(sc, stderr);
+    _ out = _sc_make_port(sc, stderr, "stderr");
     sc->global = gc_make(sc->m.gc, 5,
                          NIL,  // toplevel
                          NIL,  // macro
