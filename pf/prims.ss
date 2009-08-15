@@ -6,5 +6,6 @@
 (parameterize
     ((re-def  (pregexp "void\\s+?pf_\\S*?\\(pf\\s*?\\*.*?\\)"))
      (re-name (pregexp "pf_\\S*?(?=\\()")))
-  (gen-header (scan)))
+  (gen))
+
 

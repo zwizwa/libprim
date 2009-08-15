@@ -5,4 +5,4 @@
 (parameterize
     ((re-def (pregexp "_\\s+?sc_\\S*?\\(sc\\s*?\\*.*?\\)"))
      (re-name (pregexp "sc_\\S*?(?=\\()")))
-    (gen-header (scan)))
+  (gen))

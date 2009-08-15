@@ -9,6 +9,7 @@
 // generated
 #include "scheme.h_"
 
+
 /* --- PRIMITIVES --- */
 
 /* To simplify the implementation, most C functions are implemented as
@@ -162,19 +163,13 @@ _ sc_car(sc *sc, _ o)  { pair *p = CAST(pair, o); return p->car; }
 _ sc_cdr(sc *sc, _ o)  { pair *p = CAST(pair, o); return p->cdr; }
 _ sc_cadr(sc *sc, _ o) { pair *p = CAST(pair, sc_cdr(sc, o)); return p->car; }
 
-/* Error handling:
-   FIXME: The machine step() is protected with setjmp(). */
-_ sc_trap(sc *sc) {
-    kill(getpid(), SIGTRAP);
-    return VOID;
-}
 _ sc_error(sc *sc, _ sym_o, _ arg_o) {
     sc->error_tag = sym_o;
     sc->error_arg = arg_o;
     // if (sym_o != SYMBOL("halt")) sc_trap(sc);
     if (sc->step_entries) longjmp(sc->m.r.step, SC_EX_ABORT);
     _sc_printf(sc, "ERROR: attempt to abort primitive outside of the main loop.\n");
-    sc_trap(sc);
+    ex_trap(EX);
     exit(1);
 }
 _ sc_type_error(sc *sc, _ arg_o) {
@@ -895,7 +890,7 @@ static _ _sc_restart(sc *sc) {
         longjmp(sc->m.top, SC_EX_RESTART); 
     }
     _sc_printf(sc, "ERROR: attempt restart outside of the main loop.\n");
-    sc_trap(sc);
+    ex_trap(EX);
     exit(1);
 }
    
@@ -1044,12 +1039,16 @@ _ _sc_top(sc *sc, _ expr){
     }
 }
 
-#define USE_TABLE_PRIMS 1
-#if USE_TABLE_PRIMS
-static prim_def prims[] = prims_init;
-#endif
 
-void sc_ex_prims(sc *sc);
+static prim_def scheme_prims[] = scheme_init;
+static prim_def ex_prims[] = ex_prims_init;
+
+static _sc_def_prims(sc *sc, prim_def *prims) {
+    prim_def *prim;
+    for (prim = prims; prim->name; prim++) {
+        DEF(prim->name, prim->fn, prim->nargs);
+    }
+}
 
 
 static void _sc_overflow(sc *sc, long extra) {
@@ -1063,7 +1062,7 @@ static void _sc_overflow(sc *sc, long extra) {
 }
 
 static void _sc_mark_roots(sc *sc, gc_finalize fin) {
-    // sc_trap(sc);
+    // ex_trap(EX);
     // printf("gc_mark()\n");
     // sc_post(sc, sc->state);
     sc->global = gc_mark(sc->m.gc, sc->global);
@@ -1137,16 +1136,8 @@ sc *_sc_new(void) {
     sc->s_letcc    = SYMBOL("letcc");
 
     /* Primitive defs */
-    sc_ex_prims(sc);
-#if USE_TABLE_PRIMS
-    prim_def *prim;
-    for (prim = prims; prim->name; prim++) {
-        DEF(prim->name, prim->fn, prim->nargs);
-    }
-#else
-    // apparently this gives smaller code
-    _sc_def_prims(sc); // defined in scheme.h_
-#endif
+    _sc_def_prims(sc, ex_prims);
+    _sc_def_prims(sc, scheme_prims);
 
     /* Toplevel abort continuation */
     _ done = CONS(sc_find_toplevel(sc, SYMBOL("fatal")),NIL);

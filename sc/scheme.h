@@ -3,6 +3,7 @@
 
 #include <setjmp.h>
 #include "ex.h"
+#include "../ex/ex_prims.h_"
 
 typedef struct _scheme sc;
 sc *scheme_new(void);
@@ -211,6 +212,8 @@ struct _scheme {
 };
 
 
+// SUPER
+#define EX (&sc->m)
 
 
 /* The ck atoms have a free() finalizer, so need to be wrapped in an

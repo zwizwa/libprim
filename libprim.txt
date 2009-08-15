@@ -1702,7 +1702,7 @@ almost all code in pf.c is doubly done: once as expression, and once
 bound to the linear stack.
 
 
-Entry: Common expression language
+Entry: EX: expression language
 Date: Sat Aug 15 13:55:38 CEST 2009
 
 `expressions' use the following resources:
@@ -1710,6 +1710,37 @@ Date: Sat Aug 15 13:55:38 CEST 2009
               - exceptions
               - leaf types
 
-If we agree that they _can_ use both, the Scheme and PF core
-primitives can be shared.  Let's move these to 'ex'.
+It is a dynamically typed functional language using the C-stack for
+expression nesting.
+
+The Scheme and PF languages add primitives that operate on an
+extension of this state, with most of the primitive expressions
+shared.
+
+Now, by binding EX in the respective scripting languages to &pf->m and
+&sc->m it is possible to abbreviate all expressions, leaving out the
+prefixes.  I.e. generalization of:
+
+#define CONS(a,b)  ex_cons(EX, a, b)
+
+Now that the infrastructure is there, let's move the primitives lazily
+depending on need in both languages.
+
+Entry: Static scope.  Date: Sat Aug 15 15:41:17 CEST 2009
+
+What's interesting for the current PF code graph implementation, is
+that it is actually statically scoped.  All variables are bound at
+compile time, which makes (data / code) hiding through local
+definitions possible.
+
+I'm not sure how to reflect this back into the language, but it could
+be used to create local dictionaries, one of the things that was
+really hard to do in original PF.
+
+
+Entry: PF / PX primitives
+Date: Sat Aug 15 16:05:08 CEST 2009
+
+In light of this sharing it makes sense to define PF in terms of PX
+primitives: in-place expressions.
 

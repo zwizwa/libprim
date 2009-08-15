@@ -306,6 +306,62 @@ void pf_run(pf *pf) {
     return;
 }
 
+/* EXPRESSIONS 
+
+   It's simpler to factor out primitives as N -> 1 expressions, and
+   then couple them (automatically?) to the parameter stack.  This
+   uses the same naming convention as sc_ and ex_, namely
+
+   px_  :  N x object -> object
+   _px_ :  any other operation on *pf
+
+
+*/
+
+typedef struct { 
+    pf *pf;
+    port *p;
+    ex *m;
+} _write_ctx_;
+static _ _write_delegate(_write_ctx_ *ctx, _ ob) {
+    port *p = ctx->p;
+    ex *m = ctx->m;
+    object_write_delegate fn = (object_write_delegate)_write_delegate;
+    void *x;
+    if (FALSE == object_write(ob, p, m, fn, ctx)) {
+        if ((x = object_to_port(ob, m))) {
+            object_write(const_to_object(x), p, m, fn, ctx);
+        }
+        else if ((x = object_to_code(ob))) {
+            port_printf(p, "#code<%p>", x);
+        }
+        else {
+            port_printf(p, "#object<%p>",(void*)ob);
+        }
+    }
+    return VOID;
+}
+_ _px_printf(pf *pf, const char *fmt, ...) {  
+    int rv;
+    port *p = object_to_port(pf->output, &pf->m);
+    va_list ap; va_start(ap, fmt);
+    rv = port_vprintf(p, fmt, ap);
+    va_end(ap);
+    return VOID;
+}
+
+_ px_write(pf *pf, _ ob) {
+    _write_ctx_ ctx = {pf, object_to_port(pf->output, &pf->m), &pf->m};
+    _write_delegate(&ctx, ob);
+    return _px_printf(pf, " ");
+}
+_ px_post(pf *pf, _ ob) {
+    px_write(pf, ob);
+    return _px_printf(pf, "\n");
+}
+
+
+
 /* PRIMITIVES */
 
 void pf_trap(pf *pf) { 
@@ -335,48 +391,6 @@ void pf_bang(pf *pf) {
 }
 
 
-typedef struct { 
-    pf *pf;
-    port *p;
-    ex *m;
-} _write_ctx_;
-static _ _write_delegate(_write_ctx_ *ctx, _ ob) {
-    port *p = ctx->p;
-    ex *m = ctx->m;
-    object_write_delegate fn = (object_write_delegate)_write_delegate;
-    void *x;
-    if (FALSE == object_write(ob, p, m, fn, ctx)) {
-        if ((x = object_to_port(ob, m))) {
-            object_write(const_to_object(x), p, m, fn, ctx);
-        }
-        else if ((x = object_to_code(ob))) {
-            port_printf(p, "#code<%p>", x);
-        }
-        else {
-            port_printf(p, "#object<%p>",(void*)ob);
-        }
-    }
-    return VOID;
-}
-
-int _pf_printf(pf *pf, const char *fmt, ...) {  
-    int rv;
-    port *p = object_to_port(pf->output, &pf->m);
-    va_list ap; va_start(ap, fmt);
-    rv = port_vprintf(p, fmt, ap);
-    va_end(ap);
-    return rv;
-}
-void _pf_write(pf *pf, _ ob) {
-    _write_ctx_ ctx = {pf, object_to_port(pf->output, &pf->m), &pf->m};
-    _write_delegate(&ctx, ob);
-    _pf_printf(pf, " ");
-}
-void _pf_post(pf *pf, _ ob) {
-    _pf_write(pf, ob);
-    _pf_printf(pf, "\n");
-}
-
 void pf_dup_write(pf *pf) { _pf_write(pf, TOP); }
 void pf_dup_post(pf *pf) { _pf_post(pf, TOP); }
 void pf_state(pf *pf) {
@@ -402,6 +416,10 @@ void pf_print_error(pf *pf) {
 }
 
 /* Convert a list to code and jump to it. */
+
+_ px_eval(pf *pf, _ obj) {
+}
+
 void pf_eval(pf *pf) {
     // _ code = _pf_eval(pf, TOP);
 }

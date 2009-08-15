@@ -5,6 +5,7 @@
 
 
 #include "ex.h"
+#include "ex_prims.h_"
 
 /* Booleans are GC_CONST */
 _ ex_is_bool(ex *ex, _ o) {
@@ -12,5 +13,13 @@ _ ex_is_bool(ex *ex, _ o) {
     if ((x = object_to_const(o)) &&
         (0 == (((long)x) & (~TRUE)))) { return TRUE; }
     return FALSE;
+}
+
+
+/* Error handling:
+   FIXME: The machine step() is protected with setjmp(). */
+_ ex_trap(ex *ex) {
+    kill(getpid(), SIGTRAP);
+    return VOID;
 }
 

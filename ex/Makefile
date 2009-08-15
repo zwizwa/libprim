@@ -8,11 +8,11 @@ DEBUG_CFLAGS=-Wall -g
 # CC = gcc -m32
 
 %.h_: %.c prims.ss
-	mzscheme prims.ss <$< >$@
+	mzscheme prims.ss $< >$@
 # %.h_: %.ex ../unparse.ss
 # 	mzscheme ../unparse.ss <$< >$@
 
-GEN = ex_prim.h_
+GEN = ex_prims.h_
 
 all: $(OBJ)
 
@@ -22,7 +22,7 @@ CPPFLAGS += -I../leaf
 COMPILE = $(CC) $(CPPFLAGS) $(CFLAGS) $(OPTI_CFLAGS) $(DEBUG_CFLAGS) 
 
 # make deps from .c file
-%.d: %.c Makefile
+%.d: %.c Makefile $(GEN)
 	set -e; rm -f $@; \
 		$(CC) -M $(CPPFLAGS) $< > $@.$$$$; \
 		sed 's,\($*\)\.o[ :]*,\1.o $@ : ,g' < $@.$$$$ > $@; \
@@ -30,10 +30,11 @@ COMPILE = $(CC) $(CPPFLAGS) $(CFLAGS) $(OPTI_CFLAGS) $(DEBUG_CFLAGS)
 
 -include $(SRC:.c=.d)
 
-%.o: %.c Makefile
+%.o: %.c Makefile $(GEN)
 	$(COMPILE) -o $@ -c $<
 
 .PHONY: clean
 clean:
-	rm -f *.o *.d *.d.* *~
+	rm -f *.o *.d *.d.* *~ *.h_
+
 

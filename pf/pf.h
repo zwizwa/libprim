@@ -25,6 +25,8 @@ typedef struct {
 
 } pf;
 
+#define EX (&pf->m)
+
 #include "pf.h_"
 
 /* MEMORY */

@@ -1,5 +1,5 @@
 
-SRC=lib.c scheme.c main.c sc_ex_prims.c
+SRC=lib.c scheme.c main.c 
 OBJ=$(SRC:.c=.o)
 DEBUG_CFLAGS=-Wall -g -Wno-unused
 # OPTI_CFLAGS=-Os
@@ -12,7 +12,7 @@ all: scheme
 %.h_: %.scm ../unparse.ss
 	mzscheme ../unparse.ss <$< >$@
 %.h_: %.c prims.ss
-	mzscheme prims.ss <$< >$@
+	mzscheme prims.ss $< >$@
 
 GEN = test.h_ scheme.h_ boot.h_
 
@@ -47,9 +47,8 @@ scheme: $(OBJ) deps
 
 .PHONY: clean
 clean:
-	rm -f scheme *.o *.d *.d.* *~
+	rm -f scheme *.o *.d *.d.* *~ *.h_
 
 .PHONY: mrproper
 mrproper: clean
 	make -C ../leaf clean
-	rm -f *.c_ *.h_	
