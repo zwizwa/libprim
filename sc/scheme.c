@@ -29,29 +29,13 @@
 */
 
 
-_ sc_is_zero(sc *sc, _ o) {
-    long i = CAST_INTEGER(o);
-    if (i) return FALSE;
-    return TRUE;
-}
-_ sc_add1(sc *sc, _ o) {
-    long i = CAST_INTEGER(o);
-    return integer_to_object(i + 1);
-}
-_ sc_sub1(sc *sc, _ o) {
-    long i = CAST_INTEGER(o);
-    return integer_to_object(i - 1);
-}
 
-/* Symbols are encoded as GC_ATOM. */
 
 /* Predicates for primitive objects are derived from their
    object_to_pointer cast: if it returns NULL, the type isn't
    correct. */
 #define OBJECT_PREDICATE(cast) \
     {if (cast(o, &sc->m)) return TRUE; else return FALSE;}
-_ sc_is_symbol(sc *sc, _ o) { OBJECT_PREDICATE(object_to_symbol); }
-_ sc_is_prim(sc *sc, _ o)   { OBJECT_PREDICATE(object_to_prim); }
 _ sc_is_ck(sc *sc, _ o)     { OBJECT_PREDICATE(object_to_ck); }
 _ sc_is_port(sc *sc, _ o)   { OBJECT_PREDICATE(object_to_port); }
 _ sc_is_bytes(sc *sc, _ o)  { OBJECT_PREDICATE(object_to_bytes); }
@@ -60,7 +44,6 @@ _ sc_is_bytes(sc *sc, _ o)  { OBJECT_PREDICATE(object_to_bytes); }
 
 
 /* Predicates */
-_ sc_is_vector(sc *sc, _ o)  { return _is_vector_type(o, TAG_VECTOR); }
 _ sc_is_lambda(sc *sc, _ o)  { return _is_vector_type(o, TAG_LAMBDA); }
 _ sc_is_state(sc *sc, _ o)   { return _is_vector_type(o, TAG_STATE); }
 _ sc_is_redex(sc *sc, _ o)   { return _is_vector_type(o, TAG_REDEX); }
@@ -305,7 +288,7 @@ _ sc_fatal(sc *sc, _ err) {
     if (TRUE == sc_is_error(sc, err)) {
         error *e = object_to_error(err);
         _ex_printf(EX, "ERROR");
-        if (TRUE == sc_is_prim(sc, e->prim)) {
+        if (TRUE == IS_PRIM(e->prim)) {
             prim *p = object_to_prim(e->prim, &sc->m);
             symbol *s = object_to_symbol(p->var, &sc->m);
             if (s) _ex_printf(EX, " in `%s'", s->name); 
@@ -526,7 +509,7 @@ _ _sc_step_value(sc *sc, _ v, _ k) {
             // fn == primitive | lambda | continuation
 
             /* Application of primitive function results in C call. */
-            if (TRUE==sc_is_prim(sc, fn)) {
+            if (TRUE==IS_PRIM(fn)) {
                 prim *p = object_to_prim(fn,&sc->m);
                 sc->m.r.prim = p; // for debug
                 if (prim_nargs(p) != (n-1)) {
@@ -639,7 +622,7 @@ static _ _sc_step(sc *sc, _ o_state) {
      */
 
     /* Variable Reference */
-    if (TRUE==sc_is_symbol(sc, term)){
+    if (TRUE==IS_SYMBOL(term)){
         _ val; 
         if (FALSE == (val = ex_find(EX, env, term))) {
             if (FALSE == (val = sc_find_toplevel(sc, term))) {
@@ -661,7 +644,7 @@ static _ _sc_step(sc *sc, _ o_state) {
     _ term_args = CDR(term);
 
     /* Special Form */
-    if (TRUE==sc_is_symbol(sc, term_f)) {
+    if (TRUE==IS_SYMBOL(term_f)) {
         if (term_f == sc->s_lambda) {
             if (NIL == term_args) goto syntax_error;
             _ argspec = CAR(term_args);
@@ -669,7 +652,7 @@ static _ _sc_step(sc *sc, _ o_state) {
             _ rest;
             _sc_length_rest(sc, argspec, &named, &rest);
             if ((NIL   != rest) &&
-                (FALSE == sc_is_symbol(sc,rest))) {
+                (FALSE == IS_SYMBOL(rest))) {
                 goto syntax_error;
             }
             _ formals = sc_take_vector(sc, named, argspec);
@@ -700,7 +683,7 @@ static _ _sc_step(sc *sc, _ o_state) {
         if (term_f == sc->s_bang_set) {
             if (NIL == term_args) goto syntax_error;
             _ var = CAR(term_args);
-            if (FALSE == sc_is_symbol(sc, var)) goto syntax_error;
+            if (FALSE == IS_SYMBOL(var)) goto syntax_error;
             if (NIL == CDR(term_args)) goto syntax_error;
             _ expr = CADR(term_args);
             return STATE(REDEX(expr, env, menv),

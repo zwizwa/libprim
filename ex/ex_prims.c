@@ -24,9 +24,31 @@ _ ex_is_integer(ex *ex, _ o) {
     if (GC_INTEGER == GC_TAG(o)) return TRUE;
     return FALSE;
 }
+_ ex_is_zero(ex *ex, _ o) {
+    long i = CAST_INTEGER(o);
+    if (i) return FALSE;
+    return TRUE;
+}
+
+#define OBJECT_PREDICATE(cast) \
+    {if (cast(o, ex)) return TRUE; else return FALSE;}
+_ ex_is_symbol(ex *ex, _ o) { OBJECT_PREDICATE(object_to_symbol); }
+_ ex_is_prim(ex *ex, _ o)   { OBJECT_PREDICATE(object_to_prim); }
 
 
-_ ex_is_pair(ex *ex, _ o)  { return _is_vector_type(o, TAG_PAIR); }
+_ ex_is_pair(ex *ex, _ o)    { return _is_vector_type(o, TAG_PAIR); }
+_ ex_is_vector(ex *ex, _ o)  { return _is_vector_type(o, TAG_VECTOR); }
+
+
+/* Arithmetic */
+_ ex_add1(ex *ex, _ o) {
+    long i = CAST_INTEGER(o);
+    return integer_to_object(i + 1);
+}
+_ ex_sub1(ex *ex, _ o) {
+    long i = CAST_INTEGER(o);
+    return integer_to_object(i - 1);
+}
 
 
 
