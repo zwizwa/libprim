@@ -225,18 +225,7 @@ _ sc_take_vector(sc *sc, _ n, _ in_lst) {
 _ sc_list_to_vector(sc *sc, _ lst){
     return sc_take_vector(sc, sc_length(sc, lst), lst);
 }
-_ sc_find_slot(sc *sc, _ E, _ var) {
-    if (TRUE == sc_is_null(sc, E)) return FALSE;
-    _ slot = CAR(E);
-    _ name = CAR(slot);
-    if (name == var) return slot;
-    else return sc_find_slot(sc, CDR(E), var);
-}
-_ sc_find(sc *sc, _ E, _ var) {
-    _ rv = sc_find_slot(sc, E, var);
-    if (FALSE == sc_is_pair(sc, rv)) return FALSE;
-    return CDR(rv);
-}
+
 _ sc_env_set(sc *sc, _ E, _ var, _ value) {
     _ rv = sc_find_slot(sc, E, var);
     if (FALSE == sc_is_pair(sc, rv)) return FALSE;

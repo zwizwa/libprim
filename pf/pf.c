@@ -50,7 +50,7 @@ _ _pf_abort(pf *pf) {
 /* Allocate a new linked list of pairs. */
 #if PF_FREELIST_GC
 _ _pf_alloc_freelist(pf *pf) {
-    return ex_cons(&pf->m, VOID, NIL);
+    return ex_cons(EX, VOID, NIL);
 }
 #else
 _ _pf_alloc_freelist(pf *pf) {
@@ -346,13 +346,12 @@ _ px_post(pf *pf, _ ob) {
     return _ex_printf(EX, "\n");
 }
 
+_ px_compile(pf *pf, _ ob) {
+}
 
 
 /* PRIMITIVES */
 
-void pf_trap(pf *pf) { 
-    kill(getpid(), SIGTRAP);
-}
 void pf_void(pf *pf) {
     pf->ds = _pf_cons(pf, VOID, pf->ds);
 }
@@ -376,10 +375,6 @@ void pf_bang(pf *pf) {
     x->object = CADR(pf->ds);
 }
 
-
-void pf_dup_write(pf *pf) { px_write(pf, TOP); }
-void pf_dup_post(pf *pf)  { px_post(pf, TOP); }
-
 void pf_state(pf *pf) {
     _ex_printf(EX, "P: "); px_post(pf, pf->ds);
     _ex_printf(EX, "R: "); px_post(pf, pf->rs);
@@ -402,8 +397,14 @@ void pf_print_error(pf *pf) {
     pf_drop(pf);
 }
 
-/* Convert a list to code and jump to it. */
-_ ex_compile(ex *ex, _ obj) {
+// AUTOGEN
+void pf_dup_write(pf *pf) { px_write(pf, TOP); }
+void pf_dup_post(pf *pf)  { px_post(pf, TOP); }
+
+
+
+/* Convert a list to code. */
+_ ex_compile(ex *ex, _ obj, _ dict) {
     return obj;
 }
 
