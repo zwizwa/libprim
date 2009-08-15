@@ -19,7 +19,9 @@ typedef struct {
     _ ip;
     _ ip_abort;
     _ dict;
-    _ error_tag;
+
+    /* Symbol cache. */
+    _ s_underflow;
 
 } pf;
 
@@ -64,6 +66,7 @@ static inline _ _pf_code(pf *pf, _ sub, _ next) {
 #define PF_EX_RESTART 1
 #define PF_EX_ABORT 2
 
+void _pf_push(pf *pf, _ ob);
 _ _pf_make_symbol(pf *pf, const char *str);
 #define SYMBOL(str)   _pf_make_symbol(pf, str)
 

@@ -23,6 +23,12 @@
 #define ARG0 CAR(pf->ds) 
 #define ARG1 CADR(pf->ds)
 
+/* ERRORS */
+
+_ _pf_abort(pf *pf) {
+    longjmp(pf->m.top, PF_EX_ABORT);
+}
+
 
 /* MEMORY MANAGEMENT
 
@@ -73,7 +79,10 @@ static object _pf_cons(pf *pf, _ car, _ cdr) {
 }
 /* Moving doesn't require refcount updates or copies. */
 /* Moving cells. */
-void pf_error_underflow(pf *pf);
+void pf_error_underflow(pf *pf) {
+    _pf_push(pf, pf->s_underflow);
+    _pf_abort(pf);
+}
 static inline void _pf_from_to(pf *pf, _ *from, _ *to) {
     if (unlikely(NIL == *from)) pf_error_underflow(pf);
     _ pair =  *from;
@@ -233,19 +242,21 @@ void pf_run(pf *pf) {
     box *b;
     lin *l;
 
-    /* Toplevel exceptions. */
   restart:
+    /* Toplevel exceptions. */
     switch (setjmp(pf->m.top)) {
     case PF_EX_RESTART:
         goto restart;
     default:
-        pf->error_tag = SYMBOL("unknown-exception");
+        _pf_push(pf, SYMBOL("unknown-exception"));
     case PF_EX_ABORT:
         pf->ip = pf->ip_abort;
         goto restart;
     case 0:
         goto loop;
     }
+
+
   loop:
     /* Interpeter loop. */
     for(;;) {
@@ -291,7 +302,9 @@ void pf_run(pf *pf) {
             pf_trap(pf);
         }
     }
+
   halt:
+    /* Return to caller. */
     return;
 }
 
@@ -299,11 +312,6 @@ void pf_run(pf *pf) {
 
 void pf_trap(pf *pf) { 
     kill(getpid(), SIGTRAP);
-}
-
-void pf_error_underflow(pf *pf) {
-    fprintf(stderr, "stack underflow\n");
-    pf_trap(pf);
 }
 void pf_void(pf *pf) {
     pf->ds = _pf_cons(pf, VOID, pf->ds);
@@ -388,6 +396,12 @@ void pf_stack(pf *pf) {
     CAR(pf->rs) = MOVE(pf->ds, NIL);
     FROM_TO(rs, ds);
 }
+void pf_print_error(pf *pf) {
+    if (NIL == pf->ds) _pf_push(pf, VOID);
+    _pf_printf(pf, "ERROR: ");
+    _pf_post(pf, TOP);
+    pf_drop(pf);
+}
 
 static void _pf_restart(pf* pf) {
     longjmp(pf->m.top, PF_EX_RESTART);
@@ -439,16 +453,20 @@ pf* _pf_new(void) {
     TYPES->prim_type = (void*)0xF001; 
     TYPES->rc_type = (void*)0xF002; 
 
+    // Symbol cache
+    pf->s_underflow = SYMBOL("underflow");
+
     // Machine state.
     pf->rs = NIL;
     pf->ds = NIL;
     pf->free = NIL;
     pf->dict = NIL;
-
-    pf->ip_abort = RETURN;
-    pf->ip = CODE(PRIM(pf_output), 
-                  CODE(QUOTE(integer_to_object(123)),
-                       CODE(PRIM(pf_state), RETURN)));
+    pf->ip_abort = 
+        CODE(PRIM(pf_print_error), RETURN);
+    pf->ip = 
+        CODE(PRIM(pf_output),
+             CODE(QUOTE(integer_to_object(123)),
+                  CODE(PRIM(pf_state), RETURN)));
     
 
     // Stdout
