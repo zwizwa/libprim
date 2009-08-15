@@ -45,13 +45,6 @@ DEP_OBJS=../leaf/*.o ../object/*.o
 scheme: $(OBJ) deps
 	$(CC) -o scheme $(OBJ) $(DEP_OBJS)
 
-strip: 
-	make clean
-	make scheme
-	strip *.o
-	ls -l *.o
-
-
 .PHONY: clean
 clean:
 	rm -f scheme *.o *.d *.d.* *~
