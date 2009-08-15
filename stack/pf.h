@@ -69,5 +69,6 @@ static inline _ _pf_code(pf *pf, _ sub, _ next) {
 void _pf_push(pf *pf, _ ob);
 _ _pf_make_symbol(pf *pf, const char *str);
 #define SYMBOL(str)   _pf_make_symbol(pf, str)
+#define NUMBER(n)     integer_to_object(n)
 
 #endif

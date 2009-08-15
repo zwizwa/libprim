@@ -447,6 +447,7 @@ pf* _pf_new(void) {
                 (gc_overflow)_pf_overflow);
 
     // Leaf types.
+    pf->m.p = malloc(sizeof(*(pf->m.p)));
     TYPES->ck_type = ck_class_new();
     TYPES->symbol_type = symbol_class_new(1000);
     TYPES->port_type = port_class_new();
@@ -464,10 +465,10 @@ pf* _pf_new(void) {
     pf->ip_abort = 
         CODE(PRIM(pf_print_error), RETURN);
     pf->ip = 
-        CODE(PRIM(pf_output),
-             CODE(QUOTE(integer_to_object(123)),
-                  CODE(PRIM(pf_state), RETURN)));
-    
+        CODE(PRIM(pf_state),
+             CODE(PRIM(pf_output),
+                  CODE(QUOTE(NUMBER(123)),
+                       CODE(PRIM(pf_state), RETURN))));
 
     // Stdout
     pf->output = _pf_make_port(pf, stdout, "stdout");
