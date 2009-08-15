@@ -1681,3 +1681,16 @@ Let's rename "mem" to "base", which implements:
       - primitive leaf types
       - primtiive exception handling
       - printing
+
+Hmm..  Let's not.  The simplest way is to make sure the primitives
+themselves will take from the base class.  This can be factored out
+later.. It was only a couple of lines to add the ABORT exceptions in
+PF + it's slightly different since the interpreter is not re-entrant.
+
+
+Entry: Code bootstrap
+Date: Sat Aug 15 12:48:20 CEST 2009
+
+Now that default abort works it's time to start adding some primitives
+and a bootstrap reader (sexp -> C).
+
