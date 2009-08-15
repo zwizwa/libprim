@@ -208,12 +208,12 @@ _ _pf_copy_to_graph(pf *pf, _ ob) {
     }
     else return ob;
 }
-static inline void _pf_dropstack(pf *pf, _ *stack) {
+static inline void _pf_drop(pf *pf, _ *stack) {
     _pf_from_to(pf, stack, &pf->free);  // this catches underflow errors
     _ ob = MOVE(CAR(pf->free), VOID);
     _pf_unlink(pf, ob);
 }
-#define DROP(stack) _pf_dropstack(pf, &(pf->stack))
+
 
 void _pf_push(pf *pf, _ ob) {
     pf_void(pf);
@@ -281,24 +281,24 @@ void pf_run(pf *pf) {
                 else {
                     /* All other objects behave as constants to the
                        linear memory manager. */
-                    if (unlikely(object_to_pair(q->object))) pf_trap(pf);
+                    if (unlikely(object_to_pair(q->object))) TRAP();
                     ob = q->object;
                 }
                 _pf_push(pf, ob);
                 pf->ip = c->next;
             }
             else {
-                pf_trap(pf);
+                TRAP();
             }
         }
         else if ((RETURN == pf->ip)) {
             if (unlikely(NIL == pf->rs)) goto halt;
             pf->ip = CAR(pf->rs);
-            DROP(rs);
+            _pf_drop(pf, &pf->rs);
         }
         else {
             /* ERROR */
-            pf_trap(pf);
+            TRAP();
         }
     }
 
@@ -346,8 +346,8 @@ _ px_post(pf *pf, _ ob) {
     return _ex_printf(EX, "\n");
 }
 
-_ px_compile(pf *pf, _ ob) {
-}
+//_ px_compile(pf *pf, _ ob) {
+//}
 
 
 /* PRIMITIVES */
@@ -356,7 +356,7 @@ void pf_void(pf *pf) {
     pf->ds = _pf_cons(pf, VOID, pf->ds);
 }
 void pf_drop(pf *pf) {
-    DROP(ds);
+    _pf_drop(pf, &pf->ds);
 }
 void pf_dup(pf *pf) {
     _pf_push(pf, _pf_link(pf, TOP));
