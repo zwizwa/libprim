@@ -168,7 +168,7 @@ _ sc_error(sc *sc, _ sym_o, _ arg_o) {
     sc->error_arg = arg_o;
     // if (sym_o != SYMBOL("halt")) sc_trap(sc);
     if (sc->step_entries) longjmp(sc->m.r.step, SC_EX_ABORT);
-    _sc_printf(sc, "ERROR: attempt to abort primitive outside of the main loop.\n");
+    _ex_printf(EX, "ERROR: attempt to abort primitive outside of the main loop.\n");
     ex_trap(EX);
     exit(1);
 }
@@ -287,7 +287,7 @@ _ sc_bang_def_global(sc* sc, _ slot, _ var, _ val) {
     symbol *s;
     _ env = sc_global(sc, slot);
     if (!(s=object_to_symbol(var, &sc->m))) TYPE_ERROR(var);
-    // _sc_printf(sc, "DEF %s: ",s->name); sc_post(sc, val);
+    // _ex_printf(EX, "DEF %s: ",s->name); sc_post(sc, val);
     if (FALSE == sc_env_set(sc, env, var, val)) {
         sc_bang_set_global(sc, slot, CONS(CONS(var,val), env));
     }
@@ -306,74 +306,44 @@ _ sc_is_list(sc *sc, _ o) {
 }
 _ sc_newline(sc *sc, _ out) { port_printf(CAST(port, out), "\n"); return VOID; }
 
-
-/* Callback structs for object_write.  This mainly abstracts port
-   wrapping: object_write knows about the port struct, but not how we
-   represent it. */
-typedef struct {
-    sc *sc;
-    _ port;
-} object_write_ctx;
-_ _write_delegate(object_write_ctx *ctx, object ob) {
-    return sc_write(ctx->sc, ob, ctx->port);
+// FIXME: should be parameter
+port *_sc_port(sc *sc) {
+    return object_to_port(sc_global(sc, sc_slot_debug_port), EX);
 }
-_ _write_vector(const char *type, object ob, object_write_ctx *ctx) {
-    return object_write_vector(type, 
-                               object_to_vector(ob),
-                               object_to_port(ctx->port, &(ctx->sc->m)),
-                               &(ctx->sc->m),
-                               (object_write_delegate)_write_delegate,
-                               ctx);
-}
-
-_ sc_write(sc *sc,  _ o, _ out) {
-    object_write_ctx ctx = {sc, out};
-    port *p = CAST(port, out);
-    if (FALSE != object_write(o, p, &sc->m,
-                              (object_write_delegate)_write_delegate, 
-                              &ctx)) {
+_ sc_write(sc *sc,  _ o) {
+    if (FALSE != ex_write(EX, o)) {
         return VOID;
     }
     void *x;
-    if ((x = object_to_const(o))) { port_printf(p, "#data<%p>",x); return VOID; }
+    if ((x = object_to_const(o))) { _ex_printf(EX, "#data<%p>",x); return VOID; }
 
     if (TRUE == sc_is_bytes(sc, o)) {
-        bytes_write_string(object_to_bytes(o, &sc->m), p->stream);
+        bytes_write_string(object_to_bytes(o, &sc->m), _sc_port(sc)->stream);
         return VOID;
     }
+    vector *v = object_to_vector(o);
+    if (TRUE == sc_is_state(sc, o))   return _ex_write_vector(EX, "state", v);
+    if (TRUE == sc_is_lambda(sc, o))  return _ex_write_vector(EX, "lambda", v);
+    if (TRUE == sc_is_redex(sc, o))   return _ex_write_vector(EX, "redex", v);
+    if (TRUE == sc_is_value(sc, o))   return _ex_write_vector(EX, "value", v);
+    if (TRUE == sc_is_error(sc, o))   return _ex_write_vector(EX, "error", v);
+    // if (TRUE == sc_is_aref(sc, o))    return _ex_write_vector(EX, "aref", o);
 
-    if (TRUE == sc_is_state(sc, o))   return _write_vector("state", o, &ctx);
-    if (TRUE == sc_is_lambda(sc, o))  return _write_vector("lambda", o, &ctx);
-    if (TRUE == sc_is_redex(sc, o))   return _write_vector("redex", o, &ctx);
-    if (TRUE == sc_is_value(sc, o))   return _write_vector("value", o, &ctx);
-    if (TRUE == sc_is_error(sc, o))   return _write_vector("error", o, &ctx);
-    // if (TRUE == sc_is_aref(sc, o))    return _write_vector("aref", o, &ctx);
+    if (TRUE == sc_is_k_apply(sc, o)) return _ex_write_vector(EX, "k_apply", v);
+    if (TRUE == sc_is_k_if(sc, o))    return _ex_write_vector(EX, "k_if", v);
+    if (TRUE == sc_is_k_seq(sc, o))   return _ex_write_vector(EX, "k_seq", v);
+    if (TRUE == sc_is_k_set(sc, o))   return _ex_write_vector(EX, "k_set", v);
+    if (TRUE == sc_is_k_macro(sc, o)) return _ex_write_vector(EX, "k_macro", v);
+    if (MT   == o) { _ex_printf(EX, "#k_mt"); return VOID; }
 
-    if (TRUE == sc_is_k_apply(sc, o)) return _write_vector("k_apply", o, &ctx);
-    if (TRUE == sc_is_k_if(sc, o))    return _write_vector("k_if", o, &ctx);
-    if (TRUE == sc_is_k_seq(sc, o))   return _write_vector("k_seq", o, &ctx);
-    if (TRUE == sc_is_k_set(sc, o))   return _write_vector("k_set", o, &ctx);
-    if (TRUE == sc_is_k_macro(sc, o)) return _write_vector("k_macro", o, &ctx);
-    if (MT   == o) { port_printf(p, "#k_mt"); return VOID; }
-
-    port_printf(p, "#object<%p>",(void*)o);
+    _ex_printf(EX, "#object<%p>",(void*)o);
     return VOID;
 }
 
-/* Use current output.  Until params work, this is the debug port. */
-_ _sc_printf(sc *sc, char *fmt, ...) {
-    int rv;
-    port *p = CAST(port, sc_global(sc, sc_slot_debug_port));
-    va_list ap; va_start(ap, fmt);
-    rv = port_vprintf(p, fmt, ap);
-    va_end(ap);
-    return rv;
-}
 _ sc_post(sc* sc, _ o) {
-    _ dbg = sc_global(sc, sc_slot_debug_port);
     if (VOID != o) {
-        sc_write(sc, o, dbg);
-        _sc_printf(sc, "\n");
+        sc_write(sc, o);
+        _ex_printf(EX, "\n");
     }
     return VOID;
 }
@@ -387,18 +357,17 @@ _ sc_is_eq(sc *sc, _ a, _ b) {
 
 
 _ sc_fatal(sc *sc, _ err) {
-    _ dbg = sc_global(sc, sc_slot_debug_port);
     if (TRUE == sc_is_error(sc, err)) {
         error *e = object_to_error(err);
-        _sc_printf(sc, "ERROR");
+        _ex_printf(EX, "ERROR");
         if (TRUE == sc_is_prim(sc, e->prim)) {
             prim *p = object_to_prim(e->prim, &sc->m);
             symbol *s = object_to_symbol(p->var, &sc->m);
-            if (s) _sc_printf(sc, " in `%s'", s->name); 
+            if (s) _ex_printf(EX, " in `%s'", s->name); 
         }
-        _sc_printf(sc, ": ");
-        sc_write(sc, e->tag, dbg); _sc_printf(sc, ": ");
-        sc_write(sc, e->arg, dbg); _sc_printf(sc, "\n");
+        _ex_printf(EX, ": ");
+        sc_write(sc, e->tag); _ex_printf(EX, ": ");
+        sc_write(sc, e->arg); _ex_printf(EX, "\n");
     }
     return VOID;
 }
@@ -889,7 +858,7 @@ static _ _sc_restart(sc *sc) {
     if (sc->m.top_entries) {
         longjmp(sc->m.top, SC_EX_RESTART); 
     }
-    _sc_printf(sc, "ERROR: attempt restart outside of the main loop.\n");
+    _ex_printf(EX, "ERROR: attempt restart outside of the main loop.\n");
     ex_trap(EX);
     exit(1);
 }
@@ -1004,7 +973,7 @@ _ sc_with_ck(sc *sc, _ in_ref, _ value) {
 
 _ _sc_top(sc *sc, _ expr){
     if (sc->m.top_entries) {
-        _sc_printf(sc, "WARNING: multiple _sc_top() entries.\n");
+        _ex_printf(EX, "WARNING: multiple _sc_top() entries.\n");
         return NIL;
     }
     sc->m.top_entries++;
@@ -1043,7 +1012,7 @@ _ _sc_top(sc *sc, _ expr){
 static prim_def scheme_prims[] = scheme_init;
 static prim_def ex_prims[] = ex_prims_init;
 
-static _sc_def_prims(sc *sc, prim_def *prims) {
+static void _sc_def_prims(sc *sc, prim_def *prims) {
     prim_def *prim;
     for (prim = prims; prim->name; prim++) {
         DEF(prim->name, prim->fn, prim->nargs);
@@ -1056,7 +1025,7 @@ static void _sc_overflow(sc *sc, long extra) {
        allocation doesn't fit.  We need to grow.  Take at least the
        requested size + grow by a fraction of the total heap. */
     long request = extra + (sc->m.gc->slot_total/4);
-    _sc_printf(sc, ";; gc-overflow %ld:%ld\n", extra, request);
+    _ex_printf(EX, ";; gc-overflow %ld:%ld\n", extra, request);
     gc_grow(sc->m.gc, request);
     _sc_restart(sc);
 }
@@ -1075,7 +1044,7 @@ static void _sc_mark_roots(sc *sc, gc_finalize fin) {
         fin(sc->m.gc);
         long used = sc->m.gc->current_index;
         long free = sc->m.gc->slot_total - used;
-        _sc_printf(sc, ";; gc %d:%d\n", (int)used, (int)free);
+        _ex_printf(EX, ";; gc %d:%d\n", (int)used, (int)free);
         _sc_restart(sc);
     }
     else {
@@ -1115,6 +1084,10 @@ sc *_sc_new(void) {
     TYPES->symbol_type = symbol_class_new(1000);
     TYPES->prim_type = (void*)0xF001; // dummy class
     TYPES->port_type = port_class_new();
+
+    /* EX writing */
+    sc->m.port = (_ex_port_method)_sc_port;
+    sc->m.write = (ex_write_method)sc_write;
 
     /* Data roots. */
     _ out = _sc_make_port(sc, stderr, "stderr");
