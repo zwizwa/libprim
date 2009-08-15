@@ -50,14 +50,49 @@ _ ex_sub1(ex *ex, _ o) {
     return integer_to_object(i - 1);
 }
 
+/* Lists and vectors. */
+_ ex_make_vector(ex *ex, _ slots, _ init) {
+    long i,n = CAST_INTEGER(slots);
+    vector *v = gc_alloc(ex->gc, n);
+    for(i=0; i<n; i++) v->slot[i] = init;
+    return vector_to_object(v);
+}
+_ ex_reverse(ex *ex, _ lst) {
+    _ rlst = NIL;
+    while(FALSE == (IS_NULL(lst))) {
+        pair *p = CAST(pair, lst);
+        rlst = CONS(p->car, rlst);
+        lst  = p->cdr;
+    }
+    return rlst;
+}
 
+_ ex_length(ex *ex, _ lst) {
+    _ nb;
+    _ rest;
+    _ex_length_rest(ex, lst, &nb, &rest);
+    if (FALSE == IS_NULL(rest)) {
+        TYPE_ERROR(lst);
+    }
+    return nb;
+}
 
-
-/* Error handling:
-   FIXME: The machine step() is protected with setjmp(). */
-_ ex_trap(ex *ex) {
-    kill(getpid(), SIGTRAP);
-    return VOID;
+// Take n elements from the head of a list and place them in a vector.
+_ ex_take_vector(ex *ex, _ n, _ in_lst) {
+    _ lst = in_lst;
+    long slots = CAST_INTEGER(n);
+    vector *v = gc_alloc(ex->gc, slots);
+    long i;
+    for(i=0; i<slots; i++){
+        if (FALSE == IS_PAIR(lst)) return TYPE_ERROR(in_lst);
+        pair *p = object_to_pair(lst);
+        v->slot[i] = p->car;
+        lst = p->cdr;
+    }
+    return vector_to_object(v);
+}
+_ ex_list_to_vector(ex *ex, _ lst){
+    return ex_take_vector(ex, ex_length(ex, lst), lst);
 }
 
 
@@ -90,8 +125,39 @@ _ ex_find(ex *ex, _ E, _ var) {
     return CDR(rv);
 }
 
+_ ex_make_true(ex *ex)  { return TRUE; }
+_ ex_make_false(ex *ex) { return FALSE; }
+_ ex_make_void(ex *ex)  { return VOID; }
+
+_ ex_is_eq(ex *ex, _ a, _ b) {
+    if (a == b) return TRUE;
+    return FALSE;
+}
+_ ex_is_list(ex *ex, _ o) {
+    if(TRUE==IS_NULL(o)) return TRUE;
+    if(FALSE==IS_PAIR(o)) return FALSE;
+    return ex_is_list(ex, CDR(o));
+}
+static _ *vector_index(ex *ex, _ vec, _ n) {
+    vector *v = CAST(vector, vec);
+    long index = CAST_INTEGER(n);
+    if ((index < 0) || (index >= vector_size(v))) ERROR("ref", n);
+    return &v->slot[index];
+}
+_ ex_vector_ref(ex *ex, _ vec, _ n) {
+    return *vector_index(ex, vec, n);
+}
+_ ex_bang_vector_set(ex *ex, _ vec, _ n, _ val) {
+    *vector_index(ex, vec, n) = val;
+    return VOID;
+}
 
 /* ERRORS */
+
+_ ex_trap(ex *ex) {
+    kill(getpid(), SIGTRAP);
+    return VOID;
+}
 
 _ ex_raise_error(ex *ex, _ sym_o, _ arg_o) {
     ex->error_tag = sym_o;

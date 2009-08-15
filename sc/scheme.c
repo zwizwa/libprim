@@ -114,56 +114,8 @@ _ _sc_make_string(sc *sc, const char *str) {
     return _sc_make_aref(sc, &(TYPES->bytes_type->free),
                          bytes_from_cstring(TYPES->bytes_type, str));
 }
-_ sc_make_vector(sc *sc, _ slots, _ init) {
-    long i,n = CAST_INTEGER(slots);
-    vector *v = gc_alloc(sc->m.gc, n);
-    for(i=0; i<n; i++) v->slot[i] = init;
-    return vector_to_object(v);
-}
-_ sc_reverse(sc *sc, _ lst) {
-    _ rlst = NIL;
-    while(FALSE == (IS_NULL(lst))) {
-        pair *p = CAST(pair, lst);
-        rlst = CONS(p->car, rlst);
-        lst  = p->cdr;
-    }
-    return rlst;
-}
 
-// parse improper list
-static void _sc_length_rest(sc *sc, _ lst, _ *length, _ *rest) {
-    long nb = 0;
-    while (TRUE == IS_PAIR(lst)) { nb++; lst = CDR(lst); }
-    *rest = lst;
-    *length = integer_to_object(nb);
-}
-_ sc_length(sc *sc, _ lst) {
-    _ nb;
-    _ rest;
-    _sc_length_rest(sc, lst, &nb, &rest);
-    if (FALSE == IS_NULL(rest)) {
-        TYPE_ERROR(lst);
-    }
-    return nb;
-}
-
-// Take n elements from the head of a list and place them in a vector.
-_ sc_take_vector(sc *sc, _ n, _ in_lst) {
-    _ lst = in_lst;
-    long slots = CAST_INTEGER(n);
-    vector *v = gc_alloc(sc->m.gc, slots);
-    long i;
-    for(i=0; i<slots; i++){
-        if (FALSE == IS_PAIR(lst)) return TYPE_ERROR(in_lst);
-        pair *p = object_to_pair(lst);
-        v->slot[i] = p->car;
-        lst = p->cdr;
-    }
-    return vector_to_object(v);
-}
-_ sc_list_to_vector(sc *sc, _ lst){
-    return sc_take_vector(sc, sc_length(sc, lst), lst);
-}
+_ sc_make_mt(sc *sc)    { return MT; }
 
 _ sc_env_set(sc *sc, _ E, _ var, _ value) {
     _ rv = ex_find_slot(EX, E, var);
@@ -171,26 +123,13 @@ _ sc_env_set(sc *sc, _ E, _ var, _ value) {
     _CDR(rv)=value;
     return VOID;
 }
-static _ *vector_index(sc *sc, _ vec, _ n) {
-    vector *v = CAST(vector, vec);
-    long index = CAST_INTEGER(n);
-    if ((index < 0) || (index >= vector_size(v))) ERROR("ref", n);
-    return &v->slot[index];
-}
-_ sc_vector_ref(sc *sc, _ vec, _ n) {
-    return *vector_index(sc, vec, n);
-}
-_ sc_bang_vector_set(sc *sc, _ vec, _ n, _ val) {
-    *vector_index(sc, vec, n) = val;
-    return VOID;
-}
 
 
 _ sc_global(sc *sc, _ n) { 
-    return sc_vector_ref(sc, sc->global, n); 
+    return VECTOR_REF(sc->global, n); 
 }
 _ sc_bang_set_global(sc *sc, _ n, _ val) { 
-    return sc_bang_vector_set(sc, sc->global, n, val); 
+    return BANG_VECTOR_SET(sc->global, n, val); 
 }
 
 #define _GLOBAL(name) return sc_global(sc, sc_slot_##name)
@@ -227,11 +166,7 @@ _ sc_bang_def_toplevel(sc* sc, _ var, _ val) {
 _ sc_bang_def_toplevel_macro(sc* sc, _ var, _ val) {
     return sc_bang_def_global(sc, sc_slot_toplevel_macro, var, val);
 }
-_ sc_is_list(sc *sc, _ o) {
-    if(TRUE==IS_NULL(o)) return TRUE;
-    if(FALSE==IS_PAIR(o)) return FALSE;
-    return sc_is_list(sc, CDR(o));
-}
+
 _ sc_newline(sc *sc, _ out) { port_printf(CAST(port, out), "\n"); return VOID; }
 
 // FIXME: should be parameter
@@ -278,10 +213,6 @@ _ sc_post(sc* sc, _ o) {
 _ sc_read_char(sc *sc) {
     return integer_to_object(fgetc(stdin));
 }
-_ sc_is_eq(sc *sc, _ a, _ b) {
-    if (a == b) return TRUE;
-    return FALSE;
-}
 
 
 _ sc_fatal(sc *sc, _ err) {
@@ -300,10 +231,6 @@ _ sc_fatal(sc *sc, _ err) {
     return VOID;
 }
 
-_ sc_make_mt(sc *sc)    { return MT; }
-_ sc_make_true(sc *sc)  { return TRUE; }
-_ sc_make_false(sc *sc) { return FALSE; }
-_ sc_make_void(sc *sc)  { return VOID; }
 
 _ sc_symbol_to_string(sc *sc, _ sym) {
     symbol *s = CAST(symbol, sym);
@@ -650,12 +577,12 @@ static _ _sc_step(sc *sc, _ o_state) {
             _ argspec = CAR(term_args);
             _ named;
             _ rest;
-            _sc_length_rest(sc, argspec, &named, &rest);
+            _ex_length_rest(EX, argspec, &named, &rest);
             if ((NIL   != rest) &&
                 (FALSE == IS_SYMBOL(rest))) {
                 goto syntax_error;
             }
-            _ formals = sc_take_vector(sc, named, argspec);
+            _ formals = TAKE_VECTOR(named, argspec);
             /* Implement the expression sequence in a `lambda'
                expression as a `begin' sequencing form. */
             _ body = CDR(term_args);
