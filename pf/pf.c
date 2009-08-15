@@ -50,7 +50,7 @@ _ _pf_abort(pf *pf) {
 /* Allocate a new linked list of pairs. */
 #if PF_FREELIST_GC
 _ _pf_alloc_freelist(pf *pf) {
-    return ex_cons(EX, VOID, NIL);
+    return CONS(VOID, NIL);
 }
 #else
 _ _pf_alloc_freelist(pf *pf) {
