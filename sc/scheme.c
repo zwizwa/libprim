@@ -619,7 +619,7 @@ _ _sc_step_value(sc *sc, _ v, _ k) {
             /* Application of primitive function results in C call. */
             if (TRUE==sc_is_prim(sc, fn)) {
                 prim *p = object_to_prim(fn,&sc->m);
-                sc->m.r.prim = fn; // for debug
+                sc->m.r.prim = p; // for debug
                 if (prim_nargs(p) != (n-1)) {
                     return ERROR("nargs", fn);
                 }

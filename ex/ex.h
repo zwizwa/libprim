@@ -30,7 +30,7 @@ typedef struct {
 // Re-entrant part of ex state.
 typedef struct {
     jmp_buf step;  // current CEKS step abort
-    _ prim;
+    prim *prim;
 } ex_r;
 
 typedef struct {

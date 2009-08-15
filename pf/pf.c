@@ -26,7 +26,7 @@
 /* ERRORS */
 
 _ _pf_abort(pf *pf) {
-    longjmp(pf->m.top, PF_EX_ABORT);
+    longjmp(pf->m.r.step, PF_EX_ABORT);
 }
 
 
@@ -242,20 +242,8 @@ void pf_run(pf *pf) {
     box *b;
     lin *l;
 
-  restart:
     /* Toplevel exceptions. */
-    switch (setjmp(pf->m.top)) {
-    case PF_EX_RESTART:
-        goto restart;
-    default:
-        _pf_push(pf, SYMBOL("unknown-exception"));
-    case PF_EX_ABORT:
-        pf->ip = pf->ip_abort;
-        goto restart;
-    case 0:
-        goto loop;
-    }
-
+    while (setjmp(pf->m.top));
 
   loop:
     /* Interpeter loop. */
@@ -268,9 +256,19 @@ void pf_run(pf *pf) {
             }
             /* Primitive */
             else if ((p = object_to_prim(c->sub, &pf->m))) {
-                pf_prim fn = (pf_prim)(p->fn);
-                fn(pf);
-                pf->ip = c->next;
+                pf_prim fn = (pf_prim)p->fn;
+                pf->m.r.prim = p;
+                switch(setjmp(pf->m.r.step)) {
+                case 0:
+                    fn(pf);
+                    pf->ip = c->next;
+                    break;
+                default:
+                    _pf_push(pf, SYMBOL("unknown-exception"));
+                case PF_EX_ABORT:
+                    pf->ip = pf->ip_abort;
+                    break;
+                }
             }
             /* Quoted object */
             else if ((q = object_to_quote(c->sub))) {
@@ -475,7 +473,7 @@ pf* _pf_new(void) {
     pf->ip_abort = 
         CODE(PRIM(pf_print_error), RETURN);
     pf->ip = 
-        CODE(PRIM(pf_state),
+        CODE(PRIM(pf_drop),
              CODE(PRIM(pf_output),
                   CODE(QUOTE(NUMBER(123)),
                        CODE(PRIM(pf_state), RETURN))));
