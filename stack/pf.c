@@ -209,6 +209,9 @@ void _pf_push(pf *pf, _ ob) {
     pf_void(pf);
     TOP = ob;
 }
+_ _pf_make_symbol(pf *pf, const char *str){
+    return const_to_object(symbol_from_string(TYPES->symbol_type, str));
+}
 
 
 
@@ -230,9 +233,20 @@ void pf_run(pf *pf) {
     box *b;
     lin *l;
 
-    /* GC restart */
-    while (setjmp(pf->m.top));
-
+    /* Toplevel exceptions. */
+  restart:
+    switch (setjmp(pf->m.top)) {
+    case PF_EX_RESTART:
+        goto restart;
+    default:
+        pf->error_tag = SYMBOL("unknown-exception");
+    case PF_EX_ABORT:
+        pf->ip = pf->ip_abort;
+        goto restart;
+    case 0:
+        goto loop;
+    }
+  loop:
     /* Interpeter loop. */
     for(;;) {
         if ((c = object_to_code(pf->ip))) {
@@ -431,6 +445,7 @@ pf* _pf_new(void) {
     pf->free = NIL;
     pf->dict = NIL;
 
+    pf->ip_abort = RETURN;
     pf->ip = CODE(PRIM(pf_output), 
                   CODE(QUOTE(integer_to_object(123)),
                        CODE(PRIM(pf_state), RETURN)));

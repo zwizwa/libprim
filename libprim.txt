@@ -1658,3 +1658,26 @@ Date: Sat Aug 15 11:47:05 CEST 2009
 
 It's probably better to use a different data type for linear pairs.
 That way nonlinear pairs can be used as constants too.
+
+Otoh: reusing the same pair structure allows primitives to be reused.
+Even those that do cons. (Cons could be part of a shared object).
+
+It's really not such a hurdle to manage the border between linear and
+graph memory, so let's stick to the simple implementation: cons lists
+are cons lists, they just have only a single reference in the linear
+part.
+
+Entry: More sharing between Scheme and PF
+Date: Sat Aug 15 12:02:16 CEST 2009
+
+There is already quite some duplication, mostly in exception handling,
+GC, and printing.  This should be handled by "mem". (mom?).
+
+I guess it's a good idea to factor out as much as possible beforehand.
+
+Let's rename "mem" to "base", which implements:
+
+      - GC restart
+      - primitive leaf types
+      - primtiive exception handling
+      - printing

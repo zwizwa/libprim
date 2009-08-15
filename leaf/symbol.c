@@ -5,7 +5,7 @@
 #include "symbol.h"
 
 
-symbol *string_to_symbol(symbol_class *s, const char *str){
+symbol *symbol_from_string(symbol_class *s, const char *str){
     int i;
     for (i=0; i<s->nb_syms; i++){
         if (!strcmp(s->syms[i]->name, str)) return s->syms[i];

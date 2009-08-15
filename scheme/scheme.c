@@ -150,7 +150,7 @@ _ _sc_make_aref(sc *sc, void *fin, void *ptr) {
 }
 
 _ _sc_make_symbol(sc *sc, const char *str) {
-    return const_to_object((void*)(string_to_symbol(TYPES->symbol_type, str)));
+    return const_to_object((void*)(symbol_from_string(TYPES->symbol_type, str)));
 }
 _ _sc_make_string(sc *sc, const char *str) {
     return _sc_make_aref(sc, &(TYPES->bytes_type->free),

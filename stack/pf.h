@@ -17,7 +17,9 @@ typedef struct {
 
     /* Graph memory. */
     _ ip;
+    _ ip_abort;
     _ dict;
+    _ error_tag;
 
 } pf;
 
@@ -60,5 +62,9 @@ static inline _ _pf_code(pf *pf, _ sub, _ next) {
 #define GC    pf->m.gc
 
 #define PF_EX_RESTART 1
+#define PF_EX_ABORT 2
+
+_ _pf_make_symbol(pf *pf, const char *str);
+#define SYMBOL(str)   _pf_make_symbol(pf, str)
 
 #endif

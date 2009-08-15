@@ -17,7 +17,7 @@ struct _symbol_class {
     symbol **syms;
 };
 
-symbol *string_to_symbol(symbol_class *s, const char *str);
+symbol *symbol_from_string(symbol_class *s, const char *str);
 const char *symbol_to_string(symbol_class *s, symbol *sym);
 symbol_class *symbol_class_new(int total);
 
