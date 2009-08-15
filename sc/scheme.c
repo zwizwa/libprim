@@ -864,7 +864,7 @@ _ sc_eval_step(sc *sc, _ state) {
     ex_r save;
 
     memcpy(&save, &sc->m.r, sizeof(save));
-    sc->m.r.prim = FALSE; // means error comes from step() itself
+    sc->m.r.prim = NULL; // means error comes from step() itself
     sc->step_entries++;
 
     switch(exception = setjmp(sc->m.r.step)) {
@@ -873,7 +873,7 @@ _ sc_eval_step(sc *sc, _ state) {
             break;
         case SC_EX_ABORT: 
             rv = sc_make_error(sc, sc->error_tag, sc->error_arg, 
-                               state, sc->m.r.prim);
+                               state, const_to_object(sc->m.r.prim));
             sc->error_arg = NIL;
             sc->error_tag = NIL;
             break;
@@ -1017,7 +1017,7 @@ _ _sc_top(sc *sc, _ expr){
     for(;;) {
         if (setjmp(sc->m.top)){
             sc->step_entries = 0;  // full tower unwind
-            sc->m.r.prim = FALSE;
+            sc->m.r.prim = NULL;
         }
         for(;;) {
             _ state;
