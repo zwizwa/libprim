@@ -92,6 +92,7 @@ int gc_grow(gc *gc, long add_slots);
 
 #define GC_CHENEY 1
 
+void _gc_assert(const char *cond, const char *file, int line);
 
 vector *gc_alloc(gc *gc, long size);
 object gc_make_tagged_v(gc *gc, long tag, long slots, va_list ap);

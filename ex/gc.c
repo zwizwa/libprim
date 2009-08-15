@@ -42,9 +42,7 @@ object gc_make_tagged(gc *gc, long tag, long slots, ...) {
     va_end(ap);   
     return o;
 }
-
-
-static void _gc_assert(const char *cond, const char *file, int line) {
+void _gc_assert(const char *cond, const char *file, int line) {
     fprintf(stderr, "%s: %d: gc_assert(%s)\n", file, line, cond);
     kill(getpid(), SIGTRAP);
     exit(1);

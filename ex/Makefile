@@ -1,11 +1,18 @@
 
-SRC=ex.c gc.c
+SRC=ex.c gc.c ex_prim.c
 
 OBJ=$(SRC:.c=.o)
 DEBUG_CFLAGS=-Wall -g
 # OPTI_CFLAGS=-Os
 
 # CC = gcc -m32
+
+%.h_: %.c prims.ss
+	mzscheme prims.ss <$< >$@
+# %.h_: %.ex ../unparse.ss
+# 	mzscheme ../unparse.ss <$< >$@
+
+GEN = ex_prim.h_
 
 all: $(OBJ)
 
