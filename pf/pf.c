@@ -18,11 +18,11 @@
 #include <signal.h>
 
 #include "pf.h"
-#include "../ex/ex_prims.h_"
+#include "../ex/ex_prims.h_ex_prims"
 
 #define TOP ARG0
-#define ARG0 CAR(pf->ds) 
-#define ARG1 CADR(pf->ds)
+#define ARG0 _CAR(pf->ds) 
+#define ARG1 _CADR(pf->ds)
 
 /* ERRORS */
 
@@ -74,8 +74,8 @@ static object _pf_cons(pf *pf, _ car, _ cdr) {
     _pf_need_free(pf);
     _ rv = pf->free;
     pf->free = CDR(pf->free);
-    CAR(rv) = car;
-    CDR(rv) = cdr;
+    _CAR(rv) = car;
+    _CDR(rv) = cdr;
     return rv;
 }
 /* Moving doesn't require refcount updates or copies. */
@@ -88,7 +88,7 @@ static inline void _pf_from_to(pf *pf, _ *from, _ *to) {
     if (unlikely(NIL == *from)) pf_error_underflow(pf);
     _ pair =  *from;
     *from = CDR(*from);
-    CDR(pair) = *to;
+    _CDR(pair) = *to;
     *to = pair;
 }
 #define FROM_TO(a,b) _pf_from_to(pf, &(pf->a), &(pf->b))
@@ -132,7 +132,7 @@ static _ _pf_make_port(pf *pf, FILE *f, const char *name) {
 /* Unlink will RC manage objects, and move pairs to the freelist. */
 static void _pf_unlink(pf* pf, _ ob);
 static _ _pf_unlink_pop(pf *pf, _ lst) {
-    _ ob = MOVE(CAR(lst), VOID);
+    _ ob = MOVE(_CAR(lst), VOID);
     _pf_unlink(pf, ob);
     _pf_from_to(pf, &lst, &pf->free);
     return lst;
@@ -210,13 +210,13 @@ _ _pf_copy_to_graph(pf *pf, _ ob) {
 }
 static inline void _pf_drop(pf *pf, _ *stack) {
     _pf_from_to(pf, stack, &pf->free);  // this catches underflow errors
-    _ ob = MOVE(CAR(pf->free), VOID);
+    _ ob = MOVE(_CAR(pf->free), VOID);
     _pf_unlink(pf, ob);
 }
 
 
 void _pf_push(pf *pf, _ ob) {
-    pf_void(pf);
+    pf_make_void(pf);
     TOP = ob;
 }
 _ _pf_make_symbol(pf *pf, const char *str){
@@ -352,7 +352,7 @@ _ px_post(pf *pf, _ ob) {
 
 /* PRIMITIVES */
 
-void pf_void(pf *pf) {
+void pf_make_void(pf *pf) {
     pf->ds = _pf_cons(pf, VOID, pf->ds);
 }
 void pf_drop(pf *pf) {
@@ -387,7 +387,7 @@ void pf_output(pf *pf) {
 void pf_stack(pf *pf) {
     _pf_need_free(pf);
     FROM_TO(free, rs);
-    CAR(pf->rs) = MOVE(pf->ds, NIL);
+    _CAR(pf->rs) = MOVE(pf->ds, NIL);
     FROM_TO(rs, ds);
 }
 void pf_print_error(pf *pf) {
@@ -445,7 +445,7 @@ pf* _pf_new(void) {
     // Garbage collector.
     GC = gc_new(100000, pf, 
                 (gc_mark_roots)_pf_mark_roots,
-                (gc_overflow)_pf_overflow);
+                (gc_overflow)_ex_overflow);
 
     // Leaf types.
     pf->m.p = malloc(sizeof(*(pf->m.p)));
