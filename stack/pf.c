@@ -228,6 +228,12 @@ void pf_run(pf *pf) {
     prim *p;
     quote *q;
     box *b;
+    lin *l;
+
+    /* GC restart */
+    while (setjmp(pf->m.top));
+
+    /* Interpeter loop. */
     for(;;) {
         if ((c = object_to_code(pf->ip))) {
             /* Threaded code subroutine */
@@ -243,9 +249,18 @@ void pf_run(pf *pf) {
             }
             /* Quoted object */
             else if ((q = object_to_quote(c->sub))) {
-                /* FIXME: distinguish between arefs and constants.
-                   Can't ref lists here! */
-                _pf_push(pf, q->object);
+                _ ob;
+                if ((l = object_to_lin(q->object))) {
+                    /* Linear objects need to be copied. */
+                    ob = _pf_link(pf, l->object);
+                }
+                else {
+                    /* All other objects behave as constants to the
+                       linear memory manager. */
+                    if (unlikely(object_to_pair(q->object))) pf_trap(pf);
+                    ob = q->object;
+                }
+                _pf_push(pf, ob);
                 pf->ip = c->next;
             }
             else {
@@ -324,25 +339,31 @@ static _ _write_delegate(_write_ctx_ *ctx, _ ob) {
     return VOID;
 }
 
+int _pf_printf(pf *pf, const char *fmt, ...) {  
+    int rv;
+    port *p = object_to_port(pf->output, &pf->m);
+    va_list ap; va_start(ap, fmt);
+    rv = port_vprintf(p, fmt, ap);
+    va_end(ap);
+    return rv;
+}
 void _pf_write(pf *pf, _ ob) {
     _write_ctx_ ctx = {pf, object_to_port(pf->output, &pf->m), &pf->m};
     _write_delegate(&ctx, ob);
-    port_printf(ctx.p, " ");
+    _pf_printf(pf, " ");
 }
 void _pf_post(pf *pf, _ ob) {
     _pf_write(pf, ob);
-    port *p = object_to_port(pf->output, &pf->m);
-    port_printf(p, "\n");
+    _pf_printf(pf, "\n");
 }
 
 void pf_dup_write(pf *pf) { _pf_write(pf, TOP); }
 void pf_dup_post(pf *pf) { _pf_post(pf, TOP); }
 void pf_state(pf *pf) {
-    port *p = object_to_port(pf->output, &pf->m);
-    port_printf(p, "P: "); _pf_post(pf, pf->ds);
-    port_printf(p, "R: "); _pf_post(pf, pf->rs);
-    port_printf(p, "F: "); _pf_post(pf, pf->free);
-    port_printf(p, "D: "); _pf_post(pf, pf->dict);
+    _pf_printf(pf, "P: "); _pf_post(pf, pf->ds);
+    _pf_printf(pf, "R: "); _pf_post(pf, pf->rs);
+    _pf_printf(pf, "F: "); _pf_post(pf, pf->free);
+    _pf_printf(pf, "D: "); _pf_post(pf, pf->dict);
 }
 void pf_output(pf *pf) {
     _pf_push(pf, _pf_link(pf, pf->output));
@@ -354,9 +375,18 @@ void pf_stack(pf *pf) {
     FROM_TO(rs, ds);
 }
 
+static void _pf_restart(pf* pf) {
+    longjmp(pf->m.top, PF_EX_RESTART);
+}
 static void _pf_overflow(pf *pf, long extra) {
     printf(";; gc-overflow\n");
-    pf_trap(pf);
+    /* At this point, the heap is compacted, but the requested
+       allocation doesn't fit.  We need to grow.  Take at least the
+       requested size + grow by a fraction of the total heap. */
+    long request = extra + (GC->slot_total/4);
+    _pf_printf(pf, ";; gc-overflow %ld:%ld\n", extra, request);
+    gc_grow(GC, request);
+    _pf_restart(pf);
 }
 static void _pf_mark_roots(pf *pf, gc_finalize fin) {
     printf(";; gc\n");
@@ -364,7 +394,7 @@ static void _pf_mark_roots(pf *pf, gc_finalize fin) {
     gc_mark(GC, pf->rs);
     gc_mark(GC, pf->free);
     gc_mark(GC, pf->dict);
-    pf_trap(pf);
+    _pf_restart(pf);
 }
 
 static _ _pf_prim(pf* pf, pf_prim fn) {

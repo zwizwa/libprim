@@ -17,8 +17,8 @@ struct _port {
     char *name;
 };
 
-int port_vprintf(port *p, char *fmt, va_list ap);
-int port_printf(port *p, char *fmt, ...);
+int port_vprintf(port *p, const char *fmt, va_list ap);
+int port_printf(port *p, const char *fmt, ...);
 port_class* port_class_new(void);
 port *port_new(port_class *type, FILE *f, const char *name);
 

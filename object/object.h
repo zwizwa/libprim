@@ -93,13 +93,13 @@ static inline vector *object_to_vector(object ob) {
 }
 
 
-#define unlikely(x) __builtin_expect((x),0)
+#define unlikely(x) __builtin_expect((long)(x),0)
 
 
-/* Note: this is a _pointer_ to fin.  Code isn't always aligned to
-   accomodate GC tag bits, but data alignment can be enforced, plus
-   malloc() already returns aligned data.  Embedding the code pointer
-   in a data structure seems to be the right approach. */
+/* Note: be careful: this is a _pointer_ to fin.  Code isn't always
+   aligned properly to accomodate GC tag bits, but data alignment can
+   be enforced (i.e. malloc() returns aligned data).  Embedding the
+   code pointer in a data structure seems to be the right approach. */
 static inline fin *object_to_fin(object ob) {
     if (GC_FIN == GC_TAG(ob)) return (fin*)GC_POINTER(ob);
     else return NULL;

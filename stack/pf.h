@@ -59,4 +59,6 @@ static inline _ _pf_code(pf *pf, _ sub, _ next) {
 #define TYPES pf->m.p
 #define GC    pf->m.gc
 
+#define PF_EX_RESTART 1
+
 #endif

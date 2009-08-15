@@ -153,7 +153,7 @@ _ _sc_make_symbol(sc *sc, const char *str) {
     return const_to_object((void*)(string_to_symbol(TYPES->symbol_type, str)));
 }
 _ _sc_make_string(sc *sc, const char *str) {
-    return _sc_make_aref(sc, TYPES->bytes_type,
+    return _sc_make_aref(sc, &(TYPES->bytes_type->free),
                          bytes_from_cstring(TYPES->bytes_type, str));
 }
 
@@ -435,7 +435,7 @@ _ sc_list_clone(sc *sc, _ lst) {
     }
 }
 _ _sc_make_port(sc *sc, FILE *f, const char *name) {
-    return _sc_make_aref(sc, TYPES->port_type, 
+    return _sc_make_aref(sc, &(TYPES->port_type->free), 
                          port_new(TYPES->port_type, f, name));
 }
 _ sc_open_mode_file(sc *sc, _ path, _ mode) {

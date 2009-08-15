@@ -1651,3 +1651,10 @@ For quotations, I'm running into the same problem as for the Scheme
 interpreter: it is necessary to strictly separate language and
 metalanguage: explicit quote tags are necessary to be able to quote
 code.
+
+
+Entry: Linear pairs
+Date: Sat Aug 15 11:47:05 CEST 2009
+
+It's probably better to use a different data type for linear pairs.
+That way nonlinear pairs can be used as constants too.

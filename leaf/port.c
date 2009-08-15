@@ -1,7 +1,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include "port.h"
-int port_vprintf(port *p, char *fmt, va_list ap) {
+int port_vprintf(port *p, const char *fmt, va_list ap) {
     va_list aq;
     int len;
     va_copy(aq, ap);
@@ -9,7 +9,7 @@ int port_vprintf(port *p, char *fmt, va_list ap) {
     va_end(aq);
     return len;
 }
-int port_printf(port *p, char *fmt, ...) {
+int port_printf(port *p, const char *fmt, ...) {
     int len;
     va_list ap; va_start (ap, fmt);
     len = port_vprintf(p, fmt, ap);
