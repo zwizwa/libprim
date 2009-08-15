@@ -150,11 +150,11 @@ _ _sc_make_aref(sc *sc, void *fin, void *ptr) {
 }
 
 _ _sc_make_symbol(sc *sc, const char *str) {
-    return const_to_object((void*)(string_to_symbol(sc->m.symbol_type, str)));
+    return const_to_object((void*)(string_to_symbol(TYPES->symbol_type, str)));
 }
 _ _sc_make_string(sc *sc, const char *str) {
-    return _sc_make_aref(sc, sc->m.bytes_type,
-                         bytes_from_cstring(sc->m.bytes_type, str));
+    return _sc_make_aref(sc, TYPES->bytes_type,
+                         bytes_from_cstring(TYPES->bytes_type, str));
 }
 
 
@@ -435,8 +435,8 @@ _ sc_list_clone(sc *sc, _ lst) {
     }
 }
 _ _sc_make_port(sc *sc, FILE *f, const char *name) {
-    return _sc_make_aref(sc, sc->m.port_type, 
-                         port_new(sc->m.port_type, f, name));
+    return _sc_make_aref(sc, TYPES->port_type, 
+                         port_new(TYPES->port_type, f, name));
 }
 _ sc_open_mode_file(sc *sc, _ path, _ mode) {
     bytes *b_path = CAST(bytes, path);
@@ -971,7 +971,7 @@ _ sc_with_ck(sc *sc, _ in_ref, _ value) {
     _ ref = sc_make_aref(sc, NIL, NIL);
     _ stream = CONS(NIL, ref);  
     
-    ck_invoke(sc->m.ck_type, fn, &task, (void**)&value);
+    ck_invoke(TYPES->ck_type, fn, &task, (void**)&value);
 
     if (!task) return value;
     else {
@@ -983,7 +983,7 @@ _ sc_with_ck(sc *sc, _ in_ref, _ value) {
         else {
             aref *r = object_to_aref(ref);
             r->object = const_to_object(task);
-            r->fin    = fin_to_object((fin *)sc->m.ck_type);
+            r->fin    = fin_to_object((fin *)TYPES->ck_type);
         }
         return stream;
     }
@@ -1088,7 +1088,7 @@ static void _sc_mark_roots(sc *sc, gc_finalize fin) {
 }
 static _ _sc_make_prim(sc *sc, void *fn, long nargs, _ var) {
     prim *p = malloc(sizeof(*p));
-    p->type = sc->m.prim_type;
+    p->type = TYPES->prim_type;
     p->fn = fn;
     p->nargs = nargs;
     p->var = var;
@@ -1110,12 +1110,12 @@ sc *_sc_new(void) {
                       (gc_mark_roots)_sc_mark_roots,
                       (gc_overflow)_sc_overflow);
                     
-
     /* Atom classes. */
-    sc->m.ck_type = ck_class_new();
-    sc->m.symbol_type = symbol_class_new(1000);
-    sc->m.prim_type = (void*)0xF001; // dummy class
-    sc->m.port_type = port_class_new();
+    sc->m.p = malloc(sizeof(*(sc->m.p)));
+    TYPES->ck_type = ck_class_new();
+    TYPES->symbol_type = symbol_class_new(1000);
+    TYPES->prim_type = (void*)0xF001; // dummy class
+    TYPES->port_type = port_class_new();
 
     /* Data roots. */
     _ out = _sc_make_port(sc, stderr, "stderr");

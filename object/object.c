@@ -75,17 +75,17 @@ object object_write(object o, port *p, mem *m,
         }
     }
     /* Opaque leaf types */
-    if ((x = object_struct(o, m->symbol_type))) {
+    if ((x = object_struct(o, m->p->symbol_type))) {
         symbol *s = (symbol*)x;
         port_printf(p, "%s", s->name);
         return VOID;
     }
-    if ((x = object_struct(o, m->prim_type))) {
+    if ((x = object_struct(o, m->p->prim_type))) {
         prim *pr = (prim*)x;
         port_printf(p, "#prim<%p:%ld>", (void*)(pr->fn),pr->nargs);
         return VOID;
     }
-    if ((x = object_struct(o, m->port_type))) {
+    if ((x = object_struct(o, m->p->port_type))) {
         port *prt = (port*)x;
         if (prt->name) {
             port_printf(p, "#port<%s>", prt->name);
@@ -95,7 +95,7 @@ object object_write(object o, port *p, mem *m,
         }
         return VOID;
     }
-    if ((x = object_struct(o, m->rc_type))) {
+    if ((x = object_struct(o, m->p->rc_type))) {
         rc *r = (rc*)x;
         port_printf(p, "#rc:");
         fn(ctx, const_to_object(r->object));  // foefelare
@@ -110,4 +110,4 @@ object object_write(object o, port *p, mem *m,
     return FALSE;
 }
 
-
+// types_add(types *m, void *type) {}

@@ -17,8 +17,6 @@
 #include <unistd.h>
 #include <signal.h>
 
-#include "mem.h"
-#include "gc.h"
 #include "pf.h"
 
 #define TOP ARG0

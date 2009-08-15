@@ -1,6 +1,9 @@
 #ifndef _PF_H_
 #define _PF_H_
 
+#include "mem.h"
+#include "gc.h"
+
 /* STATE */
 
 typedef struct {
@@ -18,7 +21,7 @@ typedef struct {
 
 } pf;
 
-#include "pf2.h_"
+#include "pf.h_"
 
 /* MEMORY */
 

@@ -28,6 +28,15 @@ typedef struct {
 struct _gc;
 
 typedef struct {
+    symbol_class *symbol_type;
+    ck_class *ck_type;
+    prim_class *prim_type;
+    port_class *port_type;
+    bytes_class *bytes_type;
+    rc_class *rc_type;
+} base_types;
+
+typedef struct {
     void *type;
 
     /* Garbage collector. */
@@ -35,19 +44,16 @@ typedef struct {
     jmp_buf top;  // GC unwind
     long top_entries; // guard semaphore
 
-    /* Primitive datatypes. */
-    symbol_class *symbol_type;
-    ck_class *ck_type;
-    prim_class *prim_type;
-    port_class *port_type;
-    bytes_class *bytes_type;
-    rc_class *rc_type;
-    
+    /* An extensible list of primitive data types.  During bootstrap
+       and in the C code it is assumed to consist of only the base
+       types. */
+    base_types *p;
+
 } mem;
 
 #define DEF_ATOM(name)                                           \
     static inline name *object_to_##name(object ob, mem *m) {          \
-        return (name*)object_struct(ob,m->name##_type); }
+        return (name*)object_struct(ob,m->p->name##_type); }
 
 // permanent constant objects
 DEF_ATOM(prim)

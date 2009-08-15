@@ -232,7 +232,7 @@ static inline void *object_aref_struct(object ob, mem *m, void *type) {
 
 #define DEF_AREF_TYPE(name)                                            \
     static inline name *object_to_##name(object ob, mem *m) {          \
-        return (name*)object_aref_struct(ob,m,m->name##_type); }
+        return (name*)object_aref_struct(ob,m,m->p->name##_type); }
 
 
 // GC finalized objects
@@ -279,6 +279,8 @@ sc    *_sc_new(void);
 #define STRING(str)   _sc_make_string(sc, str)
 #define ERROR(msg, o) sc_error(sc, SYMBOL(msg), o)
 #define TYPE_ERROR(o) sc_type_error(sc, o)
+
+#define TYPES         sc->m.p
     
 /* Toplevel evaluation */
 #define EVAL(expr)    sc_post(sc, _sc_top(sc, expr))
@@ -321,6 +323,7 @@ _ _sc_printf(sc *sc, char *fmt, ...);
 
 // Scheme constants start at 0x100
 #define MT    CONSTANT(0x100)
+
 
 
 #endif
