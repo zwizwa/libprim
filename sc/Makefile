@@ -17,7 +17,7 @@ all: scheme
 GEN = test.h_ scheme.h_ boot.h_
 
 # Order is important!  ../gc contains default config which we override.
-CPPFLAGS += -I../scheme/ -I../gc/ -I../leaf/ -I../object/ -DTASK_DEBUG=0
+CPPFLAGS += -I../scheme/ -I../gc/ -I../leaf/ -I../ex/ -DTASK_DEBUG=0
 
 
 COMPILE = $(CC) $(CPPFLAGS) $(CFLAGS) $(OPTI_CFLAGS) $(DEBUG_CFLAGS) 
@@ -38,9 +38,9 @@ COMPILE = $(CC) $(CPPFLAGS) $(CFLAGS) $(OPTI_CFLAGS) $(DEBUG_CFLAGS)
 .PHONY: deps
 deps:
 	make -C ../leaf
-	make -C ../object
+	make -C ../ex
 
-DEP_OBJS=../leaf/*.o ../object/*.o
+DEP_OBJS=../leaf/*.o ../ex/*.o
 
 scheme: $(OBJ) deps
 	$(CC) -o scheme $(OBJ) $(DEP_OBJS)

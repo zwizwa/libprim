@@ -1,103 +1,4 @@
-#ifndef _GC_H_
-#define _GC_H_
-
-/* Simple stop-and-copy GC for allocating graphs of vectors and atoms.
-
-   The GC uses the following annotations:
-
-   1. VECTOR-SIZE - For a live object, the first element of a struct
-      vector_ contains the size.
-
-   2. VECTORS? - Cells are tagged using 2 tag bits.
-
-   3. FINALIZERS - A finalizer on heap location n is a function
-      that will be applied to the constant on heap location n+1
-      whenever the vector containing the finalizer is no longer
-      reachable.
-
-   4. MOVED? - A moved object contains an an object reference in the
-      size slot.
-
-   GC is implemented in a header file, since its code depends on
-   configuration that changes the vector tags. 
-
-   Note that using this GC in conjuction with C code requires solution
-   of 2 problems: pointers will have changed + C stack isn't scanned.
-   This keeps the implementation of the GC simple.
-
-   In the Scheme interpreter this is solved by simply restarting each
-   primitive after a collection, and making sure that this is possible
-   by using purely functional primitives, or always performing side
-   effects _after_ allocation.
-
-*/
-
-
-
-#include <stdio.h>
-#include <stdlib.h>
-#include <stdarg.h>
-#include <signal.h>
-#include <sys/types.h>
-#include <unistd.h>
-#include <string.h>
-
-#include "object.h"
-
-/* Note that GC_INTEGER (which would make integer addition and
-   subtraction simpler) can't be 0 when we want NIL == 0 */
-
-typedef struct _gc gc;
-
-typedef void (*gc_finalize)(gc *);
-typedef void (*gc_mark_roots)(void *ctx, gc_finalize finalize);
-typedef void (*gc_overflow)(void *ctx, long nb_extra);
-
-struct _gc {
-    vector  *current;
-    long    current_index;
-    vector  *old;
-    long    old_index;
-    long    slot_total;
-    long    want;             // last data request
-    gc_mark_roots mark_roots; // (1)
-    gc_overflow   overflow;
-    void *client_ctx;
-};
-
-/* Client is free to abort the C stack during the execution of (1) but
-   has to call the finalize method after performing gc_mark() for the
-   root objects.
-
-   Aborting is useful if the C stack contains references to objects
-   that are not accessible from the root.  These will be invalid after
-   the GC finishes.
-
-   If the GC is part of an interpreter written in functional style it
-   is easiest to just abort the current step and start over after
-   collection.
-
-   If all the references on the C stack are reachable from the root
-   pointers, it is ok to let (1) return such that the allocation that
-   triggered the GC will continue.  Most likely this is not the case..
-   Even gc_vector() already messes things up. */
-
-
-
-static gc *gc_new(long total, void *ctx, gc_mark_roots mark, 
-                  gc_overflow  overflow);
-static void gc_collect(gc *gc);
-static object gc_mark(gc *gc, object o_old);
-static int gc_grow(gc *gc, long add_slots);
-
-#define GC_CHENEY 1
-
-
-
-
-
-
-
+#include "gc.h"
 
 /* PRIVATE + implementation */
 
@@ -109,7 +10,6 @@ static inline int gc_full(gc *gc, int slots) {
 /* User must fill the allocated space with valid tagged values before
    calling gc_alloc again. */
 static void _gc_when_full(gc *gc, long size);
-static vector *gc_alloc(gc *gc, long size);
 static inline _ gc_cons(gc *gc, _ car, _ cdr) {
     vector *v = gc_alloc(gc, 2);
     vector_set_flags(v, TAG_PAIR);
@@ -132,7 +32,7 @@ static inline _ gc_box(gc *gc, object init) {
     return vector_to_object(v);
 }
 #endif
-static inline object gc_make_tagged_v(gc *gc, long tag, long slots, va_list ap) {
+object gc_make_tagged_v(gc *gc, long tag, long slots, va_list ap) {
     vector *v = gc_alloc(gc, slots);
     long i = 0;
     for (i=0; i<slots; i++) {
@@ -141,7 +41,7 @@ static inline object gc_make_tagged_v(gc *gc, long tag, long slots, va_list ap) 
     vector_set_flags(v, tag);
     return vector_to_object(v);
 }
-static inline object gc_make_tagged(gc *gc, long tag, long slots, ...) {
+object gc_make_tagged(gc *gc, long tag, long slots, ...) {
     va_list ap;
     va_start(ap, slots);
     object o = gc_make_tagged_v(gc, tag, slots, ap);
@@ -217,7 +117,7 @@ static object _gc_move_object(gc *gc, object o_old) {
     return o_new;
 }
 #if GC_CHENEY
-static object gc_mark(gc *gc, object root) {
+object gc_mark(gc *gc, object root) {
     long todo = gc->current_index;
     /* Start with moving the root. */
     root = _gc_move_object(gc, root);
@@ -273,7 +173,7 @@ static void _gc_when_full(gc *gc, long slots) {
     gc->want = slots;
     gc_collect(gc);
 }
-static vector *gc_alloc(gc *gc, long size) {
+vector *gc_alloc(gc *gc, long size) {
     long slots = size + 1;
     if (unlikely(gc_full(gc, slots))) {
         _gc_when_full(gc, slots);
@@ -313,7 +213,7 @@ static void _gc_collect_with_fin(gc *gc, gc_finalize fin) {
     gc->mark_roots(gc->client_ctx, fin);
 }
 
-static void gc_collect(gc *gc) { 
+void gc_collect(gc *gc) { 
     _gc_collect_with_fin(gc, _gc_finalize); 
 }
 static void _gc_collect_no_abort(gc *gc) {
@@ -322,7 +222,7 @@ static void _gc_collect_no_abort(gc *gc) {
     _gc_call_finalizers(gc);
 }
 
-static int gc_grow(gc *gc, long add_slots) {
+int gc_grow(gc *gc, long add_slots) {
     /* grow pool */
     long total = gc->slot_total;
     total += add_slots; // make sure there will be enough
@@ -335,8 +235,8 @@ static int gc_grow(gc *gc, long add_slots) {
     return 1;
 }
 
-static gc *gc_new(long total, void *ctx, gc_mark_roots mark, 
-                  gc_overflow  overflow) {
+gc *gc_new(long total, void *ctx, gc_mark_roots mark, 
+           gc_overflow  overflow) {
     gc* x = (gc*)malloc(sizeof(gc));
     x->slot_total     = total;
     x->current        = (vector*)calloc(total, sizeof(object));
@@ -349,8 +249,3 @@ static gc *gc_new(long total, void *ctx, gc_mark_roots mark,
     x->client_ctx     = ctx;
     return x;
 }
-
-
-
-
-#endif

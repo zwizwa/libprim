@@ -15,8 +15,7 @@
 
 /* Highlevel transparent object rep and GC */
 #include "object.h"
-
-struct _gc;
+#include "gc.h"
 
 typedef struct {
     symbol_class *symbol_type;

@@ -1,7 +1,7 @@
 #include "object.h"
 #include "port.h"
 #include "pair.h"
-#include "mem.h"
+#include "ex.h"
 
 
 object object_write_vector(const char *type, vector *v, port *p, mem *m,

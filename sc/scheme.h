@@ -2,8 +2,7 @@
 #define _SCHEME_H_
 
 #include <setjmp.h>
-#include "mem.h"
-#include "gc.h"
+#include "ex.h"
 
 typedef struct _scheme sc;
 sc *scheme_new(void);
