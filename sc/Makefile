@@ -6,7 +6,7 @@ DEBUG_CFLAGS=-Wall -g -Wno-unused
 
 # CC = gcc -m32
 
-all: scheme
+all: scheme $(DEP_OBJS)
 
 # generated files
 %.h_: %.scm ../unparse.ss
@@ -35,20 +35,12 @@ COMPILE = $(CC) $(CPPFLAGS) $(CFLAGS) $(OPTI_CFLAGS) $(DEBUG_CFLAGS)
 	$(COMPILE) -o $@ -c $<
 
 
-.PHONY: deps
-deps:
-	make -C ../leaf
-	make -C ../ex
+DEP_OBJ=../leaf/leaf.a ../ex/ex.a
 
-DEP_OBJS=../leaf/*.o ../ex/*.o
-
-scheme: $(OBJ) deps
-	$(CC) -o scheme $(OBJ) $(DEP_OBJS)
+scheme: $(OBJ) $(DEP_OBJ)
+	$(CC) -o scheme $(OBJ) $(DEP_OBJ)
 
 .PHONY: clean
 clean:
 	rm -f scheme *.o *.d *.d.* *~ *.h_
 
-.PHONY: mrproper
-mrproper: clean
-	make -C ../leaf clean

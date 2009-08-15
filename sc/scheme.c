@@ -161,7 +161,7 @@ _ sc_error(sc *sc, _ sym_o, _ arg_o) {
     // if (sym_o != SYMBOL("halt")) sc_trap(sc);
     if (sc->step_entries) longjmp(sc->m.r.step, SC_EX_ABORT);
     _ex_printf(EX, "ERROR: attempt to abort primitive outside of the main loop.\n");
-    ex_trap(EX);
+    TRAP();
     exit(1);
 }
 _ sc_type_error(sc *sc, _ arg_o) {

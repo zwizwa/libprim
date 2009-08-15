@@ -4,6 +4,7 @@
 
 (define re-def (make-parameter #f))
 (define re-name (make-parameter #f))
+(define ctx (make-parameter #f))
 
 (define (pre->suf pre x suf)
   (if (regexp-match pre x)
@@ -81,7 +82,7 @@
     (format "x~a" i)))
 (define (string-append* lst) (apply string-append lst))
 
-(define (macro-defs dict)
+(define (macro-defs dict ctx)
   (for-each*
    (lambda (name n)
      (let ((mname (macro-mangle name)))
@@ -90,7 +91,7 @@
                mname
                (string-append* (list->args (n->args n)))
                name
-               (string-append* (list->args (cons "EX" (n->args n)))))
+               (string-append* (list->args (cons ctx (n->args n)))))
        (printf "#endif\n")))
    dict))
 
@@ -101,12 +102,13 @@
   (let ((filename (arg0)))
     (gen-header
      (filename->initname filename)
-     (scan filename))))
+     (scan filename)
+     (ctx))))
 
-(define (gen-header init ds)
+(define (gen-header init ds ctx)
   (let ((dict (declarations->dict ds)))
     (decls ds)
     (table-defs init dict "")
-    (macro-defs dict)
+    (macro-defs dict ctx)
     ))
 

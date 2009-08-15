@@ -1,7 +1,6 @@
-all: scheme
-
-.PHONY: scheme
-scheme:
+all: 
+	make -C leaf
+	make -C ex
 	make -C sc
 	make -C pf
 
@@ -11,7 +10,6 @@ clean:
 	make -C ex clean
 	make -C sc clean
 	make -C pf clean
-
 
 # check code size
 strip64:

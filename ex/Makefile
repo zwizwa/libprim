@@ -8,13 +8,18 @@ DEBUG_CFLAGS=-Wall -g
 # CC = gcc -m32
 
 %.h_: %.c prims.ss
+	pwd
 	mzscheme prims.ss $< >$@
 # %.h_: %.ex ../unparse.ss
 # 	mzscheme ../unparse.ss <$< >$@
 
 GEN = ex_prims.h_
 
-all: $(OBJ)
+all: $(GEN) ex.a
+
+ex.a: $(OBJ)
+	ar rcs ex.a $(OBJ)
+
 
 CPPFLAGS += -I../leaf
 
@@ -35,7 +40,4 @@ COMPILE = $(CC) $(CPPFLAGS) $(CFLAGS) $(OPTI_CFLAGS) $(DEBUG_CFLAGS)
 
 .PHONY: clean
 clean:
-	rm -f *.o *.d *.d.* *~ *.h_
-
-
-
+	rm -f *.o *.d *.d.* *~ *.h_ *.a
