@@ -104,3 +104,13 @@ _ _ex_printf(ex *ex, const char *fmt, ...) {
     va_end(ap);
     return VOID;
 }
+
+
+/* Pairs and lambdas are tagged vectors. */
+_ _is_vector_type(_ o, long flags) {
+    vector *v;
+    if ((v = object_to_vector(o)) &&
+        (flags == vector_to_flags(v))) { return TRUE; }
+    return FALSE;
+}
+

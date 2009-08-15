@@ -18,6 +18,9 @@
          (x (pre->suf        #px"^is-"   x "?"))
          )x))
 
+(define (macro-mangle x)
+  (let* ((x (regexp-replace  #px"^\\S*?_"   x "")))
+    (string-upcase x)))
 
 (define (arg0) (vector-ref (current-command-line-arguments) 0))
 
@@ -69,7 +72,28 @@
      (printf "~a{~s, ~a, ~s},\\\n" prefix (mangle name) name n))
    dict)
   (printf "~a{}}\n" prefix))
-     
+
+(define (list->args lst)
+  (if (null? lst) '()
+      (cdr (apply append (for/list ((l lst)) (list ", " l))))))
+(define (n->args n)
+  (for/list ((i (in-range n)))
+    (format "x~a" i)))
+(define (string-append* lst) (apply string-append lst))
+
+(define (macro-defs dict)
+  (for-each*
+   (lambda (name n)
+     (let ((mname (macro-mangle name)))
+       (printf "#ifndef ~a\n" mname)
+       (printf "#define ~a(~a) ~a(~a)\n"
+               mname
+               (string-append* (list->args (n->args n)))
+               name
+               (string-append* (list->args (cons "EX" (n->args n)))))
+       (printf "#endif\n")))
+   dict))
+
 (define (filename->initname f)
   (format "~a_init" (car (regexp-split #rx"\\." f))))
 
@@ -82,5 +106,7 @@
 (define (gen-header init ds)
   (let ((dict (declarations->dict ds)))
     (decls ds)
-    (table-defs init dict "")))
+    (table-defs init dict "")
+    (macro-defs dict)
+    ))
 

@@ -7,6 +7,8 @@
 #include "ex.h"
 #include "ex_prims.h_"
 
+#define EX ex
+
 /* Booleans are GC_CONST */
 _ ex_is_bool(ex *ex, _ o) {
     void *x;
@@ -18,6 +20,12 @@ _ ex_is_bool(ex *ex, _ o) {
 _ ex_is_null(ex *ex, _ o) {
     if (NIL == o) return TRUE; else return FALSE;
 }
+
+
+_ ex_is_pair(ex *ex, _ o)  { return _is_vector_type(o, TAG_PAIR); }
+
+
+
 
 /* Error handling:
    FIXME: The machine step() is protected with setjmp(). */
@@ -48,6 +56,6 @@ _ ex_find_slot(ex *ex, _ E, _ var) {
 }
 _ ex_find(ex *ex, _ E, _ var) {
     _ rv = ex_find_slot(ex, E, var);
-    if (FALSE == ex_is_pair(ex, rv)) return FALSE;
+    if (FALSE == IS_PAIR(rv)) return FALSE;
     return CDR(rv);
 }

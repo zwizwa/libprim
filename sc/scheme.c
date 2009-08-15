@@ -8,6 +8,7 @@
 
 // generated
 #include "scheme.h_"
+#include "../ex/ex_prims.h_"
 
 
 /* --- PRIMITIVES --- */
@@ -71,30 +72,21 @@ _ sc_is_bytes(sc *sc, _ o)  { OBJECT_PREDICATE(object_to_bytes); }
 _ sc_is_null(sc *sc, _ o) {
     if (!o) return TRUE; else return FALSE;
 }
-/* Pairs and lambdas are tagged vectors. */
-static _ vector_type(_ o, long flags) {
-    vector *v;
-    if ((v = object_to_vector(o)) &&
-        (flags == vector_to_flags(v))) { return TRUE; }
-    return FALSE;
-}
-
 
 /* Predicates */
-_ sc_is_vector(sc *sc, _ o)  { return vector_type(o, TAG_VECTOR); }
-_ sc_is_pair(sc *sc, _ o)    { return vector_type(o, TAG_PAIR); }
-_ sc_is_lambda(sc *sc, _ o)  { return vector_type(o, TAG_LAMBDA); }
-_ sc_is_state(sc *sc, _ o)   { return vector_type(o, TAG_STATE); }
-_ sc_is_redex(sc *sc, _ o)   { return vector_type(o, TAG_REDEX); }
-_ sc_is_value(sc *sc, _ o)   { return vector_type(o, TAG_VALUE); }
-_ sc_is_error(sc *sc, _ o)   { return vector_type(o, TAG_ERROR); }
-_ sc_is_aref(sc *sc, _ o)    { return vector_type(o, TAG_AREF); }
+_ sc_is_vector(sc *sc, _ o)  { return _is_vector_type(o, TAG_VECTOR); }
+_ sc_is_lambda(sc *sc, _ o)  { return _is_vector_type(o, TAG_LAMBDA); }
+_ sc_is_state(sc *sc, _ o)   { return _is_vector_type(o, TAG_STATE); }
+_ sc_is_redex(sc *sc, _ o)   { return _is_vector_type(o, TAG_REDEX); }
+_ sc_is_value(sc *sc, _ o)   { return _is_vector_type(o, TAG_VALUE); }
+_ sc_is_error(sc *sc, _ o)   { return _is_vector_type(o, TAG_ERROR); }
+_ sc_is_aref(sc *sc, _ o)    { return _is_vector_type(o, TAG_AREF); }
 
-_ sc_is_k_if(sc *sc, _ o)    { return vector_type(o, TAG_K_IF); }
-_ sc_is_k_apply(sc *sc, _ o) { return vector_type(o, TAG_K_APPLY); }
-_ sc_is_k_seq(sc *sc, _ o)   { return vector_type(o, TAG_K_SEQ); }
-_ sc_is_k_set(sc *sc, _ o)   { return vector_type(o, TAG_K_SET); }
-_ sc_is_k_macro(sc *sc, _ o) { return vector_type(o, TAG_K_MACRO); }
+_ sc_is_k_if(sc *sc, _ o)    { return _is_vector_type(o, TAG_K_IF); }
+_ sc_is_k_apply(sc *sc, _ o) { return _is_vector_type(o, TAG_K_APPLY); }
+_ sc_is_k_seq(sc *sc, _ o)   { return _is_vector_type(o, TAG_K_SEQ); }
+_ sc_is_k_set(sc *sc, _ o)   { return _is_vector_type(o, TAG_K_SET); }
+_ sc_is_k_macro(sc *sc, _ o) { return _is_vector_type(o, TAG_K_MACRO); }
 
 _ sc_is_k(sc *sc, _ o) {
     vector *v;
@@ -194,7 +186,7 @@ _ sc_reverse(sc *sc, _ lst) {
 // parse improper list
 static void _sc_length_rest(sc *sc, _ lst, _ *length, _ *rest) {
     long nb = 0;
-    while (TRUE == sc_is_pair(sc, lst)) { nb++; lst = CDR(lst); }
+    while (TRUE == IS_PAIR(lst)) { nb++; lst = CDR(lst); }
     *rest = lst;
     *length = integer_to_object(nb);
 }
@@ -215,7 +207,7 @@ _ sc_take_vector(sc *sc, _ n, _ in_lst) {
     vector *v = gc_alloc(sc->m.gc, slots);
     long i;
     for(i=0; i<slots; i++){
-        if (FALSE == sc_is_pair(sc, lst)) return TYPE_ERROR(in_lst);
+        if (FALSE == IS_PAIR(lst)) return TYPE_ERROR(in_lst);
         pair *p = object_to_pair(lst);
         v->slot[i] = p->car;
         lst = p->cdr;
@@ -227,8 +219,8 @@ _ sc_list_to_vector(sc *sc, _ lst){
 }
 
 _ sc_env_set(sc *sc, _ E, _ var, _ value) {
-    _ rv = sc_find_slot(sc, E, var);
-    if (FALSE == sc_is_pair(sc, rv)) return FALSE;
+    _ rv = ex_find_slot(EX, E, var);
+    if (FALSE == IS_PAIR(rv)) return FALSE;
     CDR(rv)=value;
     return VOID;
 }
@@ -254,22 +246,22 @@ _ sc_bang_set_global(sc *sc, _ n, _ val) {
     return sc_bang_vector_set(sc, sc->global, n, val); 
 }
 
-#define GLOBAL(name) return sc_global(sc, sc_slot_##name)
-#define GLOBAL_SET(name, val) return sc_bang_set_global(sc, sc_slot_##name, val)
+#define _GLOBAL(name) return sc_global(sc, sc_slot_##name)
+#define _GLOBAL_SET(name, val) return sc_bang_set_global(sc, sc_slot_##name, val)
 
-_ sc_toplevel(sc *sc)       { GLOBAL(toplevel); }
-_ sc_toplevel_macro(sc *sc) { GLOBAL(toplevel_macro); }
-_ sc_state(sc *sc)          { GLOBAL(state); }
-_ sc_abort_k(sc *sc)        { GLOBAL(abort_k); }
+_ sc_toplevel(sc *sc)       { _GLOBAL(toplevel); }
+_ sc_toplevel_macro(sc *sc) { _GLOBAL(toplevel_macro); }
+_ sc_state(sc *sc)          { _GLOBAL(state); }
+_ sc_abort_k(sc *sc)        { _GLOBAL(abort_k); }
 
-_ sc_bang_set_toplevel(sc *sc, _ val)       { GLOBAL_SET(toplevel, val); }
-_ sc_bang_set_toplevel_macro(sc *sc, _ val) { GLOBAL_SET(toplevel_macro, val); }
+_ sc_bang_set_toplevel(sc *sc, _ val)       { _GLOBAL_SET(toplevel, val); }
+_ sc_bang_set_toplevel_macro(sc *sc, _ val) { _GLOBAL_SET(toplevel_macro, val); }
 
 _ sc_find_toplevel(sc *sc, _ var) {
-    return sc_find(sc, sc_toplevel(sc), var);
+    return ex_find(EX, sc_toplevel(sc), var);
 }
 _ sc_find_toplevel_macro(sc *sc, _ var) {
-    return sc_find(sc, sc_toplevel_macro(sc), var);
+    return ex_find(EX, sc_toplevel_macro(sc), var);
 }
 /*  Add to or mutate toplevel env. */
 _ sc_bang_def_global(sc* sc, _ slot, _ var, _ val) {
@@ -290,7 +282,7 @@ _ sc_bang_def_toplevel_macro(sc* sc, _ var, _ val) {
 }
 _ sc_is_list(sc *sc, _ o) {
     if(TRUE==sc_is_null(sc, o)) return TRUE;
-    if(FALSE==sc_is_pair(sc, o)) return FALSE;
+    if(FALSE==IS_PAIR(o)) return FALSE;
     return sc_is_list(sc, CDR(o));
 }
 _ sc_newline(sc *sc, _ out) { port_printf(CAST(port, out), "\n"); return VOID; }
@@ -490,7 +482,7 @@ _ sc_close_args(sc *sc, _ lst, _ E, _ M) {
 
 static inline void length_and_last(sc *sc, _ p, long* n, _*last) {
     *n = 0;
-    while (TRUE==sc_is_pair(sc,p)) {
+    while (TRUE==IS_PAIR(p)) {
         (*n)++; (*last) = CAR(p); p = CDR(p);
     }
 }
@@ -553,7 +545,7 @@ _ _sc_step_value(sc *sc, _ v, _ k) {
         /* If there are remaining closures to evaluate, push the value
            to the update value list and pop the next closure. */
         k_apply *kx = object_to_k_apply(k);
-        if (TRUE==sc_is_pair(sc, kx->todo)) {
+        if (TRUE==IS_PAIR(kx->todo)) {
             return STATE(CAR(kx->todo),
                          sc_make_k_apply(sc, kx->k.parent,
                                          CONS(value, kx->done),
@@ -685,7 +677,7 @@ static _ _sc_step(sc *sc, _ o_state) {
     /* Variable Reference */
     if (TRUE==sc_is_symbol(sc, term)){
         _ val; 
-        if (FALSE == (val = sc_find(sc, env, term))) {
+        if (FALSE == (val = ex_find(EX, env, term))) {
             if (FALSE == (val = sc_find_toplevel(sc, term))) {
                 return ERROR("undefined", term);
             }
@@ -694,7 +686,7 @@ static _ _sc_step(sc *sc, _ o_state) {
     }
 
     /* Literal Value */
-    if (FALSE==sc_is_pair(sc, term)) {
+    if (FALSE==IS_PAIR(term)) {
         _ val = (TRUE==sc_is_lambda(sc, term)) 
             ? s->redex_or_value : term;
 
@@ -751,7 +743,7 @@ static _ _sc_step(sc *sc, _ o_state) {
                          sc_make_k_set(sc, k, var, env, sc_slot_toplevel));
         }
         if (term_f == sc->s_begin) {
-            if (FALSE == sc_is_pair(sc, term_args)) goto syntax_error;
+            if (FALSE == IS_PAIR(term_args)) goto syntax_error;
             _ todo = sc_close_args(sc, term_args, env, menv);
             pair *body = object_to_pair(todo);
             /* Don't create a contination frame if there's only a
@@ -768,7 +760,7 @@ static _ _sc_step(sc *sc, _ o_state) {
             return STATE(cl, k);
         }
         _ macro;
-        if (FALSE != (macro = sc_find(sc, sc_toplevel_macro(sc), term_f))) {
+        if (FALSE != (macro = ex_find(EX, sc_toplevel_macro(sc), term_f))) {
             /* Macro continuation is based on a completed
                k_apply frame that will trigger the fn
                application, linked to a k_macro frame that

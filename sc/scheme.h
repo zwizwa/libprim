@@ -265,7 +265,6 @@ sc    *_sc_new(void);
 #define SC_EX_CK      4  /* wrap up C continuation */
 
 /* Macros valid in sc context. */
-#define CONS(a,b)    sc_make_pair(sc,a,b)
 #define STATE(c,k)   sc_make_state(sc,c,k)
 #define REDEX(t,e,m) sc_make_redex(sc,t,e,m)
 #define VALUE(d)     sc_make_value(sc,d)

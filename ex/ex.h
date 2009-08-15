@@ -84,4 +84,6 @@ typedef struct {
     int nargs;
 } prim_def;
 
+_ _is_vector_type(_ o, long flags);
+
 #endif
