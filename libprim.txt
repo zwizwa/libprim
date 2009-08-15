@@ -1783,5 +1783,35 @@ Entry: EX errors
 Date: Sat Aug 15 21:18:47 CEST 2009
 
 So.. Time to move primitive errors from SC -> EX.
+Done.
 
 
+Entry: Knot tying
+Date: Sat Aug 15 22:50:25 CEST 2009
+
+To define recursive functions, it is necessary to use mutation of the
+code graph.  I would like to preserve a semantics of early binding
+though.
+
+OK, it's not so difficult.  Adjust the environment so each pair points
+to a code cell.  This is the one that will be referred to from within
+other code.  When a definition arrives, reuse the cell.
+
+What I really would like is a way to call Scheme code during
+definition.  Mutation doesn't go well with the allocations necessary.
+So maybe this needs to be written as a bootstrapped composite word?
+
+Otoh, it might be solved linearly, translating the code in-place,
+transforming the structure into code directly.
+
+1. compile in-place, reusing the cons cells (code is isomorphic to the
+data representation, except for `quote' and variable wrappers.
+
+2. update the global environment.
+
+This would work were it not for the wrapping that needs to perform
+allocation.  It really would be simpler to do it from Scheme.
+
+Alternatively, it can be done in two passes: one pass creates the
+skeleton but doesn't mutate to make sure it can be restarted, while
+the second pass fills in the values.

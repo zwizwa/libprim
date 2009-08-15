@@ -1,7 +1,12 @@
 
 /* Both SC (Scheme) and PF (Concatenative language with linear core
    memory) are based on a shared expression language which handles GC
-   allocation and primitive exceptions. */
+   allocation and primitive exceptions.
+
+   This language is essentially C with dynamic types.  Note that these
+   only work inside setjump(ex->top) for GC restarts and
+   setjump(ex->r.step) for primitive exceptions.
+*/
 
 
 #include "ex.h"
@@ -151,6 +156,28 @@ _ ex_bang_vector_set(ex *ex, _ vec, _ n, _ val) {
     *vector_index(ex, vec, n) = val;
     return VOID;
 }
+
+_ ex_env_set(ex *ex, _ E, _ var, _ value) {
+    _ rv = ex_find_slot(ex, E, var);
+    if (FALSE == IS_PAIR(rv)) return FALSE;
+    _CDR(rv)=value;
+    return VOID;
+}
+
+_ ex_env_def(ex *ex, _ E, _ var, _ value) {
+    _ slot = ex_find_slot(ex, E, var);
+    if (FALSE == slot) {
+        return CONS(CONS(var,value),E);
+    }
+    else {
+        _CDR(slot) = value;
+        return E;
+    }
+}
+
+
+
+
 
 /* ERRORS */
 

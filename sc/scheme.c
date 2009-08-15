@@ -117,14 +117,6 @@ _ _sc_make_string(sc *sc, const char *str) {
 
 _ sc_make_mt(sc *sc)    { return MT; }
 
-_ sc_env_set(sc *sc, _ E, _ var, _ value) {
-    _ rv = ex_find_slot(EX, E, var);
-    if (FALSE == IS_PAIR(rv)) return FALSE;
-    _CDR(rv)=value;
-    return VOID;
-}
-
-
 _ sc_global(sc *sc, _ n) { 
     return VECTOR_REF(sc->global, n); 
 }
@@ -155,7 +147,7 @@ _ sc_bang_def_global(sc* sc, _ slot, _ var, _ val) {
     _ env = sc_global(sc, slot);
     if (!(s=object_to_symbol(var, &sc->m))) TYPE_ERROR(var);
     // _ex_printf(EX, "DEF %s: ",s->name); sc_post(sc, val);
-    if (FALSE == sc_env_set(sc, env, var, val)) {
+    if (FALSE == ENV_SET(env, var, val)) {
         sc_bang_set_global(sc, slot, CONS(CONS(var,val), env));
     }
     return VOID;
@@ -391,10 +383,9 @@ _ _sc_step_value(sc *sc, _ v, _ k) {
         k_set *kx = object_to_k_set(k);
         // allocate before mutation
         _ rv = STATE(VALUE(VOID), kx->k.parent);
-        if (FALSE == sc_env_set(sc, kx->env, kx->var, value)) {
-            if (FALSE == sc_env_set(sc, 
-                                    sc_global(sc, kx->tl_slot),  // global toplevel
-                                    kx->var, value)) {
+        if (FALSE == ENV_SET(kx->env, kx->var, value)) {
+            if (FALSE == ENV_SET(sc_global(sc, kx->tl_slot),  // global toplevel
+                                 kx->var, value)) {
                 return ERROR("undefined", kx->var);
             }
         }
