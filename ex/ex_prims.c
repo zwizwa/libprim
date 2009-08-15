@@ -23,3 +23,11 @@ _ ex_trap(ex *ex) {
     return VOID;
 }
 
+
+_ ex_cons(ex *ex, _ car, _ cdr) {
+    vector *v = gc_alloc(ex->gc, 2);
+    vector_set_flags(v, TAG_PAIR);
+    v->slot[0] = car;
+    v->slot[1] = cdr;
+    return vector_to_object(v);
+}

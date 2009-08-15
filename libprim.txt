@@ -1744,3 +1744,20 @@ Date: Sat Aug 15 16:05:08 CEST 2009
 In light of this sharing it makes sense to define PF in terms of PX
 primitives: in-place expressions.
 
+pf_  forth words
+pl_  linear (in-place update) expressions
+
+ex_  nonlinear (sharing / consing) expressions (usable in Scheme)
+
+
+
+pf_  probably are redundant, and can be generated from px_
+
+
+Entry: EX printing
+Date: Sat Aug 15 16:43:05 CEST 2009
+
+EX has a lowlevel port* reference to implement basic printing.  It
+needs a lowlevel interface because in SC and PF ports are managed
+respectively as graph and linear atoms.
+

@@ -25,7 +25,10 @@ typedef struct {
 
 } pf;
 
-#define EX (&pf->m)
+// SUPER
+#define EX    (&pf->m)
+#define TYPES (EX->p)
+#define GC    (EX->gc)
 
 #include "pf.h_"
 
@@ -62,8 +65,6 @@ static inline _ _pf_code(pf *pf, _ sub, _ next) {
     return gc_make_tagged(pf->m.gc, TAG_CODE, 2, sub, next);
 }
 
-#define TYPES pf->m.p
-#define GC    pf->m.gc
 
 #define PF_EX_RESTART 1
 #define PF_EX_ABORT 2

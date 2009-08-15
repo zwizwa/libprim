@@ -3,36 +3,21 @@
 #include "pair.h"
 #include "ex.h"
 
-
-object object_write_vector(const char *type, vector *v, port *p, ex *m,
-                           object_write_delegate fn, void *ctx) {
+object _ex_write_vector(ex *ex, const char *type, vector *v) {
+    port *p = ex->port(ex);
     long i,n = vector_size(v);
     port_printf(p, "#%s(", type);
     for(i=0;i<n;i++){
-        fn(ctx, v->slot[i]);
+        ex->write(ex, v->slot[i]);
         if (i != n-1) port_printf(p, " ");
     }
     port_printf(p, ")");
     return VOID;
 }
-
-struct _write_delegate_ {
-    port *p;
-    ex *m;
-};
-static object _write_delegate(struct _write_delegate_ *ctx, object ob) {
-    return object_write(ob, ctx->p, ctx->m, NULL, NULL);
-}
-object object_write(object o, port *p, ex *m,
-                    object_write_delegate fn, void *ctx) {
-    struct _write_delegate_ _ctx = {p,m};
+object ex_write(ex *ex, object o) {
+    port *p = ex->port(ex);
     vector *v;
     void *x;
-    if (!fn) { 
-        fn = (object_write_delegate)_write_delegate;
-        ctx = &_ctx;
-    }
-    
     if (TRUE  == o) { port_printf(p, "#t"); return VOID; }
     if (FALSE == o) { port_printf(p, "#f"); return VOID; }
     if (GC_INTEGER == GC_TAG(o)) {
@@ -47,12 +32,12 @@ object object_write(object o, port *p, ex *m,
     if ((v = object_to_vector(o))) {
         long flags = object_get_vector_flags(o);
         if (TAG_VECTOR == flags) { 
-            return object_write_vector("", v, p, m, fn, ctx);
+            return _ex_write_vector(ex, "", v);
         }
         if (TAG_PAIR == flags) {
             port_printf(p, "(");
             for(;;) {
-                fn(ctx, CAR(o));
+                ex->write(ex, CAR(o));
                 o = CDR(o);
                 if (NIL == o) {
                     port_printf(p, ")");
@@ -60,7 +45,7 @@ object object_write(object o, port *p, ex *m,
                 }
                 if (!object_to_pair(o)) {
                     port_printf(p, " . ");
-                    fn(ctx, o);
+                    ex->write(ex, o);
                     port_printf(p, ")");
                     return VOID;
                 }
@@ -68,24 +53,24 @@ object object_write(object o, port *p, ex *m,
             }
         }
         //if (TAG_BOX == flags) {
-        //    return object_write_vector("box", v, p, m, fn, ctx);
+        //    return object_write_vector(ex, "box", v);
         // }
         if (TAG_AREF == flags) {
-            return object_write_vector("aref", v, p, m, fn, ctx);
+            return _ex_write_vector(ex, "aref", v);
         }
     }
     /* Opaque leaf types */
-    if ((x = object_struct(o, m->p->symbol_type))) {
+    if ((x = object_struct(o, ex->p->symbol_type))) {
         symbol *s = (symbol*)x;
         port_printf(p, "%s", s->name);
         return VOID;
     }
-    if ((x = object_struct(o, m->p->prim_type))) {
+    if ((x = object_struct(o, ex->p->prim_type))) {
         prim *pr = (prim*)x;
         port_printf(p, "#prim<%p:%ld>", (void*)(pr->fn),pr->nargs);
         return VOID;
     }
-    if ((x = object_struct(o, m->p->port_type))) {
+    if ((x = object_struct(o, ex->p->port_type))) {
         port *prt = (port*)x;
         if (prt->name) {
             port_printf(p, "#port<%s>", prt->name);
@@ -95,10 +80,10 @@ object object_write(object o, port *p, ex *m,
         }
         return VOID;
     }
-    if ((x = object_struct(o, m->p->rc_type))) {
+    if ((x = object_struct(o, ex->p->rc_type))) {
         rc *r = (rc*)x;
         port_printf(p, "#rc:");
-        fn(ctx, const_to_object(r->ctx));  // foefelare
+        ex->write(ex, const_to_object(r->ctx));  // foefelare
         port_printf(p, ":%d", (int)(r->rc));
         return VOID;
     }
@@ -111,3 +96,11 @@ object object_write(object o, port *p, ex *m,
 }
 
 // types_add(types *m, void *type) {}
+_ _ex_printf(ex *ex, const char *fmt, ...) {
+    int rv;
+    port *p = ex->port(ex);
+    va_list ap; va_start(ap, fmt);
+    rv = port_vprintf(p, fmt, ap);
+    va_end(ap);
+    return VOID;
+}

@@ -33,7 +33,10 @@ typedef struct {
     prim *prim;
 } ex_r;
 
-typedef struct {
+typedef struct _ex ex;
+typedef object (*ex_write_method)(ex *ex, object ob);
+typedef port*  (*_ex_port_method)(ex *ex);
+struct _ex {
     void *type;
 
     /* Garbage collector. */
@@ -49,7 +52,11 @@ typedef struct {
        types. */
     base_types *p;
 
-} ex;
+    /* Printing: delegate + current port. */
+    ex_write_method write;
+    _ex_port_method  port;
+
+};
 
 #define DEF_ATOM(name)                                                \
     static inline name *object_to_##name(object ob, ex *m) {          \
@@ -66,21 +73,9 @@ typedef void* (*object_to_pointer)(object, ex*);
    be identified by its first field.  Primitive leaf types are
    recognized through the class list in mem. */
 
-typedef object (*object_write_delegate)(void *ctx, object ob);
-object object_write_vector(const char *type, vector *v, port *p, ex *m,
-                           object_write_delegate fn, void *ctx);
-object object_write(object ob, port *p, ex *m,
-                    object_write_delegate fn, void *ctx);
-
-
-static inline _ ex_cons(ex *ex, _ car, _ cdr) {
-    vector *v = gc_alloc(ex->gc, 2);
-    vector_set_flags(v, TAG_PAIR);
-    v->slot[0] = car;
-    v->slot[1] = cdr;
-    return vector_to_object(v);
-}
-
+object _ex_write_vector(ex *ex, const char *type, vector *v);
+object ex_write(ex *ex, object ob);
+_ _ex_printf(ex *pf, const char *fmt, ...);
 
 /* Primitive definition table. */
 typedef struct {

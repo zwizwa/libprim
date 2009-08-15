@@ -18,6 +18,7 @@
 #include <signal.h>
 
 #include "pf.h"
+#include "../ex/ex_prims.h_"
 
 #define TOP ARG0
 #define ARG0 CAR(pf->ds) 
@@ -318,46 +319,31 @@ void pf_run(pf *pf) {
 
 */
 
-typedef struct { 
-    pf *pf;
-    port *p;
-    ex *m;
-} _write_ctx_;
-static _ _write_delegate(_write_ctx_ *ctx, _ ob) {
-    port *p = ctx->p;
-    ex *m = ctx->m;
-    object_write_delegate fn = (object_write_delegate)_write_delegate;
-    void *x;
-    if (FALSE == object_write(ob, p, m, fn, ctx)) {
-        if ((x = object_to_port(ob, m))) {
-            object_write(const_to_object(x), p, m, fn, ctx);
-        }
-        else if ((x = object_to_code(ob))) {
-            port_printf(p, "#code<%p>", x);
-        }
-        else {
-            port_printf(p, "#object<%p>",(void*)ob);
-        }
-    }
-    return VOID;
-}
-_ _px_printf(pf *pf, const char *fmt, ...) {  
-    int rv;
-    port *p = object_to_port(pf->output, &pf->m);
-    va_list ap; va_start(ap, fmt);
-    rv = port_vprintf(p, fmt, ap);
-    va_end(ap);
-    return VOID;
+
+port *_pf_port(pf *pf) {
+    return object_to_port(pf->output, &pf->m);
 }
 
 _ px_write(pf *pf, _ ob) {
-    _write_ctx_ ctx = {pf, object_to_port(pf->output, &pf->m), &pf->m};
-    _write_delegate(&ctx, ob);
-    return _px_printf(pf, " ");
+    void *x;
+    if (FALSE != ex_write(EX, ob)) {
+        return VOID;
+    }
+    /* Ports are RC wrapped in PF.*/
+    if ((x = object_to_port(ob, EX))) {
+        return ex_write(EX, const_to_object(x));
+    }
+    else if ((x = object_to_code(ob))) {
+        return _ex_printf(EX, "#code<%p>", x);
+    }
+    else {
+        return _ex_printf(EX, "#object<%p>",(void*)ob);
+    }
 }
+
 _ px_post(pf *pf, _ ob) {
     px_write(pf, ob);
-    return _px_printf(pf, "\n");
+    return _ex_printf(EX, "\n");
 }
 
 
@@ -391,13 +377,14 @@ void pf_bang(pf *pf) {
 }
 
 
-void pf_dup_write(pf *pf) { _pf_write(pf, TOP); }
-void pf_dup_post(pf *pf) { _pf_post(pf, TOP); }
+void pf_dup_write(pf *pf) { px_write(pf, TOP); }
+void pf_dup_post(pf *pf)  { px_post(pf, TOP); }
+
 void pf_state(pf *pf) {
-    _pf_printf(pf, "P: "); _pf_post(pf, pf->ds);
-    _pf_printf(pf, "R: "); _pf_post(pf, pf->rs);
-    _pf_printf(pf, "F: "); _pf_post(pf, pf->free);
-    _pf_printf(pf, "D: "); _pf_post(pf, pf->dict);
+    _ex_printf(EX, "P: "); px_post(pf, pf->ds);
+    _ex_printf(EX, "R: "); px_post(pf, pf->rs);
+    _ex_printf(EX, "F: "); px_post(pf, pf->free);
+    _ex_printf(EX, "D: "); px_post(pf, pf->dict);
 }
 void pf_output(pf *pf) {
     _pf_push(pf, _pf_link(pf, pf->output));
@@ -410,19 +397,19 @@ void pf_stack(pf *pf) {
 }
 void pf_print_error(pf *pf) {
     if (NIL == pf->ds) _pf_push(pf, VOID);
-    _pf_printf(pf, "ERROR: ");
-    _pf_post(pf, TOP);
+    _ex_printf(EX, "ERROR: ");
+    px_post(pf, TOP);
     pf_drop(pf);
 }
 
 /* Convert a list to code and jump to it. */
-
-_ px_eval(pf *pf, _ obj) {
+_ ex_compile(ex *ex, _ obj) {
+    return obj;
 }
 
-void pf_eval(pf *pf) {
+//void pf_eval(pf *pf) {
     // _ code = _pf_eval(pf, TOP);
-}
+//}
 
 
 
@@ -437,7 +424,7 @@ static void _pf_overflow(pf *pf, long extra) {
        allocation doesn't fit.  We need to grow.  Take at least the
        requested size + grow by a fraction of the total heap. */
     long request = extra + (GC->slot_total/4);
-    _pf_printf(pf, ";; gc-overflow %ld:%ld\n", extra, request);
+    _ex_printf(EX, ";; gc-overflow %ld:%ld\n", extra, request);
     gc_grow(GC, request);
     _pf_restart(pf);
 }
@@ -479,6 +466,10 @@ pf* _pf_new(void) {
     TYPES->prim_type = (void*)0xF001; 
     TYPES->rc_type = (void*)0xF002; 
 
+    // Write delegate
+    pf->m.write = (ex_write_method)px_write;
+    pf->m.port  = (_ex_port_method)_pf_port;
+
     // Symbol cache
     pf->s_underflow = SYMBOL("underflow");
     pf->s_eval      = SYMBOL("eval");
@@ -491,7 +482,7 @@ pf* _pf_new(void) {
     pf->ip_abort = 
         CODE(PRIM(pf_print_error), RETURN);
     pf->ip = 
-        CODE(PRIM(pf_drop),
+        CODE(PRIM(pf_output),
              CODE(PRIM(pf_output),
                   CODE(QUOTE(NUMBER(123)),
                        CODE(PRIM(pf_state), RETURN))));
