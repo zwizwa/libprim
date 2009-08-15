@@ -98,7 +98,7 @@ object object_write(object o, port *p, mem *m,
     if ((x = object_struct(o, m->p->rc_type))) {
         rc *r = (rc*)x;
         port_printf(p, "#rc:");
-        fn(ctx, const_to_object(r->object));  // foefelare
+        fn(ctx, const_to_object(r->ctx));  // foefelare
         port_printf(p, ":%d", (int)(r->rc));
         return VOID;
     }

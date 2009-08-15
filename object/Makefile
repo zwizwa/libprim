@@ -1,5 +1,5 @@
 
-SRC=object.c
+SRC=mem.c
 
 OBJ=$(SRC:.c=.o)
 DEBUG_CFLAGS=-Wall -g

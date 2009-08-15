@@ -93,15 +93,15 @@ DEF_ATOM(rc)
 void *object_rc_struct(object ob, mem *m, void *type) {
     rc *x = object_to_rc(ob, m);
     if (!x) return NULL;
-    void *x_type = *((void**)x->object);
+    void *x_type = *((void**)x->ctx);
     if (x_type != type) return NULL;
-    return x->object;
+    return x->ctx;
 }
-_ _pf_make_rc(pf *pf, void *free, void *object) {
+_ _pf_make_rc(pf *pf, void *free, void *ctx) {
     rc *rc = malloc(sizeof(*rc));
-    rc->type = pf->m.rc_type;
+    rc->type = TYPES->rc_type;
     rc->free = free;
-    rc->object = object;
+    rc->ctx = ctx;
     rc->rc = 1;
     return const_to_object(rc);
 }
@@ -109,12 +109,14 @@ _ _pf_make_rc(pf *pf, void *free, void *object) {
 /* RC types are const types wrapped in a RC struct. */
 #define DEF_RC_TYPE(name)                                              \
     static inline name *object_to_##name(object ob, mem *m) {          \
-        return (name*)object_rc_struct(ob,m,m->name##_type); }
+        return (name*)object_rc_struct(ob,m,m->p->name##_type); }
+
 DEF_RC_TYPE(port)
+
 static _ _pf_make_port(pf *pf, FILE *f, const char *name) {
     return _pf_make_rc(pf, 
-                       pf->m.port_type->free,
-                       port_new(pf->m.port_type, stdout, name));
+                       &(TYPES->port_type->free),
+                       port_new(TYPES->port_type, stdout, name));
 }
 
 /* Unlink will RC manage objects, and move pairs to the freelist. */
@@ -127,7 +129,7 @@ static _ _pf_unlink_pop(pf *pf, _ lst) {
 }
 static void _rc_unlink(rc *x) {
     if (!(x->rc--)) {
-        x->free(x->object);
+        x->free(x->ctx);
         free(x);
     }
 }
@@ -173,11 +175,11 @@ static _ _pf_link(pf *pf, _ ob) {
 static void _gc_unlink(_ ob, pf *pf) { _pf_unlink(pf, ob); }
 static void *unlink_fin = _gc_unlink;
 static inline _ _pf_box(pf *pf, _ ob) {
-    return gc_make_tagged(pf->m.gc, TAG_BOX, 2, 
+    return gc_make_tagged(GC, TAG_BOX, 2, 
                           fin_to_object((void*)(&unlink_fin)), ob);
 }
 static inline _ _pf_lin(pf *pf, _ ob) {
-    return gc_make_tagged(pf->m.gc, TAG_LIN, 2, 
+    return gc_make_tagged(GC, TAG_LIN, 2, 
                           fin_to_object((void*)(&unlink_fin)), ob);
 }
 _ _pf_copy_to_graph(pf *pf, _ ob) {
@@ -190,7 +192,7 @@ _ _pf_copy_to_graph(pf *pf, _ ob) {
     }
     else if ((p = object_to_pair(ob))) {
         /* Recursively copy the tree. */
-        return gc_cons(pf->m.gc,
+        return gc_cons(GC,
                        _pf_copy_to_graph(pf, p->car),
                        _pf_copy_to_graph(pf, p->cdr));
     }
@@ -285,7 +287,7 @@ void pf_dup(pf *pf) {
 }
 void pf_dup_to_dict(pf *pf) {
     _ ob = _pf_copy_to_graph(pf, TOP);
-    pf->dict = gc_cons(pf->m.gc, ob, pf->dict);
+    pf->dict = gc_cons(GC, ob, pf->dict);
 }
 static object _box = 0;
 void pf_box_test(pf *pf) {
@@ -358,16 +360,16 @@ static void _pf_overflow(pf *pf, long extra) {
 }
 static void _pf_mark_roots(pf *pf, gc_finalize fin) {
     printf(";; gc\n");
-    gc_mark(pf->m.gc, pf->ds);
-    gc_mark(pf->m.gc, pf->rs);
-    gc_mark(pf->m.gc, pf->free);
-    gc_mark(pf->m.gc, pf->dict);
+    gc_mark(GC, pf->ds);
+    gc_mark(GC, pf->rs);
+    gc_mark(GC, pf->free);
+    gc_mark(GC, pf->dict);
     pf_trap(pf);
 }
 
 static _ _pf_prim(pf* pf, pf_prim fn) {
     prim *p = malloc(sizeof(*p));
-    p->type = pf->m.prim_type;
+    p->type = TYPES->prim_type;
     p->fn = fn;
     p->nargs = 0;
     p->var = VOID;
@@ -382,16 +384,16 @@ pf* _pf_new(void) {
     pf *pf = malloc(sizeof(*pf));
 
     // Garbage collector.
-    pf->m.gc = gc_new(100000, pf, 
-                     (gc_mark_roots)_pf_mark_roots,
-                     (gc_overflow)_pf_overflow);
+    GC = gc_new(100000, pf, 
+                (gc_mark_roots)_pf_mark_roots,
+                (gc_overflow)_pf_overflow);
 
     // Leaf types.
-    pf->m.ck_type = ck_class_new();
-    pf->m.symbol_type = symbol_class_new(1000);
-    pf->m.port_type = port_class_new();
-    pf->m.prim_type = (void*)0xF001; 
-    pf->m.rc_type = (void*)0xF002; 
+    TYPES->ck_type = ck_class_new();
+    TYPES->symbol_type = symbol_class_new(1000);
+    TYPES->port_type = port_class_new();
+    TYPES->prim_type = (void*)0xF001; 
+    TYPES->rc_type = (void*)0xF002; 
 
     // Machine state.
     pf->rs = NIL;

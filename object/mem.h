@@ -1,29 +1,20 @@
 #ifndef _MEM_H_
 #define _MEM_H_
 
-/* Loweleve opaque primtive (leaf) objects. */
+/* Baseic memory model for the Scheme and PF scripting languages.
+   This includes GCd vectors and opaque primitive leaf types. */
+
+/* Lowelevel opaque primtive (leaf) objects. */
 #include "symbol.h"
 #include "task.h"
 #include "port.h"
 #include "bytes.h"
 #include "pair.h"
 #include "prim.h"
+#include "rc.h"
 
 /* Highlevel transparent object rep and GC */
 #include "object.h"
-
-/* Ref management wrapper. */
-typedef void (*rc_free)(void *);
-typedef struct {
-} rc_class;
-typedef struct {
-    rc_class *type;
-    void *object;
-    int rc;
-    rc_free free;
-    _ wrap;
-} rc;
-
 
 struct _gc;
 
