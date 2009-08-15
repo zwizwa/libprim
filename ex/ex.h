@@ -63,5 +63,13 @@ object object_write(object ob, port *p, mem *m,
                     object_write_delegate fn, void *ctx);
 
 
+static inline _ ex_cons(mem *ex, _ car, _ cdr) {
+    vector *v = gc_alloc(ex->gc, 2);
+    vector_set_flags(v, TAG_PAIR);
+    v->slot[0] = car;
+    v->slot[1] = cdr;
+    return vector_to_object(v);
+}
+
 
 #endif

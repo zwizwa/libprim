@@ -49,7 +49,7 @@ _ _pf_abort(pf *pf) {
 /* Allocate a new linked list of pairs. */
 #if PF_FREELIST_GC
 _ _pf_alloc_freelist(pf *pf) {
-    return gc_cons(pf->m.gc, VOID, NIL);
+    return ex_cons(&pf->m, VOID, NIL);
 }
 #else
 _ _pf_alloc_freelist(pf *pf) {
@@ -201,7 +201,7 @@ _ _pf_copy_to_graph(pf *pf, _ ob) {
     }
     else if ((p = object_to_pair(ob))) {
         /* Recursively copy the tree. */
-        return gc_cons(GC,
+        return ex_cons(&pf->m,
                        _pf_copy_to_graph(pf, p->car),
                        _pf_copy_to_graph(pf, p->cdr));
     }
@@ -324,7 +324,7 @@ void pf_dup(pf *pf) {
 }
 void pf_dup_to_dict(pf *pf) {
     _ ob = _pf_copy_to_graph(pf, TOP);
-    pf->dict = gc_cons(GC, ob, pf->dict);
+    pf->dict = ex_cons(&pf->m, ob, pf->dict);
 }
 static object _box = 0;
 void pf_box_test(pf *pf) {
@@ -405,7 +405,7 @@ void pf_print_error(pf *pf) {
 
 /* Convert a list to code and jump to it. */
 void pf_eval(pf *pf) {
-    _ code = _pf_eval(pf, TOP);
+    // _ code = _pf_eval(pf, TOP);
 }
 
 

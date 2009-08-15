@@ -1,8 +1,7 @@
 #ifndef _PF_H_
 #define _PF_H_
 
-#include "mem.h"
-#include "gc.h"
+#include "ex.h"
 
 /* STATE */
 

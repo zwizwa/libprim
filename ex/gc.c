@@ -10,13 +10,7 @@ static inline int gc_full(gc *gc, int slots) {
 /* User must fill the allocated space with valid tagged values before
    calling gc_alloc again. */
 static void _gc_when_full(gc *gc, long size);
-static inline _ gc_cons(gc *gc, _ car, _ cdr) {
-    vector *v = gc_alloc(gc, 2);
-    vector_set_flags(v, TAG_PAIR);
-    v->slot[0] = car;
-    v->slot[1] = cdr;
-    return vector_to_object(v);
-}
+#if 0
 static inline _ gc_aref(gc *gc, void *fn, _ ob) {
     vector *v = gc_alloc(gc, 2);
     vector_set_flags(v, TAG_AREF);
@@ -24,7 +18,7 @@ static inline _ gc_aref(gc *gc, void *fn, _ ob) {
     v->slot[1] = ob;
     return vector_to_object(v);
 }
-#if 0
+
 static inline _ gc_box(gc *gc, object init) {
     vector *v = gc_alloc(gc, 1);
     vector_set_flags(v, TAG_BOX);
