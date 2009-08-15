@@ -1,5 +1,5 @@
 
-SRC=lib.c scheme.c main.c
+SRC=lib.c scheme.c main.c sc_ex_prims.c
 OBJ=$(SRC:.c=.o)
 DEBUG_CFLAGS=-Wall -g -Wno-unused
 # OPTI_CFLAGS=-Os

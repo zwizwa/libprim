@@ -82,4 +82,11 @@ static inline _ ex_cons(ex *ex, _ car, _ cdr) {
 }
 
 
+/* Primitive definition table. */
+typedef struct {
+    const char *name;
+    void *fn;
+    int nargs;
+} prim_def;
+
 #endif

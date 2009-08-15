@@ -1046,13 +1046,11 @@ _ _sc_top(sc *sc, _ expr){
 
 #define USE_TABLE_PRIMS 1
 #if USE_TABLE_PRIMS
-typedef struct {
-    const char *name;
-    void *fn;
-    int nargs;
-} prim_def;
 static prim_def prims[] = prims_init;
 #endif
+
+void sc_ex_prims(sc *sc);
+
 
 static void _sc_overflow(sc *sc, long extra) {
     /* At this point, the heap is compacted, but the requested
@@ -1139,6 +1137,7 @@ sc *_sc_new(void) {
     sc->s_letcc    = SYMBOL("letcc");
 
     /* Primitive defs */
+    sc_ex_prims(sc);
 #if USE_TABLE_PRIMS
     prim_def *prim;
     for (prim = prims; prim->name; prim++) {

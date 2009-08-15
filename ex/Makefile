@@ -1,5 +1,5 @@
 
-SRC=ex.c gc.c ex_prim.c
+SRC=ex.c gc.c ex_prims.c
 
 OBJ=$(SRC:.c=.o)
 DEBUG_CFLAGS=-Wall -g

@@ -1,3 +1,4 @@
+(bool? 123)
 (open-mode-file "/tmp/blubber" "w")
 (string->symbol "asdfasFD")
 (symbol->string 'asdfasdf)
