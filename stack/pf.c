@@ -19,28 +19,11 @@
 
 #include "mem.h"
 #include "gc.h"
+#include "pf.h"
 
 #define TOP ARG0
 #define ARG0 CAR(pf->ds) 
 #define ARG1 CADR(pf->ds)
-
-
-typedef struct {
-    mem m;
-
-    /* Linear memory. */
-    _ ds;    // parameter stack
-    _ rs;    // retain stack
-    _ free;  // free list
-    _ output;
-
-    /* Graph memory. */
-    _ ip;
-    _ dict;
-
-} pf;
-
-#include "pf2.h_"
 
 
 /* MEMORY MANAGEMENT
@@ -185,23 +168,12 @@ static _ _pf_link(pf *pf, _ ob) {
    This performs a _copy_ instead of a an in-place move, which
    would interact badly with GC aborts due to mutation.
 
-   Both linear _value_ and _variable_ structs are implemented as
-   finalizer wrappers based on aref. */
-
-typedef aref box;
-typedef aref lin;
-#define TAG_LIN   VECTOR_TAG(12)
-#define TAG_BOX   VECTOR_TAG(13)
-DEF_STRUCT(lin,   TAG_LIN)
-DEF_STRUCT(box,   TAG_BOX)
-
-static void _gc_unlink(_ ob, pf *pf) { _pf_unlink(pf, ob); }
-static void *unlink_fin = _gc_unlink;
-
-/* There are 2 kinds of data structures hold linear values: a mutable
+   There are 2 kinds of data structures hold linear values: a mutable
    box, and an immutable value.  BOX values are treated as graph
    values (constants), while LIN values are always unpacked into
    linear memory. */
+static void _gc_unlink(_ ob, pf *pf) { _pf_unlink(pf, ob); }
+static void *unlink_fin = _gc_unlink;
 static inline _ _pf_box(pf *pf, _ ob) {
     return gc_make_tagged(pf->m.gc, TAG_BOX, 2, 
                           fin_to_object((void*)(&unlink_fin)), ob);
@@ -241,28 +213,6 @@ void _pf_push(pf *pf, _ ob) {
 
 
 /* INTERPRETER */
-
-typedef struct {
-    vector v;
-    _ object;
-} quote;
-typedef struct {
-    vector v;
-    _ sub;
-    _ next;
-} code;
-
-#define TAG_QUOTE VECTOR_TAG(14)
-#define TAG_CODE  VECTOR_TAG(15)
-DEF_STRUCT(quote, TAG_QUOTE)
-DEF_STRUCT(code,  TAG_CODE)
-
-static inline _ _pf_quote(pf *pf, _ data) { 
-    return gc_make_tagged(pf->m.gc, TAG_QUOTE, 1, data);
-}
-static inline _ _pf_code(pf *pf, _ sub, _ next) { 
-    return gc_make_tagged(pf->m.gc, TAG_CODE, 2, sub, next);
-}
 
 // CODE  = RETURN | (SUB : CODE)    ;; ':' is a GC CONS
 // SUB   = PRIM | CODE
