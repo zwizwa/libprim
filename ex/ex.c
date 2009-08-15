@@ -4,7 +4,7 @@
 #include "ex.h"
 
 
-object object_write_vector(const char *type, vector *v, port *p, mem *m,
+object object_write_vector(const char *type, vector *v, port *p, ex *m,
                            object_write_delegate fn, void *ctx) {
     long i,n = vector_size(v);
     port_printf(p, "#%s(", type);
@@ -18,12 +18,12 @@ object object_write_vector(const char *type, vector *v, port *p, mem *m,
 
 struct _write_delegate_ {
     port *p;
-    mem *m;
+    ex *m;
 };
 static object _write_delegate(struct _write_delegate_ *ctx, object ob) {
     return object_write(ob, ctx->p, ctx->m, NULL, NULL);
 }
-object object_write(object o, port *p, mem *m,
+object object_write(object o, port *p, ex *m,
                     object_write_delegate fn, void *ctx) {
     struct _write_delegate_ _ctx = {p,m};
     vector *v;

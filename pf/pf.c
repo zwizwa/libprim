@@ -99,7 +99,7 @@ _ static inline _move(_ *ob, _ filler) { _ o = *ob; *ob = filler; return o; }
    identified by their first field (void*). */
 DEF_ATOM(rc)
 
-void *object_rc_struct(object ob, mem *m, void *type) {
+void *object_rc_struct(object ob, ex *m, void *type) {
     rc *x = object_to_rc(ob, m);
     if (!x) return NULL;
     void *x_type = *((void**)x->ctx);
@@ -117,7 +117,7 @@ _ _pf_make_rc(pf *pf, void *free, void *ctx) {
 
 /* RC types are const types wrapped in a RC struct. */
 #define DEF_RC_TYPE(name)                                              \
-    static inline name *object_to_##name(object ob, mem *m) {          \
+    static inline name *object_to_##name(object ob, ex *m) {          \
         return (name*)object_rc_struct(ob,m,m->p->name##_type); }
 
 DEF_RC_TYPE(port)
@@ -340,11 +340,11 @@ void pf_bang(pf *pf) {
 typedef struct { 
     pf *pf;
     port *p;
-    mem *m;
+    ex *m;
 } _write_ctx_;
 static _ _write_delegate(_write_ctx_ *ctx, _ ob) {
     port *p = ctx->p;
-    mem *m = ctx->m;
+    ex *m = ctx->m;
     object_write_delegate fn = (object_write_delegate)_write_delegate;
     void *x;
     if (FALSE == object_write(ob, p, m, fn, ctx)) {

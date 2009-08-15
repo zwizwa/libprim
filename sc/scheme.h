@@ -177,11 +177,6 @@ DEF_STRUCT(k_macro, TAG_K_MACRO)
 #define sc_slot_abort_k         integer_to_object(3)
 #define sc_slot_debug_port      integer_to_object(4)
 
-typedef struct {
-    jmp_buf step;  // current CEKS step abort
-    _ prim;
-} scheme_r;
-
 
 
 /* SCHEME */
@@ -189,9 +184,9 @@ typedef struct {
 
 
 struct _scheme {
-    /* Scheme extends the memory model, which uncludes leaf types and
-       a garbage collector. */
-    mem m;
+    /* Scheme extends the EX language's memory model, which uncludes
+       leaf types and a garbage collector. */
+    ex m;
 
     /* Highlevel global state data is accessible from Scheme. */
     _ global;
@@ -209,7 +204,6 @@ struct _scheme {
 
     /* Lowlevel control flow */
     long step_entries; // semaphores
-    scheme_r r;  // saved on step() entry
 
     /* Temp storage: does not need to be marked. */
     _ error_tag;
@@ -221,7 +215,7 @@ struct _scheme {
 
 /* The ck atoms have a free() finalizer, so need to be wrapped in an
    aref struct */
-static inline void *object_aref_struct(object ob, mem *m, void *type) {
+static inline void *object_aref_struct(object ob, ex *m, void *type) {
     aref *ref;
     void *x;
     if ((ref = object_to_aref(ob)) &&
@@ -230,7 +224,7 @@ static inline void *object_aref_struct(object ob, mem *m, void *type) {
 }
 
 #define DEF_AREF_TYPE(name)                                            \
-    static inline name *object_to_##name(object ob, mem *m) {          \
+    static inline name *object_to_##name(object ob, ex *m) {          \
         return (name*)object_aref_struct(ob,m,m->p->name##_type); }
 
 

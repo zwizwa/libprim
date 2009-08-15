@@ -172,7 +172,7 @@ _ sc_error(sc *sc, _ sym_o, _ arg_o) {
     sc->error_tag = sym_o;
     sc->error_arg = arg_o;
     // if (sym_o != SYMBOL("halt")) sc_trap(sc);
-    if (sc->step_entries) longjmp(sc->r.step, SC_EX_ABORT);
+    if (sc->step_entries) longjmp(sc->m.r.step, SC_EX_ABORT);
     _sc_printf(sc, "ERROR: attempt to abort primitive outside of the main loop.\n");
     sc_trap(sc);
     exit(1);
@@ -619,7 +619,7 @@ _ _sc_step_value(sc *sc, _ v, _ k) {
             /* Application of primitive function results in C call. */
             if (TRUE==sc_is_prim(sc, fn)) {
                 prim *p = object_to_prim(fn,&sc->m);
-                sc->r.prim = fn; // for debug
+                sc->m.r.prim = fn; // for debug
                 if (prim_nargs(p) != (n-1)) {
                     return ERROR("nargs", fn);
                 }
@@ -856,22 +856,24 @@ static _ _sc_step(sc *sc, _ o_state) {
    Only GC and the topmost STEP are allowed to access sc->state.
 */
 
+
+
 _ sc_eval_step(sc *sc, _ state) {
     int exception;
     object rv = NIL;
-    scheme_r save;
+    ex_r save;
 
-    memcpy(&save, &sc->r, sizeof(save));
-    sc->r.prim = FALSE; // means error comes from step() itself
+    memcpy(&save, &sc->m.r, sizeof(save));
+    sc->m.r.prim = FALSE; // means error comes from step() itself
     sc->step_entries++;
 
-    switch(exception = setjmp(sc->r.step)) {
+    switch(exception = setjmp(sc->m.r.step)) {
         case SC_EX_TRY:
             rv = _sc_step(sc, state);
             break;
         case SC_EX_ABORT: 
             rv = sc_make_error(sc, sc->error_tag, sc->error_arg, 
-                               state, sc->r.prim);
+                               state, sc->m.r.prim);
             sc->error_arg = NIL;
             sc->error_tag = NIL;
             break;
@@ -879,7 +881,7 @@ _ sc_eval_step(sc *sc, _ state) {
             break;
     }
 
-    memcpy(&sc->r, &save, sizeof(save));
+    memcpy(&sc->m.r, &save, sizeof(save));
     sc->step_entries--;
     return rv;
 }
@@ -1015,7 +1017,7 @@ _ _sc_top(sc *sc, _ expr){
     for(;;) {
         if (setjmp(sc->m.top)){
             sc->step_entries = 0;  // full tower unwind
-            sc->r.prim = FALSE;
+            sc->m.r.prim = FALSE;
         }
         for(;;) {
             _ state;

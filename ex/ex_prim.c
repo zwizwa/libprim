@@ -6,3 +6,11 @@
 
 #include "ex.h"
 
+/* Booleans are GC_CONST */
+_ ex_is_bool(ex *ex, _ o) {
+    void *x;
+    if ((x = object_to_const(o)) &&
+        (0 == (((long)x) & (~TRUE)))) { return TRUE; }
+    return FALSE;
+}
+

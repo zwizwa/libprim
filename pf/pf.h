@@ -6,7 +6,7 @@
 /* STATE */
 
 typedef struct {
-    mem m;
+    ex m;
 
     /* Linear memory. */
     _ ds;    // parameter stack
