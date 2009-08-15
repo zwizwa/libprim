@@ -86,29 +86,38 @@
   (for-each*
    (lambda (name n)
      (let ((mname (macro-mangle name)))
-       (printf "#ifndef ~a\n" mname)
+       ;; (printf "#ifndef ~a\n" mname) ;; (*)
        (printf "#define ~a(~a) ~a(~a)\n"
                mname
                (string-append* (list->args (n->args n)))
                name
                (string-append* (list->args (cons ctx (n->args n)))))
-       (printf "#endif\n")))
+       ;; (printf "#endif\n")
+       ))
    dict))
 
-(define (filename->initname f)
-  (format "~a_init" (car (regexp-split #rx"\\." f))))
+;; This (*) is really asking for trouble.  Just make sure it doesn't
+;; happen.
+
+(define (filename->name f postfix)
+  (format "~a~a" (car (regexp-split #rx"\\." f)) postfix))
 
 (define (gen)
   (let ((filename (arg0)))
+        
     (gen-header
-     (filename->initname filename)
+     (filename->name filename "_init")
+     (string-upcase (filename->name filename ""))
      (scan filename)
      (ctx))))
 
-(define (gen-header init ds ctx)
+(define (gen-header init guard ds ctx)
   (let ((dict (declarations->dict ds)))
+    (printf "#ifndef _~a_H_GEN_\n" guard)
+    (printf "#define _~a_H_GEN_\n" guard)
     (decls ds)
     (table-defs init dict "")
     (macro-defs dict ctx)
+    (printf "#endif\n")
     ))
 

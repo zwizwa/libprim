@@ -5,7 +5,7 @@
 
 
 #include "ex.h"
-#include "ex_prims.h_"
+#include "ex_prims.h_ex_prims"
 
 #define EX ex
 
@@ -19,6 +19,10 @@ _ ex_is_bool(ex *ex, _ o) {
 /* The empty list is the NULL pointer */
 _ ex_is_null(ex *ex, _ o) {
     if (NIL == o) return TRUE; else return FALSE;
+}
+_ ex_is_integer(ex *ex, _ o) {
+    if (GC_INTEGER == GC_TAG(o)) return TRUE;
+    return FALSE;
 }
 
 
@@ -43,6 +47,10 @@ _ ex_cons(ex *ex, _ car, _ cdr) {
     return vector_to_object(v);
 }
 
+_ ex_car(ex *ex, _ o)  { pair *p = CAST(pair, o); return p->car; }
+_ ex_cdr(ex *ex, _ o)  { pair *p = CAST(pair, o); return p->cdr; }
+_ ex_cadr(ex *ex, _ o) { pair *p = CAST(pair, ex_cdr(ex, o)); return p->car; }
+
 
 
 
@@ -58,4 +66,21 @@ _ ex_find(ex *ex, _ E, _ var) {
     _ rv = ex_find_slot(ex, E, var);
     if (FALSE == IS_PAIR(rv)) return FALSE;
     return CDR(rv);
+}
+
+
+/* ERRORS */
+
+_ ex_raise_error(ex *ex, _ sym_o, _ arg_o) {
+    ex->error_tag = sym_o;
+    ex->error_arg = arg_o;
+    // if (sym_o != SYMBOL("halt")) ex_trap(ex);
+    if (ex->entries) longjmp(ex->r.step, EXCEPT_ABORT);
+    _ex_printf(ex, "ERROR: attempt to abort primitive outside of the main loop.\n");
+    TRAP();
+    exit(1);
+}
+
+_ ex_raise_type_error(ex *ex, _ arg_o) {
+    return ex_raise_error(ex, SYMBOL("type"), arg_o);
 }

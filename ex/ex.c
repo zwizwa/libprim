@@ -2,6 +2,7 @@
 #include "port.h"
 #include "pair.h"
 #include "ex.h"
+#include "ex_prims.h_ex_prims"
 
 object _ex_write_vector(ex *ex, const char *type, vector *v) {
     port *p = ex->port(ex);
@@ -37,8 +38,8 @@ object ex_write(ex *ex, object o) {
         if (TAG_PAIR == flags) {
             port_printf(p, "(");
             for(;;) {
-                ex->write(ex, CAR(o));
-                o = CDR(o);
+                ex->write(ex, _CAR(o));
+                o = _CDR(o);
                 if (NIL == o) {
                     port_printf(p, ")");
                     return VOID;
@@ -114,3 +115,35 @@ _ _is_vector_type(_ o, long flags) {
     return FALSE;
 }
 
+_ _ex_make_symbol(ex *ex, const char *str) {
+    return const_to_object((void*)(symbol_from_string(ex->p->symbol_type, str)));
+}
+
+void* _ex_unwrap_pointer(ex *ex, void *unwrap, object o){
+    void *x = ((object_to_pointer)unwrap)(o, ex);
+    if (unlikely(!x)) ex_raise_type_error(ex, o);
+    return x;
+}
+long _ex_unwrap_integer(ex *ex, object o) {
+    if ((FALSE == ex_is_integer(ex, o))) 
+        return ex_raise_type_error(ex, o);
+    return object_to_integer(o);
+}
+_ _ex_restart(ex *ex) {
+    if (ex->top_entries) {
+        longjmp(ex->top, 1);
+    }
+    _ex_printf(ex, "ERROR: attempt restart outside of the main loop.\n");
+    ex_trap(ex);
+    exit(1);
+}
+
+void _ex_overflow(ex *ex, long extra) {
+    /* At this point, the heap is compacted, but the requested
+       allocation doesn't fit.  We need to grow.  Take at least the
+       requested size + grow by a fraction of the total heap. */
+    long request = extra + (ex->gc->slot_total/4);
+    _ex_printf(ex, ";; gc-overflow %ld:%ld\n", extra, request);
+    gc_grow(ex->gc, request);
+    _ex_restart(ex);
+}   

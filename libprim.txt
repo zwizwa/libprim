@@ -1761,3 +1761,27 @@ EX has a lowlevel port* reference to implement basic printing.  It
 needs a lowlevel interface because in SC and PF ports are managed
 respectively as graph and linear atoms.
 
+
+Entry: Building
+Date: Sat Aug 15 20:47:04 CEST 2009
+
+Looks like I've got the build problems ironed out.  Moral: dont _EVER_
+generate files outside your local makefile directory.  This can be
+subtly done by some rule that depends on a specification outside of
+your dir..  I had something like this:
+
+../ex/ex_prims.h_:  ../ex/ex_prims.c
+
+which nicely overwrite the .h_ file that should have been built in
+another directory using a locally defined rule for .h_ files
+
+Another thing is to use different extensions for different generators.
+Otherwise the problem above is bound to impose itself.
+
+
+Entry: EX errors
+Date: Sat Aug 15 21:18:47 CEST 2009
+
+So.. Time to move primitive errors from SC -> EX.
+
+

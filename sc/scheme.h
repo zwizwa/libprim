@@ -3,7 +3,7 @@
 
 #include <setjmp.h>
 #include "ex.h"
-#include "../ex/ex_prims.h_"
+#include "../ex/ex_prims.h_ex_prims"
 
 typedef struct _scheme sc;
 sc *scheme_new(void);
@@ -204,11 +204,11 @@ struct _scheme {
     _ s_letcc;
 
     /* Lowlevel control flow */
-    long step_entries; // semaphores
+    // long step_entries; // semaphores
 
     /* Temp storage: does not need to be marked. */
-    _ error_tag;
-    _ error_arg;
+    // _ error_tag;
+    // _ error_arg;
 };
 
 
@@ -258,11 +258,11 @@ object _sc_top(sc *sc, object expr);
 sc    *_sc_new(void);
 
 /* Interpreter exceptions. */
-#define SC_EX_TRY     0
-#define SC_EX_RESTART 1  /* restart from current sc->state. */
-#define SC_EX_ABORT   2  /* abort to default toplevel continuation. */
-#define SC_EX_HALT    3  /* halt leaves the interpreter loop. */
-#define SC_EX_CK      4  /* wrap up C continuation */
+//#define SC_EX_TRY     0
+//#define SC_EX_RESTART 1  /* restart from current sc->state. */
+//#define SC_EX_ABORT   2  /* abort to default toplevel continuation. */
+//#define SC_EX_HALT    3  /* halt leaves the interpreter loop. */
+//#define SC_EX_CK      4  /* wrap up C continuation */
 
 /* Macros valid in sc context. */
 #define STATE(c,k)   sc_make_state(sc,c,k)
@@ -270,10 +270,9 @@ sc    *_sc_new(void);
 #define VALUE(d)     sc_make_value(sc,d)
 
 #define NUMBER(n)     integer_to_object(n)
-#define SYMBOL(str)   _sc_make_symbol(sc, str)
 #define STRING(str)   _sc_make_string(sc, str)
-#define ERROR(msg, o) sc_error(sc, SYMBOL(msg), o)
-#define TYPE_ERROR(o) sc_type_error(sc, o)
+// #define ERROR(msg, o) sc_raise_error(sc, SYMBOL(msg), o)
+// #define TYPE_ERROR(o) sc_raise_type_error(sc, o)
 
 #define TYPES         sc->m.p
     
@@ -281,23 +280,8 @@ sc    *_sc_new(void);
 #define EVAL(expr)    sc_post(sc, _sc_top(sc, expr))
 
 // safe cast to C struct
-object sc_type_error(sc *sc, object arg_o);
+// object sc_raise_type_error(sc *sc, object arg_o);
 
-/* Pointer casts (just like predicates) are derived from the
-   object_to_pointer function, _except_ for integers: there we use the
-   predicate. */
-static inline void* _sc_unwrap_pointer(sc *sc, void *unwrap, object o){
-    void *x = ((object_to_pointer)unwrap)(o, &sc->m);
-    if (unlikely(!x)) TYPE_ERROR(o);
-    return x;
-}
-_ sc_is_integer(sc*, _);
-static inline long _sc_unwrap_integer(sc *sc, object o) {
-    if ((FALSE == sc_is_integer(sc, o))) return TYPE_ERROR(o);
-    return object_to_integer(o);
-}
-#define CAST(type,x) ((type*)(_sc_unwrap_pointer(sc, object_to_##type, x)))
-#define CAST_INTEGER(x) _sc_unwrap_integer(sc, x)
 
 // renames
 #define sc_make_pair sc_cons

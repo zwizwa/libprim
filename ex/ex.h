@@ -46,6 +46,9 @@ struct _ex {
     
     /* Primitive exceptions. */
     ex_r r;
+    long entries;
+    _ error_tag;
+    _ error_arg;
 
     /* An extensible list of primitive data types.  During bootstrap
        and in the C code it is assumed to consist of only the base
@@ -85,5 +88,26 @@ typedef struct {
 } prim_def;
 
 _ _is_vector_type(_ o, long flags);
+
+#define TYPE_ERROR RAISE_TYPE_ERROR
+#define ERROR(msg, o) ex_raise_error(EX, SYMBOL(msg), o)
+/* Pointer casts (just like predicates) are derived from the
+   object_to_pointer function, _except_ for integers: there we use the
+   predicate. */
+void* _ex_unwrap_pointer(ex *sc, void *unwrap, object o);
+long _ex_unwrap_integer(ex *ex, object o);
+#define CAST(type,x) ((type*)(_ex_unwrap_pointer(EX, object_to_##type, x)))
+#define CAST_INTEGER(x) _ex_unwrap_integer(EX, x)
+
+#define EXCEPT_TRY   0
+#define EXCEPT_ABORT 1 /* abort to default toplevel continuation. */
+
+
+_ _ex_make_symbol(ex *ex, const char *str);
+#define SYMBOL(str)   _ex_make_symbol(EX, str)
+
+_ _ex_restart(ex *ex);
+
+void _ex_overflow(ex *ex, long extra);
 
 #endif

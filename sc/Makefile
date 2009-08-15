@@ -9,12 +9,12 @@ DEBUG_CFLAGS=-Wall -g -Wno-unused
 all: scheme $(DEP_OBJS)
 
 # generated files
-%.h_: %.scm ../unparse.ss
+%.h_scm: %.scm ../unparse.ss
 	mzscheme ../unparse.ss <$< >$@
-%.h_: %.c prims.ss
+%.h_sc_prims: %.c prims.ss
 	mzscheme prims.ss $< >$@
 
-GEN = test.h_ scheme.h_ boot.h_
+GEN = test.h_scm scheme.h_sc_prims boot.h_scm
 
 # Order is important!  ../gc contains default config which we override.
 CPPFLAGS += -I../scheme/ -I../gc/ -I../leaf/ -I../ex/ -DTASK_DEBUG=0

@@ -7,8 +7,8 @@
 #include "scheme.h"
 
 // generated
-#include "scheme.h_"
-#include "../ex/ex_prims.h_"
+#include "scheme.h_sc_prims"
+#include "../ex/ex_prims.h_ex_prims"
 
 
 /* --- PRIMITIVES --- */
@@ -29,17 +29,6 @@
 */
 
 
-/* Booleans are GC_CONST */
-_ sc_is_bool(sc *sc, _ o) {
-    void *x;
-    if ((x = object_to_const(o)) &&
-        (0 == (((long)x) & (~TRUE)))) { return TRUE; }
-    return FALSE;
-}
-_ sc_is_integer(sc *sc, _ o) {
-    if (GC_INTEGER == GC_TAG(o)) return TRUE;
-    return FALSE;
-}
 _ sc_is_zero(sc *sc, _ o) {
     long i = CAST_INTEGER(o);
     if (i) return FALSE;
@@ -68,10 +57,7 @@ _ sc_is_port(sc *sc, _ o)   { OBJECT_PREDICATE(object_to_port); }
 _ sc_is_bytes(sc *sc, _ o)  { OBJECT_PREDICATE(object_to_bytes); }
 
 
-/* The empty list is the NULL pointer */
-_ sc_is_null(sc *sc, _ o) {
-    if (!o) return TRUE; else return FALSE;
-}
+
 
 /* Predicates */
 _ sc_is_vector(sc *sc, _ o)  { return _is_vector_type(o, TAG_VECTOR); }
@@ -120,7 +106,6 @@ _ sc_k_parent(sc *sc, _ o) {
 // D = datum
 
 
-_ sc_cons(sc *sc, _ car, _ cdr)                   {STRUCT(TAG_PAIR,    2, car,cdr);}
 _ sc_make_state(sc *sc, _ C, _ K)                 {STRUCT(TAG_STATE,   2, C,K);}
 _ sc_make_lambda(sc *sc, _ F, _ R, _ S, _ E, _ M) {STRUCT(TAG_LAMBDA,  5, F,R,S,E,M);}
 _ sc_make_error(sc *sc, _ T, _ A, _ K, _ X)       {STRUCT(TAG_ERROR,   4, T,A,K,X);}
@@ -142,30 +127,9 @@ _ _sc_make_aref(sc *sc, void *fin, void *ptr) {
     return sc_make_aref(sc, fin_to_object(fin), const_to_object(ptr));
 }
 
-_ _sc_make_symbol(sc *sc, const char *str) {
-    return const_to_object((void*)(symbol_from_string(TYPES->symbol_type, str)));
-}
 _ _sc_make_string(sc *sc, const char *str) {
     return _sc_make_aref(sc, &(TYPES->bytes_type->free),
                          bytes_from_cstring(TYPES->bytes_type, str));
-}
-
-
-_ sc_car(sc *sc, _ o)  { pair *p = CAST(pair, o); return p->car; }
-_ sc_cdr(sc *sc, _ o)  { pair *p = CAST(pair, o); return p->cdr; }
-_ sc_cadr(sc *sc, _ o) { pair *p = CAST(pair, sc_cdr(sc, o)); return p->car; }
-
-_ sc_error(sc *sc, _ sym_o, _ arg_o) {
-    sc->error_tag = sym_o;
-    sc->error_arg = arg_o;
-    // if (sym_o != SYMBOL("halt")) sc_trap(sc);
-    if (sc->step_entries) longjmp(sc->m.r.step, SC_EX_ABORT);
-    _ex_printf(EX, "ERROR: attempt to abort primitive outside of the main loop.\n");
-    TRAP();
-    exit(1);
-}
-_ sc_type_error(sc *sc, _ arg_o) {
-    return sc_error(sc, SYMBOL("type"), arg_o);
 }
 _ sc_make_vector(sc *sc, _ slots, _ init) {
     long i,n = CAST_INTEGER(slots);
@@ -175,7 +139,7 @@ _ sc_make_vector(sc *sc, _ slots, _ init) {
 }
 _ sc_reverse(sc *sc, _ lst) {
     _ rlst = NIL;
-    while(FALSE == (sc_is_null(sc, lst))) {
+    while(FALSE == (IS_NULL(lst))) {
         pair *p = CAST(pair, lst);
         rlst = CONS(p->car, rlst);
         lst  = p->cdr;
@@ -194,7 +158,7 @@ _ sc_length(sc *sc, _ lst) {
     _ nb;
     _ rest;
     _sc_length_rest(sc, lst, &nb, &rest);
-    if (FALSE == sc_is_null(sc, rest)) {
+    if (FALSE == IS_NULL(rest)) {
         TYPE_ERROR(lst);
     }
     return nb;
@@ -221,7 +185,7 @@ _ sc_list_to_vector(sc *sc, _ lst){
 _ sc_env_set(sc *sc, _ E, _ var, _ value) {
     _ rv = ex_find_slot(EX, E, var);
     if (FALSE == IS_PAIR(rv)) return FALSE;
-    CDR(rv)=value;
+    _CDR(rv)=value;
     return VOID;
 }
 static _ *vector_index(sc *sc, _ vec, _ n) {
@@ -251,7 +215,7 @@ _ sc_bang_set_global(sc *sc, _ n, _ val) {
 
 _ sc_toplevel(sc *sc)       { _GLOBAL(toplevel); }
 _ sc_toplevel_macro(sc *sc) { _GLOBAL(toplevel_macro); }
-_ sc_state(sc *sc)          { _GLOBAL(state); }
+_ sc_machine_state(sc *sc)  { _GLOBAL(state); }
 _ sc_abort_k(sc *sc)        { _GLOBAL(abort_k); }
 
 _ sc_bang_set_toplevel(sc *sc, _ val)       { _GLOBAL_SET(toplevel, val); }
@@ -281,7 +245,7 @@ _ sc_bang_def_toplevel_macro(sc* sc, _ var, _ val) {
     return sc_bang_def_global(sc, sc_slot_toplevel_macro, var, val);
 }
 _ sc_is_list(sc *sc, _ o) {
-    if(TRUE==sc_is_null(sc, o)) return TRUE;
+    if(TRUE==IS_NULL(o)) return TRUE;
     if(FALSE==IS_PAIR(o)) return FALSE;
     return sc_is_list(sc, CDR(o));
 }
@@ -353,10 +317,10 @@ _ sc_fatal(sc *sc, _ err) {
     return VOID;
 }
 
-_ sc_mt(sc *sc)    { return MT; }
-_ sc_true(sc *sc)  { return TRUE; }
-_ sc_false(sc *sc) { return FALSE; }
-_ sc_void(sc *sc)  { return VOID; }
+_ sc_make_mt(sc *sc)    { return MT; }
+_ sc_make_true(sc *sc)  { return TRUE; }
+_ sc_make_false(sc *sc) { return FALSE; }
+_ sc_make_void(sc *sc)  { return VOID; }
 
 _ sc_symbol_to_string(sc *sc, _ sym) {
     symbol *s = CAST(symbol, sym);
@@ -364,7 +328,7 @@ _ sc_symbol_to_string(sc *sc, _ sym) {
 }
 _ sc_string_to_symbol(sc *sc, _ sym) {
     bytes *b = CAST(bytes, sym);
-    return _sc_make_symbol(sc, b->bytes);
+    return _ex_make_symbol(sc, b->bytes);
 }
 _ sc_list_clone(sc *sc, _ lst) {
     if (NIL == lst) return lst;
@@ -465,9 +429,9 @@ _ sc_map2_prim(sc *sc, _ fn, _ l_in1, _ l_in2) {
 static inline _ _sc_call(sc *sc, void *p, int nargs, _ ra) {
     switch(nargs) {
     case 0: return ((sc_0)p)(sc);
-    case 1: return ((sc_1)p)(sc, CAR(ra));
-    case 2: return ((sc_2)p)(sc, CADR(ra), CAR(ra));
-    case 3: return ((sc_3)p)(sc, CADDR(ra), CADR(ra), CAR(ra));
+    case 1: return ((sc_1)p)(sc, _CAR(ra));
+    case 2: return ((sc_2)p)(sc, _CADR(ra), _CAR(ra));
+    case 3: return ((sc_3)p)(sc, _CADDR(ra), _CADR(ra), _CAR(ra));
     default:
         return ERROR("prim", integer_to_object(nargs));
     }
@@ -475,7 +439,7 @@ static inline _ _sc_call(sc *sc, void *p, int nargs, _ ra) {
 
 /* Propagate environment during reduction. */
 _ sc_close_args(sc *sc, _ lst, _ E, _ M) {
-    if ((TRUE==sc_is_null(sc, lst))) return NIL;
+    if ((TRUE==IS_NULL(lst))) return NIL;
     else return CONS(REDEX(CAR(lst), E, M),
                      sc_close_args(sc, CDR(lst), E, M)); 
 }
@@ -506,7 +470,7 @@ _ _sc_step_value(sc *sc, _ v, _ k) {
     /* A fully reduced value in an empty continuation means the
        evaluation is finished, and the machine can be halted. */
     if (MT == k) {
-        sc_error(sc, SYMBOL("halt"), value);
+        ERROR("halt", value);
     }
     if (TRUE == sc_is_k_if(sc, k)) {
         k_if *kx = object_to_k_if(k);
@@ -727,9 +691,9 @@ static _ _sc_step(sc *sc, _ o_state) {
             _ cond = REDEX(CAR(term_args),env,menv);
             _ yes  = REDEX(CADR(term_args),env,menv);
             _ no   = 
-                (NIL == CDDR(term_args)) ? 
+                (NIL == _CDDR(term_args)) ? 
                 VALUE(VOID) :
-                REDEX(CADDR(term_args),env,menv);
+                REDEX(_CADDR(term_args),env,menv);
             return STATE(cond, sc_make_k_if(sc, k, yes,no));
                                               
         }
@@ -810,24 +774,24 @@ _ sc_eval_step(sc *sc, _ state) {
 
     memcpy(&save, &sc->m.r, sizeof(save));
     sc->m.r.prim = NULL; // means error comes from step() itself
-    sc->step_entries++;
+    sc->m.entries++;
 
     switch(exception = setjmp(sc->m.r.step)) {
-        case SC_EX_TRY:
+        case EXCEPT_TRY:
             rv = _sc_step(sc, state);
             break;
-        case SC_EX_ABORT: 
-            rv = sc_make_error(sc, sc->error_tag, sc->error_arg, 
+        case EXCEPT_ABORT: 
+            rv = sc_make_error(sc, sc->m.error_tag, sc->m.error_arg, 
                                state, const_to_object(sc->m.r.prim));
-            sc->error_arg = NIL;
-            sc->error_tag = NIL;
+            sc->m.error_arg = NIL;
+            sc->m.error_tag = NIL;
             break;
         default:
             break;
     }
 
+    sc->m.entries--; // redundant
     memcpy(&sc->m.r, &save, sizeof(save));
-    sc->step_entries--;
     return rv;
 }
 
@@ -835,15 +799,6 @@ _ sc_eval_step(sc *sc, _ state) {
 
 
 
-static _ _sc_restart(sc *sc) {
-    if (sc->m.top_entries) {
-        longjmp(sc->m.top, SC_EX_RESTART); 
-    }
-    _ex_printf(EX, "ERROR: attempt restart outside of the main loop.\n");
-    ex_trap(EX);
-    exit(1);
-}
-   
 /* GC: set continuation manually, since since the interpreter aborts
    and restarts the current step. */
 _ sc_gc(sc* sc) {
@@ -961,7 +916,7 @@ _ _sc_top(sc *sc, _ expr){
     sc_bang_set_global(sc, sc_slot_state, STATE(REDEX(expr,NIL,NIL),MT));
     for(;;) {
         if (setjmp(sc->m.top)){
-            sc->step_entries = 0;  // full tower unwind
+            sc->m.entries = 0;  // full tower unwind
             sc->m.r.prim = NULL;
         }
         for(;;) {
@@ -1001,15 +956,7 @@ static void _sc_def_prims(sc *sc, prim_def *prims) {
 }
 
 
-static void _sc_overflow(sc *sc, long extra) {
-    /* At this point, the heap is compacted, but the requested
-       allocation doesn't fit.  We need to grow.  Take at least the
-       requested size + grow by a fraction of the total heap. */
-    long request = extra + (sc->m.gc->slot_total/4);
-    _ex_printf(EX, ";; gc-overflow %ld:%ld\n", extra, request);
-    gc_grow(sc->m.gc, request);
-    _sc_restart(sc);
-}
+
 
 static void _sc_mark_roots(sc *sc, gc_finalize fin) {
     // ex_trap(EX);
@@ -1026,7 +973,7 @@ static void _sc_mark_roots(sc *sc, gc_finalize fin) {
         long used = sc->m.gc->current_index;
         long free = sc->m.gc->slot_total - used;
         _ex_printf(EX, ";; gc %d:%d\n", (int)used, (int)free);
-        _sc_restart(sc);
+        _ex_restart(EX);
     }
     else {
         /* No finalizer continuation means that this call is part of a
@@ -1052,12 +999,12 @@ void _sc_load_lib(sc* sc);
 sc *_sc_new(void) {
     sc *sc = malloc(sizeof(*sc));
     sc->m.top_entries = 0;
-    sc->step_entries = 0;
+    sc->m.entries = 0;
 
     /* Garbage collector. */
     sc->m.gc = gc_new(10000, sc, 
                       (gc_mark_roots)_sc_mark_roots,
-                      (gc_overflow)_sc_overflow);
+                      (gc_overflow)_ex_overflow);
                     
     /* Atom classes. */
     sc->m.p = malloc(sizeof(*(sc->m.p)));

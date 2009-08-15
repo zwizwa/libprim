@@ -7,13 +7,11 @@ DEBUG_CFLAGS=-Wall -g
 
 # CC = gcc -m32
 
-%.h_: %.c prims.ss
+%.h_ex_prims: %.c prims.ss
 	pwd
 	mzscheme prims.ss $< >$@
-# %.h_: %.ex ../unparse.ss
-# 	mzscheme ../unparse.ss <$< >$@
 
-GEN = ex_prims.h_
+GEN = ex_prims.h_ex_prims
 
 all: $(GEN) ex.a
 

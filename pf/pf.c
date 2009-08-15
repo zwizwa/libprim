@@ -416,26 +416,14 @@ _ ex_compile(ex *ex, _ obj, _ dict) {
 
 /* GC + SETUP */
 
-static void _pf_restart(pf* pf) {
-    longjmp(pf->m.top, PF_EX_RESTART);
-}
-static void _pf_overflow(pf *pf, long extra) {
-    printf(";; gc-overflow\n");
-    /* At this point, the heap is compacted, but the requested
-       allocation doesn't fit.  We need to grow.  Take at least the
-       requested size + grow by a fraction of the total heap. */
-    long request = extra + (GC->slot_total/4);
-    _ex_printf(EX, ";; gc-overflow %ld:%ld\n", extra, request);
-    gc_grow(GC, request);
-    _pf_restart(pf);
-}
 static void _pf_mark_roots(pf *pf, gc_finalize fin) {
     printf(";; gc\n");
     gc_mark(GC, pf->ds);
     gc_mark(GC, pf->rs);
     gc_mark(GC, pf->free);
     gc_mark(GC, pf->dict);
-    _pf_restart(pf);
+    if (fin) { fin(pf->m.gc); _ex_restart(EX); }
+    else return;  // we're in gc_grow() -> return
 }
 
 static _ _pf_prim(pf* pf, pf_prim fn) {
