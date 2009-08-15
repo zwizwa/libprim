@@ -6,6 +6,7 @@ scheme:
 	make -C pf
 
 clean:
+	rm -f *~
 	make -C leaf clean
 	make -C object clean
 	make -C sc clean

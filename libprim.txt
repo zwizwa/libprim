@@ -29,8 +29,8 @@ This project is roughly based on the following ideas:
      (``Pre-emptive Deforestation'').
 
    * Linear memory model: C primitives use only atoms which are either
-     C primitives (integers and floats), or abstract objects whos
-     ownership is clearly indicated.
+     C primitive values (integers, floats, structure types), or
+     abstract objects (pointers) with clearly indicated ownership.
 
 This would allow to build a library of primitive operations and
 datatypes that can be linked with any kind of scripting language
@@ -1693,4 +1693,23 @@ Date: Sat Aug 15 12:48:20 CEST 2009
 
 Now that default abort works it's time to start adding some primitives
 and a bootstrap reader (sexp -> C).
+
+Seems straightforward once list -> code translation works.  (eval).
+
+Before going there, I think it's best to do the shared primitives
+anyway.  The PF core can benefit greatly from _expressions_ : in fact,
+almost all code in pf.c is doubly done: once as expression, and once
+bound to the linear stack.
+
+
+Entry: Common expression language
+Date: Sat Aug 15 13:55:38 CEST 2009
+
+`expressions' use the following resources:
+              - GC
+              - exceptions
+              - leaf types
+
+If we agree that they _can_ use both, the Scheme and PF core
+primitives can be shared.  Let's move these to 'ex'.
 

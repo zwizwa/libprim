@@ -9,8 +9,8 @@ DEBUG_CFLAGS=-Wall -g -Wno-unused
 all: scheme
 
 # generated files
-%.h_: %.scm unparse.ss
-	mzscheme unparse.ss <$< >$@
+%.h_: %.scm ../unparse.ss
+	mzscheme ../unparse.ss <$< >$@
 %.h_: %.c prims.ss
 	mzscheme prims.ss <$< >$@
 

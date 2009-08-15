@@ -403,6 +403,15 @@ void pf_print_error(pf *pf) {
     pf_drop(pf);
 }
 
+/* Convert a list to code and jump to it. */
+void pf_eval(pf *pf) {
+    _ code = _pf_eval(pf, TOP);
+}
+
+
+
+/* GC + SETUP */
+
 static void _pf_restart(pf* pf) {
     longjmp(pf->m.top, PF_EX_RESTART);
 }
@@ -456,6 +465,7 @@ pf* _pf_new(void) {
 
     // Symbol cache
     pf->s_underflow = SYMBOL("underflow");
+    pf->s_eval      = SYMBOL("eval");
 
     // Machine state.
     pf->rs = NIL;
