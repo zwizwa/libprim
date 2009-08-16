@@ -209,6 +209,13 @@ _ ex_map2_prim(ex *ex, _ fn, _ l_in1, _ l_in2) {
 
 
 
+_ ex_post(ex* ex, _ o) {
+    if (VOID != o) {
+        ex->write(ex, o);
+        _ex_printf(EX, "\n");
+    }
+    return VOID;
+}
 
 
 /* ERRORS */

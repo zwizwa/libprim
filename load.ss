@@ -28,7 +28,7 @@
 
 (define (convert)
   (define xs (slurp)) ;; make sure this succeeds before generating output
-  (printf "static inline void _load(sc *sc){\n")
+  (printf "static inline void _load(ex *ex){\n")
   (for ((x xs)) (display (evl x)))
   (printf "}\n"))
 

@@ -242,7 +242,7 @@ _ _pf_make_symbol(pf *pf, const char *str){
 */
 typedef void (*pf_prim)(pf*);
 
-void pf_run(pf *pf) {
+void _pf_run(pf *pf) {
     seq *s;
     prim *p;
     quote *q;
@@ -316,7 +316,10 @@ void pf_run(pf *pf) {
 
 }
 
-
+void _pf_top_eval(pf *pf, _ expr){
+    pf->ip = px_compile_program(pf, expr);
+    _pf_run(pf);
+}
 
 
 
@@ -359,12 +362,6 @@ _ px_write(pf *pf, _ ob) {
     }
 }
 
-_ px_post(pf *pf, _ ob) {
-    px_write(pf, ob);
-    return _ex_printf(EX, "\n");
-}
-
-
 /* PRIMITIVES */
 
 void pf_drop(pf *pf) {
@@ -388,10 +385,10 @@ void pf_bang(pf *pf) {
 }
 
 void pf_state(pf *pf) {
-    _ex_printf(EX, "P: "); px_post(pf, pf->ds);
-    _ex_printf(EX, "R: "); px_post(pf, pf->rs);
-    _ex_printf(EX, "F: "); px_post(pf, pf->free);
-    _ex_printf(EX, "D: "); px_post(pf, pf->dict);
+    _ex_printf(EX, "P: "); POST(pf->ds);
+    _ex_printf(EX, "R: "); POST(pf->rs);
+    _ex_printf(EX, "F: "); POST(pf->free);
+    _ex_printf(EX, "D: "); POST(pf->dict);
 }
 void pf_output(pf *pf) {
     _pf_push(pf, _pf_link(pf, pf->output));
@@ -405,13 +402,13 @@ void pf_stack(pf *pf) {
 void pf_print_error(pf *pf) {
     if (NIL == pf->ds) _pf_push(pf, VOID);
     _ex_printf(EX, "ERROR: ");
-    px_post(pf, TOP);
+    POST(TOP);
     pf_drop(pf);
 }
 
 // AUTOGEN
 void pf_dup_write(pf *pf) { px_write(pf, TOP); }
-void pf_dup_post(pf *pf)  { px_post(pf, TOP); }
+void pf_dup_post(pf *pf)  { POST(TOP); }
 
 
 /* COMPILER */
@@ -600,6 +597,8 @@ _ _pf_word(pf* pf, const char *str) {
 
 #define WORD(str) _pf_word(pf, str)
 
+void _pf_load_lib(pf *pf);
+
 pf* _pf_new(void) {
     pf *pf = malloc(sizeof(*pf));
 
@@ -633,12 +632,16 @@ pf* _pf_new(void) {
     _pf_def_all_prims(pf);
     pf->ip_halt  = FIND(pf->dict, SYMBOL("trap"));
     pf->ip_abort = FIND(pf->dict, SYMBOL("print-error"));
-    pf->ip = px_compile_program(pf,
+    pf->ip = pf->ip_halt;
+
+#if 0
+              px_compile_program(pf,
                                 (CONS(SYMBOL("output"),
                                       CONS(SYMBOL("output"),
                                            CONS(NUMBER(123),
                                                 CONS(SYMBOL("state"),
                                                      NIL))))));
+#endif
 #if 0
         SEQ(WORD("output"),
             SEQ(WORD("output"),
@@ -649,45 +652,15 @@ pf* _pf_new(void) {
     // Stdout
     pf->output = _pf_make_port(pf, stdout, "stdout");
 
+    // Highlevel bootstrap
+    _pf_load_lib(pf);
+
     return pf;
 }
 
 
 int main(int argc, char **argv) {
     pf *pf = _pf_new();
-    long i = 0;
-
-    pf_run(pf);
-
-//    for(;;) {
-/*         pf_output(pf); */
-/*         // _pf_push(pf, integer_to_object(i++)); */
-/*         // _pf_push(pf, integer_to_object(i++)); */
-        
-/*         pf_output(pf); */
-/*         pf_dup(pf); */
-/*         pf_stack(pf); */
-        
-/*         pf_state(pf); */
-/*         pf_box_test(pf); */
-/*         pf_bang(pf); */
-/*         pf_state(pf); */
-
-/*         pf_state(pf); */
-/*         pf_box_test(pf); */
-
-/*         pf_stack(pf); */
-/*         pf_dup_to_dict(pf); */
-/*         pf_state(pf); */
-
-/*         //pf_dup_to_dict(pf); */
-/*         //pf_state(pf); */
-
-/*         // pf_stack(pf); */
-/*         // pf_output(pf); */
-/*         // pf_dup_post(pf); */
-/*         // pf_drop(pf); */
-/*         pf_trap(pf); */
-//    }
+    _pf_run(pf);
     return 0;
 }

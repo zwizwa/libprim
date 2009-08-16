@@ -264,14 +264,14 @@ sc    *_sc_new(void);
 #define VALUE(d)     sc_make_value(sc,d)
 
 #define NUMBER(n)     integer_to_object(n)
-#define STRING(str)   _sc_make_string(sc, str)
+#define STRING(str)   _sc_make_string((sc*)EX, str)
 // #define ERROR(msg, o) sc_raise_error(sc, SYMBOL(msg), o)
 // #define TYPE_ERROR(o) sc_raise_type_error(sc, o)
 
 #define TYPES         sc->m.p
     
 /* Toplevel evaluation */
-#define EVAL(expr)    sc_post(sc, _sc_top(sc, expr))
+#define EVAL(expr)    POST(_sc_top((sc*)EX, expr))
 
 // safe cast to C struct
 // object sc_raise_type_error(sc *sc, object arg_o);

@@ -195,13 +195,6 @@ _ sc_write(sc *sc,  _ o) {
     return VOID;
 }
 
-_ sc_post(sc* sc, _ o) {
-    if (VOID != o) {
-        sc_write(sc, o);
-        _ex_printf(EX, "\n");
-    }
-    return VOID;
-}
 _ sc_read_char(sc *sc) {
     return integer_to_object(fgetc(stdin));
 }
