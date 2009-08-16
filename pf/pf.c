@@ -563,16 +563,39 @@ static void _pf_mark_roots(pf *pf, gc_finalize fin) {
     else return;  // we're in gc_grow() -> return
 }
 
-static _ _pf_prim(pf* pf, pf_prim fn) {
+static _ _pf_prim(pf* pf, pf_prim fn, _ name) {
     prim *p = malloc(sizeof(*p));
     p->type = TYPES->prim_type;
     p->fn = fn;
     p->nargs = 0;
-    p->var = VOID;
+    p->var = name;
     return const_to_object(p);
 }
 
 #define PRIM(fn)  _pf_prim(pf, fn)
+
+static prim_def pf_prims[] = pf_init;
+static void _pf_def_prims(pf *pf, prim_def *prims) {
+    prim_def *prim;
+    for (prim = prims; prim->name; prim++) {
+        _ var = SYMBOL(prim->name);
+        pf->dict = ENV_DEF(pf->dict,
+                           var,
+                           _pf_prim(pf, prim->fn, var));
+    }
+}
+static void _pf_def_all_prims(pf *pf) {
+    _pf_def_prims(pf, pf_prims);
+}
+
+_ _pf_word(pf* pf, const char *str) {
+    _ var = SYMBOL(str);
+    _ rv = FIND(pf->dict, var);
+    if (FALSE == rv) ERROR("undefined", var);
+    return rv;
+}
+
+#define WORD(str) _pf_word(pf, str)
 
 pf* _pf_new(void) {
     pf *pf = malloc(sizeof(*pf));
@@ -603,13 +626,15 @@ pf* _pf_new(void) {
     pf->ds = NIL;
     pf->free = NIL;
     pf->dict = NIL;
-    pf->ip_halt  = PRIM((pf_prim)ex_trap);
-    pf->ip_abort = PRIM(pf_print_error);
+
+    _pf_def_all_prims(pf);
+    pf->ip_halt  = FIND(pf->dict, SYMBOL("trap"));
+    pf->ip_abort = FIND(pf->dict, SYMBOL("print-error"));
     pf->ip = 
-        SEQ(PRIM(pf_dup_post),
-            SEQ(PRIM(pf_output),
+        SEQ(WORD("output"),
+            SEQ(WORD("output"),
                 SEQ(QUOTE(NUMBER(123)),
-                    PRIM(pf_state))));
+                    WORD("state"))));
 
     // Stdout
     pf->output = _pf_make_port(pf, stdout, "stdout");

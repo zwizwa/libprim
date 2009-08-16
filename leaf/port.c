@@ -4,8 +4,11 @@
 int port_vprintf(port *p, const char *fmt, va_list ap) {
     va_list aq;
     int len;
+    /* We might be called from error reporting with broken state.
+       Allow for a default. */
+    FILE *f = p ? p->stream : stderr;
     va_copy(aq, ap);
-    len = vfprintf(p->stream, fmt, aq);
+    len = vfprintf(f, fmt, aq);
     va_end(aq);
     return len;
 }

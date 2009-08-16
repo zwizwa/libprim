@@ -1955,3 +1955,20 @@ determine whether a program is a NOP before completely compiling it.
 
 Let's make it work first using a 1->1 map from source structure, and
 perform optimizations in a second pass.
+
+So, the passes are:
+
+  (PURE)
+    1. construct environment
+    2. compile s-expr -> AST
+    3. resolve all references
+    4. check degenerate loops
+    5. snap pointers
+  (IMPURE)
+    6. patch global environment
+
+Most of the passes can be done purely.  They don't create much garbage
+so they can be kept as primitives (should make it to the end without
+GC).
+
+To test it, first the primitives need to be defined.
