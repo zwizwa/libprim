@@ -228,6 +228,8 @@ _ _pf_make_symbol(pf *pf, const char *str){
 /* INTERPRETER */
 
 /*
+      http://zwizwa.be/-/libprim/20090816-120957
+
       SEQ   = (SUB : SUB)            ;; `:' is graph CONS
       SUB   = PRIM | QUOTE | SEQ
  
@@ -304,12 +306,6 @@ void pf_run(pf *pf) {
     /* Return to caller. */
     return;
 
-    /* Optimization note: if s->now is a primitive, it can be executed
-       without RS push.  Remarkably, this ``optimization'' is how
-       traditional threaded Forth works, with proper tail calls added
-       as patch for the last element in the SUB chain (an improper
-       list).  In contrast, proper tail calls are a _consequence_ of
-       our representation.  */
 }
 
 
@@ -347,8 +343,8 @@ _ px_write(pf *pf, _ ob) {
     if ((x = object_to_port(ob, EX))) {
         return ex_write(EX, const_to_object(x));
     }
-    else if ((x = object_to_code(ob))) {
-        return _ex_printf(EX, "#code<%p>", x);
+    else if ((x = object_to_seq(ob))) {
+        return _ex_printf(EX, "#seq<%p>", x);
     }
     else {
         return _ex_printf(EX, "#object<%p>",(void*)ob);
@@ -447,7 +443,7 @@ _ px_quote(pf *pf, _ data) {
     return gc_make_tagged(EX->gc, TAG_QUOTE, 1, data);
 }
 _ px_code(pf *pf, _ sub, _ next) { 
-    return gc_make_tagged(EX->gc, TAG_CODE, 2, sub, next);
+    return gc_make_tagged(EX->gc, TAG_SEQ, 2, sub, next);
 }
 
 

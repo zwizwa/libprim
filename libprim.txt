@@ -1866,13 +1866,13 @@ Date: Sun Aug 16 12:09:57 CEST 2009
 
 The interpreter evaluates the following data structure:
 
-      ABS   = (SUB : SUB)            ;; `:' is graph CONS
-      SUB   = PRIM | QUOTE | ABS
+      SEQ = (SUB : SUB)            ;; `:' is graph CONS
+      SUB = PRIM | QUOTE | SEQ
  
-      RS    = NIL | (SUB . RS)       ;; `.' is linear CONS
+      RS  = HALT | (SUB . RS)      ;; `.' is linear CONS
 
-ABS   Abstractions represent code sequencing.  They provide the
-      encoding of ``what to do _now_ and what to do _next_''.
+SEQ   Code sequencing provides the encoding of ``what to do _now_ and
+      what to do _next_''.
 
 CODE  Code is either an abstraction (``do'') or the absence of one
       (``done'')
@@ -1880,11 +1880,40 @@ CODE  Code is either an abstraction (``do'') or the absence of one
 SUB   A subroutine is a basic unit of work: invoke a primitive
       function, load a data object or perform an abstraction.
 
-RS    The return stack is used for evaluating abstractions.
+RS    The return stack (or continuation) is constructed at run-time,
+      representing the rest of the evaluation, finishing with HALT.
+
+Execution will push the second SUB to RS whenever a SEQ is
+encountered, and pops RS when evaluating a PRIM or a QUOTE.
+
+Note that the RS ``program'' is essentially a SEQ terminated with a
+HALT primitive.  The only difference is that it is built out of a
+_linear_ data structure, while code resides in graph memory.
+
+The basic idea is described here[1], and is how Scheme's `begin'
+works.  Essentially, you never push the return stack unless you have
+anything to do _next_, which is what SEQ encodes explicitly.
+(Additionally, in Scheme, a push is necessary to perform argument
+evaluation before execution of a code body in an extended
+environment.)
+
+Now note that if the ``now'' SUB in a SEQ is a PRIM or a QUOTE, an RS
+push isn't necessary.  Remarkably, this ``optimization'' is how
+traditional threaded Forth works by default.  Next to this it has
+proper tail call handling added as an optimization, by patching the
+last element in a word list whenever it is a highlevel call.  In
+contrast, in the PF approach, proper tail calls are a _consequence_ of
+the representation.
+
+[1] http://repository.readscheme.org/ftp/papers/ai-lab-pubs/AIM-443.pdf
 
 
-Note that RS is quite similar to an ABS, only that it is built out of
-a linear data structure.  This reads as ``a continuation is a
-program''.
 
-Whenever the current SUB is a PRIM or a QUOTE, RS gets popped.
+
+Entry: Compilation
+Date: Sun Aug 16 12:43:45 CEST 2009
+
+Now.. I think the bytecode does what I need it to do.  But how to
+compile it?  This requires multiple passes to properly inline all
+references.
+
