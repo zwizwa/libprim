@@ -119,6 +119,7 @@ _ ex_car(ex *ex, _ o)  { pair *p = CAST(pair, o); return p->car; }
 _ ex_cdr(ex *ex, _ o)  { pair *p = CAST(pair, o); return p->cdr; }
 _ ex_cadr(ex *ex, _ o) { pair *p = CAST(pair, ex_cdr(ex, o)); return p->car; }
 _ ex_cdar(ex *ex, _ o) { pair *p = CAST(pair, ex_car(ex, o)); return p->cdr; }
+_ ex_caar(ex *ex, _ o) { pair *p = CAST(pair, ex_car(ex, o)); return p->car; }
 
 
 
@@ -139,6 +140,11 @@ _ ex_find2(ex *ex, _ E_local, _ E_toplevel, _ var) {
     _ rv;
     if (FALSE != (rv = ex_find(ex, E_local, var))) return rv;
     return ex_find(ex, E_toplevel, var);
+}
+_ ex_unfind(ex *ex, _ E, _ val) {
+    if (NIL == E) return FALSE;
+    if (CDAR(E) == val) return CAAR(E);
+    return ex_unfind(ex, CDR(E), val);
 }
 
 _ ex_make_true(ex *ex)  { return TRUE; }

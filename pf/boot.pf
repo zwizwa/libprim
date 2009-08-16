@@ -4,13 +4,13 @@
 ;; '(abc  123 post) define
 ;; abc
 
-(state
+(
  '((abc 123 dup-post)
-   (loop 1 loop)
+   (loop 1 (print-state) (1 2) loop)
    (def 456 dup-post abc))
  define
- state
- state
+ print-state
+ print-dict
 
  )
 

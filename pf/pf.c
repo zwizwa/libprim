@@ -357,6 +357,13 @@ port *_pf_port(pf *pf) {
     return object_to_port(pf->output, &pf->m);
 }
 
+/* Print symbolic representation if possible. */
+_ px_write_word(pf *pf, _ ob) {
+    _ sym = UNFIND(pf->dict, ob);
+    if (FALSE == sym) return px_write(pf, ob);
+    else return px_write(pf, sym);
+}
+
 _ px_write(pf *pf, _ ob) {
     void *x;
     if (FALSE != ex_write(EX, ob)) {
@@ -367,7 +374,46 @@ _ px_write(pf *pf, _ ob) {
         return ex_write(EX, const_to_object(x));
     }
     else if ((x = object_to_seq(ob))) {
-        return _ex_printf(EX, "#seq<%p>", x);
+        long max = 10;
+        _ex_printf(EX, "[");
+        for(;;) {
+            seq *s = (seq*)x;
+            px_write_word(pf, s->now);
+            _ex_printf(EX, " ");
+            ob = s->next;
+            if (!(x = object_to_seq(ob))) {
+                px_write_word(pf, s->next);
+                _ex_printf(EX, "]");
+                return VOID;
+            }
+            /* If the tail has a name, print that instead. */
+            _ sym = UNFIND(pf->dict, ob);
+            if (FALSE != sym) {
+                px_write(pf, sym);
+                return _ex_printf(EX, "]"); 
+            }
+            /* Prevent loops from generating too much output. */
+            if (!(--max)) {
+                return _ex_printf(EX, "...]"); 
+            }
+        }
+    }
+    /* Attempt to undo the different forms of quoting that lead to a
+       QUOTE AST object. */
+    else if ((x = object_to_quote(ob))) {
+        quote *q = (quote*)x;
+        if ((object_to_prim(q->object, EX))) {
+            _ex_printf(EX, "[");
+            px_write_word(pf, q->object); // may be code
+            return _ex_printf(EX, "]");
+        }
+        else if ((object_to_seq(q->object))) {
+            return px_write(pf, q->object); // may be code
+        }
+        else {
+            _ex_printf(EX, "'");
+            return px_write(pf, q->object); // may be code
+        }
     }
     else if (NOP == ob) {
         return _ex_printf(EX, "#nop");
@@ -402,12 +448,19 @@ void pf_bang(pf *pf) {
     x->object = CADR(pf->ds);
 }
 
-void pf_state(pf *pf) {
+void pf_print_state(pf *pf) {
     _ex_printf(EX, "P: "); POST(pf->ds);
     _ex_printf(EX, "R: "); POST(pf->rs);
     _ex_printf(EX, "F: "); POST(pf->free);
-    _ex_printf(EX, "D: "); POST(pf->dict);
 }
+void pf_print_dict(pf *pf) {
+    _ E = pf->dict;
+    while (NIL != E) {
+        POST(CAR(E));
+        E = CDR(E);
+    }
+}
+
 void pf_output(pf *pf) {
     _pf_push(pf, _pf_link(pf, pf->output));
 }
@@ -680,19 +733,20 @@ pf* _pf_new(void) {
     pf->s_eval      = SYMBOL("eval");
     pf->s_quote     = SYMBOL("quote");
 
-    // Machine state (beware of order of inits!)
+    // Machine state
     pf->ds = NIL;
     pf->free = NIL;
     pf->dict = NIL;
     pf->rs = NIL;
     pf->ip = HALT;
-
-    _pf_def_all_prims(pf);
-    pf->ip_abort = FIND(pf->dict, SYMBOL("print-error"));
-
+    pf->ip_abort = HALT;
 
     // Stdout
     pf->output = _pf_make_port(pf, stdout, "stdout");
+
+    // Primitives
+    _pf_def_all_prims(pf);
+    pf->ip_abort = FIND(pf->dict, SYMBOL("print-error"));
 
     // Highlevel bootstrap
     _pf_load_lib(pf);

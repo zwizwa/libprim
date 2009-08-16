@@ -2001,3 +2001,10 @@ Another premature optimization: currently there's a lot of copying
 going on when defining new code from within PF (represented as linear
 lists).
 
+
+Entry: Decompile
+Date: Sun Aug 16 20:59:37 CEST 2009
+
+With everything packed as a graph, it's quite difficult to print out
+any code.  Let's add some reverse lookup for code printing.
+
