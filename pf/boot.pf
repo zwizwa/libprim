@@ -4,10 +4,16 @@
 ;; '(abc  123 post) define
 ;; abc
 
-(
-state
-'((abc 123 dup-post)
-  (def 456 dup-post))
-define
-state
-)
+(state
+ '((abc 123 dup-post)
+   (loop 1 loop)
+   (def 456 dup-post abc))
+ define
+ state
+ state
+
+ )
+
+(abc def)
+
+

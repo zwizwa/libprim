@@ -281,9 +281,7 @@ void _pf_run(pf *pf) {
         else {
             /* Update continuation. */
             _ ip = pf->ip;
-            if (unlikely(HALT == pf->rs)) {
-                pf->ip = pf->ip_halt;
-            }
+            if (unlikely(HALT == pf->rs)) goto halt;
             else {
                 pf->ip = CAR(pf->rs);
                 _pf_drop(pf, &pf->rs);
@@ -362,7 +360,19 @@ _ px_write(pf *pf, _ ob) {
         return ex_write(EX, const_to_object(x));
     }
     else if ((x = object_to_seq(ob))) {
-        return _ex_printf(EX, "#seq<%p>", x);
+        void *x_head = x;
+        seq *s = (seq*)x;
+        _ex_printf(EX, "#seq<.");
+        while ((x = object_to_seq(s->next))) {
+            if (x == x_head) {
+                _ex_printf(EX, "!>");
+                return VOID;
+            }
+            _ex_printf(EX, ".");
+            s = (seq*)x;
+        }
+        _ex_printf(EX, ".>");
+        return VOID;
     }
     else if (NOP == ob) {
         return _ex_printf(EX, "#nop");
@@ -683,7 +693,6 @@ pf* _pf_new(void) {
     pf->rs = HALT;
 
     _pf_def_all_prims(pf);
-    pf->ip_halt  = FIND(pf->dict, SYMBOL("trap"));
     pf->ip_abort = FIND(pf->dict, SYMBOL("print-error"));
 
 
