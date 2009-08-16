@@ -21,9 +21,8 @@
 #include "pf.h_pf_prims"
 #include "pf.h_px_prims"
 
-#define TOP ARG0
-#define ARG0 _CAR(pf->ds) 
-#define ARG1 _CADR(pf->ds)
+#define TOP _pf_top(pf)
+
 
 /* ERRORS */
 
@@ -85,6 +84,12 @@ void pf_error_underflow(pf *pf) {
     _pf_push(pf, pf->s_underflow);
     _pf_abort(pf);
 }
+_ _pf_top(pf *pf) {
+    if (unlikely (NIL == pf->ds)) pf_error_underflow(pf);
+    return _CAR(pf->ds);
+}
+
+
 static inline void _pf_from_to(pf *pf, _ *from, _ *to) {
     if (unlikely(NIL == *from)) pf_error_underflow(pf);
     _ pair =  *from;
@@ -409,22 +414,22 @@ void pf_dup_write(pf *pf) { px_write(pf, TOP); }
 void pf_dup_post(pf *pf)  { px_post(pf, TOP); }
 
 
+/* COMPILER */
+
 /* Compilation is factored into several steps.  The main distinction
-   is again to perform the global side effects after all allocation
-   has finished.
+   is again to perform the global side effects (update of the toplevel
+   environement) _after_ all allocation has finished.
 
-   PURE:
+   These are the passes:
 
-   - dictionary lookup.
+     1. Create skeleton environment.
 
-   - creation of mutually recursive procedures, outside of the main
-     dictionary (local, i.e. `letrec' semantics).
+     2. Translate s-expr -> SEQ | PRIM | QUOTE
 
-   IMPURE:
+     3. Resolve (remaining) undefined references.
 
-   - patching of main dictionary given a set of compiled procedures.
-
- */
+     4. Patch toplevel environment.
+*/
 
 
 /* Convert definition list of (name . src) pairs to a compiled
@@ -436,7 +441,7 @@ _ px_compile_defs(pf *pf, _ E_top, _ defs) {
     _ E_local = _ex_map1_prim(EX, (ex_1)px_skeleton_entry, defs);
     pair *penv  = CAST(pair, E_local);
     pair *pdefs = CAST(pair, defs);
-    /* Compile and link up the dictionary. */
+    /* Translate to AST. */
     while (penv) { 
         _ entry = penv->car;
         _ src   = CDR(pdefs->car);
@@ -444,12 +449,16 @@ _ px_compile_defs(pf *pf, _ E_top, _ defs) {
         penv  = CAST(pair, penv->cdr);
         pdefs = CAST(pair, pdefs->cdr);
     }
-    /* 2nd pass to resolve all references. */
+    /* Resolve all references. */
     px_bang_resolve(pf, E_top, E_local);
+
+    // FIXME:
+    /* Check degenerate loops */
+    /* Snap pointers. */
     return E_local;
 }
 
-/* Compile anonymous code. */
+/* Compile anonymous code to AST. */
 _ px_quote(pf *pf, _ data)       { STRUCT(TAG_QUOTE, 1, data); }
 _ px_seq(pf *pf, _ sub, _ next)  { STRUCT(TAG_SEQ, 2, sub, next); }
 
@@ -465,8 +474,8 @@ _ px_compile_program(pf *pf, _ E_top, _ E_local, _ src) {
             compiled = QUOTE(px_compile_program(pf, E_top, E_local, datum));
         }
         /* If possible, dereference.  In case we're compiling
-           non-recursive anonymous code, this first pass will produce
-           fully linked code. */
+           non-recursive code, this first pass will produce fully
+           linked code. */
         else if (IS_SYMBOL(datum)) {
             _ val = FIND2(E_local, E_top, datum);
             if (FALSE != val) compiled = val;
@@ -494,9 +503,8 @@ _ px_compile_program(pf *pf, _ E_top, _ E_local, _ src) {
 }
 
 /* Walk the code, eliminating symbolic references where possible.
-   Note that we can't recurse since the code structure is a graph, but
-   we do need to recurse for quotations.  These are tree-structured,
-   coming from code. */
+   Note: this only traverses the part of the code graph that's the
+   result of a compilation. */
 _ _px_resolve_sub(pf *pf, _ E_top, _ E_local,  _ *cursor);
 _ _px_resolve_non_seq(pf *pf, _ E_top, _ E_local, _ *cursor) {
     _ sub = *cursor;
@@ -513,6 +521,7 @@ _ _px_resolve_non_seq(pf *pf, _ E_top, _ E_local, _ *cursor) {
     }
     return ZERO;
 }
+/* Resolve a flat subroutine without recursing into the call graph. */
 _ _px_resolve_sub(pf *pf, _ E_top, _ E_local, _ *cursor) {
     _ derefs = ZERO;
     for(;;) {
@@ -597,7 +606,7 @@ pf* _pf_new(void) {
     pf->ip_halt  = PRIM((pf_prim)ex_trap);
     pf->ip_abort = PRIM(pf_print_error);
     pf->ip = 
-        SEQ(PRIM(pf_output),
+        SEQ(PRIM(pf_dup_post),
             SEQ(PRIM(pf_output),
                 SEQ(QUOTE(NUMBER(123)),
                     PRIM(pf_state))));
