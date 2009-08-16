@@ -5,12 +5,15 @@
 ;; abc
 
 (
- '((abc 123 dup-post)
+ '((abc 123 post)
    (loop 1 (print-state) (1 2) loop)
-   (def 456 dup-post abc))
+   (def 456 post abc))
  define
  print-state
  print-dict
+ '(1 2 3) post
+ '(1 2 3) reverse post
+ 
 
  )
 

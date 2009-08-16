@@ -21,7 +21,8 @@
 #include "pf.h_pf_prims"
 #include "pf.h_px_prims"
 
-#define TOP _pf_top(pf)
+#define TOP  _pf_top(pf)
+#define _TOP _CAR(pf->ds)
 
 
 /* ERRORS */
@@ -429,64 +430,6 @@ _ px_write(pf *pf, _ ob) {
     }
 }
 
-/* PRIMITIVES */
-
-void pf_drop(pf *pf) {
-    _pf_drop(pf, &pf->ds);
-}
-void pf_dup(pf *pf) {
-    _pf_push(pf, _pf_link(pf, TOP));
-}
-void pf_dup_to_dict(pf *pf) {
-    _ ob = _pf_copy_to_graph(pf, TOP);
-    pf->dict = ex_cons(&pf->m, ob, pf->dict);
-}
-static object _box = 0;
-void pf_box_test(pf *pf) {
-    if (!_box) _box = _pf_box(pf, VOID);
-    _pf_push(pf, _box);
-}
-void pf_bang(pf *pf) {
-    aref *x = object_to_aref(TOP);
-    x->object = CADR(pf->ds);
-}
-
-void pf_print_state(pf *pf) {
-    _ex_printf(EX, "P: "); POST(pf->ds);
-    _ex_printf(EX, "R: "); POST(pf->rs);
-    _ex_printf(EX, "F: "); POST(pf->free);
-}
-void pf_print_dict(pf *pf) {
-    _ E = pf->dict;
-    while (NIL != E) {
-        POST(CAR(E));
-        E = CDR(E);
-    }
-}
-
-void pf_output(pf *pf) {
-    _pf_push(pf, _pf_link(pf, pf->output));
-}
-void pf_stack(pf *pf) {
-    _pf_need_free(pf);
-    FROM_TO(free, rs);
-    _CAR(pf->rs) = MOVE(pf->ds, NIL);
-    FROM_TO(rs, ds);
-}
-void pf_print_error(pf *pf) {
-    if (NIL == pf->ds) _pf_push(pf, VOID);
-    _ex_printf(EX, "ERROR: ");
-    POST(TOP);
-    pf_drop(pf);
-}
-
-// AUTOGEN
-void pf_dup_write(pf *pf) { px_write(pf, TOP); }
-void pf_dup_post(pf *pf)  { POST(TOP); }
-void pf_define(pf *pf)    { px_define(pf, TOP); PF_DROP(); }
-void pf_trap(pf *pf)      { ex_trap(EX); }
-
-
 /* COMPILER */
 
 /* Compilation is factored into several steps.  The main distinction
@@ -663,7 +606,69 @@ _ px_define(pf *pf, _ defs) {
     return VOID;
 }
 
-/* GC + SETUP */
+
+/* PRIMITIVES */
+
+void pf_drop(pf *pf) {
+    _pf_drop(pf, &pf->ds);
+}
+void pf_dup(pf *pf) {
+    _pf_push(pf, _pf_link(pf, TOP));
+}
+void pf_dup_to_dict(pf *pf) {
+    _ ob = _pf_copy_to_graph(pf, TOP);
+    pf->dict = ex_cons(&pf->m, ob, pf->dict);
+}
+static object _box = 0;
+void pf_box_test(pf *pf) {
+    if (!_box) _box = _pf_box(pf, VOID);
+    _pf_push(pf, _box);
+}
+void pf_bang(pf *pf) {
+    aref *x = object_to_aref(TOP);
+    x->object = CADR(pf->ds);
+}
+
+void pf_print_state(pf *pf) {
+    _ex_printf(EX, "P: "); POST(pf->ds);
+    _ex_printf(EX, "R: "); POST(pf->rs);
+    _ex_printf(EX, "F: "); POST(pf->free);
+}
+void pf_print_dict(pf *pf) {
+    _ E = pf->dict;
+    while (NIL != E) {
+        POST(CAR(E));
+        E = CDR(E);
+    }
+}
+
+void pf_output(pf *pf) {
+    _pf_push(pf, _pf_link(pf, pf->output));
+}
+void pf_stack(pf *pf) {
+    _pf_need_free(pf);
+    FROM_TO(free, rs);
+    _CAR(pf->rs) = MOVE(pf->ds, NIL);
+    FROM_TO(rs, ds);
+}
+void pf_print_error(pf *pf) {
+    if (NIL == pf->ds) _pf_push(pf, VOID);
+    _ex_printf(EX, "ERROR: ");
+    POST(TOP);
+    pf_drop(pf);
+}
+
+/* Primitives in terms of expressions.  Note that an upper case name
+   like _XXX() indicates a stack function.  */
+void pf_write(pf *pf)   { px_write(pf, TOP); _DROP(); }
+void pf_post(pf *pf)    { POST(TOP); _DROP(); }
+void pf_define(pf *pf)  { px_define(pf, TOP); _DROP(); }
+void pf_trap(pf *pf)    { TRAP(); }
+void pf_reverse(pf *pf) { _TOP = BANG_REVERSE(TOP); }
+
+
+
+/* GC+SETUP */
 
 static void _pf_mark_roots(pf *pf, gc_finalize fin) {
     printf(";; gc\n");
@@ -686,7 +691,7 @@ static _ _pf_prim(pf* pf, pf_prim fn, _ name) {
 
 #define PRIM(fn)  _pf_prim(pf, fn)
 
-static prim_def pf_prims[] = PF_pf_init;
+static prim_def pf_prims[] = _pf_table_init;
 static void _pf_def_prims(pf *pf, prim_def *prims) {
     prim_def *prim;
     for (prim = prims; prim->name; prim++) {

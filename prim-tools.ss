@@ -110,7 +110,7 @@
   (let ((filename (arg0)))
         
     (gen-header
-     (mprefix (filename->name filename "_init"))
+     (mprefix (filename->name filename "_table_init"))
      (mprefix (string-upcase (filename->name filename "")))
      (scan filename)
      (ctx))))

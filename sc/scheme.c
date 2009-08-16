@@ -787,8 +787,8 @@ _ _sc_top(sc *sc, _ expr){
 }
 
 
-static prim_def scheme_prims[] = scheme_init;
-static prim_def ex_prims[] = ex_prims_init;
+static prim_def scheme_prims[] = scheme_table_init;
+static prim_def ex_prims[] = ex_prims_table_init;
 
 static void _sc_def_prims(sc *sc, prim_def *prims) {
     prim_def *prim;

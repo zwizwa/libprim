@@ -77,6 +77,22 @@ _ ex_reverse(ex *ex, _ lst) {
     }
     return rlst;
 }
+// in-place
+_ ex_bang_reverse_append(ex *ex, _ lst, _ tail) {
+    if (NIL == lst) return tail;
+    _ next, last = tail;
+    while (NIL != lst) {
+        next = CDR(lst);
+        CAST(pair, lst)->cdr = last;
+        last = lst;
+        lst = next;
+    }
+    return last;
+}
+_ ex_bang_reverse(ex *ex, _ lst) {
+    return ex_bang_reverse_append(ex, lst, NIL);
+}
+
 
 _ ex_length(ex *ex, _ lst) {
     _ nb;

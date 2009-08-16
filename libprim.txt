@@ -2008,3 +2008,25 @@ Date: Sun Aug 16 20:59:37 CEST 2009
 With everything packed as a graph, it's quite difficult to print out
 any code.  Let's add some reverse lookup for code printing.
 
+OK.  This seems to work.  With a bit of effort re-quoting also works.
+Note that words don't have a definite end, except when they end in a
+primitive.  Whenever it encounters a sequence tail that has a name, it
+prints that instead.  Using brackets for printing code:
+
+(def . ['456 dup-post abc])
+(loop . ['1 [print-state] ['1 '2] loop])
+(abc . ['123 dup-post])
+
+
+Entry: Autosnarp
+Date: Sun Aug 16 22:38:53 CEST 2009
+
+From EX / PX -> PF.
+
+Possible?  Probably not, since there are no guarantees about linearity
+of the output.  Without proper typing this doesn't seem to work..
+
+So it needs to be done manually.  
+
+
+

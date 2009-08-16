@@ -1,3 +1,4 @@
+;; (reverse! '(1 2 3))
 (bool? 123)
 (open-mode-file "/tmp/blubber" "w")
 (string->symbol "asdfasFD")
