@@ -284,9 +284,6 @@ sc    *_sc_new(void);
 void _sc_def_prim(sc *sc, const char *str, void *fn, long nargs);
 #define DEF(str,fn,nargs) _sc_def_prim (sc,str,fn,nargs)
 
-#define STRUCT(flags, size, ...) \
-    return gc_make_tagged(sc->m.gc, flags, size, __VA_ARGS__)
-
 
 _ _sc_make_aref(sc *sc, void *fin, void *ptr);
 _ _sc_make_symbol(sc *sc, const char *str);

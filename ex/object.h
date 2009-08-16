@@ -189,6 +189,7 @@ static inline void *object_to_struct(object ob, long tag) {
 #define _CAAR(o) _CAR(_CAR(o))
 #define _CADR(o) _CAR(_CDR(o))
 #define _CDDR(o) _CDR(_CDR(o))
+#define _CDAR(o) _CDR(_CAR(o))
 #define _CADDR(o) _CAR(_CDDR(o))
 
 DEF_STRUCT(pair, TAG_PAIR)

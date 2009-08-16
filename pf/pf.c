@@ -295,6 +295,9 @@ void pf_run(pf *pf) {
                 }
                 _pf_push(pf, ob);
             }
+            /* The empty program. */
+            else if (NOP == ip) {
+            }
             /* Unknown non-seq. */
             else {
                 TRAP();
@@ -424,65 +427,120 @@ void pf_dup_post(pf *pf)  { px_post(pf, TOP); }
  */
 
 
-/* Convert a list of (name . lst) pairs to code, using dict for
-   undefined references. */
-_ px_compile(pf *pf, _ E, _ src) {
-    /* Create skeleton dictionary for circular references. */
-    _ dict = _ex_map1_prim(EX, (ex_1)px_skeleton_entry, src);
-    pair *pd = CAST(pair, dict);
-    pair *ps = CAST(pair, src);
+/* Convert definition list of (name . src) pairs to a compiled
+   dictionary, using E_top for undefined references. */
+
+_ px_skeleton_entry(pf *pf, _ code) { return CONS(CAR(code), FALSE); }
+_ px_compile_defs(pf *pf, _ E_top, _ defs) {
+    /* Create skeleton dictionary. */
+    _ E_local = _ex_map1_prim(EX, (ex_1)px_skeleton_entry, defs);
+    pair *penv  = CAST(pair, E_local);
+    pair *pdefs = CAST(pair, defs);
     /* Compile and link up the dictionary. */
-    while (pd) { 
-        px_bang_compile(pf, pd->car, ps->car); 
-        pd = CAST(pair, pd->cdr);
-        ps = CAST(pair, ps->cdr);
+    while (penv) { 
+        _ entry = penv->car;
+        _ src   = CDR(pdefs->car);
+        _CDR(entry) = px_compile_program(pf, E_top, E_local, src);
+        penv  = CAST(pair, penv->cdr);
+        pdefs = CAST(pair, pdefs->cdr);
     }
-    return dict;
-}
-_ px_quote(pf *pf, _ data) { 
-    return gc_make_tagged(EX->gc, TAG_QUOTE, 1, data);
-}
-_ px_code(pf *pf, _ sub, _ next) { 
-    return gc_make_tagged(EX->gc, TAG_SEQ, 2, sub, next);
+    /* 2nd pass to resolve all references. */
+    px_bang_resolve(pf, E_top, E_local);
+    return E_local;
 }
 
+/* Compile anonymous code. */
+_ px_quote(pf *pf, _ data)       { STRUCT(TAG_QUOTE, 1, data); }
+_ px_seq(pf *pf, _ sub, _ next)  { STRUCT(TAG_SEQ, 2, sub, next); }
 
-_ px_skeleton_entry(pf *pf, _ entry) {
-    pair *p = CAST(pair, entry);
-    _ code = (NIL == p->cdr) ? RETURN : CODE(VOID, VOID);
-    return CONS(p->car, code);
-}
-
-/* Recursively extend the entry with linked code.  This is where
-   proper tail recursion gets implemented.  The CDR of the last cell
-   gets replaced with:
-
-   src -> code
-
-   ()         RETURN
-   (abc)      ref(abc)               ;; possibly inline primitives
-   (abc . x)  CODE(ref(abc) . next)
-
-*/
-_ px_bang_compile(pf *pf, _ entry, _ src) {
-    if (RETURN == CDR(entry)) return VOID; // empty code: its already OK.
-
-    code *c = CAST(code, CDR(entry));
-    pair *p = CAST(pair, CDR(src));
-    if (!c) return VOID; // empty code
-    for (;;) {
-        // if (NIL == p->cdr) _CDR(entry
+_ px_compile_program(pf *pf, _ E_top, _ E_local, _ src) {
+    _ rv;
+    _ *cursor = &rv;
+    if (NIL == src) return NOP;
+    /* Compile with proper tail calls. */
+    for(;;) {
+        _ compiled, datum = CAR(src);
+        /* Quoted subprograms. */
+        if (IS_LIST(datum)) {
+            compiled = QUOTE(px_compile_program(pf, E_top, E_local, datum));
+        }
+        /* If possible, dereference.  In case we're compiling
+           non-recursive anonymous code, this first pass will produce
+           fully linked code. */
+        else if (IS_SYMBOL(datum)) {
+            _ val = FIND2(E_local, E_top, datum);
+            if (FALSE != val) compiled = val;
+            else compiled = datum;
+        }
+        /* Quote literal data. */
+        else {
+            // FIXME: distinguish between linear and graph data.
+            _ val = datum;
+            compiled = QUOTE(val);
+        }
+        /* Return if this was the last one. */
+        if (NIL == CDR(src)) {
+            *cursor = compiled;
+            return rv;
+        }
+        /* Allocate sequence if there's more to come. */
+        else {
+            _ seq = SEQ(compiled, VOID);
+            *cursor = seq;
+            cursor = &(object_to_seq(seq)->next);
+            src = CDR(src);
+        }
     }
-    return VOID;
 }
 
-
-
-//void pf_eval(pf *pf) {
-    // _ code = _pf_eval(pf, TOP);
-//}
-
-
+/* Walk the code, eliminating symbolic references where possible.
+   Note that we can't recurse since the code structure is a graph, but
+   we do need to recurse for quotations.  These are tree-structured,
+   coming from code. */
+_ _px_resolve_sub(pf *pf, _ E_top, _ E_local,  _ *cursor);
+_ _px_resolve_non_seq(pf *pf, _ E_top, _ E_local, _ *cursor) {
+    _ sub = *cursor;
+    quote *q;
+    if ((q = object_to_quote(sub))) {
+        return _px_resolve_sub(pf, E_top, E_local, &(q->object));
+    }
+    if (IS_SYMBOL(sub)) {
+        _ val = FIND2(E_local, E_top, sub);
+        if (FALSE != val) {
+            *cursor = val;
+            return ONE;
+        }
+    }
+    return ZERO;
+}
+_ _px_resolve_sub(pf *pf, _ E_top, _ E_local, _ *cursor) {
+    _ derefs = ZERO;
+    for(;;) {
+        seq* s;
+        _ sub = *cursor;
+        /* Sequence, resolve NOW, then continue. */
+        if ((s = object_to_seq(sub))) {
+            _ dr = _px_resolve_non_seq(pf, E_top, E_local, &s->now);
+            derefs = ADD(derefs, dr);
+            cursor = &s->next;
+        }
+        /* Other: resolve and return. */
+        else {
+            _ dr = _px_resolve_non_seq(pf, E_top, E_local, cursor);
+            return ADD(derefs, dr);
+        }
+    }
+}
+_ px_bang_resolve(pf *pf, _ E_top, _ E_local) {
+    _ todo = E_local;
+    _ derefs = ZERO;
+    while (NIL != todo) {
+        _ *cursor = &_CDAR(todo);
+        derefs = ADD(derefs, _px_resolve_sub(pf, E_top, E_local, cursor));
+        todo = CDR(todo);
+    }
+    return derefs;
+}
 
 /* GC + SETUP */
 
@@ -536,15 +594,13 @@ pf* _pf_new(void) {
     pf->ds = NIL;
     pf->free = NIL;
     pf->dict = NIL;
-    pf->ip_halt =
-        PRIM(pf_halt);
-    pf->ip_abort = 
-        CODE(PRIM(pf_print_error), RETURN);
+    pf->ip_halt  = PRIM((pf_prim)ex_trap);
+    pf->ip_abort = PRIM(pf_print_error);
     pf->ip = 
-        CODE(PRIM(pf_output),
-             CODE(PRIM(pf_output),
-                  CODE(QUOTE(NUMBER(123)),
-                       CODE(PRIM(pf_state), RETURN))));
+        SEQ(PRIM(pf_output),
+            SEQ(PRIM(pf_output),
+                SEQ(QUOTE(NUMBER(123)),
+                    PRIM(pf_state))));
 
     // Stdout
     pf->output = _pf_make_port(pf, stdout, "stdout");

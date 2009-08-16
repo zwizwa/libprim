@@ -54,6 +54,12 @@ _ ex_sub1(ex *ex, _ o) {
     long i = CAST_INTEGER(o);
     return integer_to_object(i - 1);
 }
+_ ex_add(ex *ex, _ a, _ b) {
+    long ia = CAST_INTEGER(a);
+    long ib = CAST_INTEGER(b);
+    return integer_to_object(ia + ib);
+}
+
 
 /* Lists and vectors. */
 _ ex_make_vector(ex *ex, _ slots, _ init) {
@@ -112,7 +118,7 @@ _ ex_cons(ex *ex, _ car, _ cdr) {
 _ ex_car(ex *ex, _ o)  { pair *p = CAST(pair, o); return p->car; }
 _ ex_cdr(ex *ex, _ o)  { pair *p = CAST(pair, o); return p->cdr; }
 _ ex_cadr(ex *ex, _ o) { pair *p = CAST(pair, ex_cdr(ex, o)); return p->car; }
-
+_ ex_cdar(ex *ex, _ o) { pair *p = CAST(pair, ex_car(ex, o)); return p->cdr; }
 
 
 

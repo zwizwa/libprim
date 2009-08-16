@@ -1861,7 +1861,7 @@ So, can the types be made a bit more intuitive?
 
 
 
-Entry: New interpreter data structure
+Entry: New PF interpreter
 Date: Sun Aug 16 12:09:57 CEST 2009
 
 The interpreter evaluates the following data structure:
@@ -1903,7 +1903,9 @@ traditional threaded Forth works by default.  Next to this it has
 proper tail call handling added as an optimization, by patching the
 last element in a word list whenever it is a highlevel call.  In
 contrast, in the PF approach, proper tail calls are a _consequence_ of
-the representation.
+the representation.  Of course, since our _source_ representation
+doesn't contain improper lists, this ``patching of tail calls'' still
+needs to be performed at compile time.
 
 [1] http://repository.readscheme.org/ftp/papers/ai-lab-pubs/AIM-443.pdf
 
@@ -1917,3 +1919,39 @@ Now.. I think the bytecode does what I need it to do.  But how to
 compile it?  This requires multiple passes to properly inline all
 references.
 
+I have something like this:
+
+FOR(SRC):
+        symbol? YES -> dereference if possible
+                NO  -> quote as datum
+
+        next?   YES -> alloc SEQ and continue
+                NO  -> store and finish
+
+Then iterate over the data structure until all symbols are
+dereferenced.
+
+There are (at least?) two special cases that won't work:
+
+ - empty programs are not handled properly.
+
+ - degenerate loops lead to infinite dereference passes:
+
+   (a b)
+   (b a)
+
+
+Handling those separately should make it work though.  First, filter
+out all references to empty programs.  Second: use a counter to
+indicate the number of dereferences performed.  If 0, there is no
+progress: any remaining references are degenerate loops.
+
+The empty program (NOP) is necessary as a corner case, because empty
+quotations need to work.  These can be optimized out of normal code
+though.
+
+Hmm.. this approach has a number of pitfalls.  It isn't possible to
+determine whether a program is a NOP before completely compiling it.
+
+Let's make it work first using a 1->1 map from source structure, and
+perform optimizations in a second pass.

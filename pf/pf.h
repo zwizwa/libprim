@@ -59,6 +59,9 @@ typedef struct {
 DEF_STRUCT(quote, TAG_QUOTE)
 DEF_STRUCT(seq,   TAG_SEQ)
 
+// The empty program.
+#define NOP CONSTANT(0x200)
+
 
 #define PF_EX_RESTART 1
 #define PF_EX_ABORT 2
