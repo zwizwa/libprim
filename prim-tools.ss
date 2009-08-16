@@ -5,6 +5,7 @@
 (define re-def (make-parameter #f))
 (define re-name (make-parameter #f))
 (define ctx (make-parameter #f))
+(define macro-prefix (make-parameter ""))
 
 (define (pre->suf pre x suf)
   (if (regexp-match pre x)
@@ -85,7 +86,9 @@
 (define (macro-defs dict ctx)
   (for-each*
    (lambda (name n)
-     (let ((mname (macro-mangle name)))
+     (let ((mname (string-append
+                   (macro-prefix)
+                   (macro-mangle name))))
        ;; (printf "#ifndef ~a\n" mname) ;; (*)
        (printf "#define ~a(~a) ~a(~a)\n"
                mname

@@ -38,4 +38,4 @@ COMPILE = $(CC) $(CPPFLAGS) $(CFLAGS) $(OPTI_CFLAGS) $(DEBUG_CFLAGS)
 
 .PHONY: clean
 clean:
-	rm -f *.o *.d *.d.* *~ *.h_ *.a
+	rm -f *.o *.d *.d.* *~ *.h_* *.a

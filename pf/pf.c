@@ -18,7 +18,8 @@
 #include <signal.h>
 
 #include "pf.h"
-#include "../ex/ex_prims.h_ex_prims"
+#include "pf.h_pf_prims"
+#include "pf.h_px_prims"
 
 #define TOP ARG0
 #define ARG0 _CAR(pf->ds) 
@@ -216,8 +217,7 @@ static inline void _pf_drop(pf *pf, _ *stack) {
 
 
 void _pf_push(pf *pf, _ ob) {
-    pf_make_void(pf);
-    TOP = ob;
+    pf->ds = _pf_cons(pf, ob, pf->ds);
 }
 _ _pf_make_symbol(pf *pf, const char *str){
     return const_to_object(symbol_from_string(TYPES->symbol_type, str));
@@ -352,9 +352,6 @@ _ px_post(pf *pf, _ ob) {
 
 /* PRIMITIVES */
 
-void pf_make_void(pf *pf) {
-    pf->ds = _pf_cons(pf, VOID, pf->ds);
-}
 void pf_drop(pf *pf) {
     _pf_drop(pf, &pf->ds);
 }
@@ -402,10 +399,30 @@ void pf_dup_write(pf *pf) { px_write(pf, TOP); }
 void pf_dup_post(pf *pf)  { px_post(pf, TOP); }
 
 
+/* Compilation is factored into several steps.  The main distinction
+   is again to perform the global side effects after all allocation
+   has finished.
 
-/* Convert a list to code. */
-_ ex_compile(ex *ex, _ obj, _ dict) {
-    return obj;
+   PURE:
+
+   - dictionary lookup.
+
+   - creation of mutually recursive procedures, outside of the main
+     dictionary (local, i.e. `letrec' semantics).
+
+   IMPURE:
+
+   - patching of main dictionary given a set of compiled procedures.
+
+ */
+
+/* Convert a list of (name . lst) pairs to code, using dict for
+   undefined references. */
+_ px_compile(ex *ex, _ E, _ src) {
+    return NIL;
+}
+_ px_ref(ex *ex, _ E1, _ E2, _ var) {
+    return  NIL;
 }
 
 

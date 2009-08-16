@@ -230,7 +230,7 @@ _ sc_symbol_to_string(sc *sc, _ sym) {
 }
 _ sc_string_to_symbol(sc *sc, _ sym) {
     bytes *b = CAST(bytes, sym);
-    return _ex_make_symbol(sc, b->bytes);
+    return _ex_make_symbol(EX, b->bytes);
 }
 _ sc_list_clone(sc *sc, _ lst) {
     if (NIL == lst) return lst;

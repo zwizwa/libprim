@@ -1815,3 +1815,9 @@ allocation.  It really would be simpler to do it from Scheme.
 Alternatively, it can be done in two passes: one pass creates the
 skeleton but doesn't mutate to make sure it can be restarted, while
 the second pass fills in the values.
+
+Also, it's possible to start with a non-recursive version and use that
+to boostrap the recursive one as a primitive.
+
+It's really not so difficult: the only need is that everything fits
+into free GC space before the modification to the environment is made.

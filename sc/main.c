@@ -5,7 +5,7 @@
 #include <setjmp.h>
 
 
-#include "test.h_scm"
+#include "test.h_load"
 void dummy(void *x, void *y){}
 void test_scheme(sc *sc) {
     dummy(gc_new, gc_mark);  // shut up warnings

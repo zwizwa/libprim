@@ -129,6 +129,11 @@ _ ex_find(ex *ex, _ E, _ var) {
     if (FALSE == IS_PAIR(rv)) return FALSE;
     return CDR(rv);
 }
+_ ex_find2(ex *ex, _ E_local, _ E_toplevel, _ var) {
+    _ rv;
+    if (FALSE != (rv = ex_find(ex, E_local, var))) return rv;
+    return ex_find(ex, E_toplevel, var);
+}
 
 _ ex_make_true(ex *ex)  { return TRUE; }
 _ ex_make_false(ex *ex) { return FALSE; }
@@ -156,14 +161,12 @@ _ ex_bang_vector_set(ex *ex, _ vec, _ n, _ val) {
     *vector_index(ex, vec, n) = val;
     return VOID;
 }
-
 _ ex_env_set(ex *ex, _ E, _ var, _ value) {
     _ rv = ex_find_slot(ex, E, var);
     if (FALSE == IS_PAIR(rv)) return FALSE;
     _CDR(rv)=value;
     return VOID;
 }
-
 _ ex_env_def(ex *ex, _ E, _ var, _ value) {
     _ slot = ex_find_slot(ex, E, var);
     if (FALSE == slot) {

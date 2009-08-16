@@ -32,6 +32,10 @@
   (for ((x xs)) (display (evl x)))
   (printf "}\n"))
 
+(current-input-port
+ (open-input-file
+  (vector-ref
+   (current-command-line-arguments) 0)))
 (convert)
 
 

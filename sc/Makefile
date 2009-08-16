@@ -1,25 +1,24 @@
 
+APP=scheme
 SRC=lib.c scheme.c main.c 
+DEP_OBJ=../leaf/leaf.a ../ex/ex.a
+
 OBJ=$(SRC:.c=.o)
 DEBUG_CFLAGS=-Wall -g -Wno-unused
 # OPTI_CFLAGS=-Os
-
 # CC = gcc -m32
 
-all: scheme $(DEP_OBJS)
+all: scheme $(DEP_OBJ)
 
 # generated files
-%.h_scm: %.scm ../unparse.ss
-	mzscheme ../unparse.ss <$< >$@
-%.h_sc_prims: %.c prims.ss
-	mzscheme prims.ss $< >$@
+%.h_load: %.scm ../load.ss
+	mzscheme ../load.ss $< >$@
+%.h_sc_prims: %.c prims_sc.ss
+	mzscheme prims_sc.ss $< >$@
 
-GEN = test.h_scm scheme.h_sc_prims boot.h_scm
+GEN = scheme.h_sc_prims boot.h_load test.h_load
 
-# Order is important!  ../gc contains default config which we override.
-CPPFLAGS += -I../scheme/ -I../gc/ -I../leaf/ -I../ex/ -DTASK_DEBUG=0
-
-
+CPPFLAGS += -I../leaf/ -I../ex/ -DTASK_DEBUG=0
 COMPILE = $(CC) $(CPPFLAGS) $(CFLAGS) $(OPTI_CFLAGS) $(DEBUG_CFLAGS) 
 
 # make deps from .c file
@@ -34,13 +33,10 @@ COMPILE = $(CC) $(CPPFLAGS) $(CFLAGS) $(OPTI_CFLAGS) $(DEBUG_CFLAGS)
 %.o: %.c Makefile
 	$(COMPILE) -o $@ -c $<
 
-
-DEP_OBJ=../leaf/leaf.a ../ex/ex.a
-
-scheme: $(OBJ) $(DEP_OBJ)
-	$(CC) -o scheme $(OBJ) $(DEP_OBJ)
+$(APP): $(OBJ) $(DEP_OBJ)
+	$(CC) -o $(APP) $(OBJ) $(DEP_OBJ)
 
 .PHONY: clean
 clean:
-	rm -f scheme *.o *.d *.d.* *~ *.h_
+	rm -f scheme *.o *.d *.d.* *~ *.h_*
 
