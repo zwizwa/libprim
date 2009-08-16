@@ -1,6 +1,6 @@
 
 /* Both SC (Scheme) and PF (Concatenative language with linear core
-   memory) use primitives from this expression language, which is
+   memory) use primitives from this expression language EX, which is
    essentially C with dynamic type checking and GC.
 
    Note that these only work inside 

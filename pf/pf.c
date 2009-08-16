@@ -631,11 +631,15 @@ void pf_box_test(pf *pf) {
     if (!_box) _box = px_box(pf, VOID);
     _pf_push(pf, _box);
 }
+static void _exch(_*a, _*b) {
+    _ tmp = *a;
+    *a = *b;
+    *b = tmp;
+}
+#define EXCH(a,b) _exch(&a, &b)
 void pf_bang_(pf *pf) {
-    aref *x = object_to_box(TOP);
-    x->object = CADR(pf->ds);
-    _DROP();
-    _DROP();
+    aref *x = object_to_box(TOP); _DROP();
+    EXCH(_CAR(pf->ds), x->object); _DROP();
 }
 
 void pf_print_state(pf *pf) {
