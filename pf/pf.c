@@ -445,7 +445,7 @@ _ px_compile_defs(pf *pf, _ E_top, _ defs) {
     while (penv) { 
         _ entry = penv->car;
         _ src   = CDR(pdefs->car);
-        _CDR(entry) = px_compile_program(pf, E_top, E_local, src);
+        _CDR(entry) = px_compile_program_env(pf, E_top, E_local, src);
         penv  = CAST(pair, penv->cdr);
         pdefs = CAST(pair, pdefs->cdr);
     }
@@ -462,7 +462,7 @@ _ px_compile_defs(pf *pf, _ E_top, _ defs) {
 _ px_quote(pf *pf, _ data)       { STRUCT(TAG_QUOTE, 1, data); }
 _ px_seq(pf *pf, _ sub, _ next)  { STRUCT(TAG_SEQ, 2, sub, next); }
 
-_ px_compile_program(pf *pf, _ E_top, _ E_local, _ src) {
+_ px_compile_program_env(pf *pf, _ E_top, _ E_local, _ src) {
     _ rv;
     _ *cursor = &rv;
     if (NIL == src) return NOP;
@@ -470,13 +470,13 @@ _ px_compile_program(pf *pf, _ E_top, _ E_local, _ src) {
     for(;;) {
         _ compiled, datum = CAR(src);
         /* Quoted subprograms. */
-        if (IS_LIST(datum)) {
-            compiled = QUOTE(px_compile_program(pf, E_top, E_local, datum));
+        if (TRUE == IS_LIST(datum)) {
+            compiled = QUOTE(px_compile_program_env(pf, E_top, E_local, datum));
         }
         /* If possible, dereference.  In case we're compiling
            non-recursive code, this first pass will produce fully
            linked code. */
-        else if (IS_SYMBOL(datum)) {
+        else if (TRUE == IS_SYMBOL(datum)) {
             _ val = FIND2(E_local, E_top, datum);
             if (FALSE != val) compiled = val;
             else compiled = datum;
@@ -500,6 +500,9 @@ _ px_compile_program(pf *pf, _ E_top, _ E_local, _ src) {
             src = CDR(src);
         }
     }
+}
+_ px_compile_program(pf *pf, _ src) {
+    return px_compile_program_env(pf, NIL, pf->dict, src);
 }
 
 /* Walk the code, eliminating symbolic references where possible.
@@ -574,7 +577,7 @@ static _ _pf_prim(pf* pf, pf_prim fn, _ name) {
 
 #define PRIM(fn)  _pf_prim(pf, fn)
 
-static prim_def pf_prims[] = pf_init;
+static prim_def pf_prims[] = PF_pf_init;
 static void _pf_def_prims(pf *pf, prim_def *prims) {
     prim_def *prim;
     for (prim = prims; prim->name; prim++) {
@@ -630,11 +633,18 @@ pf* _pf_new(void) {
     _pf_def_all_prims(pf);
     pf->ip_halt  = FIND(pf->dict, SYMBOL("trap"));
     pf->ip_abort = FIND(pf->dict, SYMBOL("print-error"));
-    pf->ip = 
+    pf->ip = px_compile_program(pf,
+                                (CONS(SYMBOL("output"),
+                                      CONS(SYMBOL("output"),
+                                           CONS(NUMBER(123),
+                                                CONS(SYMBOL("state"),
+                                                     NIL))))));
+#if 0
         SEQ(WORD("output"),
             SEQ(WORD("output"),
                 SEQ(QUOTE(NUMBER(123)),
                     WORD("state"))));
+#endif
 
     // Stdout
     pf->output = _pf_make_port(pf, stdout, "stdout");
