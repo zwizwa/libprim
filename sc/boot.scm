@@ -1,4 +1,9 @@
 ;; Bootstrap
+
+;; The s-expr will be allocated outside the VM, so a single form makes
+;; sure there's no GC during construction.
+(begin
+  
 (def-toplevel! 'list (lambda args args))
 (def-toplevel-macro!
   'define
@@ -127,3 +132,7 @@
         (cons 'begin (cddr form))))
 
 (post 'init-OK)
+
+
+;; Perform GC before loading another script outside of VM.
+(gc))
