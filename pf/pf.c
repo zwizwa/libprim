@@ -373,6 +373,8 @@ _ px_write(pf *pf, _ ob) {
     if ((x = object_to_port(ob, EX))) {
         return ex_write(EX, const_to_object(x));
     }
+    /* SEQ and QUOTE are decompiled.  Use square brackets to
+       distinguish from lists. */
     else if ((x = object_to_seq(ob))) {
         long max = 10;
         _ex_printf(EX, "[");
@@ -398,21 +400,22 @@ _ px_write(pf *pf, _ ob) {
             }
         }
     }
-    /* Attempt to undo the different forms of quoting that lead to a
-       QUOTE AST object. */
     else if ((x = object_to_quote(ob))) {
         quote *q = (quote*)x;
+        /* Primitive */
         if ((object_to_prim(q->object, EX))) {
             _ex_printf(EX, "[");
-            px_write_word(pf, q->object); // may be code
+            px_write_word(pf, q->object); 
             return _ex_printf(EX, "]");
         }
+        /* Sequence */
         else if ((object_to_seq(q->object))) {
-            return px_write(pf, q->object); // may be code
+            return px_write(pf, q->object);
         }
+        /* Datum */
         else {
             _ex_printf(EX, "'");
-            return px_write(pf, q->object); // may be code
+            return px_write(pf, q->object);
         }
     }
     else if (NOP == ob) {
