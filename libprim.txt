@@ -1821,3 +1821,70 @@ to boostrap the recursive one as a primitive.
 
 It's really not so difficult: the only need is that everything fits
 into free GC space before the modification to the environment is made.
+
+
+Entry: PF compiler
+Date: Sun Aug 16 11:44:20 CEST 2009
+
+"Compiler" is a strong word: it's mostly a linker.  As mentioned in
+the previous post, this is a bit awkward due to the graph patching
+that needs to be done.  There are many corner cases related to
+singleton words (that need ``eta-reduction'') or primitives, that can
+be inlined.
+
+The real question is (and I've run into this before) does the
+dictionary contain CODE references, or SUB references?
+
+   CODE  = RETURN | (SUB : CODE)    ;; ':' is a GC CONS
+   SUB   = PRIM | QUOTE | CODE
+ 
+   RS    = MT | (CODE . RS)         ;; '.' is a linear CONS
+
+It might make more sense to use SUB refs.  Tail calls are tricky!
+
+Let's change the types a bit:
+
+   CPAIR = (SUB : CODE)
+   CODE  = RETURN | CPAIR   
+   SUB   = PRIM | QUOTE | CPAIR
+ 
+   RS    = NIL | (CPAIR . RS) 
+
+The reason this feels a bit weird is that composite code doesn't need
+RETURN.  The only way to ever pop RS is to have a word end in a
+primitive, i.e. [ PRIM RETURN ].  Composite code can always just jump.
+
+Looking at CPS versions of Scheme, this is also quite clear: the only
+thing that ever _invokes_ the continuation, is a primitive.
+
+So, can the types be made a bit more intuitive?
+
+
+
+Entry: New interpreter data structure
+Date: Sun Aug 16 12:09:57 CEST 2009
+
+The interpreter evaluates the following data structure:
+
+      ABS   = (SUB : SUB)            ;; `:' is graph CONS
+      SUB   = PRIM | QUOTE | ABS
+ 
+      RS    = NIL | (SUB . RS)       ;; `.' is linear CONS
+
+ABS   Abstractions represent code sequencing.  They provide the
+      encoding of ``what to do _now_ and what to do _next_''.
+
+CODE  Code is either an abstraction (``do'') or the absence of one
+      (``done'')
+
+SUB   A subroutine is a basic unit of work: invoke a primitive
+      function, load a data object or perform an abstraction.
+
+RS    The return stack is used for evaluating abstractions.
+
+
+Note that RS is quite similar to an ABS, only that it is built out of
+a linear data structure.  This reads as ``a continuation is a
+program''.
+
+Whenever the current SUB is a PRIM or a QUOTE, RS gets popped.

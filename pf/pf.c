@@ -346,9 +346,6 @@ _ px_post(pf *pf, _ ob) {
     return _ex_printf(EX, "\n");
 }
 
-//_ px_compile(pf *pf, _ ob) {
-//}
-
 
 /* PRIMITIVES */
 
@@ -416,13 +413,57 @@ void pf_dup_post(pf *pf)  { px_post(pf, TOP); }
 
  */
 
+
 /* Convert a list of (name . lst) pairs to code, using dict for
    undefined references. */
-_ px_compile(ex *ex, _ E, _ src) {
-    return NIL;
+_ px_compile(pf *pf, _ E, _ src) {
+    /* Create skeleton dictionary for circular references. */
+    _ dict = _ex_map1_prim(EX, (ex_1)px_skeleton_entry, src);
+    pair *pd = CAST(pair, dict);
+    pair *ps = CAST(pair, src);
+    /* Compile and link up the dictionary. */
+    while (pd) { 
+        px_bang_compile(pf, pd->car, ps->car); 
+        pd = CAST(pair, pd->cdr);
+        ps = CAST(pair, ps->cdr);
+    }
+    return dict;
 }
-_ px_ref(ex *ex, _ E1, _ E2, _ var) {
-    return  NIL;
+_ px_quote(pf *pf, _ data) { 
+    return gc_make_tagged(EX->gc, TAG_QUOTE, 1, data);
+}
+_ px_code(pf *pf, _ sub, _ next) { 
+    return gc_make_tagged(EX->gc, TAG_CODE, 2, sub, next);
+}
+
+
+_ px_skeleton_entry(pf *pf, _ entry) {
+    pair *p = CAST(pair, entry);
+    _ code = (NIL == p->cdr) ? RETURN : CODE(VOID, VOID);
+    return CONS(p->car, code);
+}
+
+/* Recursively extend the entry with linked code.  This is where
+   proper tail recursion gets implemented.  The CDR of the last cell
+   gets replaced with:
+
+   src -> code
+
+   ()         RETURN
+   (abc)      ref(abc)               ;; possibly inline primitives
+   (abc . x)  CODE(ref(abc) . next)
+
+*/
+_ px_bang_compile(pf *pf, _ entry, _ src) {
+    if (RETURN == CDR(entry)) return VOID; // empty code: its already OK.
+
+    code *c = CAST(code, CDR(entry));
+    pair *p = CAST(pair, CDR(src));
+    if (!c) return VOID; // empty code
+    for (;;) {
+        // if (NIL == p->cdr) _CDR(entry
+    }
+    return VOID;
 }
 
 
@@ -454,8 +495,6 @@ static _ _pf_prim(pf* pf, pf_prim fn) {
     return const_to_object(p);
 }
 
-#define CODE(a,b) _pf_code(pf, a, b)
-#define QUOTE(a)  _pf_quote(pf, a)
 #define PRIM(fn)  _pf_prim(pf, fn)
 
 pf* _pf_new(void) {

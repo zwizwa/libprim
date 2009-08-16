@@ -83,12 +83,13 @@
     (format "x~a" i)))
 (define (string-append* lst) (apply string-append lst))
 
+(define (mprefix str)
+  (string-append (macro-prefix) str))
+
 (define (macro-defs dict ctx)
   (for-each*
    (lambda (name n)
-     (let ((mname (string-append
-                   (macro-prefix)
-                   (macro-mangle name))))
+     (let ((mname (mprefix (macro-mangle name))))
        ;; (printf "#ifndef ~a\n" mname) ;; (*)
        (printf "#define ~a(~a) ~a(~a)\n"
                mname
@@ -109,8 +110,8 @@
   (let ((filename (arg0)))
         
     (gen-header
-     (filename->name filename "_init")
-     (string-upcase (filename->name filename ""))
+     (mprefix (filename->name filename "_init"))
+     (mprefix (string-upcase (filename->name filename "")))
      (scan filename)
      (ctx))))
 

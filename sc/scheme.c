@@ -232,19 +232,6 @@ _ sc_string_to_symbol(sc *sc, _ sym) {
     bytes *b = CAST(bytes, sym);
     return _ex_make_symbol(EX, b->bytes);
 }
-_ sc_list_clone(sc *sc, _ lst) {
-    if (NIL == lst) return lst;
-    _ res = CONS(VOID, NIL);
-    pair *in,*out;
-    out = object_to_pair(res);
-    for(;;) {
-        in  = CAST(pair, lst);
-        if (NIL == in->cdr) return res;
-        out->cdr = CONS(VOID,NIL);
-        out = object_to_pair(out->cdr);
-        lst = in->cdr;
-    }
-}
 _ _sc_make_port(sc *sc, FILE *f, const char *name) {
     return _sc_make_aref(sc, &(TYPES->port_type->free), 
                          port_new(TYPES->port_type, f, name));
@@ -260,45 +247,6 @@ _ sc_open_mode_file(sc *sc, _ path, _ mode) {
 
 #define NARGS_ERROR(fn) ERROR("nargs", fn)
 
-/* Primitive map to make some interpret code a bit easier. */
-static _ _sc_map1_prim(sc *sc, sc_1 fn, _ l_in) {
-    _ res = sc_list_clone(sc, l_in);
-    _ l_out = res;
-    pair *in, *out;
-    for(;;) {
-        in  = object_to_pair(l_in);
-        out = object_to_pair(l_out);
-        if (!in) return res;
-        out->car = fn(sc, in->car);
-        l_in  = in->cdr;
-        l_out = out->cdr;
-    }
-}
-_ sc_map1_prim(sc *sc, _ fn, _ l_in) {
-    prim *p = CAST(prim, fn);
-    if (1 != p->nargs) NARGS_ERROR(fn);
-    return _sc_map1_prim(sc, (sc_1)(p->fn), l_in);
-}
-static _ _sc_map2_prim(sc *sc, sc_2 fn, _ l_in1, _ l_in2) {
-    _ res = sc_list_clone(sc, l_in1);
-    _ l_out = res;
-    pair *in1, *in2, *out;
-    for(;;) {
-        in1 = object_to_pair(l_in1);
-        in2 = object_to_pair(l_in2);
-        out = object_to_pair(l_out);
-        if ((!in1) || (!in2)) return res;
-        out->car = fn(sc, in1->car, in2->car);
-        l_in1 = in1->cdr;
-        l_in2 = in2->cdr;
-        l_out = out->cdr;
-    }
-}
-_ sc_map2_prim(sc *sc, _ fn, _ l_in1, _ l_in2) {
-    prim *p = CAST(prim, fn);
-    if (2 != p->nargs) NARGS_ERROR(fn);
-    return _sc_map2_prim(sc, (sc_2)(p->fn), l_in1, l_in2);
-}
 
 
 /* INTERPRETER */
@@ -330,10 +278,10 @@ _ sc_map2_prim(sc *sc, _ fn, _ l_in1, _ l_in2) {
 
 static inline _ _sc_call(sc *sc, void *p, int nargs, _ ra) {
     switch(nargs) {
-    case 0: return ((sc_0)p)(sc);
-    case 1: return ((sc_1)p)(sc, _CAR(ra));
-    case 2: return ((sc_2)p)(sc, _CADR(ra), _CAR(ra));
-    case 3: return ((sc_3)p)(sc, _CADDR(ra), _CADR(ra), _CAR(ra));
+    case 0: return ((ex_0)p)(EX);
+    case 1: return ((ex_1)p)(EX, _CAR(ra));
+    case 2: return ((ex_2)p)(EX, _CADR(ra), _CAR(ra));
+    case 3: return ((ex_3)p)(EX, _CADDR(ra), _CADR(ra), _CAR(ra));
     default:
         return ERROR("prim", integer_to_object(nargs));
     }

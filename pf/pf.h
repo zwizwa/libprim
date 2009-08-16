@@ -58,13 +58,6 @@ typedef struct {
 DEF_STRUCT(quote, TAG_QUOTE)
 DEF_STRUCT(code,  TAG_CODE)
 
-static inline _ _pf_quote(pf *pf, _ data) { 
-    return gc_make_tagged(pf->m.gc, TAG_QUOTE, 1, data);
-}
-static inline _ _pf_code(pf *pf, _ sub, _ next) { 
-    return gc_make_tagged(pf->m.gc, TAG_CODE, 2, sub, next);
-}
-
 
 #define PF_EX_RESTART 1
 #define PF_EX_ABORT 2

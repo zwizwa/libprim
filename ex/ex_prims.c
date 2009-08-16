@@ -1,11 +1,11 @@
 
 /* Both SC (Scheme) and PF (Concatenative language with linear core
-   memory) are based on a shared expression language which handles GC
-   allocation and primitive exceptions.
+   memory) use primitives from this expression language, which is
+   essentially C with dynamic type checking and GC.
 
-   This language is essentially C with dynamic types.  Note that these
-   only work inside setjump(ex->top) for GC restarts and
-   setjump(ex->r.step) for primitive exceptions.
+   Note that these only work inside 
+     - setjump(ex->top) for GC restarts
+     - setjump(ex->r.step) for primitive exceptions.
 */
 
 
@@ -177,6 +177,29 @@ _ ex_env_def(ex *ex, _ E, _ var, _ value) {
         return E;
     }
 }
+_ ex_list_clone(ex *ex, _ lst) {
+    if (NIL == lst) return lst;
+    _ res = CONS(VOID, NIL);
+    pair *in,*out;
+    out = object_to_pair(res);
+    for(;;) {
+        in  = CAST(pair, lst);
+        if (NIL == in->cdr) return res;
+        out->cdr = CONS(VOID,NIL);
+        out = object_to_pair(out->cdr);
+        lst = in->cdr;
+    }
+}
+_ ex_map1_prim(ex *ex, _ fn, _ l_in) {
+    prim *p = CAST(prim, fn);
+    if (1 != p->nargs) ex_raise_nargs_error(ex, fn);
+    return _ex_map1_prim(ex, (ex_1)(p->fn), l_in);
+}
+_ ex_map2_prim(ex *ex, _ fn, _ l_in1, _ l_in2) {
+    prim *p = CAST(prim, fn);
+    if (2 != p->nargs) ex_raise_nargs_error(ex, fn);
+    return _ex_map2_prim(ex, (ex_2)(p->fn), l_in1, l_in2);
+}
 
 
 
@@ -201,4 +224,7 @@ _ ex_raise_error(ex *ex, _ sym_o, _ arg_o) {
 
 _ ex_raise_type_error(ex *ex, _ arg_o) {
     return ex_raise_error(ex, SYMBOL("type"), arg_o);
+}
+_ ex_raise_nargs_error(ex *ex, _ arg_o) {
+    return ex_raise_error(ex, SYMBOL("nargs"), arg_o);
 }

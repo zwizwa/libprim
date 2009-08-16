@@ -242,12 +242,6 @@ DEF_AREF_TYPE(bytes)
 static inline long prim_nargs(prim *p){ return p->nargs; }
 static inline void *prim_fn(prim *p)  { return p->fn; }
 
-/* Scheme primitives */
-#define MAX_PRIM_ARGS 3
-typedef _ (*sc_0)(sc* sc);
-typedef _ (*sc_1)(sc* sc, _);
-typedef _ (*sc_2)(sc* sc, _, _);
-typedef _ (*sc_3)(sc* sc, _, _, _);
 
 
 /* ROOT OBJECTS */

@@ -147,3 +147,33 @@ void _ex_overflow(ex *ex, long extra) {
     gc_grow(ex->gc, request);
     _ex_restart(ex);
 }   
+
+/* Primitive map to make some primitives easier. */
+_ _ex_map1_prim(ex *ex, ex_1 fn, _ l_in) {
+    _ res = ex_list_clone(ex, l_in);
+    _ l_out = res;
+    pair *in, *out;
+    for(;;) {
+        in  = object_to_pair(l_in);
+        out = object_to_pair(l_out);
+        if (!in) return res;
+        out->car = fn(ex, in->car);
+        l_in  = in->cdr;
+        l_out = out->cdr;
+    }
+}
+_ _ex_map2_prim(ex *ex, ex_2 fn, _ l_in1, _ l_in2) {
+    _ res = ex_list_clone(ex, l_in1);
+    _ l_out = res;
+    pair *in1, *in2, *out;
+    for(;;) {
+        in1 = object_to_pair(l_in1);
+        in2 = object_to_pair(l_in2);
+        out = object_to_pair(l_out);
+        if ((!in1) || (!in2)) return res;
+        out->car = fn(ex, in1->car, in2->car);
+        l_in1 = in1->cdr;
+        l_in2 = in2->cdr;
+        l_out = out->cdr;
+    }
+}

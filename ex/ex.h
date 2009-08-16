@@ -119,4 +119,13 @@ static inline void _ex_length_rest(ex *ex, _ lst, _ *length, _ *rest) {
     *length = integer_to_object(nb);
 }
 
+/* EX primitives */
+#define MAX_PRIM_ARGS 3
+typedef _ (*ex_0)(ex* ex);
+typedef _ (*ex_1)(ex* ex, _);
+typedef _ (*ex_2)(ex* ex, _, _);
+typedef _ (*ex_3)(ex* ex, _, _, _);
+
+_ _ex_map1_prim(ex *ex, ex_1 fn, _ l_in);
+_ _ex_map2_prim(ex *ex, ex_2 fn, _ l_in1, _ l_in2);
 #endif
