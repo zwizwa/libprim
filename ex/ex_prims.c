@@ -82,8 +82,9 @@ _ ex_bang_reverse_append(ex *ex, _ lst, _ tail) {
     if (NIL == lst) return tail;
     _ next, last = tail;
     while (NIL != lst) {
-        next = CDR(lst);
-        CAST(pair, lst)->cdr = last;
+        pair *p = CAST(pair, lst);
+        next = p->cdr;
+        p->cdr = last;
         last = lst;
         lst = next;
     }
