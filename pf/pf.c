@@ -279,9 +279,11 @@ void _pf_run(pf *pf) {
         }
         /* Interpret primitive code or data and pop RS. */
         else {
-            /* Update continuation. */
+            /* Update continuation before executing primitive. */
             _ ip = pf->ip;
-            if (unlikely(HALT == pf->rs)) goto halt;
+            if (unlikely(HALT == pf->rs)) {
+                pf->ip = HALT;
+            }
             else {
                 pf->ip = CAR(pf->rs);
                 _pf_drop(pf, &pf->rs);
@@ -318,6 +320,10 @@ void _pf_run(pf *pf) {
             }
             /* The empty program. */
             else if (NOP == ip) {
+            }
+            /* Result of popping an empty continuation. */
+            else if (HALT == ip) {
+                goto halt;
             }
             /* Unknown non-seq. */
             else {
@@ -360,19 +366,7 @@ _ px_write(pf *pf, _ ob) {
         return ex_write(EX, const_to_object(x));
     }
     else if ((x = object_to_seq(ob))) {
-        void *x_head = x;
-        seq *s = (seq*)x;
-        _ex_printf(EX, "#seq<.");
-        while ((x = object_to_seq(s->next))) {
-            if (x == x_head) {
-                _ex_printf(EX, "!>");
-                return VOID;
-            }
-            _ex_printf(EX, ".");
-            s = (seq*)x;
-        }
-        _ex_printf(EX, ".>");
-        return VOID;
+        return _ex_printf(EX, "#seq<%p>", x);
     }
     else if (NOP == ob) {
         return _ex_printf(EX, "#nop");
