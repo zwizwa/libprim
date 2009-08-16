@@ -21,8 +21,8 @@ typedef struct {
 
     /* Symbol cache. */
     _ s_underflow;
-    _ s_eval;
     _ s_quote;
+    _ s_var;
 
 } pf;
 

@@ -2018,7 +2018,7 @@ prints that instead.  Using brackets for printing code:
 (abc . ['123 dup-post])
 
 
-Entry: Autosnarp
+Entry: Autosnarf
 Date: Sun Aug 16 22:38:53 CEST 2009
 
 From EX / PX -> PF.

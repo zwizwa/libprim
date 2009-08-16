@@ -6,6 +6,7 @@
 
 (
  '((abc 123 post)
+   (boo (var 6))
    (loop 1 (print-state) (1 2) loop)
    (def 456 post abc))
  define
@@ -13,10 +14,13 @@
  print-dict
  '(1 2 3) post
  '(1 2 3) reverse post
- 
+
 
  )
 
 (abc def)
 
+(boo post 123 boo ! boo post)
+
+     
 

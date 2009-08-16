@@ -191,11 +191,11 @@ static _ _pf_link(pf *pf, _ ob) {
    linear memory. */
 static void _gc_unlink(_ ob, pf *pf) { _pf_unlink(pf, ob); }
 static void *unlink_fin = _gc_unlink;
-static inline _ _pf_box(pf *pf, _ ob) {
+_ px_box(pf *pf, _ ob) {
     return gc_make_tagged(GC, TAG_BOX, 2, 
                           fin_to_object((void*)(&unlink_fin)), ob);
 }
- _ px_lin(pf *pf, _ ob) {
+_ px_lin(pf *pf, _ ob) {
     return gc_make_tagged(GC, TAG_LIN, 2, 
                           fin_to_object((void*)(&unlink_fin)), ob);
 }
@@ -374,6 +374,9 @@ _ px_write(pf *pf, _ ob) {
     if ((x = object_to_port(ob, EX))) {
         return ex_write(EX, const_to_object(x));
     }
+    else if ((x = object_to_box(ob))) {
+        return _ex_write_vector(EX, "box", object_to_vector(ob));
+    }
     /* SEQ and QUOTE are decompiled.  Use square brackets to
        distinguish from lists. */
     else if ((x = object_to_seq(ob))) {
@@ -501,8 +504,12 @@ _ px_compile_program_env(pf *pf, _ E_top, _ E_local, _ src) {
         else if (TRUE == IS_LIST(datum)) {
             /* Special Form. */
             _ tag = _CAR(datum);
-            if (pf->s_quote == tag) {
+            if (tag == pf->s_quote) {
                 compiled = QUOTE_DATUM(_CADR(datum));
+            }
+            else if (tag == pf->s_var) {
+                _ val = (NIL == _CDR(datum) ? VOID : _CADR(datum));
+                compiled = QUOTE(BOX(_pf_copy_from_graph(pf, val)));
             }
             /* Quoted subprogram. */
             else {
@@ -621,12 +628,14 @@ void pf_dup_to_dict(pf *pf) {
 }
 static object _box = 0;
 void pf_box_test(pf *pf) {
-    if (!_box) _box = _pf_box(pf, VOID);
+    if (!_box) _box = px_box(pf, VOID);
     _pf_push(pf, _box);
 }
-void pf_bang(pf *pf) {
-    aref *x = object_to_aref(TOP);
+void pf_bang_(pf *pf) {
+    aref *x = object_to_box(TOP);
     x->object = CADR(pf->ds);
+    _DROP();
+    _DROP();
 }
 
 void pf_print_state(pf *pf) {
@@ -738,8 +747,8 @@ pf* _pf_new(void) {
 
     // Symbol cache
     pf->s_underflow = SYMBOL("underflow");
-    pf->s_eval      = SYMBOL("eval");
     pf->s_quote     = SYMBOL("quote");
+    pf->s_var       = SYMBOL("var");
 
     // Machine state
     pf->ds = NIL;
