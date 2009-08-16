@@ -1960,12 +1960,12 @@ So, the passes are:
 
   (PURE)
     1. construct environment
-    2. compile s-expr -> AST
+    2. compile s-expr -> AST  (``improper'' SUB lists)
     3. resolve all references
-    4. check degenerate loops
-    5. snap pointers
+    4. check degenerate loops (NI)
+    5. snap pointers (NI)
   (IMPURE)
-    6. patch global environment
+    6. patch global environment (NI)
 
 Most of the passes can be done purely.  They don't create much garbage
 so they can be kept as primitives (should make it to the end without
@@ -1989,6 +1989,15 @@ use direct calls to read-only ex_ functions, without the need to make
 them polymorphic to both linear and nonlinear lists.
 
 Anyways, this seems something to postpone until it becomes a problem.
-It should be straightforward to do.
+It should be straightforward to do: it's mostly the functions
+_pf_copy_from_graph and _pf_copy_to_graph.
 
+
+
+Entry: QUOTE
+Date: Sun Aug 16 19:32:48 CEST 2009
+
+Another premature optimization: currently there's a lot of copying
+going on when defining new code from within PF (represented as linear
+lists).
 

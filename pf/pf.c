@@ -194,26 +194,43 @@ static inline _ _pf_box(pf *pf, _ ob) {
     return gc_make_tagged(GC, TAG_BOX, 2, 
                           fin_to_object((void*)(&unlink_fin)), ob);
 }
-static inline _ _pf_lin(pf *pf, _ ob) {
+ _ px_lin(pf *pf, _ ob) {
     return gc_make_tagged(GC, TAG_LIN, 2, 
                           fin_to_object((void*)(&unlink_fin)), ob);
 }
 _ _pf_copy_to_graph(pf *pf, _ ob) {
     rc *x;
     pair *p;
+    /* Wrap all RC objects in a LIN struct */
     if ((x = object_to_rc(ob, &pf->m))) {
-        /* Wrap all RC objects in a BOX struct */
         x->rc++;
-        return _pf_lin(pf, ob);
+        return LIN(ob);
     }
+    /* Recursively copy the tree. */
     else if ((p = object_to_pair(ob))) {
-        /* Recursively copy the tree. */
+    
         return ex_cons(&pf->m,
                        _pf_copy_to_graph(pf, p->car),
                        _pf_copy_to_graph(pf, p->cdr));
     }
     else return ob;
 }
+_ _pf_copy_from_graph(pf *pf, _ ob) {
+    pair *p;
+    lin *l;
+    /* Unwrap LIN objects. */
+    if ((l = object_to_lin(ob))) { 
+        return _pf_link(pf, l->object);
+    }
+    /* Recursive copy. */
+    else if ((p = object_to_pair(ob))) {
+        return _pf_cons(pf, 
+                        _pf_copy_from_graph(pf, p->car),
+                        _pf_copy_from_graph(pf, p->cdr));
+    }
+    else return ob;
+}
+
 static inline void _pf_drop(pf *pf, _ *stack) {
     _pf_from_to(pf, stack, &pf->free);  // this catches underflow errors
     _ ob = MOVE(_CAR(pf->free), VOID);
@@ -264,7 +281,7 @@ void _pf_run(pf *pf) {
         else {
             /* Update continuation. */
             _ ip = pf->ip;
-            if (unlikely(NIL == pf->rs)) {
+            if (unlikely(HALT == pf->rs)) {
                 pf->ip = pf->ip_halt;
             }
             else {
@@ -295,7 +312,8 @@ void _pf_run(pf *pf) {
                 else {
                     /* All other objects behave as constants to the
                        linear memory manager. */
-                    if (unlikely(object_to_pair(q->object))) TRAP();
+                    if (unlikely((q->object != NIL) &&
+                                 object_to_pair(q->object))) TRAP();
                     ob = q->object;
                 }
                 _pf_push(pf, ob);
@@ -345,6 +363,12 @@ _ px_write(pf *pf, _ ob) {
     }
     else if ((x = object_to_seq(ob))) {
         return _ex_printf(EX, "#seq<%p>", x);
+    }
+    else if (NOP == ob) {
+        return _ex_printf(EX, "#nop");
+    }
+    else if (HALT == ob) {
+        return _ex_printf(EX, "#halt");
     }
     else {
         return _ex_printf(EX, "#object<%p>",(void*)ob);
@@ -398,6 +422,8 @@ void pf_print_error(pf *pf) {
 // AUTOGEN
 void pf_dup_write(pf *pf) { px_write(pf, TOP); }
 void pf_dup_post(pf *pf)  { POST(TOP); }
+void pf_define(pf *pf)    { px_define(pf, TOP); PF_DROP(); }
+void pf_trap(pf *pf)      { ex_trap(EX); }
 
 
 /* COMPILER */
@@ -421,19 +447,19 @@ void pf_dup_post(pf *pf)  { POST(TOP); }
 /* Convert definition list of (name . src) pairs to a compiled
    dictionary, using E_top for undefined references. */
 
-_ px_skeleton_entry(pf *pf, _ code) { return CONS(CAR(code), FALSE); }
+_ px_skeleton_entry(pf *pf, _ code) { return CONS(CAR(code), VOID); }
 _ px_compile_defs(pf *pf, _ E_top, _ defs) {
     /* Create skeleton dictionary. */
     _ E_local = _ex_map1_prim(EX, (ex_1)px_skeleton_entry, defs);
-    pair *penv  = CAST(pair, E_local);
-    pair *pdefs = CAST(pair, defs);
+    _ penv  = E_local;
+    _ pdefs = defs;
     /* Translate to AST. */
-    while (penv) { 
-        _ entry = penv->car;
-        _ src   = CDR(pdefs->car);
+    while (NIL != penv) { 
+        _ entry = CAR(penv);
+        _ src   = CDAR(pdefs);
         _CDR(entry) = px_compile_program_env(pf, E_top, E_local, src);
-        penv  = CAST(pair, penv->cdr);
-        pdefs = CAST(pair, pdefs->cdr);
+        penv  = CDR(penv);
+        pdefs = CDR(pdefs);
     }
     /* Resolve all references. */
     px_bang_resolve(pf, E_top, E_local);
@@ -448,6 +474,15 @@ _ px_compile_defs(pf *pf, _ E_top, _ defs) {
 _ px_quote(pf *pf, _ data)       { STRUCT(TAG_QUOTE, 1, data); }
 _ px_seq(pf *pf, _ sub, _ next)  { STRUCT(TAG_SEQ, 2, sub, next); }
 
+_ px_quote_datum(pf *pf, _ datum) {
+    // FIXME: distinguish between linear and graph data.
+    _ blessed = _pf_copy_from_graph(pf, datum);
+
+    // Only LIN-wrap things that are necessary.
+    if (object_to_pair(blessed)) blessed = LIN(blessed);
+
+    return QUOTE(blessed);
+}
 _ px_compile_program_env(pf *pf, _ E_top, _ E_local, _ src) {
     _ rv;
     _ *cursor = &rv;
@@ -455,23 +490,34 @@ _ px_compile_program_env(pf *pf, _ E_top, _ E_local, _ src) {
     /* Compile with proper tail calls. */
     for(;;) {
         _ compiled, datum = CAR(src);
-        /* Quoted subprograms. */
-        if (TRUE == IS_LIST(datum)) {
-            compiled = QUOTE(px_compile_program_env(pf, E_top, E_local, datum));
+        /* Quoted empty program. */
+        if (NIL == datum) {
+            compiled = QUOTE(NOP);
+        }
+        else if (TRUE == IS_LIST(datum)) {
+            /* Special Form. */
+            _ tag = _CAR(datum);
+            if (pf->s_quote == tag) {
+                compiled = QUOTE_DATUM(_CADR(datum));
+            }
+            /* Quoted subprogram. */
+            else {
+                compiled = QUOTE_DATUM
+                    (COMPILE_PROGRAM_ENV(E_top, E_local, datum));
+            }
         }
         /* If possible, dereference.  In case we're compiling
            non-recursive code, this first pass will produce fully
            linked code. */
         else if (TRUE == IS_SYMBOL(datum)) {
             _ val = FIND2(E_local, E_top, datum);
-            if (FALSE != val) compiled = val;
+            if (FALSE == val) ERROR("undefined", datum);
+            if (VOID != val) compiled = val;
             else compiled = datum;
         }
         /* Quote literal data. */
         else {
-            // FIXME: distinguish between linear and graph data.
-            _ val = datum;
-            compiled = QUOTE(val);
+            compiled = QUOTE_DATUM(datum);
         }
         /* Return if this was the last one. */
         if (NIL == CDR(src)) {
@@ -538,6 +584,22 @@ _ px_bang_resolve(pf *pf, _ E_top, _ E_local) {
         todo = CDR(todo);
     }
     return derefs;
+}
+
+
+_ px_define(pf *pf, _ defs) {
+    /* Create an isolated environment. */
+    _ E = px_compile_defs(pf, pf->dict, defs);
+
+    /* Patch it into the global one. */
+    while (NIL != E) {
+        _ var = _CAAR(E);
+        _ val = _CDAR(E);
+        _ex_printf(EX, "define: "); POST(var);
+        pf->dict = ENV_DEF(pf->dict, var, val);
+        E = _CDR(E);
+    }
+    return VOID;
 }
 
 /* GC + SETUP */
@@ -611,17 +673,19 @@ pf* _pf_new(void) {
     // Symbol cache
     pf->s_underflow = SYMBOL("underflow");
     pf->s_eval      = SYMBOL("eval");
+    pf->s_quote     = SYMBOL("quote");
 
-    // Machine state.
-    pf->rs = NIL;
+    // Machine state (beware of order of inits!)
     pf->ds = NIL;
     pf->free = NIL;
     pf->dict = NIL;
+    pf->ip = NOP;
+    pf->rs = HALT;
 
     _pf_def_all_prims(pf);
     pf->ip_halt  = FIND(pf->dict, SYMBOL("trap"));
     pf->ip_abort = FIND(pf->dict, SYMBOL("print-error"));
-    pf->ip = pf->ip_halt;
+
 
     // Stdout
     pf->output = _pf_make_port(pf, stdout, "stdout");

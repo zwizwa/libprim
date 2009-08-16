@@ -23,6 +23,7 @@ typedef struct {
     /* Symbol cache. */
     _ s_underflow;
     _ s_eval;
+    _ s_quote;
 
 } pf;
 
@@ -60,7 +61,8 @@ DEF_STRUCT(quote, TAG_QUOTE)
 DEF_STRUCT(seq,   TAG_SEQ)
 
 // The empty program.
-#define NOP CONSTANT(0x200)
+#define NOP  CONSTANT(0x80)
+#define HALT CONSTANT(0x81)
 
 
 #define PF_EX_RESTART 1
