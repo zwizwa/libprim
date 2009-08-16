@@ -70,10 +70,10 @@ _ _pf_alloc_freelist(pf *pf) {
 static inline void _pf_need_free(pf *pf) {
     if (unlikely(NIL == pf->free)) pf->free = _pf_alloc_freelist(pf);
 }
-static object _pf_cons(pf *pf, _ car, _ cdr) {
+object px_linear_cons(pf *pf, _ car, _ cdr) {
     _pf_need_free(pf);
     _ rv = pf->free;
-    pf->free = CDR(pf->free);
+    pf->free = _CDR(pf->free);
     _CAR(rv) = car;
     _CDR(rv) = cdr;
     return rv;
@@ -171,7 +171,7 @@ static _ _pf_link(pf *pf, _ ob) {
         return ob;
     }
     else if (object_to_pair(ob)) {
-        return _pf_cons(pf, 
+        return px_linear_cons(pf, 
                         _pf_link(pf, CAR(ob)),
                         _pf_link(pf, CDR(ob)));
     }
@@ -224,7 +224,7 @@ _ _pf_copy_from_graph(pf *pf, _ ob) {
     }
     /* Recursive copy. */
     else if ((p = object_to_pair(ob))) {
-        return _pf_cons(pf, 
+        return px_linear_cons(pf, 
                         _pf_copy_from_graph(pf, p->car),
                         _pf_copy_from_graph(pf, p->cdr));
     }
@@ -239,7 +239,7 @@ static inline void _pf_drop(pf *pf, _ *stack) {
 
 
 void _pf_push(pf *pf, _ ob) {
-    pf->ds = _pf_cons(pf, ob, pf->ds);
+    pf->ds = px_linear_cons(pf, ob, pf->ds);
 }
 _ _pf_make_symbol(pf *pf, const char *str){
     return const_to_object(symbol_from_string(TYPES->symbol_type, str));
@@ -274,20 +274,21 @@ void _pf_run(pf *pf) {
     for(;;) {
         /* Unpack code sequence, push RS. */
         if ((s = object_to_seq(pf->ip))) {
-            pf->rs = _pf_cons(pf, s->next, pf->rs);
+            pf->rs = px_linear_cons(pf, s->next, pf->rs);
             pf->ip = s->now;
         }
         /* Interpret primitive code or data and pop RS. */
         else {
-            /* Update continuation before executing primitive. */
+            /* Update continuation before executing primitive, so
+               can modify the machine state. */
             _ ip = pf->ip;
-            if (unlikely(HALT == pf->rs)) {
-                pf->ip = HALT;
-            }
+            pair *rs = object_to_pair(pf->rs);
+            if (unlikely(!rs)) pf->ip = HALT;
             else {
-                pf->ip = CAR(pf->rs);
+                pf->ip = rs->car;
                 _pf_drop(pf, &pf->rs);
             }
+
             /* Primitive */
             if ((p = object_to_prim(ip, &pf->m))) {
                 pf_prim fn = (pf_prim)p->fn;
@@ -683,8 +684,8 @@ pf* _pf_new(void) {
     pf->ds = NIL;
     pf->free = NIL;
     pf->dict = NIL;
-    pf->ip = NOP;
-    pf->rs = HALT;
+    pf->rs = NIL;
+    pf->ip = HALT;
 
     _pf_def_all_prims(pf);
     pf->ip_abort = FIND(pf->dict, SYMBOL("print-error"));
