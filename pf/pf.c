@@ -227,17 +227,16 @@ _ _pf_make_symbol(pf *pf, const char *str){
 
 /* INTERPRETER */
 
-// CODE  = RETURN | (SUB : CODE)    ;; ':' is a GC CONS
-// SUB   = PRIM | CODE
-//
-// RS    = MT | (CODE . RS)         ;; '.' is a linear CONS
-
+/*
+      SEQ   = (SUB : SUB)            ;; `:' is graph CONS
+      SUB   = PRIM | QUOTE | SEQ
+ 
+      RS    = NIL | (SUB . RS)       ;; `.' is linear CONS
+*/
 typedef void (*pf_prim)(pf*);
 
-#define RETURN CONSTANT(0x200)
-
 void pf_run(pf *pf) {
-    code *c, *csub;
+    seq *s;
     prim *p;
     quote *q;
     box *b;
@@ -249,30 +248,38 @@ void pf_run(pf *pf) {
   loop:
     /* Interpeter loop. */
     for(;;) {
-        if ((c = object_to_code(pf->ip))) {
-            /* Threaded code subroutine */
-            if ((csub = object_to_code(c->sub))) {
-                pf->rs = _pf_cons(pf, csub->next, pf->rs);
-                pf->ip = csub->sub;
+        /* Unpack code sequence, push RS. */
+        if ((s = object_to_seq(pf->ip))) {
+            pf->rs = _pf_cons(pf, s->next, pf->rs);
+            pf->ip = s->now;
+        }
+        /* Interpret primitive code or data and pop RS. */
+        else {
+            /* Update continuation. */
+            _ ip = pf->ip;
+            if (unlikely(NIL == pf->rs)) {
+                pf->ip = pf->ip_halt;
+            }
+            else {
+                pf->ip = CAR(pf->rs);
+                _pf_drop(pf, &pf->rs);
             }
             /* Primitive */
-            else if ((p = object_to_prim(c->sub, &pf->m))) {
+            if ((p = object_to_prim(ip, &pf->m))) {
                 pf_prim fn = (pf_prim)p->fn;
                 pf->m.r.prim = p;
                 switch(setjmp(pf->m.r.step)) {
                 case 0:
                     fn(pf);
-                    pf->ip = c->next;
                     break;
                 default:
                     _pf_push(pf, SYMBOL("unknown-exception"));
                 case PF_EX_ABORT:
                     pf->ip = pf->ip_abort;
-                    break;
                 }
             }
             /* Quoted object */
-            else if ((q = object_to_quote(c->sub))) {
+            else if ((q = object_to_quote(ip))) {
                 _ ob;
                 if ((l = object_to_lin(q->object))) {
                     /* Linear objects need to be copied. */
@@ -285,27 +292,34 @@ void pf_run(pf *pf) {
                     ob = q->object;
                 }
                 _pf_push(pf, ob);
-                pf->ip = c->next;
             }
+            /* Unknown non-seq. */
             else {
                 TRAP();
             }
-        }
-        else if ((RETURN == pf->ip)) {
-            if (unlikely(NIL == pf->rs)) goto halt;
-            pf->ip = CAR(pf->rs);
-            _pf_drop(pf, &pf->rs);
-        }
-        else {
-            /* ERROR */
-            TRAP();
         }
     }
 
   halt:
     /* Return to caller. */
     return;
+
+    /* Optimization note: if s->now is a primitive, it can be executed
+       without RS push.  Remarkably, this ``optimization'' is how
+       traditional threaded Forth works, with proper tail calls added
+       as patch for the last element in the SUB chain (an improper
+       list).  In contrast, proper tail calls are a _consequence_ of
+       our representation.  */
 }
+
+
+
+
+
+
+
+
+
 
 /* EXPRESSIONS 
 
@@ -526,6 +540,8 @@ pf* _pf_new(void) {
     pf->ds = NIL;
     pf->free = NIL;
     pf->dict = NIL;
+    pf->ip_halt =
+        PRIM(pf_halt);
     pf->ip_abort = 
         CODE(PRIM(pf_print_error), RETURN);
     pf->ip = 

@@ -16,6 +16,7 @@ typedef struct {
 
     /* Graph memory. */
     _ ip;
+    _ ip_halt;
     _ ip_abort;
     _ dict;
 
@@ -49,14 +50,14 @@ typedef struct {
 } quote;
 typedef struct {
     vector v;
-    _ sub;
+    _ now;
     _ next;
-} code;
+} seq;
 
 #define TAG_QUOTE VECTOR_TAG(14)
-#define TAG_CODE  VECTOR_TAG(15)
+#define TAG_SEQ   VECTOR_TAG(15)
 DEF_STRUCT(quote, TAG_QUOTE)
-DEF_STRUCT(code,  TAG_CODE)
+DEF_STRUCT(seq,   TAG_SEQ)
 
 
 #define PF_EX_RESTART 1
