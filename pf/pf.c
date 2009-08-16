@@ -316,17 +316,6 @@ void _pf_run(pf *pf) {
 
 }
 
-void _pf_top_eval(pf *pf, _ expr){
-    pf->ip = px_compile_program(pf, expr);
-    _pf_run(pf);
-}
-
-
-
-
-
-
-
 
 /* EXPRESSIONS 
 
@@ -634,21 +623,6 @@ pf* _pf_new(void) {
     pf->ip_abort = FIND(pf->dict, SYMBOL("print-error"));
     pf->ip = pf->ip_halt;
 
-#if 0
-              px_compile_program(pf,
-                                (CONS(SYMBOL("output"),
-                                      CONS(SYMBOL("output"),
-                                           CONS(NUMBER(123),
-                                                CONS(SYMBOL("state"),
-                                                     NIL))))));
-#endif
-#if 0
-        SEQ(WORD("output"),
-            SEQ(WORD("output"),
-                SEQ(QUOTE(NUMBER(123)),
-                    WORD("state"))));
-#endif
-
     // Stdout
     pf->output = _pf_make_port(pf, stdout, "stdout");
 
@@ -658,6 +632,21 @@ pf* _pf_new(void) {
     return pf;
 }
 
+/* Top level evaluator.  This takes a (read-only) s-expression,
+   compiles it to code (this performs allocation from GC pool -- top
+   eval is not linear), and executes this code until machine halt.  */
+void _pf_top_interpret_list(pf *pf, _ expr){
+    pf->ip = px_compile_program(pf, expr);
+    _pf_run(pf);
+}
+/* Find and run.  This is linear if the referenced code is. */
+void _pf_top_interpret_symbol(pf *pf, _ sym) {
+    pf->ip = FIND(pf->dict, sym);
+    _pf_run(pf);
+}
+void _pf_top_command(pf *pf, const char *str) {
+    _pf_top_interpret_symbol(pf, SYMBOL(str));
+}
 
 int main(int argc, char **argv) {
     pf *pf = _pf_new();

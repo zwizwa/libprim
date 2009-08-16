@@ -1972,3 +1972,23 @@ so they can be kept as primitives (should make it to the end without
 GC).
 
 To test it, first the primitives need to be defined.
+
+OK. Prims load + highlevel code compiles.
+
+
+Entry: Linear cons cells
+Date: Sun Aug 16 18:46:55 CEST 2009
+
+It might be best to switch to an explicit representation for linear
+CONS cells.  Especially for the interaction with Scheme, it might be
+confusing to have the same datastructure represent two different
+things.
+
+The hack is of course that inside the PF primitives, it's possible to
+use direct calls to read-only ex_ functions, without the need to make
+them polymorphic to both linear and nonlinear lists.
+
+Anyways, this seems something to postpone until it becomes a problem.
+It should be straightforward to do.
+
+

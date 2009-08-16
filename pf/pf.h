@@ -71,8 +71,8 @@ _ _pf_make_symbol(pf *pf, const char *str);
 // #define SYMBOL(str)   _pf_make_symbol(pf, str)
 #define NUMBER(n)     integer_to_object(n)
 
-void _pf_top_eval(pf *pf, _ expr);
-#define EVAL(expr)    _pf_top_eval((pf*)EX, expr)
+void _pf_top_interpret_list(pf *pf, _ expr);
+#define EVAL(expr)    _pf_top_interpret_list((pf*)EX, expr)
 
 
 #endif
