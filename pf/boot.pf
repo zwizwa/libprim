@@ -1,0 +1,13 @@
+;; -*- scheme -*- 
+;; Bootstrap using s-expression syntax.
+
+;; '(abc  123 post) define
+;; abc
+
+(
+state
+'((abc 123 dup-post)
+  (def 456 dup-post))
+define
+state
+)

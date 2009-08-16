@@ -19,4 +19,4 @@ $(APP): $(OBJ) $(DEP_OBJ)
 
 .PHONY: clean
 clean:
-	rm -f scheme *.o *.d *.d.* *~ *.h_*
+	rm -f *.o *.d *.d.* *~ *.h_* $(APP)
