@@ -5,13 +5,13 @@ scripting language?  I.e. use a (dynamically typed) language during
 prototype development and debugging, but ``optimize it out''
 completely in the deployed application?
 
-This project should be understood in a background of embedded control
-programming problems.
+This project should be understood in a context of embedded control and
+signal processing programming problems.
 
 I've been using the C + scripting approach for a while, and the
 conclusion I make is that I spend too much time on the ``impedance
 match'' between the C side and the scripting language.  Is it possible
-to find a way to write C primitives such that it is easily
+to find a way to write C primitives such that they are easily
 (automatically) incorporated in the scripting side?
 
 If the answer is yes (and I think it is), then it is probably best to
@@ -28,13 +28,14 @@ This project is roughly based on the following ideas:
      data types to be replaced with serial channels and protocols.
      (``Pre-emptive Deforestation'').
 
-   * Linear memory model: C primitives use only atoms which are either
+   * Simple memory model: C primitives use only atoms which are either
      C primitive values (integers, floats, structure types), or
      abstract objects (pointers) with clearly indicated ownership.
 
 This would allow to build a library of primitive operations and
 datatypes that can be linked with any kind of scripting language
-during prototyping or debugging.
+during prototyping or debugging.  I'm thinking of Scheme and PF (a
+linear stack language).
 
 The idea is that by isolating the primitives from the memory and
 control models of the debugging code, in a final application all
@@ -75,10 +76,9 @@ The goal is this:
    * Write a compiler for static memory allocation and scheduling to
      optimize away the scripting layer.
 
-Later this could be extended with an ML-style statically typed
-language.  Given that the goal of the project is _prototyping_ which
-is mainly _evolving specification_ I think it's better to stick to a
-simpler dynamically typed approach.
+Static types?  Given that the goal of the project is _prototyping_
+which is mainly _evolving specification_ I think it's better to stick
+to a simpler dynamically typed approach.
 
 
 Entry: CEKS machine
@@ -1314,7 +1314,7 @@ so we might just as well access it then.
 
 
 
-Entry: Cheyney GC
+Entry: Cheney GC
 Date: Wed Aug 12 10:13:23 CEST 2009
 
 Like a recursive mark and copy collector, but using a breadth-first
@@ -2078,7 +2078,8 @@ the GC will never modify the linear data, a GC that doesn't move the
 data can be run in a low priority thread without problems.
 
 So, yes: I guess I'm taking position _against_ real-time GC, at least
-for DSP applications where large chunks of memory are allocated and
-freed at a rapid rate.  It seems that the multitasking approach makes
-more sense: a linear core which can use (read-only) data and code from
-a nonlinear one.
+for scripted DSP applications (for static compilation, you can
+probably use static buffer allocation) where large chunks of memory
+are allocated and freed at a rapid rate.  It seems that the
+multitasking approach makes more sense: a linear core which can use
+(read-only) data and code from a nonlinear one.
