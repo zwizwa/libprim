@@ -268,6 +268,7 @@ void _pf_run(pf *pf) {
     lin *l;
 
     /* Toplevel exceptions. */
+    EX->top_entries++;
     while (setjmp(pf->m.top));
 
   loop:
@@ -336,6 +337,7 @@ void _pf_run(pf *pf) {
 
   halt:
     /* Return to caller. */
+    EX->top_entries--;
     return;
 
 }
@@ -671,6 +673,12 @@ void pf_print_error(pf *pf) {
     pf_drop(pf);
 }
 
+/* Since we have a non-rentrant interpreter with mutable state, this
+   is a bit less problematic than the EX/SC case. */
+void pf_gc(pf *pf) {
+    gc_collect(GC);
+}
+
 /* Primitives in terms of expressions.  Note that an upper case name
    like _XXX() indicates a stack function.  */
 void pf_write(pf *pf)   { px_write(pf, TOP); _DROP(); }
@@ -689,7 +697,13 @@ static void _pf_mark_roots(pf *pf, gc_finalize fin) {
     gc_mark(GC, pf->rs);
     gc_mark(GC, pf->free);
     gc_mark(GC, pf->dict);
-    if (fin) { fin(pf->m.gc); _ex_restart(EX); }
+    if (fin) { 
+        fin(GC); 
+        long used = GC->current_index;
+        long free = GC->slot_total - used;
+        _ex_printf(EX, ";; gc %d:%d\n", (int)used, (int)free);
+        _ex_restart(EX); 
+    }
     else return;  // we're in gc_grow() -> return
 }
 
@@ -733,7 +747,7 @@ pf* _pf_new(void) {
     pf *pf = malloc(sizeof(*pf));
 
     // Garbage collector.
-    GC = gc_new(100000, pf, 
+    GC = gc_new(10000, pf, 
                 (gc_mark_roots)_pf_mark_roots,
                 (gc_overflow)_ex_overflow);
 
