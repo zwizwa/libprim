@@ -2036,3 +2036,49 @@ Date: Mon Aug 17 09:18:48 CEST 2009
 With the machine organized as it is now, there is really no need for
 an IP register: always use the top of RS.
 
+Well, conceptually that's the case, but let's keep it like it is now.
+It's an implementation issue that doesn't have too many consequences.
+
+Another thing though: the return stack can't be used for storing
+temporary data.  Or can it?  Looks like it can, at least in the middle
+of a SEQ, because an atom placed on RS will only be accessed when
+evaluating a primitive or constant in tail position.
+
+
+Entry: Next?
+Date: Mon Aug 17 09:55:03 CEST 2009
+
+- More primitives: combinators + list/stack/queue ops.
+- Reader
+
+
+Entry: Making PF expressions available to scheme.
+Date: Mon Aug 17 09:59:05 CEST 2009
+
+The requirement is to decouple them from the pf* state other than ex*.
+Very straightforward: rename them px_ -> ex_ and use the
+../ex/ex_prims.ss snarfer.
+
+
+Entry: Does PF need real-time GC?
+Date: Mon Aug 17 10:27:47 CEST 2009
+
+Note that I realize that these days it is possible to get real-time
+incremental GC.  However, these are still not synchronous memory
+managers: they won't reclaim large blocks immediately so always
+require more memory than a synchronous GC, and on top of that will
+cause unnecessary loss of data locality.
+
+This doesn't mean that the current (very simple stop-and-copy Cheney
+GC) can't be replaced by something more elaborate to make the
+_compilation_ also respect real-time constraints.
+
+Otoh, since the linear and graph memory are completely separate, and
+the GC will never modify the linear data, a GC that doesn't move the
+data can be run in a low priority thread without problems.
+
+So, yes: I guess I'm taking position _against_ real-time GC, at least
+for DSP applications where large chunks of memory are allocated and
+freed at a rapid rate.  It seems that the multitasking approach makes
+more sense: a linear core which can use (read-only) data and code from
+a nonlinear one.
