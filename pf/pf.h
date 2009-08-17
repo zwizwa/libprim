@@ -31,7 +31,7 @@ typedef struct {
 #define TYPES (EX->p)
 #define GC    (EX->gc)
 
-#include "../ex/ex_prims.h_ex_prims"
+#include "../ex/ex.h_ex_prims"
 
 /* MEMORY */
 

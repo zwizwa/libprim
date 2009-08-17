@@ -13,8 +13,8 @@ all: scheme $(DEP_OBJ)
 # generated files
 %.h_load: %.scm ../load.ss
 	mzscheme ../load.ss $< >$@
-%.h_sc_prims: %.c prims_sc.ss
-	mzscheme prims_sc.ss $< >$@
+%.h_sc_prims: %.c sc_prims.ss ../prim-tools.ss
+	mzscheme sc_prims.ss $< >$@
 
 GEN = scheme.h_sc_prims boot.h_load test.h_load
 

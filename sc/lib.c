@@ -1,5 +1,5 @@
 #include "scheme.h"
-#include "../ex/ex_prims.h_ex_prims"
+#include "../ex/ex.h_ex_prims"
 #include "scheme.h_sc_prims"
 
 #undef EX

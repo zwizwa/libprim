@@ -8,7 +8,7 @@
 
 // generated
 #include "scheme.h_sc_prims"
-#include "../ex/ex_prims.h_ex_prims"
+#include "../ex/ex.h_ex_prims"
 
 
 /* --- PRIMITIVES --- */
@@ -788,7 +788,7 @@ _ _sc_top(sc *sc, _ expr){
 
 
 static prim_def scheme_prims[] = scheme_table_init;
-static prim_def ex_prims[] = ex_prims_table_init;
+static prim_def ex_prims[] = ex_table_init;
 
 static void _sc_def_prims(sc *sc, prim_def *prims) {
     prim_def *prim;

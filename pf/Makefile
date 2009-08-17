@@ -10,10 +10,10 @@ DEBUG_CFLAGS=-Wall -g -Wno-unused
 all: pf $(DEP_OBJ)
 
 # generated files
-%.h_pf_prims: %.c prims_pf.ss
-	mzscheme prims_pf.ss $< >$@
-%.h_px_prims: %.c prims_px.ss
-	mzscheme prims_px.ss $< >$@
+%.h_pf_prims: %.c pf_prims.ss ../prim-tools.ss
+	mzscheme pf_prims.ss $< >$@
+%.h_px_prims: %.c px_prims.ss ../prim-tools.ss
+	mzscheme px_prims.ss $< >$@
 %.h_load: %.pf ../load.ss
 	mzscheme ../load.ss $< >$@
 

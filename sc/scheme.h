@@ -3,7 +3,7 @@
 
 #include <setjmp.h>
 #include "ex.h"
-#include "../ex/ex_prims.h_ex_prims"
+#include "../ex/ex.h_ex_prims"
 
 typedef struct _scheme sc;
 sc *scheme_new(void);

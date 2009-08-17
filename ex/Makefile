@@ -1,5 +1,5 @@
 
-SRC=ex.c gc.c ex_prims.c
+SRC=ex.c gc.c
 
 OBJ=$(SRC:.c=.o)
 DEBUG_CFLAGS=-Wall -g
@@ -7,11 +7,11 @@ DEBUG_CFLAGS=-Wall -g
 
 # CC = gcc -m32
 
-%.h_ex_prims: %.c prims.ss
+%.h_ex_prims: %.c ex_prims.ss ../prim-tools.ss
 	pwd
-	mzscheme prims.ss $< >$@
+	mzscheme ex_prims.ss $< >$@
 
-GEN = ex_prims.h_ex_prims
+GEN = ex.h_ex_prims
 
 all: $(GEN) ex.a
 
