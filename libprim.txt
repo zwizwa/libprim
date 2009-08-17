@@ -2030,3 +2030,9 @@ So it needs to be done manually.
 
 
 
+Entry: No IP
+Date: Mon Aug 17 09:18:48 CEST 2009
+
+With the machine organized as it is now, there is really no need for
+an IP register: always use the top of RS.
+

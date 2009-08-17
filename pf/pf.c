@@ -25,62 +25,11 @@
 #define _TOP _CAR(pf->ds)
 
 
-/* ERRORS */
+/* TOOLS+DATA */
 
 _ _pf_abort(pf *pf) {
     longjmp(pf->m.r.step, PF_EX_ABORT);
 }
-
-
-/* MEMORY MANAGEMENT
-
-   The stack machine's inner data model consists of constants
-   (permanent data), refcount managed abstact leaf objects and a
-   linear tree of cons cells.
-
-   The outer memory is a classic GC managed graph.  RC-managed data
-   traversing the linear->graph boundary needs to be properly wrapped
-   to synchronize the two memory managers.
-
-   Graph data can be treated as constants in the linear memory, as the
-   linear memory tree is part of the GC roots.
- */
-
-#define PF_FREELIST_GC 1
-
-/* Allocate a new linked list of pairs. */
-#if PF_FREELIST_GC
-_ _pf_alloc_freelist(pf *pf) {
-    return CONS(VOID, NIL);
-}
-#else
-_ _pf_alloc_freelist(pf *pf) {
-    size_t nb = 100;
-    pair *p = malloc(sizeof(pair) * nb);
-    size_t i;
-    for(i=0; i<nb; i++) {
-        p[i].v.header = integer_to_object(2) | TAG_PAIR;
-        p[i].car = VOID;
-        p[i].cdr = vector_to_object(&p[i+1].v);
-    }
-    p[nb-1].cdr = NIL;
-    return vector_to_object(&p[0].v);
-}
-#endif
-/* Allocate/reuse cell. */
-static inline void _pf_need_free(pf *pf) {
-    if (unlikely(NIL == pf->free)) pf->free = _pf_alloc_freelist(pf);
-}
-object px_linear_cons(pf *pf, _ car, _ cdr) {
-    _pf_need_free(pf);
-    _ rv = pf->free;
-    pf->free = _CDR(pf->free);
-    _CAR(rv) = car;
-    _CDR(rv) = cdr;
-    return rv;
-}
-/* Moving doesn't require refcount updates or copies. */
-/* Moving cells. */
 void pf_error_underflow(pf *pf) {
     _pf_push(pf, pf->s_underflow);
     _pf_abort(pf);
@@ -89,8 +38,6 @@ _ _pf_top(pf *pf) {
     if (unlikely (NIL == pf->ds)) pf_error_underflow(pf);
     return _CAR(pf->ds);
 }
-
-
 static inline void _pf_from_to(pf *pf, _ *from, _ *to) {
     if (unlikely(NIL == *from)) pf_error_underflow(pf);
     _ pair =  *from;
@@ -99,14 +46,12 @@ static inline void _pf_from_to(pf *pf, _ *from, _ *to) {
     *to = pair;
 }
 #define FROM_TO(a,b) _pf_from_to(pf, &(pf->a), &(pf->b))
-/* Moving variables in one atomic operation. */
 _ static inline _move(_ *ob, _ filler) { _ o = *ob; *ob = filler; return o; }
 #define MOVE(from,filler) _move(&from,filler)
 
 /* Constant types are embedded in GC_CONST pointers, and can be
    identified by their first field (void*). */
 DEF_ATOM(rc)
-
 void *object_rc_struct(object ob, ex *m, void *type) {
     rc *x = object_to_rc(ob, m);
     if (!x) return NULL;
@@ -135,7 +80,50 @@ static _ _pf_make_port(pf *pf, FILE *f, const char *name) {
                        &(TYPES->port_type->free),
                        port_new(TYPES->port_type, stdout, name));
 }
+_ _pf_make_symbol(pf *pf, const char *str){
+    return const_to_object(symbol_from_string(TYPES->symbol_type, str));
+}
+static void _exch(_*a, _*b) {
+    _ tmp = *a;
+    *a = *b;
+    *b = tmp;
+}
+#define EXCH(a,b) _exch(&a, &b)
 
+
+
+
+
+/* MEMORY MANAGEMENT
+
+   The stack machine's inner data model consists of constants
+   (permanent data), refcount managed abstact leaf objects and a
+   linear tree of cons cells.
+
+   The outer memory is a classic GC managed graph.  RC-managed data
+   traversing the linear->graph boundary needs to be properly wrapped
+   to synchronize the two memory managers.
+
+   Graph data can be treated as constants in the linear memory, as the
+   linear memory tree is part of the GC roots.
+ */
+
+/* Allocate a new linked list of pairs. */
+_ _pf_alloc_freelist(pf *pf) {
+    return CONS(VOID, NIL);
+}
+/* Allocate/reuse cell. */
+static inline void _pf_need_free(pf *pf) {
+    if (unlikely(NIL == pf->free)) pf->free = _pf_alloc_freelist(pf);
+}
+_ px_linear_cons(pf *pf, _ car, _ cdr) {
+    _pf_need_free(pf);
+    _ rv = pf->free;
+    pf->free = _CDR(pf->free);
+    _CAR(rv) = car;
+    _CDR(rv) = cdr;
+    return rv;
+}
 /* Unlink will RC manage objects, and move pairs to the freelist. */
 static void _pf_unlink(pf* pf, _ ob);
 static _ _pf_unlink_pop(pf *pf, _ lst) {
@@ -178,8 +166,6 @@ static _ _pf_link(pf *pf, _ ob) {
     }
     else return ob;
 }
-
-
 /* Whenever data is exported to the GC-managed side (graph memory or
    outer memory), CONS cells are copied and RC structs are wrapped.
    This performs a _copy_ instead of a an in-place move, which
@@ -231,20 +217,16 @@ _ _pf_copy_from_graph(pf *pf, _ ob) {
     }
     else return ob;
 }
-
 static inline void _pf_drop(pf *pf, _ *stack) {
     _pf_from_to(pf, stack, &pf->free);  // this catches underflow errors
     _ ob = MOVE(_CAR(pf->free), VOID);
     _pf_unlink(pf, ob);
 }
-
-
 void _pf_push(pf *pf, _ ob) {
     pf->ds = px_linear_cons(pf, ob, pf->ds);
 }
-_ _pf_make_symbol(pf *pf, const char *str){
-    return const_to_object(symbol_from_string(TYPES->symbol_type, str));
-}
+
+
 
 
 
@@ -338,7 +320,9 @@ void _pf_run(pf *pf) {
             }
             /* Unknown non-seq. */
             else {
-                TRAP();
+                _pf_push(pf, _pf_copy_from_graph(pf, ip));
+                _pf_push(pf, SYMBOL("unknown-instruction"));
+                pf->ip = pf->ip_abort;
             }
         }
     }
@@ -626,34 +610,25 @@ _ px_define(pf *pf, _ defs) {
 
 /* PRIMITIVES */
 
+// stacks + boxes  (linear memory management)
 void pf_drop(pf *pf) {
     _pf_drop(pf, &pf->ds);
 }
 void pf_dup(pf *pf) {
     _pf_push(pf, _pf_link(pf, TOP));
 }
-void pf_dup_to_dict(pf *pf) {
+void pf_to_dict(pf *pf) {
     _ ob = _pf_copy_to_graph(pf, TOP);
     pf->dict = ex_cons(&pf->m, ob, pf->dict);
-}
-static object _box = 0;
-void pf_box_test(pf *pf) {
-    if (!_box) _box = px_box(pf, VOID);
-    _pf_push(pf, _box);
-}
-static void _exch(_*a, _*b) {
-    _ tmp = *a;
-    *a = *b;
-    *b = tmp;
-}
-#define EXCH(a,b) _exch(&a, &b)
-void pf_bang_(pf *pf) {
-    aref *x = object_to_box(TOP); _DROP();
-    EXCH(_CAR(pf->ds), x->object); _DROP();
+    _DROP();
 }
 void pf_fetch_(pf *pf) {
     aref *x = object_to_box(TOP);
     _TOP = _pf_link(pf, x->object);
+}
+void pf_bang_(pf *pf) {
+    aref *x = object_to_box(TOP); _DROP();
+    EXCH(_CAR(pf->ds), x->object); _DROP();
 }
 void pf_move_(pf *pf) {
     aref *x = object_to_box(TOP);
@@ -664,6 +639,9 @@ void pf_exchange(pf *pf) {
     _DROP();
     EXCH(x->object, _TOP);
 }
+
+
+
 
 void pf_print_state(pf *pf) {
     _ex_printf(EX, "P: "); POST(pf->ds);
@@ -690,8 +668,7 @@ void pf_stack(pf *pf) {
 void pf_print_error(pf *pf) {
     if (NIL == pf->ds) _pf_push(pf, VOID);
     _ex_printf(EX, "ERROR: ");
-    POST(TOP);
-    pf_drop(pf);
+    _POST();
 }
 
 /* Since we have a non-rentrant interpreter with mutable state, this
@@ -708,11 +685,16 @@ void pf_define(pf *pf)  { px_define(pf, TOP); _DROP(); }
 void pf_trap(pf *pf)    { TRAP(); }
 void pf_reverse(pf *pf) { _TOP = BANG_REVERSE(TOP); }
 void pf_add1(pf *pf)    { _TOP = ADD1(TOP); }
+void pf_compile(pf *pf) { _ v = COMPILE_PROGRAM(TOP); _DROP(); _pf_push(pf, v); }
 
-
+void pf_run(pf *pf){ 
+    _ v = TOP; _DROP();
+    pf->rs = LINEAR_CONS(pf->ip, pf->rs); 
+    pf->ip = v;
+}
 /* GC+SETUP */
 
-#define GC_D _ex_printf(EX, ";; %d\n", (int)GC->current_index)
+#define GC_DEBUG _ex_printf(EX, ";; %d\n", (int)GC->current_index)
 #define MARK(reg) pf->reg = gc_mark(GC, pf->reg)
 static void _pf_mark_roots(pf *pf, gc_finalize fin) {
     printf(";; gc\n");

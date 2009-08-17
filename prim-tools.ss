@@ -7,9 +7,13 @@
 (define ctx (make-parameter #f))
 (define macro-prefix (make-parameter ""))
 
-(define (pre->suf pre x suf)
+(define (pre->suf pre x __suf)
   (if (regexp-match pre x)
-      (string-append (regexp-replace pre x "") suf)
+      (string-append (regexp-replace pre x "") __suf)
+      x))
+(define (pre->pre pre x pre__)
+  (if (regexp-match pre x)
+      (string-append pre__ (regexp-replace pre x ""))
       x))
 
 (define (mangle x)
@@ -19,6 +23,7 @@
          (x (pre->suf        #px"^bang-"  x "!"))
          (x (pre->suf        #px"^fetch-" x "@"))
          (x (pre->suf        #px"^move-"  x "@>"))
+         (x (pre->pre        #px"^to-"    x ">"))
          (x (pre->suf        #px"^is-"    x "?"))
          )x))
 

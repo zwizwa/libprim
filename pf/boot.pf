@@ -40,8 +40,9 @@
  10 boo exchange post
  boo post
  
+ '(1 2 3) compile run print-state
+ '(1 2 3) run print-state
  
-
  )
 
      
