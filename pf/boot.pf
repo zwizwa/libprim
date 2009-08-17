@@ -20,7 +20,29 @@
 
 (abc def)
 
-(boo post 123 boo ! boo post gc 123 post)
+(
+
+ boo
+ post 123 boo ! boo post
+ boo @ post
+ boo post
+ boo @> post
+ boo post
+
+
+ 123 post
+
+ 123 add1 post
+
+ gc
+
+ 5 boo ! boo post
+ 10 boo exchange post
+ boo post
+ 
+ 
+
+ )
 
      
 

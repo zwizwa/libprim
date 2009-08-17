@@ -46,7 +46,7 @@ struct _ex {
     
     /* Primitive exceptions. */
     ex_r r;
-    long entries;
+    long prim_entries;
     _ error_tag;
     _ error_arg;
 

@@ -13,11 +13,13 @@
       x))
 
 (define (mangle x)
-  (let* ((x (regexp-replace  #px"^\\S*?_"   x ""))
-         (x (regexp-replace* #px"_"      x "-"))
-         (x (regexp-replace* #px"-to-"   x "->"))
-         (x (pre->suf        #px"^bang-" x "!"))
-         (x (pre->suf        #px"^is-"   x "?"))
+  (let* ((x (regexp-replace  #px"^\\S*?_" x ""))
+         (x (regexp-replace* #px"_"       x "-"))
+         (x (regexp-replace* #px"-to-"    x "->"))
+         (x (pre->suf        #px"^bang-"  x "!"))
+         (x (pre->suf        #px"^fetch-" x "@"))
+         (x (pre->suf        #px"^move-"  x "@>"))
+         (x (pre->suf        #px"^is-"    x "?"))
          )x))
 
 (define (macro-mangle x)

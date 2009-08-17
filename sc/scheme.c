@@ -616,7 +616,7 @@ _ sc_eval_step(sc *sc, _ state) {
 
     memcpy(&save, &sc->m.r, sizeof(save));
     sc->m.r.prim = NULL; // means error comes from step() itself
-    sc->m.entries++;
+    sc->m.prim_entries++;
 
     switch(exception = setjmp(sc->m.r.step)) {
         case EXCEPT_TRY:
@@ -632,7 +632,7 @@ _ sc_eval_step(sc *sc, _ state) {
             break;
     }
 
-    sc->m.entries--; // redundant
+    sc->m.prim_entries--;
     memcpy(&sc->m.r, &save, sizeof(save));
     return rv;
 }
@@ -758,7 +758,7 @@ _ _sc_top(sc *sc, _ expr){
     sc_bang_set_global(sc, sc_slot_state, STATE(REDEX(expr,NIL,NIL),MT));
     for(;;) {
         if (setjmp(sc->m.top)){
-            sc->m.entries = 0;  // full tower unwind
+            sc->m.prim_entries = 0;  // full tower unwind
             sc->m.r.prim = NULL;
         }
         for(;;) {
@@ -841,7 +841,7 @@ void _sc_load_lib(sc* sc);
 sc *_sc_new(void) {
     sc *sc = malloc(sizeof(*sc));
     sc->m.top_entries = 0;
-    sc->m.entries = 0;
+    sc->m.prim_entries = 0;
 
     /* Garbage collector. */
     sc->m.gc = gc_new(10000, sc, 

@@ -269,7 +269,10 @@ void _pf_run(pf *pf) {
 
     /* Toplevel exceptions. */
     EX->top_entries++;
-    while (setjmp(pf->m.top));
+    while (setjmp(pf->m.top)) {
+        pf->m.r.prim = NULL;
+        pf->m.prim_entries = 0;
+    }
 
   loop:
     /* Interpeter loop. */
@@ -295,6 +298,7 @@ void _pf_run(pf *pf) {
             if ((p = object_to_prim(ip, &pf->m))) {
                 pf_prim fn = (pf_prim)p->fn;
                 pf->m.r.prim = p;
+                pf->m.prim_entries++;
                 switch(setjmp(pf->m.r.step)) {
                 case 0:
                     fn(pf);
@@ -302,8 +306,12 @@ void _pf_run(pf *pf) {
                 default:
                     _pf_push(pf, SYMBOL("unknown-exception"));
                 case PF_EX_ABORT:
+                    // NONLINEAR
+                    pf->m.error_tag = VOID;
+                    pf->m.error_arg = VOID;
                     pf->ip = pf->ip_abort;
                 }
+                pf->m.prim_entries--;
             }
             /* Quoted object */
             else if ((q = object_to_quote(ip))) {
@@ -643,6 +651,19 @@ void pf_bang_(pf *pf) {
     aref *x = object_to_box(TOP); _DROP();
     EXCH(_CAR(pf->ds), x->object); _DROP();
 }
+void pf_fetch_(pf *pf) {
+    aref *x = object_to_box(TOP);
+    _TOP = _pf_link(pf, x->object);
+}
+void pf_move_(pf *pf) {
+    aref *x = object_to_box(TOP);
+    _TOP = MOVE(x->object, VOID);
+}
+void pf_exchange(pf *pf) {
+    aref *x = object_to_box(TOP);
+    _DROP();
+    EXCH(x->object, _TOP);
+}
 
 void pf_print_state(pf *pf) {
     _ex_printf(EX, "P: "); POST(pf->ds);
@@ -680,23 +701,28 @@ void pf_gc(pf *pf) {
 }
 
 /* Primitives in terms of expressions.  Note that an upper case name
-   like _XXX() indicates a stack function.  */
+   like _XXX() is short for a stack word pf_xxx(pf *).  */
 void pf_write(pf *pf)   { px_write(pf, TOP); _DROP(); }
 void pf_post(pf *pf)    { POST(TOP); _DROP(); }
 void pf_define(pf *pf)  { px_define(pf, TOP); _DROP(); }
 void pf_trap(pf *pf)    { TRAP(); }
 void pf_reverse(pf *pf) { _TOP = BANG_REVERSE(TOP); }
-
+void pf_add1(pf *pf)    { _TOP = ADD1(TOP); }
 
 
 /* GC+SETUP */
 
+#define GC_D _ex_printf(EX, ";; %d\n", (int)GC->current_index)
+#define MARK(reg) pf->reg = gc_mark(GC, pf->reg)
 static void _pf_mark_roots(pf *pf, gc_finalize fin) {
     printf(";; gc\n");
-    gc_mark(GC, pf->ds);
-    gc_mark(GC, pf->rs);
-    gc_mark(GC, pf->free);
-    gc_mark(GC, pf->dict);
+    MARK(ds);
+    MARK(rs);
+    MARK(free);
+    MARK(output);
+    MARK(ip);
+    MARK(ip_abort);
+    MARK(dict);
     if (fin) { 
         fin(GC); 
         long used = GC->current_index;
@@ -775,6 +801,10 @@ pf* _pf_new(void) {
     pf->rs = NIL;
     pf->ip = HALT;
     pf->ip_abort = HALT;
+
+    // Exceptions
+    pf->m.top_entries = 0;
+    pf->m.prim_entries = 0;
 
     // Stdout
     pf->output = _pf_make_port(pf, stdout, "stdout");
