@@ -1,8 +1,11 @@
 CPPFLAGS += -I../leaf/ -I../ex/ -DTASK_DEBUG=0
+# Note that GCC needs "-x c" if you don't use a ".c" extension.
+CFLAGS += -x c
 COMPILE = $(CC) $(CPPFLAGS) $(CFLAGS) $(OPTI_CFLAGS) $(DEBUG_CFLAGS) 
 
-# Make deps from .c file.  Unfortunately, this needs the .h_* files
-# before it can parse, so we make those deps explicit.
+# Make deps from .c file.  This needs the .h_* files before it can
+# parse, so we make those deps explicit.
+
 %.d: %.c Makefile $(GEN)
 	set -e; rm -f $@; \
 		$(CC) -M $(CPPFLAGS) $< > $@.$$$$; \
@@ -17,6 +20,14 @@ COMPILE = $(CC) $(CPPFLAGS) $(CFLAGS) $(OPTI_CFLAGS) $(DEBUG_CFLAGS)
 $(APP): $(OBJ) $(DEP_OBJ)
 	$(CC) -o $(APP) $(OBJ) $(DEP_OBJ)
 
+$(TEST): $(TEST_OBJ)
+	$(CC) -o test $(TEST_OBJ)
+
+run_test: $(TEST)
+	./$(TEST)
+
+
+
 .PHONY: clean
 clean:
-	rm -f *.o *.d *.d.* *~ *.h_* $(APP)
+	rm -f *.o *.d *.d.* *~ *.h_* *.c_* $(APP) $(TEST)

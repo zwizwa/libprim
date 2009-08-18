@@ -10,12 +10,18 @@ DEBUG_CFLAGS=-Wall -g
 %.h_ex_prims: %.c ex_prims.ss ../prim-tools.ss
 	pwd
 	mzscheme ex_prims.ss $< >$@
+%.h_peg: %.peg
+	peg <$< >$@
 
-GEN = ex.h_ex_prims
+GEN = ex.h_ex_prims sexp.h_peg
 
 all: $(GEN) ex.a
 
-ex.a: $(OBJ)
+TEST = test
+TEST_OBJ = test.o ex.a ../leaf/leaf.a
+
+# Note: root deps need to be last!
+ex.a: $(OBJ) 
 	ar rcs ex.a $(OBJ)
 
 

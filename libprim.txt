@@ -2114,4 +2114,47 @@ Date: Tue Aug 18 08:58:30 CEST 2009
 
 Trying out this[1].
 
+I'm getting linker errors.
+
+The rules are very simple: when you're linking .o, .a and .so files:
+``make sure the order is right!''.  Usually putting the low level
+things on which everything depends in the back works best.
+
+Actually, I've never really understood how this works exactly - my
+mental model of it was good enough uptil now.  My guess is that all .o
+files get included in their entirety, but only if they are somehow
+referenced beforehand.
+
+But..  Now I have this:
+
+tom@zni:~/libprim/ex$ objdump -t main.o |grep yy_start
+0000000000000000         *UND*	0000000000000000 yy_start
+
+tom@zni:~/libprim/ex$ objdump -t sexp.o |grep yy_start
+0000000000000609 l     F .text	000000000000004f yy_start
+
+but:
+
+tom@zni:~/libprim/ex$ gcc -o main main.o sexp.o
+main.o: In function `main':
+/home/tom/libprim/ex/main.c:3: undefined reference to `yy_start'
+collect2: ld returned 1 exit status
+
+and:
+
+tom@zni:~/libprim/ex$ gcc -o main sexp.o main.o
+main.o: In function `main':
+/home/tom/libprim/ex/main.c:3: undefined reference to `yy_start'
+collect2: ld returned 1 exit status
+
+I don't understand..
+
+Damn this sucks: look at the little "l" there: it means *LOCAL*.
+
+The .c file is generated from a .peg parser descriptor file.  So I
+guess this is really simply just sad I didn't check..
+
+
 [1] http://piumarta.com/software/peg/peg.1.html
+
+

@@ -1,3 +1,9 @@
+(post 'READ-TEST)
+(post (read))
+
+
+
+
 ;; (reverse! '(1 2 3))
 (bool? 123)
 (open-mode-file "/tmp/blubber" "w")

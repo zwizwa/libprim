@@ -13,6 +13,8 @@
 #include "pair.h"
 #include "ex.h"
 #include "ex.h_ex_prims"
+#include "sexp.h_peg"
+
 
 object _ex_write_vector(ex *ex, const char *type, vector *v) {
     port *p = ex->port(ex);
@@ -444,3 +446,10 @@ _ ex_raise_type_error(ex *ex, _ arg_o) {
 _ ex_raise_nargs_error(ex *ex, _ arg_o) {
     return ex_raise_error(ex, SYMBOL("nargs"), arg_o);
 }
+
+
+/* Reader */
+_ ex_read(ex *ex) {
+    while (yyparse()) { fprintf(stderr, "."); }
+}
+
