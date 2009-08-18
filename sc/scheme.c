@@ -163,7 +163,7 @@ _ sc_display(sc *sc, _ o) {
     fwrite(b->bytes, 1, strlen(b->bytes), _sc_port(sc)->stream);
     return VOID;
 }
-_ sc_newline(sc *sc) { sc_display(sc, _sc_make_string(sc, "\n")); }
+_ sc_newline(sc *sc) { return sc_display(sc, _sc_make_string(sc, "\n")); }
 
 _ sc_write(sc *sc,  _ o) {
     void *x;
@@ -749,7 +749,9 @@ _ sc_with_ck(sc *sc, _ in_ref, _ value) {
 _ sc_bang_abort_k(sc *sc, _ k) {
     return sc_bang_set_global(sc, sc_slot_abort_k, k);
 }
-
+_ sc_exit(sc *sc) {
+    exit(0);
+}
 
 /* --- SETUP & GC --- */
 

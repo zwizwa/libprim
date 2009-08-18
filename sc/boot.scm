@@ -11,8 +11,6 @@
     (list 'def-toplevel!
           (list 'quote (car (cdr form)))
           (car (cdr (cdr form))))))
-(define cddr  (lambda (x) (cdr (cdr x))))
-(define caddr (lambda (x) (car (cdr (cdr x)))))
 (def-toplevel-macro!
   'define-macro
   (lambda (form)
@@ -28,8 +26,8 @@
   (lambda (fn lsts)
     (if (null? (car lsts)) ;; assume all same length
         ()
-        (cons (apply fn (map1 car lsts))
-              (mapn fn (map1 cdr lsts))))))
+        (cons (apply fn (map1-prim car lsts))
+              (mapn fn (map1-prim cdr lsts))))))
 (define map
   (lambda (fn . lsts)
     (mapn fn lsts)))
@@ -136,7 +134,7 @@
     (display "> ")
     (let ((expr (read)))
       (if (eof-object? expr)
-          (post expr)
+          (exit)
           (begin
             (post (eval expr))
             (loop))))))

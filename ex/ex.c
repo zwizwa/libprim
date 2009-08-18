@@ -323,6 +323,8 @@ _ ex_cdr(ex *ex, _ o)  { pair *p = CAST(pair, o); return p->cdr; }
 _ ex_cadr(ex *ex, _ o) { pair *p = CAST(pair, ex_cdr(ex, o)); return p->car; }
 _ ex_cdar(ex *ex, _ o) { pair *p = CAST(pair, ex_car(ex, o)); return p->cdr; }
 _ ex_caar(ex *ex, _ o) { pair *p = CAST(pair, ex_car(ex, o)); return p->car; }
+_ ex_cddr(ex *ex, _ o) { pair *p = CAST(pair, ex_cdr(ex, o)); return p->cdr; }
+_ ex_caddr(ex *ex, _ o) { pair *p = CAST(pair, ex_cddr(ex, o)); return p->car; }
 
 
 
