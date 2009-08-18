@@ -1317,6 +1317,8 @@ so we might just as well access it then.
 Entry: Cheney GC
 Date: Wed Aug 12 10:13:23 CEST 2009
 
+[ Minsky-Fenichel-Yochelson-Cheney-Arnborg (MFYCA) method ]
+
 Like a recursive mark and copy collector, but using a breadth-first
 search.
 
@@ -1343,6 +1345,8 @@ tags didn't get copied, which probably triggered an allocation loop in
 the interpreter due to type errors.
 
 Next: add assertions and error handling for the whole project.
+
+
 
 [1] http://en.wikipedia.org/wiki/Cheney%27s_algorithm
 
@@ -1874,9 +1878,6 @@ The interpreter evaluates the following data structure:
 SEQ   Code sequencing provides the encoding of ``what to do _now_ and
       what to do _next_''.
 
-CODE  Code is either an abstraction (``do'') or the absence of one
-      (``done'')
-
 SUB   A subroutine is a basic unit of work: invoke a primitive
       function, load a data object or perform an abstraction.
 
@@ -2083,3 +2084,35 @@ probably use static buffer allocation) where large chunks of memory
 are allocated and freed at a rapid rate.  It seems that the
 multitasking approach makes more sense: a linear core which can use
 (read-only) data and code from a nonlinear one.
+
+... Baker 1978[1] -> contains some information about CDR coding.
+Useful for making byte code sequential (cache-friendly).  Chapter 8 is
+of interest though: talks about RC counting.
+
+The trouble with RC managed data that Baker mentions is that a `drop'
+of a huge data structure takes a long time to deallocate.  He suggests
+to do te deallocation lazily.  In practice though (especially due to
+the `physical' nature of linear objects) this doesn't really happen
+much.  Consumption rate is usually one-by-one.  And, lazy dealloc
+still doesn't perform fast reclaim for cache locality, what we're
+really after..
+
+
+[1] http://home.pipeline.com/~hbaker1/RealTimeGC.html
+
+
+Entry: `Harvard' PF in Flash ROM
+Date: Mon Aug 17 19:15:18 CEST 2009
+
+Now.. If this works, does it make sense to try to implement the same
+algorithm on a PIC18 while using the RAM as linear memory, and keeping
+the ROM GC managed?  It really doesn't need all that much space, and
+the self-write seems to be compatible.
+
+
+Entry: PEG/LEG
+Date: Tue Aug 18 08:58:30 CEST 2009
+
+Trying out this[1].
+
+[1] http://piumarta.com/software/peg/peg.1.html
