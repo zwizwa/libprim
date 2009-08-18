@@ -1,7 +1,7 @@
 ;; Bootstrap
 
 ;; The s-expr will be allocated outside the VM, so a single form makes
-;; sure there's no GC during construction.
+;; sure there's no GC during construction, as long as it fits.
 (begin
   
 (def-toplevel! 'list (lambda args args))
@@ -114,6 +114,11 @@
           (cadr c)
           (list 'if (car c) (cadr c)
                 (next (cdr f)))))))
+(define-macro (*** form)
+  (list 'begin
+        (list 'post (list 'quote (cdr form)))
+        (list 'write ''=>)
+        (list 'dbg (cdr form))))
 
 (define-macro (when form)
   (list 'if (cadr form)
@@ -121,13 +126,6 @@
 (define-macro (unless form)
   (list 'if (cadr form) (void)
         (cons 'begin (cddr form))))
-
-(define-macro (*** form)
-  (list 'begin
-        (list 'post (list 'quote (cdr form)))
-        (list 'write ''=>)
-        (list 'dbg (cdr form))))
-
 
 (define (repl-no-guard)
   (let loop ()
@@ -138,7 +136,6 @@
           (begin
             (post (eval expr))
             (loop))))))
-
 (define (repl)
   (display "libprim/SC")
   (newline)
@@ -150,12 +147,4 @@
     (loop)))
          
 
-
-;; (post 'init-OK)
-
-;; Perform GC before loading another script outside of VM.
-(gc)
-
-
-(repl)
-)
+(repl))
