@@ -19,14 +19,17 @@ int port_printf(port *p, const char *fmt, ...) {
     va_end(ap);
     return len;
 }
-static void _port_free(port *x) {
-    fclose(x->stream);
+int port_getc(port *p) {
+    return fgetc(p->stream);
+}
+void port_free(port *x) {
+    if (x->stream) fclose(x->stream);
     if (x->name) free (x->name);
     free(x);
 }
 port_class *port_class_new(void) {
     port_class *x = malloc(sizeof(*x));
-    x->free = _port_free;
+    x->free = port_free;
     return x;
 }
 port *port_new(port_class *type, FILE *f, const char *name) {
@@ -40,3 +43,4 @@ port *port_new(port_class *type, FILE *f, const char *name) {
     }
     return x;
 }
+

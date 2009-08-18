@@ -2336,7 +2336,5 @@ EOL	= '\n' | '\r\n' | '\r'
 After adding some special characters, it parses the boot.scm file.
 Parse error reporting is going to be spartan it looks like..
 
-
-
-
+So, how to parse from a different input port?
 

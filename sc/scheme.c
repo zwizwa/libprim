@@ -881,7 +881,12 @@ sc *_sc_new(void) {
     sc_bang_set_global(sc, sc_slot_abort_k, abort_k);
 
     /* Highlevel bootstrap from stdin. */
-    _sc_top(sc, READ());
+    port *bootport = port_new(TYPES->port_type,
+                              fopen("boot.scm", "r"),
+                              "boot.scm");
+    _ boot = _ex_read(EX, bootport);
+    port_free(bootport);
+    _sc_top(sc, boot);
     
     // _sc_load_lib(sc);
     return sc;
