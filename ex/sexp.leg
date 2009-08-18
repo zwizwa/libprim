@@ -1,9 +1,8 @@
-# debug   = - x:Number { file = x; }
-File    = - d:Data                        { file = d; }
-# data     = - x:Number y:Number              { file = CONS(x,y); }
-
+File    = - d:Data                       { file = d; }
 Data    = d:Datum ds:Data                { $$= CONS(d,ds) }
-        | .                              { $$= NIL }
+        | j:Junk                         { $$= j }
+
+Junk    = < .* >                         { $$= STRING(yytext) }
 
 Datum   =  Number | Symbol | String
 
@@ -16,7 +15,7 @@ Letter  = [A-Za-z]
 Digit   = [0-9]
 Char    = Letter | Digit
 
--	= [ \t]*
+-	= [ \t\n]*
 EOF     = !.
 
 # EOL	= '\n' | '\r\n' | '\r' | ';'
