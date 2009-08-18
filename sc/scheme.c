@@ -153,12 +153,18 @@ _ sc_bang_def_toplevel_macro(sc* sc, _ var, _ val) {
     return sc_bang_def_global(sc, sc_slot_toplevel_macro, var, val);
 }
 
-_ sc_newline(sc *sc, _ out) { port_printf(CAST(port, out), "\n"); return VOID; }
-
 // FIXME: should be parameter
 port *_sc_port(sc *sc) {
     return object_to_port(sc_global(sc, sc_slot_debug_port), EX);
 }
+
+_ sc_display(sc *sc, _ o) {
+    bytes *b = CAST(bytes, o);
+    fwrite(b->bytes, 1, strlen(b->bytes), _sc_port(sc)->stream);
+    return VOID;
+}
+_ sc_newline(sc *sc) { sc_display(sc, _sc_make_string(sc, "\n")); }
+
 _ sc_write(sc *sc,  _ o) {
     void *x;
 
@@ -190,7 +196,7 @@ _ sc_read_char(sc *sc) {
 }
 
 
-_ sc_fatal(sc *sc, _ err) {
+_ sc_print_error(sc *sc, _ err) {
     if (TRUE == sc_is_error(sc, err)) {
         error *e = object_to_error(err);
         _ex_printf(EX, "ERROR");
@@ -225,6 +231,21 @@ _ sc_open_mode_file(sc *sc, _ path, _ mode) {
     FILE *f = fopen(b_path->bytes, b_mode->bytes);
     if (!f) ERROR("fopen", path);
     return _sc_make_port(sc, f, b_path->bytes);
+}
+
+// Manually call finalizer, creating a defunct object.
+_ sc_bang_finalize(sc *sc, _ ob) {
+    aref *r = CAST(aref, ob);
+    fin finalize = *(object_to_fin(r->fin));
+    finalize(r->object, sc);
+    r->fin = VOID;
+    r->object = VOID;
+    return VOID;
+}
+
+_ sc_close_port(sc *sc, _ ob) {
+    port *p = CAST(port, ob);
+    return sc_bang_finalize(sc, ob);
 }
 
 
@@ -725,6 +746,9 @@ _ sc_with_ck(sc *sc, _ in_ref, _ value) {
     }
 }
 
+_ sc_bang_abort_k(sc *sc, _ k) {
+    return sc_bang_set_global(sc, sc_slot_abort_k, k);
+}
 
 
 /* --- SETUP & GC --- */
@@ -790,7 +814,7 @@ static void _sc_def_prims(sc *sc, prim_def *prims) {
 }
 
 
-
+#define GC_DEBUG if (0)
 
 static void _sc_mark_roots(sc *sc, gc_finalize fin) {
     // ex_trap(EX);
@@ -806,7 +830,7 @@ static void _sc_mark_roots(sc *sc, gc_finalize fin) {
         fin(sc->m.gc);
         long used = sc->m.gc->current_index;
         long free = sc->m.gc->slot_total - used;
-        _ex_printf(EX, ";; gc %d:%d\n", (int)used, (int)free);
+        GC_DEBUG { _ex_printf(EX, ";; gc %d:%d\n", (int)used, (int)free); }
         _ex_restart(EX);
     }
     else {
@@ -829,6 +853,8 @@ void _sc_def_prim(sc *sc, const char *str, void *fn, long nargs) {
     sc_bang_def_toplevel(sc, var, _sc_make_prim(sc, fn, nargs, var));
 }
 void _sc_load_lib(sc* sc);
+
+// Use lowelevel port access.
 static void _sc_boot(sc *sc) {
     char *bootfile = "boot.scm";
     port *bootport = port_new(TYPES->port_type,
@@ -886,13 +912,16 @@ sc *_sc_new(void) {
     _sc_def_prims(sc, scheme_prims);
 
     /* Toplevel abort continuation */
-    _ done = CONS(FIND(TOPLEVEL(),SYMBOL("fatal")),NIL);
+    _ done = CONS(FIND(TOPLEVEL(),SYMBOL("print-error")),NIL);
     _ abort_k = sc_make_k_apply(sc, MT, done, NIL);
-    sc_bang_set_global(sc, sc_slot_abort_k, abort_k);
+
+    sc_bang_abort_k(sc, abort_k);
+
+
 
     /* Highlevel bootstrap from stdin. */
-    // _sc_boot(sc);
-    _sc_load_lib(sc);
+    _sc_boot(sc);
+    // _sc_load_lib(sc);
     return sc;
 }
 

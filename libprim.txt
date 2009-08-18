@@ -2380,7 +2380,7 @@ True     = - '#t'                         { $$= TRUE }
 False    = - '#f'                         { $$= FALSE }
 
 Number	 = - < Digit+ > !NonDigit         { $$= NUMBER(atoi(yytext)) }
-Symbol   = - < Char+ >  	                 { $$= SYMBOL(yytext) }
+Symbol   = - < Char+ >  	          { $$= SYMBOL(yytext) }
 String   = - ["] < ( !["] . )* > ["]      { $$= STRING(yytext) }
 
 
@@ -2404,8 +2404,18 @@ Junk     = < .* > EOF                     { $$= JUNK(yytext) }
 
 
 
+Entry: Next
+Date: Tue Aug 18 21:26:25 CEST 2009
 
+Scheme: 
+- dynamic parameters
 
+PF: 
+- separate linear pair type
+- export non-linear part as EX
+- polymorphy
+- packet reuse
+- exceptions
 
-
-
+EX:
+- primitives

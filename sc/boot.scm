@@ -130,8 +130,10 @@
         (list 'write ''=>)
         (list 'dbg (cdr form))))
 
-(define (repl)
+
+(define (repl-no-guard)
   (let loop ()
+    (display "> ")
     (let ((expr (read)))
       (if (eof-object? expr)
           (post expr)
@@ -139,7 +141,19 @@
             (post (eval expr))
             (loop))))))
 
-(post 'init-OK)
+(define (repl)
+  (display "libprim/SC")
+  (newline)
+  (let loop ()
+    (print-error
+     (letcc k (begin
+                (abort-k! k)
+                (repl-no-guard))))
+    (loop)))
+         
+
+
+;; (post 'init-OK)
 
 ;; Perform GC before loading another script outside of VM.
 (gc)
