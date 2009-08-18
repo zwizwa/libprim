@@ -5,6 +5,8 @@
 ;(read-file)
 ;(read-file)
 
+(eval 'foo)
+
 (define (read-file)
   (let loop ()
     (let ((expr (read)))

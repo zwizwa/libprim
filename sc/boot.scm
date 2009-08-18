@@ -37,7 +37,7 @@
 
 ;; Implemented in terms of primitive continuation transformers (ktx).
 (define apply (lambda (fn args) (letcc k ((apply-ktx k fn args)))))
-(define eval  (lambda (eval expr) (letcc k ((eval-ktx k expr)))))
+(define eval  (lambda (expr) (letcc k ((eval-ktx k expr)))))
 
 (define list* (lambda (a . rest)
                 (if (null? rest) a

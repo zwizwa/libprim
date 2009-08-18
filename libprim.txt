@@ -2337,4 +2337,16 @@ After adding some special characters, it parses the boot.scm file.
 Parse error reporting is going to be spartan it looks like..
 
 So, how to parse from a different input port?
+( Simple: read the man page. )
+
+I think I get it now: a PEG is a backtracking program with a
+sequential left to right choice operator.  It is not a description of
+a CFG.
+
+So, in order to read a minimal amount of characters, the current
+grammar needs to be reworked a bit.  Esp. the greedy post-whitespace
+parse needs to be replaced by something else.
+
+
+
 
