@@ -1,17 +1,21 @@
-start   = e:Expr                        { parse_result = e; }
-        | EOF                           { parse_result = EOF_OBJECT; }
+debug   = - x:Number { file = x; }
+# start   = - d:Data                       { parse = d; }
 
-Expr	= i:ID          		{ $$= i }
-	| n:NUMBER			{ $$= n }
+Data    = d:Datum ds:Data                { $$= CONS(d,ds) }
+        | EOF                            { $$= NIL }
 
--	= [ \t]*
-EOF     = !.
+Datum   =  Number | Symbol | String
 
-NUMBER	= < Digit+ >	-		{ $$= NUMBER(atoi(yytext)) }
-ID	= < Letter Char* >	-	{ $$= SYMBOL(yytext) }
+Number	= < Digit+ >	!Letter -	 { $$= NUMBER(atoi(yytext)) }
+Symbol  = < Letter Char* >	-	 { $$= SYMBOL(yytext) }
+String  = ["] < ( !["] Char )* > ["] -   { $$= STRING(yytext) }
+
 
 Letter  = [A-Za-z]
 Digit   = [0-9]
 Char    = Letter | Digit
+
+-	= [ \t]*
+EOF     = !.
 
 # EOL	= '\n' | '\r\n' | '\r' | ';'

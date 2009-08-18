@@ -457,23 +457,18 @@ _ ex_raise_nargs_error(ex *ex, _ arg_o) {
 /* Reader */
 // FIXME: make this thread-local when pthreads are supported. (like task.c)
 ex *thread_local_ex = NULL;
-_ parse_result = NIL;
+_ file = NIL;
 #undef EX
 #define EX thread_local_ex
 #define YYSTYPE object
+// #define YY_DEBUG
 #define NUMBER integer_to_object
 #include "sexp.h_leg"
-_ ex_read(ex *ex) {
-    int more;
-
-    thread_local_ex = ex;
-    parse_result = VOID;
-    more = yyparse();
-
-    if (parse_result == VOID) { 
-        if (more) ERROR("parse", VOID);
-        else parse_result = EOF_OBJECT;  // FIXME: express this in grammar
-    }
-    return parse_result;
+_ ex_read_file(ex *ex) {
+    EX = ex;
+    file = FALSE;
+    yyparse();
+    // if (yyparse()) ERROR("parse", parse);
+    return file;
 }
 

@@ -35,11 +35,15 @@
 
 (post 'READ-TEST)
 ;; (post (read))
-(let loop ()
-  (let ((expr (read)))
-    (if (eof-object? expr)
-        (post expr)
-        (begin (post expr) (loop)))))
+
+(read-file)
+
+
+;(let loop ()
+;  (let ((expr (read)))
+;    (if (eof-object? expr)
+;        (post expr)
+;        (begin (post expr) (loop)))))
 
 
 

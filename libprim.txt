@@ -2239,6 +2239,8 @@ into yyparse that can trickle down to the actions.  Makes me wonder
 how one would implement dynamic scope in C in a thread-safe way.  I
 guess by using thread-local variables..
 
+Ok.  I think I get the basic idea.  Now the subtleties.  How to
+express delimiting?
 
 [1] http://piumarta.com/software/peg/peg.1.html
 
