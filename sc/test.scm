@@ -11,9 +11,9 @@
       (if (eof-object? expr)
           (post expr)
           (begin
-            (post expr)
+            (post (eval expr))
             (loop))))))
-;; (read-file)
+(read-file)
 
 
 ;; ;; (reverse! '(1 2 3))

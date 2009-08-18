@@ -881,9 +881,10 @@ sc *_sc_new(void) {
     sc_bang_set_global(sc, sc_slot_abort_k, abort_k);
 
     /* Highlevel bootstrap from stdin. */
+    char *bootfile = "boot.scm";
     port *bootport = port_new(TYPES->port_type,
-                              fopen("boot.scm", "r"),
-                              "boot.scm");
+                              fopen(bootfile, "r"),
+                              bootfile);
     _ boot = _ex_read(EX, bootport);
     port_free(bootport);
     _sc_top(sc, boot);
@@ -893,3 +894,9 @@ sc *_sc_new(void) {
 }
 
 
+// FIXME
+_ sc_read(sc *sc) {
+    port p;
+    p.stream = stdin;
+    return _ex_read(EX, &p);
+}
