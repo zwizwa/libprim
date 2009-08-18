@@ -23,6 +23,6 @@ port_class* port_class_new(void);
 port *port_new(port_class *type, FILE *f, const char *name);
 int port_getc(port *p);
 void port_free(port *x);
-
+void port_close(port *x);
 
 #endif

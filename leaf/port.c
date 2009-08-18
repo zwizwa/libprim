@@ -1,6 +1,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include "port.h"
+
 int port_vprintf(port *p, const char *fmt, va_list ap) {
     va_list aq;
     int len;
@@ -22,8 +23,12 @@ int port_printf(port *p, const char *fmt, ...) {
 int port_getc(port *p) {
     return fgetc(p->stream);
 }
+void port_close(port *x) {
+    fclose(x->stream);
+    x->stream = NULL;
+}
 void port_free(port *x) {
-    if (x->stream) fclose(x->stream);
+    port_close(x);
     if (x->name) free (x->name);
     free(x);
 }

@@ -5,27 +5,24 @@ Next    = - d:Datum                      { ob = d; }
 Datum   = Quote | Const | List 
         | Number | Symbol | String
 
-LP      = '(' -
-RP      = ')' -
-Dot     = '.' Space -
-
 List     = LP Tail
 Tail     = a:Datum Dot d:Datum RP        { $$= CONS(a,d) }
          | RP                            { $$= NIL }
          | d:Datum t:Tail                { $$= CONS(d,t) }
 
-Quote   = ['] - d:Datum                  { $$= QUOTE(d) }
+Quote   = - ['] - d:Datum                { $$= QUOTE(d) }
 
 Const   = True | False
 
-True    = '#t' -                         { $$= TRUE }
-False   = '#f' -                         { $$= FALSE }
+LP      = - '('
+RP      = - ')'
+Dot     = Space - '.'
+True    = - '#t'                         { $$= TRUE }
+False   = - '#f'                         { $$= FALSE }
 
-Junk    = < .* > EOF                     { $$= JUNK(yytext) }
-
-Number	= < Digit+ > !NonDigit -	 { $$= NUMBER(atoi(yytext)) }
-Symbol  = < Char+ > -	                 { $$= SYMBOL(yytext) }
-String  = ["] < ( !["] Char )* > ["] -   { $$= STRING(yytext) }
+Number	= - < Digit+ > !NonDigit         { $$= NUMBER(atoi(yytext)) }
+Symbol  = - < Char+ >  	                 { $$= SYMBOL(yytext) }
+String  = - ["] < ( !["] . )* > ["]      { $$= STRING(yytext) }
 
 
 Letter   = [A-Za-z]
@@ -39,10 +36,16 @@ Char     = Digit | NonDigit
 Space   = [ \t\n]
 -	= ( Space | Comment )*
 
+# _       = &(Space | '(')
+       
+
 Comment = ';' ( !EOL . )* EOL
 EOL	= '\n' | '\r\n' | '\r'
 
 EOF     = !.                             { $$= EOF_OBJECT }
+
+Junk    = < .* > EOF                     { $$= JUNK(yytext) }
+
 
 
 

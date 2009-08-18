@@ -1,21 +1,17 @@
-(post 'READ-TEST)
+;; (post 'READ-TEST)
+
+
 ;; (post (read))
 
 ;(read-file)
 ;(read-file)
 ;(read-file)
 
-(eval 'foo)
+;; (repl)
 
-(define (read-file)
-  (let loop ()
-    (let ((expr (read)))
-      (if (eof-object? expr)
-          (post expr)
-          (begin
-            (post (eval expr))
-            (loop))))))
-(read-file)
+;; (eval 'foo)
+
+;; (read-file)
 
 
 ;; ;; (reverse! '(1 2 3))
@@ -44,11 +40,11 @@
 ;; ;; (when 123 broebel)
 
 ;; (let ((broebel 123)) broebel)
-;; (let foo ((n 10))
-;;   (if (zero? n) 0
-;;       (begin
-;;         (post 'bla)
-;;         (foo (sub1 n)))))
+(let foo ((n 10))
+  (if (zero? n) 0
+      (begin
+        (post 'bla)
+        (foo (sub1 n)))))
 
 
 ;; (post 'READ-TEST)

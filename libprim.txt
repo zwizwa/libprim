@@ -2347,6 +2347,8 @@ So, in order to read a minimal amount of characters, the current
 grammar needs to be reworked a bit.  Esp. the greedy post-whitespace
 parse needs to be replaced by something else.
 
+Start with simply putting all '-' rules in front.  This seems to
+almost work.. The .scm file won't parse though.
 
 
 

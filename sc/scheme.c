@@ -829,6 +829,16 @@ void _sc_def_prim(sc *sc, const char *str, void *fn, long nargs) {
     sc_bang_def_toplevel(sc, var, _sc_make_prim(sc, fn, nargs, var));
 }
 void _sc_load_lib(sc* sc);
+static void _sc_boot(sc *sc) {
+    char *bootfile = "boot.scm";
+    port *bootport = port_new(TYPES->port_type,
+                              fopen(bootfile, "r"),
+                              bootfile);
+    _ boot = _ex_read(EX, bootport);
+    port_free(bootport);
+    _sc_top(sc, boot);
+}
+
 
 sc *_sc_new(void) {
     sc *sc = malloc(sizeof(*sc));
@@ -881,18 +891,10 @@ sc *_sc_new(void) {
     sc_bang_set_global(sc, sc_slot_abort_k, abort_k);
 
     /* Highlevel bootstrap from stdin. */
-    char *bootfile = "boot.scm";
-    port *bootport = port_new(TYPES->port_type,
-                              fopen(bootfile, "r"),
-                              bootfile);
-    _ boot = _ex_read(EX, bootport);
-    port_free(bootport);
-    _sc_top(sc, boot);
-    
-    // _sc_load_lib(sc);
+    // _sc_boot(sc);
+    _sc_load_lib(sc);
     return sc;
 }
-
 
 // FIXME
 _ sc_read(sc *sc) {

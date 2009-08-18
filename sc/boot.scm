@@ -130,11 +130,20 @@
         (list 'write ''=>)
         (list 'dbg (cdr form))))
 
+(define (repl)
+  (let loop ()
+    (let ((expr (read)))
+      (if (eof-object? expr)
+          (post expr)
+          (begin
+            (post (eval expr))
+            (loop))))))
 
 (post 'init-OK)
-
 
 ;; Perform GC before loading another script outside of VM.
 (gc)
 
+
+(repl)
 )
