@@ -1,10 +1,16 @@
-File    = - d:Data                       { file = d; }
+Next    = - d:Datum                      { ob = d; }
+
+# Whole file at once
+File    = - d:Data                       { ob = d; }
+
+Datum   = Number | Symbol | String
 Data    = d:Datum ds:Data                { $$= CONS(d,ds) }
-        | j:Junk                         { $$= j }
+        | EOF                            { $$= NIL }
+        | Junk
 
 Junk    = < .* >                         { $$= STRING(yytext) }
 
-Datum   =  Number | Symbol | String
+
 
 Number	= < Digit+ >	!Letter -	 { $$= NUMBER(atoi(yytext)) }
 Symbol  = < Letter Char* >	-	 { $$= SYMBOL(yytext) }

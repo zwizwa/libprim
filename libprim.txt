@@ -2245,3 +2245,53 @@ express delimiting?
 [1] http://piumarta.com/software/peg/peg.1.html
 
 
+Entry: Weird error
+Date: Tue Aug 18 15:37:32 CEST 2009
+
+(define (read-file)
+  (let loop ()
+    (let ((expr (read)))
+      (if (eof-object? expr)
+          (post expr)
+          (begin
+            (post expr)
+            (loop))))))
+(read-file)
+
+Passing the string ' 1 2 3 abc "def" foo'  gives:
+
+READ-TEST
+;; gc 2340:12378
+;; gc 2383:12335
+;; gc 2380:12338
+1
+2
+;; gc 2377:12341
+3
+abc
+"def"
+foo
+;; gc 2298:12420
+ERROR: undefined: expr
+
+This `undefined' message should not happen, as the variable should be
+in lexical context.  Something goes wrong here..
+
+The environment does have `expr' :
+
+(gdb) p ex_post(sc, _ex_map1_prim(sc, ex_car, env))
+(expr loop)
+
+So maybe the two symbols are not equal?
+
+(gdb) p term
+$6 = 6561248
+
+(gdb) p ex_caar(sc, env)
+$7 = 6561248
+
+No, they are..
+
+Ok, I know what this is:  This should use find_slot istead of find,
+because the value can be #f
+

@@ -457,18 +457,18 @@ _ ex_raise_nargs_error(ex *ex, _ arg_o) {
 /* Reader */
 // FIXME: make this thread-local when pthreads are supported. (like task.c)
 ex *thread_local_ex = NULL;
-_ file = NIL;
+_ ob = NIL;
 #undef EX
 #define EX thread_local_ex
 #define YYSTYPE object
 // #define YY_DEBUG
 #define NUMBER integer_to_object
 #include "sexp.h_leg"
-_ ex_read_file(ex *ex) {
+_ ex_read(ex *ex) {
     EX = ex;
-    file = FALSE;
+    ob = EOF_OBJECT;
     yyparse();
-    // if (yyparse()) ERROR("parse", parse);
-    return file;
+    // if (FALSE == ob) ERROR("parse", FALSE);
+    return ob;
 }
 

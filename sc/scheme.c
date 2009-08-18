@@ -135,12 +135,6 @@ _ sc_abort_k(sc *sc)        { _GLOBAL(abort_k); }
 _ sc_bang_set_toplevel(sc *sc, _ val)       { _GLOBAL_SET(toplevel, val); }
 _ sc_bang_set_toplevel_macro(sc *sc, _ val) { _GLOBAL_SET(toplevel_macro, val); }
 
-_ sc_find_toplevel(sc *sc, _ var) {
-    return ex_find(EX, sc_toplevel(sc), var);
-}
-_ sc_find_toplevel_macro(sc *sc, _ var) {
-    return ex_find(EX, sc_toplevel_macro(sc), var);
-}
 /*  Add to or mutate toplevel env. */
 _ sc_bang_def_global(sc* sc, _ slot, _ var, _ val) {
     symbol *s;
@@ -290,6 +284,8 @@ static inline void length_and_last(sc *sc, _ p, long* n, _*last) {
     }
 }
 
+_ sc_error_undefined(sc *sc, _ o) { return ERROR("undefined", o); }
+
 _ _sc_step_value(sc *sc, _ v, _ k) {
 
     /* Look at the continuation to determine what to do with the value. 
@@ -323,7 +319,7 @@ _ _sc_step_value(sc *sc, _ v, _ k) {
         if (FALSE == ENV_SET(kx->env, kx->var, value)) {
             if (FALSE == ENV_SET(sc_global(sc, kx->tl_slot),  // global toplevel
                                  kx->var, value)) {
-                return ERROR("undefined", kx->var);
+                return ERROR_UNDEFINED(kx->var);
             }
         }
         return rv;
@@ -478,13 +474,13 @@ static _ _sc_step(sc *sc, _ o_state) {
 
     /* Variable Reference */
     if (TRUE==IS_SYMBOL(term)){
-        _ val; 
-        if (FALSE == (val = ex_find(EX, env, term))) {
-            if (FALSE == (val = sc_find_toplevel(sc, term))) {
-                return ERROR("undefined", term);
+        _ slot;
+        if (FALSE == (slot = FIND_SLOT(env, term))) {
+            if (FALSE == (slot = FIND_SLOT(TOPLEVEL(), term))) {
+                return ERROR_UNDEFINED(term);
             }
         }
-        return STATE(VALUE(val), k);
+        return STATE(VALUE(CDR(slot)), k);
     }
 
     /* Literal Value */
@@ -880,7 +876,7 @@ sc *_sc_new(void) {
     _sc_def_prims(sc, scheme_prims);
 
     /* Toplevel abort continuation */
-    _ done = CONS(sc_find_toplevel(sc, SYMBOL("fatal")),NIL);
+    _ done = CONS(FIND(TOPLEVEL(),SYMBOL("fatal")),NIL);
     _ abort_k = sc_make_k_apply(sc, MT, done, NIL);
     sc_bang_set_global(sc, sc_slot_abort_k, abort_k);
 
