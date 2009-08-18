@@ -2,7 +2,7 @@
 
 ;; The s-expr will be allocated outside the VM, so a single form makes
 ;; sure there's no GC during construction.
-(begin
+;; (begin
   
 (def-toplevel! 'list (lambda args args))
 (def-toplevel-macro!
@@ -87,10 +87,10 @@
 (define (words) (map1 car (toplevel)))
 (define (macro) (map1 car (toplevel-macro)))
 
-(define (with-letform-transpose bindings.body fn)
-  (fn (map1 car (car bindings.body))
-      (map1 cadr (car bindings.body))
-      (cdr bindings.body)))
+(define (with-letform-transpose bindings_body fn)
+  (fn (map1 car (car bindings_body))
+      (map1 cadr (car bindings_body))
+      (cdr bindings_body)))
 
 (define-macro (let form)
   (if (symbol? (cadr form))
@@ -109,13 +109,6 @@
          (list* (list* 'lambda names body) values)))))
 
 (define (dbg x) (post x) x)
-(define-macro (*** form)
-  (list 'begin
-        ;; (list 'post ''FORM:)
-        (list 'post (list 'quote (cdr form)))
-        (list 'write ''=>)
-        (list 'dbg (cdr form))))
-
 (define-macro (cond form)
   (let next ((f (cdr form)))
     (let ((c  (car f)))
@@ -131,8 +124,17 @@
   (list 'if (cadr form) (void)
         (cons 'begin (cddr form))))
 
+(define-macro (*** form)
+  (list 'begin
+        (list 'post (list 'quote (cdr form)))
+        (list 'write ''=>)
+        (list 'dbg (cdr form))))
+
+
 (post 'init-OK)
 
 
 ;; Perform GC before loading another script outside of VM.
-(gc))
+(gc)
+
+;; )

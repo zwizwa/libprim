@@ -2,7 +2,7 @@ Next    = - d:Datum                      { ob = d; }
         | - e:EOF                        { ob = e; }
         | j:Junk                         { ob = j; }
 
-Datum   = List | Number | Symbol | String
+Datum   = Quote | Const | List | Number | Symbol | String
 
 LP      = '(' -
 RP      = ')' -
@@ -13,19 +13,32 @@ Tail     = a:Datum Dot d:Datum RP        { $$= CONS(a,d) }
          | RP                            { $$= NIL }
          | d:Datum t:Tail                { $$= CONS(d,t) }
 
+Quote   = ['] - d:Datum                  { $$= QUOTE(d) }
+
+Const   = True | False
+
+True    = '#t' -                         { $$= TRUE }
+False   = '#f' -                         { $$= FALSE }
+
 Junk    = < .* > EOF                     { $$= JUNK(yytext) }
 
 Number	= < Digit+ > !Letter -	         { $$= NUMBER(atoi(yytext)) }
-Symbol  = < Letter Char* > -	         { $$= SYMBOL(yytext) }
+Symbol  = < NonDigit Char* > -	         { $$= SYMBOL(yytext) }
 String  = ["] < ( !["] Char )* > ["] -   { $$= STRING(yytext) }
 
 
-Letter  = [A-Za-z]
-Digit   = [0-9]
-Char    = Letter | Digit
+Letter   = [A-Za-z]
+Digit    = [0-9]
+Special  = '!' | '-' | '?' | '*' | '_' | ':' | '<' | '>' | '='
+NonDigit = Letter | Special
+
+Char     = Digit | NonDigit
 
 Space   = [ \t\n]
--	= Space*
+-	= ( Space | Comment )*
 EOF     = !.                            { $$= EOF_OBJECT }
 
-# EOL	= '\n' | '\r\n' | '\r' | ';'
+Comment = ';' ( !EOL . )* EOL
+EOL	= '\n' | '\r\n' | '\r'
+
+

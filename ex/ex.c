@@ -464,6 +464,7 @@ _ ob = NIL;
 // #define YY_DEBUG
 #define NUMBER integer_to_object
 #define JUNK(str) CONS(SYMBOL("junk"), STRING(str))
+#define QUOTE(ob) CONS(SYMBOL("quote"), CONS(ob, NIL))
 #include "sexp.h_leg"
 
 _ ex_read(ex *ex) {

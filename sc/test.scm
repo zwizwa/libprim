@@ -1,38 +1,3 @@
-
-
-;; (reverse! '(1 2 3))
-(bool? 123)
-(open-mode-file "/tmp/blubber" "w")
-(string->symbol "asdfasFD")
-(symbol->string 'asdfasdf)
-(begin (make-vector 10000 123) 'foo)
-(map2-prim cons '(a b c) '(1 2 3))
-
-
-(list-clone '(a b c))
-(list-clone '())
-(list-clone '(a . b))
-(list* 1 2 3)
-(list 1 2 3)
-(list* 1 2)
-
-(define x (with-ck () 123)) x
-(with-ck (cdr x) 124)
-(with-ck (cdr x) 124)
-(define x (with-ck (cdr x) 124)) x
-(define x (with-ck (cdr x) 125)) x
-(define x (with-ck (cdr x) 126)) x
-
-;; (when 123 broebel)
-
-(let ((broebel 123)) broebel)
-(let foo ((n 10))
-  (if (zero? n) 0
-      (begin
-        (post 'bla)
-        (foo (sub1 n)))))
-
-
 (post 'READ-TEST)
 ;; (post (read))
 
@@ -49,6 +14,57 @@
             (post expr)
             (loop))))))
 (read-file)
+
+
+;; ;; (reverse! '(1 2 3))
+;; (bool? 123)
+;; (open-mode-file "/tmp/blubber" "w")
+;; (string->symbol "asdfasFD")
+;; (symbol->string 'asdfasdf)
+;; (begin (make-vector 10000 123) 'foo)
+;; (map2-prim cons '(a b c) '(1 2 3))
+
+
+;; (list-clone '(a b c))
+;; (list-clone '())
+;; (list-clone '(a . b))
+;; (list* 1 2 3)
+;; (list 1 2 3)
+;; (list* 1 2)
+
+;; (define x (with-ck () 123)) x
+;; (with-ck (cdr x) 124)
+;; (with-ck (cdr x) 124)
+;; (define x (with-ck (cdr x) 124)) x
+;; (define x (with-ck (cdr x) 125)) x
+;; (define x (with-ck (cdr x) 126)) x
+
+;; ;; (when 123 broebel)
+
+;; (let ((broebel 123)) broebel)
+;; (let foo ((n 10))
+;;   (if (zero? n) 0
+;;       (begin
+;;         (post 'bla)
+;;         (foo (sub1 n)))))
+
+
+;; (post 'READ-TEST)
+;; ;; (post (read))
+
+;; ;(read-file)
+;; ;(read-file)
+;; ;(read-file)
+
+;; (define (read-file)
+;;   (let loop ()
+;;     (let ((expr (read)))
+;;       (if (eof-object? expr)
+;;           (post expr)
+;;           (begin
+;;             (post expr)
+;;             (loop))))))
+;; (read-file)
 
 
 

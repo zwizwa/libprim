@@ -836,7 +836,7 @@ sc *_sc_new(void) {
     sc->m.prim_entries = 0;
 
     /* Garbage collector. */
-    sc->m.gc = gc_new(10000, sc, 
+    sc->m.gc = gc_new(1000000, sc, 
                       (gc_mark_roots)_sc_mark_roots,
                       (gc_overflow)_ex_overflow);
                     

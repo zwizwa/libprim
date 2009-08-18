@@ -2295,3 +2295,48 @@ No, they are..
 Ok, I know what this is:  This should use find_slot istead of find,
 because the value can be #f
 
+
+Entry: First PEG grammar
+Date: Tue Aug 18 16:41:23 CEST 2009
+
+Next    = - d:Datum                      { ob = d; }
+        | - e:EOF                        { ob = e; }
+        | j:Junk                         { ob = j; }
+
+Datum   = List | Number | Symbol | String
+
+LP      = '(' -
+RP      = ')' -
+Dot     = '.' Space -
+
+List     = LP Tail
+Tail     = a:Datum Dot d:Datum RP        { $$= CONS(a,d) }
+         | RP                            { $$= NIL }
+         | d:Datum t:Tail                { $$= CONS(d,t) }
+
+Junk    = < .* > EOF                     { $$= JUNK(yytext) }
+
+Number	= < Digit+ > !Letter -	         { $$= NUMBER(atoi(yytext)) }
+Symbol  = < Letter Char* > -	         { $$= SYMBOL(yytext) }
+String  = ["] < ( !["] Char )* > ["] -   { $$= STRING(yytext) }
+
+
+Letter  = [A-Za-z]
+Digit   = [0-9]
+Char    = Letter | Digit
+
+Space   = [ \t\n]
+-	= ( Space | Comment )*
+EOF     = !.                            { $$= EOF_OBJECT }
+
+Comment = ';' ( !EOL . )* EOL
+EOL	= '\n' | '\r\n' | '\r'
+
+
+After adding some special characters, it parses the boot.scm file.
+Parse error reporting is going to be spartan it looks like..
+
+
+
+
+
