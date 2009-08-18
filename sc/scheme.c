@@ -166,12 +166,9 @@ port *_sc_port(sc *sc) {
     return object_to_port(sc_global(sc, sc_slot_debug_port), EX);
 }
 _ sc_write(sc *sc,  _ o) {
-    if (FALSE != _ex_write(EX, o)) {
-        return VOID;
-    }
     void *x;
-    if ((x = object_to_const(o))) { _ex_printf(EX, "#data<%p>",x); return VOID; }
 
+    /* FIXME: Bytes and strings are currently the same. */
     if (TRUE == sc_is_bytes(sc, o)) {
         bytes_write_string(object_to_bytes(o, &sc->m), _sc_port(sc)->stream);
         return VOID;
@@ -191,8 +188,7 @@ _ sc_write(sc *sc,  _ o) {
     if (TRUE == sc_is_k_macro(sc, o)) return _ex_write_vector(EX, "k_macro", v);
     if (MT   == o) { _ex_printf(EX, "#k_mt"); return VOID; }
 
-    _ex_printf(EX, "#object<%p>",(void*)o);
-    return VOID;
+    return _ex_write(EX, o);
 }
 
 _ sc_read_char(sc *sc) {
@@ -855,9 +851,10 @@ sc *_sc_new(void) {
     TYPES->prim_type = (void*)0xF001; // dummy class
     TYPES->port_type = port_class_new();
 
-    /* EX writing */
+    /* EX virtual methods */
     sc->m.port = (_ex_port_method)_sc_port;
     sc->m.write = (ex_write_method)sc_write;
+    sc->m.make_string = (_ex_make_string_method)_sc_make_string;
 
     /* Data roots. */
     _ out = _sc_make_port(sc, stderr, "stderr");

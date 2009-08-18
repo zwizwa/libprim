@@ -264,7 +264,6 @@ sc    *_sc_new(void);
 #define VALUE(d)     sc_make_value(sc,d)
 
 #define NUMBER(n)     integer_to_object(n)
-#define STRING(str)   _sc_make_string((sc*)EX, str)
 // #define ERROR(msg, o) sc_raise_error(sc, SYMBOL(msg), o)
 // #define TYPE_ERROR(o) sc_raise_type_error(sc, o)
 

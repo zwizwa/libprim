@@ -36,6 +36,7 @@ typedef struct {
 typedef struct _ex ex;
 typedef object (*ex_write_method)(ex *ex, object ob);
 typedef port*  (*_ex_port_method)(ex *ex);
+typedef object (*_ex_make_string_method)(ex *ex, const char *str);
 struct _ex {
     void *type;
 
@@ -57,7 +58,8 @@ struct _ex {
 
     /* Printing: delegate + current port. */
     ex_write_method write;
-    _ex_port_method  port;
+    _ex_port_method port;
+    _ex_make_string_method make_string;
 
 };
 
@@ -105,6 +107,7 @@ long _ex_unwrap_integer(ex *ex, object o);
 
 _ _ex_make_symbol(ex *ex, const char *str);
 #define SYMBOL(str)   _ex_make_symbol(EX, str)
+#define STRING(str)   (EX->make_string(EX, str))
 
 _ _ex_restart(ex *ex);
 

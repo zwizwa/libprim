@@ -34,7 +34,12 @@
 
 
 (post 'READ-TEST)
-(post (read))
+;; (post (read))
+(let loop ()
+  (let ((expr (read)))
+    (if (eof-object? expr)
+        (post expr)
+        (begin (post expr) (loop)))))
 
 
 

@@ -32,13 +32,14 @@ object _ex_write(ex *ex, object o) {
     void *x;
     if (TRUE  == o) { port_printf(p, "#t"); return VOID; }
     if (FALSE == o) { port_printf(p, "#f"); return VOID; }
-    if (GC_INTEGER == GC_TAG(o)) {
-        port_printf(p, "%ld", object_to_integer(o));
-        return VOID;
-    }
+    if (EOF_OBJECT  == o) { port_printf(p, "#eof"); return VOID; }
     if (VOID == o) { port_printf(p, "#<void>"); return VOID; }
     if (NIL == o) {
         port_printf(p, "()");
+        return VOID;
+    }
+    if (GC_INTEGER == GC_TAG(o)) {
+        port_printf(p, "%ld", object_to_integer(o));
         return VOID;
     }
     if ((v = object_to_vector(o))) {
@@ -104,7 +105,10 @@ object _ex_write(ex *ex, object o) {
         // port_printf(p, "#fin<%p:%p>", x, *((void**)x)); // do we care?
         return VOID; 
     }
-    return FALSE;
+    if ((x = object_to_const(o))) { 
+        return _ex_printf(ex, "#data<%p>", x);
+    }
+    return _ex_printf(ex, "#object<%p>",(void*)o);
 }
 
 // types_add(types *m, void *type) {}
@@ -203,6 +207,9 @@ _ ex_is_bool(ex *ex, _ o) {
 /* The empty list is the NULL pointer */
 _ ex_is_null(ex *ex, _ o) {
     if (NIL == o) return TRUE; else return FALSE;
+}
+_ ex_is_eof_object(ex *ex, _ o) {
+    if (EOF_OBJECT == o) return TRUE; else return FALSE;
 }
 _ ex_is_integer(ex *ex, _ o) {
     if (GC_INTEGER == GC_TAG(o)) return TRUE;
@@ -457,12 +464,16 @@ _ parse_result = NIL;
 #define NUMBER integer_to_object
 #include "sexp.h_leg"
 _ ex_read(ex *ex) {
+    int more;
+
     thread_local_ex = ex;
-    parse_result = SYMBOL("parse-serror");
-    while (yyparse());
-    thread_local_ex = NULL;
-    _ rv = parse_result;
     parse_result = VOID;
-    return rv;
+    more = yyparse();
+
+    if (parse_result == VOID) { 
+        if (more) ERROR("parse", VOID);
+        else parse_result = EOF_OBJECT;  // FIXME: express this in grammar
+    }
+    return parse_result;
 }
 

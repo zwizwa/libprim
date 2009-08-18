@@ -152,6 +152,7 @@ static inline long vector_size(vector *v) {
 #define FALSE CONSTANT(0)
 #define TRUE  CONSTANT(1)
 #define VOID  CONSTANT(2)
+#define EOF_OBJECT CONSTANT(3)
 
 static inline void *object_struct(object ob, void *type){
     void *x = object_to_const(ob);

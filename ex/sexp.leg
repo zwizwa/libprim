@@ -1,9 +1,17 @@
-File    = e:Expr                        { parse_result = e; }
+start   = e:Expr                        { parse_result = e; }
+        | EOF                           { parse_result = EOF_OBJECT; }
+
 Expr	= i:ID          		{ $$= i }
 	| n:NUMBER			{ $$= n }
 
 -	= [ \t]*
-EOL	= '\n' | '\r\n' | '\r' | ';'
+EOF     = !.
 
-NUMBER	= < [0-9]+ >	-		{ $$= NUMBER(atoi(yytext)) }
-ID	= < [a-z]+ >	-		{ $$= SYMBOL(yytext) }
+NUMBER	= < Digit+ >	-		{ $$= NUMBER(atoi(yytext)) }
+ID	= < Letter Char* >	-	{ $$= SYMBOL(yytext) }
+
+Letter  = [A-Za-z]
+Digit   = [0-9]
+Char    = Letter | Digit
+
+# EOL	= '\n' | '\r\n' | '\r' | ';'
