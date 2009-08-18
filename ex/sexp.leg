@@ -1,8 +1,9 @@
-debug   = - x:Number { file = x; }
-# start   = - d:Data                       { parse = d; }
+# debug   = - x:Number { file = x; }
+File    = - d:Data                        { file = d; }
+# data     = - x:Number y:Number              { file = CONS(x,y); }
 
 Data    = d:Datum ds:Data                { $$= CONS(d,ds) }
-        | EOF                            { $$= NIL }
+        | .                              { $$= NIL }
 
 Datum   =  Number | Symbol | String
 
