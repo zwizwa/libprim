@@ -1,19 +1,22 @@
 Next    = - d:Datum                      { ob = d; }
+        | - e:EOF                        { ob = e; }
+        | j:Junk                         { ob = j; }
 
-# Whole file at once
-File    = - d:Data                       { ob = d; }
+Datum   = List | Number | Symbol | String
 
-Datum   = Number | Symbol | String
-Data    = d:Datum ds:Data                { $$= CONS(d,ds) }
-        | EOF                            { $$= NIL }
-        | Junk
+LP      = '(' -
+RP      = ')' -
+Dot     = '.' Space -
 
-Junk    = < .* >                         { $$= STRING(yytext) }
+List     = LP Tail
+Tail     = a:Datum Dot d:Datum RP        { $$= CONS(a,d) }
+         | RP                            { $$= NIL }
+         | d:Datum t:Tail                { $$= CONS(d,t) }
 
+Junk    = < .* > EOF                     { $$= JUNK(yytext) }
 
-
-Number	= < Digit+ >	!Letter -	 { $$= NUMBER(atoi(yytext)) }
-Symbol  = < Letter Char* >	-	 { $$= SYMBOL(yytext) }
+Number	= < Digit+ > !Letter -	         { $$= NUMBER(atoi(yytext)) }
+Symbol  = < Letter Char* > -	         { $$= SYMBOL(yytext) }
 String  = ["] < ( !["] Char )* > ["] -   { $$= STRING(yytext) }
 
 
@@ -21,7 +24,8 @@ Letter  = [A-Za-z]
 Digit   = [0-9]
 Char    = Letter | Digit
 
--	= [ \t\n]*
-EOF     = !.
+Space   = [ \t\n]
+-	= Space*
+EOF     = !.                            { $$= EOF_OBJECT }
 
 # EOL	= '\n' | '\r\n' | '\r' | ';'

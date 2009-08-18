@@ -463,7 +463,9 @@ _ ob = NIL;
 #define YYSTYPE object
 // #define YY_DEBUG
 #define NUMBER integer_to_object
+#define JUNK(str) CONS(SYMBOL("junk"), STRING(str))
 #include "sexp.h_leg"
+
 _ ex_read(ex *ex) {
     EX = ex;
     ob = EOF_OBJECT;
