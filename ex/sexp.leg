@@ -1,0 +1,9 @@
+File    = e:Expr                        { parse_result = e; }
+Expr	= i:ID          		{ $$= i }
+	| n:NUMBER			{ $$= n }
+
+-	= [ \t]*
+EOL	= '\n' | '\r\n' | '\r' | ';'
+
+NUMBER	= < [0-9]+ >	-		{ $$= NUMBER(atoi(yytext)) }
+ID	= < [a-z]+ >	-		{ $$= SYMBOL(yytext) }

@@ -2114,45 +2114,130 @@ Date: Tue Aug 18 08:58:30 CEST 2009
 
 Trying out this[1].
 
-I'm getting linker errors.
+The best way to understand is the metacircular example: The grammar
+for peg grammars is shown below.
 
-The rules are very simple: when you're linking .o, .a and .so files:
-``make sure the order is right!''.  Usually putting the low level
-things on which everything depends in the back works best.
+           Grammar         <- Spacing Definition+ EndOfFile
 
-Actually, I've never really understood how this works exactly - my
-mental model of it was good enough uptil now.  My guess is that all .o
-files get included in their entirety, but only if they are somehow
-referenced beforehand.
+           Definition      <- Identifier LEFTARROW Expression
+           Expression      <- Sequence ( SLASH Sequence )*
+           Sequence        <- Prefix*
+           Prefix          <- AND Action
+                            / ( AND | NOT )? Suffix
+           Suffix          <- Primary ( QUERY / STAR / PLUS )?
+           Primary         <- Identifier !LEFTARROW
+                            / OPEN Expression CLOSE
+                            / Literal
+                            / Class
+                            / DOT
+                            / Action
+                            / BEGIN
+                            / END
 
-But..  Now I have this:
+           Identifier      <- < IdentStart IdentCont* > Spacing
+           IdentStart      <- [a-zA-Z_]
+           IdentCont       <- IdentStart / [0-9]
+           Literal         <- ['] < ( !['] Char  )* > ['] Spacing
+                            / ["] < ( !["] Char  )* > ["] Spacing
+           Class           <- '[' < ( !']' Range )* > ']' Spacing
+           Range           <- Char '-' Char / Char
+           Char            <- '\\' [abefnrtv'"\[\]\\]
+                            / '\\' [0-3][0-7][0-7]
+                            / '\\' [0-7][0-7]?
+                            / '\\' '-'
+                            / !'\\' .
+           LEFTARROW       <- '<-' Spacing
+           SLASH           <- '/' Spacing
+           AND             <- '&' Spacing
+           NOT             <- '!' Spacing
+           QUERY           <- '?' Spacing
+           STAR            <- '*' Spacing
+           PLUS            <- '+' Spacing
+           OPEN            <- '(' Spacing
+           CLOSE           <- ')' Spacing
+           DOT             <- '.' Spacing
+           Spacing         <- ( Space / Comment )*
+           Comment         <- '#' ( !EndOfLine . )* EndOfLine
+           Space           <- ' ' / '\t' / EndOfLine
+           EndOfLine       <- '\r\n' / '\n' / '\r'
+           EndOfFile       <- !.
+           Action          <- '{' < [^}]* > '}' Spacing
+           BEGIN           <- '<' Spacing
+           END             <- '>' Spacing
 
-tom@zni:~/libprim/ex$ objdump -t main.o |grep yy_start
-0000000000000000         *UND*	0000000000000000 yy_start
+Starting with this:
 
-tom@zni:~/libprim/ex$ objdump -t sexp.o |grep yy_start
-0000000000000609 l     F .text	000000000000004f yy_start
+Grammar         <- Spacing Identifier+ EndOfFile         
+Spacing         <- ( Space / Comment )*
+Space           <- ' ' / '\t' / EndOfLine
+Comment         <- ';;' ( !EndOfLine . )* EndOfLine
+EndOfLine       <- '\r\n' / '\n' / '\r'
+EndOfFile       <- !.
 
-but:
 
-tom@zni:~/libprim/ex$ gcc -o main main.o sexp.o
-main.o: In function `main':
-/home/tom/libprim/ex/main.c:3: undefined reference to `yy_start'
-collect2: ld returned 1 exit status
+Identifier      <- < IdentStart IdentCont* > Spacing    { printf("ID: %s\n", yytext); }
+IdentStart      <- [a-zA-Z_]
+IdentCont       <- IdentStart / [0-9]
 
-and:
+Which doesn't do anything..  I guess I'm not getting
+something... Maybe what I need is leg instead of peg?  Indeed, it
+seems to support expressions.
 
-tom@zni:~/libprim/ex$ gcc -o main sexp.o main.o
-main.o: In function `main':
-/home/tom/libprim/ex/main.c:3: undefined reference to `yy_start'
-collect2: ld returned 1 exit status
+exampeles/calc.leg:
 
-I don't understand..
 
-Damn this sucks: look at the little "l" there: it means *LOCAL*.
+%{
+#include <stdio.h>
+int vars[26];
+%}
 
-The .c file is generated from a .peg parser descriptor file.  So I
-guess this is really simply just sad I didn't check..
+Stmt	= - e:Expr EOL			{ printf("%d\n", e); }
+	| ( !EOL . )* EOL		{ printf("error\n"); }
+
+Expr	= i:ID ASSIGN s:Sum		{ $$= vars[i]= s; }
+	| s:Sum				{ $$= s; }
+
+Sum	= l:Product
+		( PLUS  r:Product	{ l += r; }
+		| MINUS r:Product	{ l -= r; }
+		)*			{ $$= l; }
+
+Product	= l:Value
+		( TIMES  r:Value	{ l *= r; }
+		| DIVIDE r:Value	{ l /= r; }
+		)*			{ $$= l; }
+
+Value	= i:NUMBER			{ $$= atoi(yytext); }
+	| i:ID !ASSIGN			{ $$= vars[i]; }
+	| OPEN i:Expr CLOSE		{ $$= i; }
+
+NUMBER	= < [0-9]+ >	-		{ $$= atoi(yytext); }
+ID	= < [a-z]  >	-		{ $$= yytext[0] - 'a'; }
+ASSIGN	= '='		-
+PLUS	= '+'		-
+MINUS	= '-'		-
+TIMES	= '*'		-
+DIVIDE	= '/'		-
+OPEN	= '('		-
+CLOSE	= ')'		-
+
+-	= [ \t]*
+EOL	= '\n' | '\r\n' | '\r' | ';'
+
+%%
+
+int main()
+{
+  while (yyparse());
+
+  return 0;
+}
+
+
+One problem though: it doesn't seem to be possible to pass context
+into yyparse that can trickle down to the actions.  Makes me wonder
+how one would implement dynamic scope in C in a thread-safe way.  I
+guess by using thread-local variables..
 
 
 [1] http://piumarta.com/software/peg/peg.1.html

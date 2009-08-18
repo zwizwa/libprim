@@ -361,12 +361,12 @@ _ px_write_word(pf *pf, _ ob) {
 
 _ px_write(pf *pf, _ ob) {
     void *x;
-    if (FALSE != ex_write(EX, ob)) {
+    if (FALSE != _ex_write(EX, ob)) {
         return VOID;
     }
     /* Ports are RC wrapped in PF.*/
     if ((x = object_to_port(ob, EX))) {
-        return ex_write(EX, const_to_object(x));
+        return _ex_write(EX, const_to_object(x));
     }
     else if ((x = object_to_box(ob))) {
         return _ex_write_vector(EX, "box", object_to_vector(ob));

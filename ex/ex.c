@@ -13,8 +13,6 @@
 #include "pair.h"
 #include "ex.h"
 #include "ex.h_ex_prims"
-#include "sexp.h_peg"
-
 
 object _ex_write_vector(ex *ex, const char *type, vector *v) {
     port *p = ex->port(ex);
@@ -27,7 +25,8 @@ object _ex_write_vector(ex *ex, const char *type, vector *v) {
     port_printf(p, ")");
     return VOID;
 }
-object ex_write(ex *ex, object o) {
+// This has proper EX semantics, but you most probably want to override it.
+object _ex_write(ex *ex, object o) {
     port *p = ex->port(ex);
     vector *v;
     void *x;
@@ -449,7 +448,21 @@ _ ex_raise_nargs_error(ex *ex, _ arg_o) {
 
 
 /* Reader */
+// FIXME: make this thread-local when pthreads are supported. (like task.c)
+ex *thread_local_ex = NULL;
+_ parse_result = NIL;
+#undef EX
+#define EX thread_local_ex
+#define YYSTYPE object
+#define NUMBER integer_to_object
+#include "sexp.h_leg"
 _ ex_read(ex *ex) {
-    while (yyparse()) { fprintf(stderr, "."); }
+    thread_local_ex = ex;
+    parse_result = SYMBOL("parse-serror");
+    while (yyparse());
+    thread_local_ex = NULL;
+    _ rv = parse_result;
+    parse_result = VOID;
+    return rv;
 }
 

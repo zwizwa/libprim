@@ -166,7 +166,7 @@ port *_sc_port(sc *sc) {
     return object_to_port(sc_global(sc, sc_slot_debug_port), EX);
 }
 _ sc_write(sc *sc,  _ o) {
-    if (FALSE != ex_write(EX, o)) {
+    if (FALSE != _ex_write(EX, o)) {
         return VOID;
     }
     void *x;

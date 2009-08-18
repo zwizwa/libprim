@@ -77,7 +77,7 @@ typedef void* (*object_to_pointer)(object, ex*);
    recognized through the class list in mem. */
 
 object _ex_write_vector(ex *ex, const char *type, vector *v);
-object ex_write(ex *ex, object ob);
+object _ex_write(ex *ex, object ob);
 _ _ex_printf(ex *pf, const char *fmt, ...);
 
 /* Primitive definition table. */

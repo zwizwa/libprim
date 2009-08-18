@@ -1,7 +1,3 @@
-(post 'READ-TEST)
-(post (read))
-
-
 
 
 ;; (reverse! '(1 2 3))
@@ -35,6 +31,12 @@
       (begin
         (post 'bla)
         (foo (sub1 n)))))
+
+
+(post 'READ-TEST)
+(post (read))
+
+
 
 
 ;; (letrec-tx '(letrec ((x 123)) foo))
