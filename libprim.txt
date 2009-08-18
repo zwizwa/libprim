@@ -1887,16 +1887,15 @@ RS    The return stack (or continuation) is constructed at run-time,
 Execution will push the second SUB to RS whenever a SEQ is
 encountered, and pops RS when evaluating a PRIM or a QUOTE.
 
-Note that the RS ``program'' is essentially a SEQ terminated with a
-HALT primitive.  The only difference is that it is built out of a
-_linear_ data structure, while code resides in graph memory.
+Note that the RS ``program'' is essentially a chained SEQ sequence
+terminated with a HALT primitive.  The only difference is that it is
+built out of a _linear_ data structure, while code resides in graph
+memory.
 
-The basic idea is described here[1], and is how Scheme's `begin'
-works.  Essentially, you never push the return stack unless you have
-anything to do _next_, which is what SEQ encodes explicitly.
-(Additionally, in Scheme, a push is necessary to perform argument
-evaluation before execution of a code body in an extended
-environment.)
+This mechanism gives proper tail call handling.  The basic idea is
+described here[1], and is how Scheme's `begin' works.  Essentially,
+you never push the return stack unless you have anything to do _next_,
+which is what SEQ encodes explicitly.
 
 Now note that if the ``now'' SUB in a SEQ is a PRIM or a QUOTE, an RS
 push isn't necessary.  Remarkably, this ``optimization'' is how
