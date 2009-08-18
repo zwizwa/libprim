@@ -1,14 +1,14 @@
-Next    = - d:Datum                      { ob = d; }
-        | - e:EOF                        { ob = e; }
-        | j:Junk                         { ob = j; }
+Read    = - n:Next                       { ob = n; }
+
+Next    = Datum | EOF | Junk
 
 Datum   = Quote | Const | List 
         | Number | Symbol | String
 
-List     = LP Tail
-Tail     = a:Datum Dot d:Datum RP        { $$= CONS(a,d) }
-         | RP                            { $$= NIL }
-         | d:Datum t:Tail                { $$= CONS(d,t) }
+List    = LP Tail
+Tail    = a:Datum Dot d:Datum RP         { $$= CONS(a,d) }
+        | RP                             { $$= NIL }
+        | d:Datum t:Tail                 { $$= CONS(d,t) }
 
 Quote   = - ['] - d:Datum                { $$= QUOTE(d) }
 
