@@ -36,9 +36,6 @@ Char     = Digit | NonDigit
 Space   = [ \t\n]
 -	= ( Space | Comment )*
 
-# _       = &(Space | '(')
-       
-
 Comment = ';' ( !EOL . )* EOL
 EOL	= '\n' | '\r\n' | '\r'
 

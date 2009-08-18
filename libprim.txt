@@ -2350,5 +2350,60 @@ parse needs to be replaced by something else.
 Start with simply putting all '-' rules in front.  This seems to
 almost work.. The .scm file won't parse though.
 
+Entry: REPL working
+Date: Tue Aug 18 20:07:50 CEST 2009
+
+# This is the non-greedy version of the grammar:
+
+Next    = - d:Datum                      { ob = d; }
+        | - e:EOF                        { ob = e; }
+        | j:Junk                         { ob = j; }
+
+Datum   = Quote | Const | List 
+        | Number | Symbol | String
+
+List     = LP Tail
+Tail     = a:Datum Dot d:Datum RP        { $$= CONS(a,d) }
+         | RP                            { $$= NIL }
+         | d:Datum t:Tail                { $$= CONS(d,t) }
+
+Quote   = - ['] - d:Datum                { $$= QUOTE(d) }
+
+Const   = True | False
+
+LP      = - '('
+RP      = - ')'
+Dot     = Space - '.'
+True    = - '#t'                         { $$= TRUE }
+False   = - '#f'                         { $$= FALSE }
+
+Number	= - < Digit+ > !NonDigit         { $$= NUMBER(atoi(yytext)) }
+Symbol  = - < Char+ >  	                 { $$= SYMBOL(yytext) }
+String  = - ["] < ( !["] . )* > ["]      { $$= STRING(yytext) }
+
+
+Letter   = [A-Za-z]
+Digit    = [0-9]
+Special  = '!' | '-' | '?' | '*' 
+         | '_' | ':' | '<' | '>' 
+         | '=' | '/' | '+'
+NonDigit = Letter | Special
+Char     = Digit | NonDigit
+
+Space   = [ \t\n]
+-	= ( Space | Comment )*
+
+Comment = ';' ( !EOL . )* EOL
+EOL	= '\n' | '\r\n' | '\r'
+
+EOF     = !.                             { $$= EOF_OBJECT }
+
+Junk    = < .* > EOF                     { $$= JUNK(yytext) }
+
+
+
+
+
+
 
 
