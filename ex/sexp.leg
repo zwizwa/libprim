@@ -2,7 +2,8 @@ Next    = - d:Datum                      { ob = d; }
         | - e:EOF                        { ob = e; }
         | j:Junk                         { ob = j; }
 
-Datum   = Quote | Const | List | Number | Symbol | String
+Datum   = Quote | Const | List 
+        | Number | Symbol | String
 
 LP      = '(' -
 RP      = ')' -
@@ -22,23 +23,26 @@ False   = '#f' -                         { $$= FALSE }
 
 Junk    = < .* > EOF                     { $$= JUNK(yytext) }
 
-Number	= < Digit+ > !Letter -	         { $$= NUMBER(atoi(yytext)) }
-Symbol  = < NonDigit Char* > -	         { $$= SYMBOL(yytext) }
+Number	= < Digit+ > !NonDigit -	 { $$= NUMBER(atoi(yytext)) }
+Symbol  = < Char+ > -	                 { $$= SYMBOL(yytext) }
 String  = ["] < ( !["] Char )* > ["] -   { $$= STRING(yytext) }
 
 
 Letter   = [A-Za-z]
 Digit    = [0-9]
-Special  = '!' | '-' | '?' | '*' | '_' | ':' | '<' | '>' | '='
+Special  = '!' | '-' | '?' | '*' 
+         | '_' | ':' | '<' | '>' 
+         | '=' | '/' | '+'
 NonDigit = Letter | Special
-
 Char     = Digit | NonDigit
 
 Space   = [ \t\n]
 -	= ( Space | Comment )*
-EOF     = !.                            { $$= EOF_OBJECT }
 
 Comment = ';' ( !EOL . )* EOL
 EOL	= '\n' | '\r\n' | '\r'
+
+EOF     = !.                             { $$= EOF_OBJECT }
+
 
 

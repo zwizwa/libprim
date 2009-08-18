@@ -2,7 +2,7 @@
 
 ;; The s-expr will be allocated outside the VM, so a single form makes
 ;; sure there's no GC during construction.
-;; (begin
+(begin
   
 (def-toplevel! 'list (lambda args args))
 (def-toplevel-macro!
@@ -137,4 +137,4 @@
 ;; Perform GC before loading another script outside of VM.
 (gc)
 
-;; )
+)

@@ -836,7 +836,7 @@ sc *_sc_new(void) {
     sc->m.prim_entries = 0;
 
     /* Garbage collector. */
-    sc->m.gc = gc_new(1000000, sc, 
+    sc->m.gc = gc_new(10000, sc, 
                       (gc_mark_roots)_sc_mark_roots,
                       (gc_overflow)_ex_overflow);
                     
@@ -880,8 +880,10 @@ sc *_sc_new(void) {
     _ abort_k = sc_make_k_apply(sc, MT, done, NIL);
     sc_bang_set_global(sc, sc_slot_abort_k, abort_k);
 
-    /* Highlevel bootstrap */
-    _sc_load_lib(sc);
+    /* Highlevel bootstrap from stdin. */
+    _sc_top(sc, READ());
+    
+    // _sc_load_lib(sc);
     return sc;
 }
 
