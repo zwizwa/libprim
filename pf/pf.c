@@ -170,7 +170,7 @@ void pf_output(pf *pf) {
     _px_push(pf, _px_link(pf, pf->output));
 }
 void pf_stack(pf *pf) {
-    _pf_need_free(pf);
+    _px_need_free(pf);
     FROM_TO(free, rs);
     _CAR(pf->rs) = MOVE(pf->ds, NIL);
     FROM_TO(rs, ds);

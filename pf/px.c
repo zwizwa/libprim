@@ -3,12 +3,13 @@
   ideas behind Packet Forth.
 
   The main memory model uses stacks and queues.  The objects are the
-  same as used in the GC.  The word "packet" refers to leaf objects,
-  which are atomic from the pov. of the scripting language.
+  same as used in EX.  The word "packet" refers to leaf objects, which
+  are atomic from the pov. of the scripting language.
 
-  Functions with "pf_" prefix behave as scripting language
-  primitives.  All other functions operating on the machine struct are
-  prefixed with "_pf_".
+  The functions with "px_" prefix behave as EX expression primitives,
+  and could be made to cooperated with the Scheme interpreter.  All
+  other functions operating on the machine struct are prefixed with
+  "_px_".
 
  */
 
@@ -80,11 +81,11 @@ _ px_new_pair(pf *pf) {
     return LCONS(VOID, NIL);
 }
 /* Allocate/reuse cell. */
-void _pf_need_free(pf *pf) {
+void _px_need_free(pf *pf) {
     if (unlikely(NIL == pf->free)) pf->free = px_new_pair(pf);
 }
 _ px_linear_cons(pf *pf, _ car, _ cdr) {
-    _pf_need_free(pf);
+    _px_need_free(pf);
     _ rv = pf->free;
     pf->free = _CDR(pf->free);
     _CAR(rv) = car;

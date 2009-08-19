@@ -20,7 +20,7 @@ _ static inline _move(_ *ob, _ filler) {
 #define TOP  _px_top(pf)
 #define _TOP _CAR(pf->ds)  /* UNSAFE */
 
-void _pf_need_free(pf *pf);
+void _px_need_free(pf *pf);
 void _px_unlink(pf* pf, _ ob);
 _ _px_link(pf *pf, _ ob);
 _ _px_top(pf *pf);
