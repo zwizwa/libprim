@@ -2424,16 +2424,19 @@ EX:
 
 
 
-Entry: GC and read
+Entry: GC and read -> need C suspensions
 Date: Wed Aug 19 08:43:40 CEST 2009
 
 Because ports are stateful entities, the read operation might interact
 badly with GC restarts.
 
 It might be necessary to construct an intermediate representation.
-The real solution however is to make the reader pre-emptable at every
-CONS.  So, it's best to stick to the current version, since that
-change would be transparent once context switching is implemented.
+The real solution however is to make the reader communicate externally
+at everything which is now a CONS, so it never sees scheme values.
+
+I guess this can be made to work, so I'm going to stick to the current
+version, since that change would be transparent once context switching
+is implemented.
 
 
 
@@ -2453,3 +2456,6 @@ _and_ use the PF compiler words, but not vice versa.
 
 Indeed: the `sc' struct only has the global registers and symbol cache
 in addition to the `ex' struct.  This can be easily changed.
+
+In order for this to work, the linear data needs to be well
+separated.  Let's make a separate LCONS data structure.
