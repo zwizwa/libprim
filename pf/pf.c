@@ -26,10 +26,10 @@
 
 
 /* TOOLS+DATA */
-
 _ _pf_abort(pf *pf) {
-    longjmp(pf->m.r.step, PF_EX_ABORT);
+    return RAISE_ERROR(VOID, VOID); // tag not used
 }
+
 void pf_error_underflow(pf *pf) {
     _pf_push(pf, pf->s_underflow);
     _pf_abort(pf);
@@ -295,8 +295,8 @@ void _pf_run(pf *pf) {
                     break;
                 default:
                     _pf_push(pf, SYMBOL("unknown-exception"));
-                case PF_EX_ABORT:
-                    // NONLINEAR
+                case EXCEPT_ABORT:
+                    // TAG + ARG are NONLINEAR
                     pf->m.error_tag = VOID;
                     pf->m.error_arg = VOID;
                     pf->ip = pf->ip_abort;

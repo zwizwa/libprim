@@ -63,10 +63,6 @@ DEF_STRUCT(seq,   TAG_SEQ)
 #define NOP  CONSTANT(0x80)
 #define HALT CONSTANT(0x81)
 
-
-#define PF_EX_RESTART 1
-#define PF_EX_ABORT 2
-
 void _pf_push(pf *pf, _ ob);
 _ _pf_make_symbol(pf *pf, const char *str);
 // #define SYMBOL(str)   _pf_make_symbol(pf, str)

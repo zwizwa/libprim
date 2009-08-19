@@ -273,7 +273,8 @@ _ ex_bang_reverse_append(ex *ex, _ lst, _ tail) {
     if (NIL == lst) return tail;
     _ next, last = tail;
     while (NIL != lst) {
-        pair *p = CAST(pair, lst);
+        pair *p = object_to_lpair(lst); // polymorphic
+        if (!p) p = CAST(pair, lst);
         next = p->cdr;
         p->cdr = last;
         last = lst;
