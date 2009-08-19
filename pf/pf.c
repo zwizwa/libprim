@@ -41,7 +41,7 @@ _ _pf_top(pf *pf) {
 static inline void _pf_from_to(pf *pf, _ *from, _ *to) {
     if (unlikely(NIL == *from)) pf_error_underflow(pf);
     _ pair =  *from;
-    *from = CDR(*from);
+    *from = _CDR(*from);
     _CDR(pair) = *to;
     *to = pair;
 }
@@ -106,11 +106,18 @@ static void _exch(_*a, _*b) {
 
    Graph data can be treated as constants in the linear memory, as the
    linear memory tree is part of the GC roots.
+
+   Implementation: Linear lists are tagged differently from ordinary
+   cons cells.  However, the *unsafe* macros _CAR _CDR ... can still
+   access them, since their layout is the same.  They should always be
+   constructed through LINEAR_CONS, not LCONS.  The former uses the
+   freelist, while the latter allocates a cell from GC memory.
+
  */
 
 /* Allocate a new linked list of pairs. */
 _ _pf_alloc_freelist(pf *pf) {
-    return CONS(VOID, NIL);
+    return LCONS(VOID, NIL);
 }
 /* Allocate/reuse cell. */
 static inline void _pf_need_free(pf *pf) {
@@ -146,7 +153,7 @@ static void _pf_unlink(pf* pf, _ ob) {
         _rc_unlink(x);
     }
     /* Lists: recurse. */
-    else if (object_to_pair(ob)) {
+    else if (object_to_lpair(ob)) {
         ob = _pf_unlink_pop(pf, ob);
         goto again;
     }
@@ -155,14 +162,14 @@ static void _pf_unlink(pf* pf, _ ob) {
    pairs from the freelist.. */
 static _ _pf_link(pf *pf, _ ob) {
     rc *x = object_to_rc(ob, &pf->m);
+    pair *p;
     if (x) { 
         x->rc++;
         return ob;
     }
-    else if (object_to_pair(ob)) {
-        return px_linear_cons(pf, 
-                        _pf_link(pf, CAR(ob)),
-                        _pf_link(pf, CDR(ob)));
+    else if ((p = object_to_lpair(ob))) {
+        return LINEAR_CONS(_pf_link(pf, p->car),
+                           _pf_link(pf, p->cdr));
     }
     else return ob;
 }
@@ -185,7 +192,7 @@ _ px_lin(pf *pf, _ ob) {
     return gc_make_tagged(GC, TAG_LIN, 2, 
                           fin_to_object((void*)(&unlink_fin)), ob);
 }
-_ _pf_copy_to_graph(pf *pf, _ ob) {
+_ px_copy_to_graph(pf *pf, _ ob) {
     rc *x;
     pair *p;
     /* Wrap all RC objects in a LIN struct */
@@ -194,15 +201,14 @@ _ _pf_copy_to_graph(pf *pf, _ ob) {
         return LIN(ob);
     }
     /* Recursively copy the tree. */
-    else if ((p = object_to_pair(ob))) {
+    else if ((p = object_to_lpair(ob))) {
     
-        return ex_cons(&pf->m,
-                       _pf_copy_to_graph(pf, p->car),
-                       _pf_copy_to_graph(pf, p->cdr));
+        return CONS(COPY_TO_GRAPH(p->car),
+                    COPY_TO_GRAPH(p->cdr));
     }
     else return ob;
 }
-_ _pf_copy_from_graph(pf *pf, _ ob) {
+_ px_copy_from_graph(pf *pf, _ ob) {
     pair *p;
     lin *l;
     /* Unwrap LIN objects. */
@@ -211,9 +217,8 @@ _ _pf_copy_from_graph(pf *pf, _ ob) {
     }
     /* Recursive copy. */
     else if ((p = object_to_pair(ob))) {
-        return px_linear_cons(pf, 
-                        _pf_copy_from_graph(pf, p->car),
-                        _pf_copy_from_graph(pf, p->cdr));
+        return LINEAR_CONS(COPY_FROM_GRAPH(p->car),
+                           COPY_FROM_GRAPH(p->cdr));
     }
     else return ob;
 }
@@ -223,7 +228,7 @@ static inline void _pf_drop(pf *pf, _ *stack) {
     _pf_unlink(pf, ob);
 }
 void _pf_push(pf *pf, _ ob) {
-    pf->ds = px_linear_cons(pf, ob, pf->ds);
+    pf->ds = LINEAR_CONS(ob, pf->ds);
 }
 
 
@@ -259,9 +264,11 @@ void _pf_run(pf *pf) {
   loop:
     /* Interpeter loop. */
     for(;;) {
+        // _PRINT_STATE();
+
         /* Unpack code sequence, push RS. */
         if ((s = object_to_seq(pf->ip))) {
-            pf->rs = px_linear_cons(pf, s->next, pf->rs);
+            pf->rs = LINEAR_CONS(s->next, pf->rs);
             pf->ip = s->now;
         }
         /* Interpret primitive code or data and pop RS. */
@@ -269,7 +276,7 @@ void _pf_run(pf *pf) {
             /* Update continuation before executing primitive, so
                can modify the machine state. */
             _ ip = pf->ip;
-            pair *rs = object_to_pair(pf->rs);
+            pair *rs = object_to_lpair(pf->rs);
             if (unlikely(!rs)) pf->ip = HALT;
             else {
                 pf->ip = rs->car;
@@ -279,9 +286,10 @@ void _pf_run(pf *pf) {
             /* Primitive */
             if ((p = object_to_prim(ip, &pf->m))) {
                 pf_prim fn = (pf_prim)p->fn;
+                int ex;
                 pf->m.r.prim = p;
                 pf->m.prim_entries++;
-                switch(setjmp(pf->m.r.step)) {
+                switch(ex = setjmp(pf->m.r.step)) {
                 case 0:
                     fn(pf);
                     break;
@@ -305,8 +313,6 @@ void _pf_run(pf *pf) {
                 else {
                     /* All other objects behave as constants to the
                        linear memory manager. */
-                    if (unlikely((q->object != NIL) &&
-                                 object_to_pair(q->object))) TRAP();
                     ob = q->object;
                 }
                 _pf_push(pf, ob);
@@ -320,7 +326,7 @@ void _pf_run(pf *pf) {
             }
             /* Unknown non-seq. */
             else {
-                _pf_push(pf, _pf_copy_from_graph(pf, ip));
+                _pf_push(pf, COPY_FROM_GRAPH(ip));
                 _pf_push(pf, SYMBOL("unknown-instruction"));
                 pf->ip = pf->ip_abort;
             }
@@ -359,6 +365,9 @@ _ px_write_word(pf *pf, _ ob) {
     else return px_write(pf, sym);
 }
 
+const char *CL = "{";
+const char *CR = "}";
+
 _ px_write(pf *pf, _ ob) {
     void *x;
     /* Ports are RC wrapped in PF.*/
@@ -372,7 +381,7 @@ _ px_write(pf *pf, _ ob) {
        distinguish from lists. */
     else if ((x = object_to_seq(ob))) {
         long max = 10;
-        _ex_printf(EX, "[");
+        _ex_printf(EX, CL);
         for(;;) {
             seq *s = (seq*)x;
             px_write_word(pf, s->now);
@@ -380,18 +389,19 @@ _ px_write(pf *pf, _ ob) {
             ob = s->next;
             if (!(x = object_to_seq(ob))) {
                 px_write_word(pf, s->next);
-                _ex_printf(EX, "]");
+                _ex_printf(EX, CR);
                 return VOID;
             }
             /* If the tail has a name, print that instead. */
             _ sym = UNFIND(pf->dict, ob);
             if (FALSE != sym) {
                 px_write(pf, sym);
-                return _ex_printf(EX, "]"); 
+                return _ex_printf(EX, CR); 
             }
             /* Prevent loops from generating too much output. */
             if (!(--max)) {
-                return _ex_printf(EX, "...]"); 
+                _ex_printf(EX, "..."); 
+                return _ex_printf(EX, CR); 
             }
         }
     }
@@ -399,9 +409,9 @@ _ px_write(pf *pf, _ ob) {
         quote *q = (quote*)x;
         /* Primitive */
         if ((object_to_prim(q->object, EX))) {
-            _ex_printf(EX, "[");
+            _ex_printf(EX, CL);
             px_write_word(pf, q->object); 
-            return _ex_printf(EX, "]");
+            return _ex_printf(EX, CR);
         }
         /* Sequence */
         else if ((object_to_seq(q->object))) {
@@ -473,10 +483,11 @@ _ px_seq(pf *pf, _ sub, _ next)  { STRUCT(TAG_SEQ, 2, sub, next); }
 
 _ px_quote_datum(pf *pf, _ datum) {
     // FIXME: distinguish between linear and graph data.
-    _ blessed = _pf_copy_from_graph(pf, datum);
+    _ blessed = COPY_FROM_GRAPH(datum);
 
     // Only LIN-wrap things that are necessary.
-    if (object_to_pair(blessed)) blessed = LIN(blessed);
+    // if (object_to_lpair(blessed)) blessed = LIN(blessed);
+    blessed = LIN(blessed);
 
     return QUOTE(blessed);
 }
@@ -499,7 +510,7 @@ _ px_compile_program_env(pf *pf, _ E_top, _ E_local, _ src) {
             }
             else if (tag == pf->s_var) {
                 _ val = (NIL == _CDR(datum) ? VOID : _CADR(datum));
-                compiled = QUOTE(BOX(_pf_copy_from_graph(pf, val)));
+                compiled = QUOTE(BOX(COPY_FROM_GRAPH(val)));
             }
             /* Quoted subprogram. */
             else {
@@ -600,6 +611,7 @@ _ px_define(pf *pf, _ defs) {
         pf->dict = ENV_DEF(pf->dict, var, val);
         E = _CDR(E);
     }
+    // _PRINT_DICT();
     return VOID;
 }
 
@@ -614,7 +626,7 @@ void pf_dup(pf *pf) {
     _pf_push(pf, _pf_link(pf, TOP));
 }
 void pf_to_dict(pf *pf) {
-    _ ob = _pf_copy_to_graph(pf, TOP);
+    _ ob = COPY_TO_GRAPH(TOP);
     pf->dict = ex_cons(&pf->m, ob, pf->dict);
     _DROP();
 }
@@ -677,17 +689,27 @@ void pf_gc(pf *pf) {
    like _XXX() is short for a stack word pf_xxx(pf *).  */
 void pf_write(pf *pf)   { px_write(pf, TOP); _DROP(); }
 void pf_post(pf *pf)    { POST(TOP); _DROP(); }
-void pf_define(pf *pf)  { px_define(pf, TOP); _DROP(); }
 void pf_trap(pf *pf)    { TRAP(); }
 void pf_reverse(pf *pf) { _TOP = BANG_REVERSE(TOP); }
 void pf_add1(pf *pf)    { _TOP = ADD1(TOP); }
-void pf_compile(pf *pf) { _ v = COMPILE_PROGRAM(TOP); _DROP(); _pf_push(pf, v); }
 
+/* Note that the compiler uses nonlinear data structures.  When
+   entering the compiler from withing PF, all data needs to be
+   converted to nonlinear form first. */
+void pf_define(pf *pf)  { 
+    _ defs = COPY_TO_GRAPH(TOP); _DROP();
+    px_define(pf, defs);
+}
+void pf_compile(pf *pf) { 
+    _ defs = COPY_TO_GRAPH(TOP); _DROP();
+    _pf_push(pf, COMPILE_PROGRAM(defs));
+}
 void pf_run(pf *pf){ 
     _ v = TOP; _DROP();
     pf->rs = LINEAR_CONS(pf->ip, pf->rs); 
     pf->ip = v;
 }
+
 /* GC+SETUP */
 
 #define GC_DEBUG _ex_printf(EX, ";; %d\n", (int)GC->current_index)
@@ -751,7 +773,7 @@ pf* _pf_new(void) {
     pf *pf = malloc(sizeof(*pf));
 
     // Garbage collector.
-    GC = gc_new(10000, pf, 
+    GC = gc_new(100000, pf, 
                 (gc_mark_roots)_pf_mark_roots,
                 (gc_overflow)_ex_overflow);
 
@@ -799,8 +821,8 @@ pf* _pf_new(void) {
 /* Top level evaluator.  This takes a (read-only) s-expression,
    compiles it to code (this performs allocation from GC pool -- top
    eval is not linear), and executes this code until machine halt.  */
-void _pf_top_interpret_list(pf *pf, _ expr){
-    pf->ip = COMPILE_PROGRAM(expr);
+void _pf_top_interpret_list(pf *pf, _ nl_expr){
+    pf->ip = COMPILE_PROGRAM(nl_expr);
     _pf_run(pf);
 }
 /* Find and run.  This is linear if the referenced code is. */

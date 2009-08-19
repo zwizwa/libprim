@@ -47,19 +47,24 @@ object _ex_write(ex *ex, object o) {
         if (TAG_VECTOR == flags) { 
             return _ex_write_vector(ex, "", v);
         }
-        if (TAG_PAIR == flags) {
-            port_printf(p, "(");
+        if ((TAG_PAIR == flags) || (TAG_LPAIR == flags)) {
+            char *LP,*RP;
+            if ((TAG_PAIR == flags)) {LP="("; RP=")";}
+            else if ((TAG_LPAIR == flags)) {LP="["; RP="]";}
+
+            port_printf(p, LP);
             for(;;) {
                 ex->write(ex, _CAR(o));
                 o = _CDR(o);
                 if (NIL == o) {
-                    port_printf(p, ")");
+                    port_printf(p, RP);
                     return VOID;
                 }
-                if (!object_to_pair(o)) {
+                if (!(object_to_pair(o) ||
+                      object_to_lpair(o))) {
                     port_printf(p, " . ");
                     ex->write(ex, o);
-                    port_printf(p, ")");
+                    port_printf(p, RP);
                     return VOID;
                 }
                 port_printf(p, " ");
@@ -317,6 +322,11 @@ _ ex_cons(ex *ex, _ car, _ cdr) {
     v->slot[1] = cdr;
     return vector_to_object(v);
 }
+_ ex_lcons(ex *ex, _ car, _ cdr) {
+    _ rv = ex_cons(ex, car, cdr);
+    vector_set_flags(object_to_vector(rv), TAG_LPAIR);
+    return rv;
+}
 
 _ ex_car(ex *ex, _ o)  { pair *p = CAST(pair, o); return p->car; }
 _ ex_cdr(ex *ex, _ o)  { pair *p = CAST(pair, o); return p->cdr; }
@@ -464,6 +474,10 @@ _ _ex_boot_load(ex *ex,  const char *bootfile) {
     port *bootport = port_new(ex->p->port_type,
                               fopen(bootfile, "r"),
                               bootfile);
+    if (!bootport->stream) {
+        fprintf(stderr, "Can't load boot file: %s\n", bootfile);
+        return ex_raise_error(ex, SYMBOL("boot"), VOID);
+    }
     _ expr = _ex_read(ex, bootport);
     port_free(bootport);
     return expr;

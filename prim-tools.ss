@@ -115,7 +115,7 @@
 
 (define (gen)
   (let ((filename (arg0)))
-        
+    ;; (printf "F:~a\n" filename)
     (gen-header
      (mprefix (filename->name filename "_table_init"))
      (mprefix (string-upcase (filename->name filename "")))

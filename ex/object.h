@@ -59,7 +59,7 @@ static inline unsigned long VECTOR_TAG(unsigned long x) {
 #define TAG_VECTOR    VECTOR_TAG(0)   /* The flat vector. */
 #define TAG_PAIR      VECTOR_TAG(1)   /* The CONS cell. */
 #define TAG_AREF      VECTOR_TAG(2)   /* Reference with finalization. */
-// #define TAG_BOX       VECTOR_TAG(3)   /* Variable storage cell. */
+#define TAG_LPAIR     VECTOR_TAG(3)   /* Linear pair. */
 
 // 3-7: reserved
 #define GC_VECTOR_USER_START 8
@@ -79,6 +79,7 @@ typedef struct {
     object cdr;
 } pair;
 
+typedef pair lpair;
 
 
 /* Conversion from tagged objects to one of the 4 C data types.  When
@@ -185,16 +186,17 @@ static inline void *object_to_struct(object ob, long tag) {
         return (type*)object_to_struct(o, tag); }
 
 /* Unsafe list macros */
-#define _CAR(o)  object_to_pair(o)->car
-#define _CDR(o)  object_to_pair(o)->cdr
+#define _CAR(o)  object_to_vector(o)->slot[0]
+#define _CDR(o)  object_to_vector(o)->slot[1]
 #define _CAAR(o) _CAR(_CAR(o))
 #define _CADR(o) _CAR(_CDR(o))
 #define _CDDR(o) _CDR(_CDR(o))
 #define _CDAR(o) _CDR(_CAR(o))
 #define _CADDR(o) _CAR(_CDDR(o))
 
-DEF_STRUCT(pair, TAG_PAIR)
-DEF_STRUCT(aref, TAG_AREF)
+DEF_STRUCT(pair,  TAG_PAIR)
+DEF_STRUCT(lpair, TAG_LPAIR)
+DEF_STRUCT(aref,  TAG_AREF)
 // DEF_STRUCT(box,  TAG_BOX)
 
 
