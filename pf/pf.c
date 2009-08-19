@@ -171,7 +171,7 @@ void pf_ps(pf *pf) {  // print stack
 }
 void pf_pm(pf *pf) {  // print machine
     _ex_printf(EX, "P: "); POST_STACK(pf->p);
-    _ex_printf(EX, "K: "); POST_STACK(pf->k);
+    _ex_printf(EX, "K: "); POST(pf->k);
     _ex_printf(EX, "F: %d\n", object_to_integer(LENGTH(pf->free)));
 }
 void pf_pd(pf *pf) {  // print dict
@@ -182,6 +182,17 @@ void pf_pd(pf *pf) {  // print dict
     }
 }
 
+void pf_cons(pf *pf) {
+    _ lst   = LCAR(pf->p);  
+    _ prest = _CDR(pf->p);
+    _ ob    = LCAR(prest);
+    _ cell  = pf->p;
+
+    pf->p = prest;
+    _CAR(prest) = cell;
+    _CAR(cell) = ob;
+    _CDR(cell) = lst;
+}
 
 void pf_output(pf *pf) {
     _px_push(pf, _px_link(pf, pf->output));
@@ -205,6 +216,11 @@ void pf_print_error(pf *pf) {
     }
     _ex_printf(EX, "\n");
 }
+void pf_abort_repl(pf *pf) {
+    _px_unlink(pf, pf->k);
+    pf->k = LINEAR_CONS(pf->ip_repl, NIL);
+}
+
 
 /* Since we have a non-rentrant interpreter with mutable state, this
    is a bit less problematic than the EX/SC case. */
@@ -261,8 +277,22 @@ void pf_compile(pf *pf) {
     _px_push(pf, COMPILE_PROGRAM(POP_TO_GRAPH));
 }
 void pf_run(pf *pf){ 
-    _ v = POP_TO_GRAPH;
-    PUSH_K(v);
+    _ v = TOP;
+    if (object_to_lpair(v)) {
+        /* This makes linear lists behave as programs.  Note that this
+           pushes a partial continuation: it does not replace a full
+           one! */
+        pf->k = BANG_APPEND(v, pf->k);
+    }
+    else {
+        PUSH_K(POP_TO_GRAPH);
+    }
+}
+void pf_bang_cc(pf *pf) {
+    _ v = TOP;
+    _px_unlink(pf, pf->k);
+    pf->k = MOVE(_TOP, VOID);
+    _DROP();
 }
 void pf_make_loop(pf *pf) {
     _px_push(pf, MAKE_LOOP(POP_TO_GRAPH));
@@ -272,6 +302,9 @@ void pf_call_with_cc(pf *pf) {
     _ k = pf->k;
     pf->k = LINEAR_CONS(fn, HALT);
     _TOP = k;
+}
+void pf_copy_cc(pf *pf) {
+    _px_push(pf, _px_link(pf, pf->k));
 }
 
 
@@ -283,6 +316,7 @@ void pf_bye(pf *pf) {
     pf->dict = NIL;
     pf->output = NIL;
     pf->ip_abort = HALT;
+    pf->ip_repl  = HALT;
     // pf->ip = HALT;
     pf_gc(pf); // does not return
 }
@@ -301,6 +335,7 @@ static void _px_mark_roots(pf *pf, gc_finalize fin) {
     MARK(output);
     // MARK(ip);
     MARK(ip_abort);
+    MARK(ip_repl);
     MARK(dict);
     if (fin) { 
         fin(GC); 
@@ -394,7 +429,8 @@ pf* _px_new(void) {
     _ repl = MAKE_LOOP(rep);
     pf->dict = ENV_DEF(pf->dict, SYMBOL("rep"), rep);
     pf->dict = ENV_DEF(pf->dict, SYMBOL("repl"), repl);
-    pf->ip_abort = SEQ(WORD("print-error"), repl);
+    pf->ip_repl  = repl;
+    pf->ip_abort = SEQ(WORD("print-error"), WORD("abort-repl"));
                        
 
     // Highlevel bootstrap

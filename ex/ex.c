@@ -285,6 +285,9 @@ _ ex_bang_reverse_append(ex *ex, _ lst, _ tail) {
 _ ex_bang_reverse(ex *ex, _ lst) {
     return ex_bang_reverse_append(ex, lst, NIL);
 }
+_ ex_bang_append(ex *ex, _ a, _ b) {
+    return ex_bang_reverse_append(ex, ex_bang_reverse(ex, a), b);
+}
 
 
 _ ex_length(ex *ex, _ lst) {
@@ -337,6 +340,9 @@ _ ex_caar(ex *ex, _ o) { pair *p = CAST(pair, ex_car(ex, o)); return p->car; }
 _ ex_cddr(ex *ex, _ o) { pair *p = CAST(pair, ex_cdr(ex, o)); return p->cdr; }
 _ ex_caddr(ex *ex, _ o) { pair *p = CAST(pair, ex_cddr(ex, o)); return p->car; }
 
+
+_ ex_lcar(ex *ex, _ o)  { pair *p = CAST(lpair, o); return p->car; }
+_ ex_lcdr(ex *ex, _ o)  { pair *p = CAST(lpair, o); return p->cdr; }
 
 
 

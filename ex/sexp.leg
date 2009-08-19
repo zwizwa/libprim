@@ -28,7 +28,7 @@ String  = - ["] < ( !["] . )* > ["]      { $$= STRING(yytext) }
 Letter   = [A-Za-z]
 Digit    = [0-9]
 Special  = '!' | '-' | '?' | '*' 
-         | '_' | ':' | '<' | '>' 
+         | '_' | ':' | '<' | '>' | ','
          | '=' | '/' | '+' | '.' | '@'
 NonDigit = Letter | Special
 Char     = Digit | NonDigit
