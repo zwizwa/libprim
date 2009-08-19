@@ -2509,6 +2509,8 @@ FILE).
 Entry: PF design choices
 Date: Wed Aug 19 13:55:15 CEST 2009
 
+So what problem does it actually solve?
+
   - linear memory guarantees synchronous reclaim of leaf objects.
 
   - embedding in nonlinear memory simplifies metaprogramming.
@@ -2518,9 +2520,32 @@ won't trigger GC marking of long lived nonlinear objects.  The
 asynchronous GC only does work during ``highlevel'' data conversion ==
 code compilation.
 
+If you have control over the GC (i.e. if you can guarantee that
+nothing else is running in the background) this can be done in any
+Scheme implementation.  PF is written from scratch mostly to figure
+out what it really depends on (i.e. the existence proof of a
+collection of primitives), and to have a lean result for embedded
+work.
+
 
 Entry: Static linearity checks
 Date: Wed Aug 19 14:35:50 CEST 2009
 
 It would be nice to find a way to statically enforce the linearity
 constraint.  Currently, it's quite error-prone to write primitives.
+
+
+Entry: Merging SC and PF
+Date: Wed Aug 19 15:16:50 CEST 2009
+
+Maybe it's time to completely unify the two interpreters.  Essentially
+this would work as a `scheme-eval-step' in PF.
+
+The idea is that once you have everything inplace to implement PF in
+EX, the only thing that's left is the Scheme interpreter's (pure) step
+function and some other operations on the interpreter state.
+
+The only problem is Scheme's toplevel environment.  However, this
+could be hidden as dynamic scope in the continuation chain inside the
+state.
+

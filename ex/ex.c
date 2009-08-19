@@ -439,6 +439,26 @@ _ ex_post(ex* ex, _ o) {
     return VOID;
 }
 
+static void _ex_print_stack(ex *ex, _ ob, int n) {
+    if (NIL == ob) {
+        _ex_printf(ex, "<%d>", n);
+        return;
+    }
+    else {
+        pair *p = object_to_lpair(ob);
+        if (!p) p = CAST(pair, ob);
+        _ex_print_stack(ex, _CDR(ob), n+1);
+        _ex_printf(ex, " ");
+        ex->write(ex, _CAR(ob));
+    }
+}
+_ ex_post_stack(ex *ex, _ ob) { 
+    _ex_print_stack(ex, ob, 0); 
+    _ex_printf(ex, "\n");
+    return VOID;
+}
+
+
 
 /* ERRORS */
 

@@ -168,18 +168,22 @@ void pf_read(pf *pf) {
     _px_push(pf, COPY_FROM_GRAPH(_ex_read(EX, &p)));
 }
 
-void pf_print_state(pf *pf) {
-    _ex_printf(EX, "P: "); POST(pf->ds);
-    _ex_printf(EX, "R: "); POST(pf->rs);
+void pf_ps(pf *pf) {  // print stack
+    POST_STACK(pf->ds);
+}
+void pf_pm(pf *pf) {  // print machine
+    _ex_printf(EX, "P: "); POST_STACK(pf->ds);
+    _ex_printf(EX, "R: "); POST_STACK(pf->rs);
     _ex_printf(EX, "F: %d\n", object_to_integer(LENGTH(pf->free)));
 }
-void pf_print_dict(pf *pf) {
+void pf_pd(pf *pf) {  // print dict
     _ E = pf->dict;
     while (NIL != E) {
         POST(CAR(E));
         E = CDR(E);
     }
 }
+
 
 void pf_output(pf *pf) {
     _px_push(pf, _px_link(pf, pf->output));
