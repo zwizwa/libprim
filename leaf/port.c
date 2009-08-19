@@ -28,6 +28,7 @@ void port_close(port *x) {
     x->stream = NULL;
 }
 void port_free(port *x) {
+    fprintf(stderr, "port_free(%p)\n", x);
     port_close(x);
     if (x->name) free (x->name);
     free(x);

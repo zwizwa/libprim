@@ -212,12 +212,14 @@ void pf_print_error(pf *pf) {
 /* Since we have a non-rentrant interpreter with mutable state, this
    is a bit less problematic than the EX/SC case. */
 void pf_gc(pf *pf) {
-    gc_collect(GC);
+    gc_collect(GC); // does not return
 }
 
 /* Primitives in terms of expressions.  Note that an upper case name
    like _XXX() is short for a stack word pf_xxx(pf *).  */
 void pf_write(pf *pf)   { WRITE(TOP); _DROP(); }
+void pf_p(pf *pf)       { _WRITE(); _ex_printf(EX, " "); }
+void pf_cr(pf *pf)      { _ex_printf(EX, "\n"); }
 void pf_post(pf *pf)    { POST(TOP); _DROP(); }
 void pf_trap(pf *pf)    { TRAP(); }
 void pf_reverse(pf *pf) { _TOP = BANG_REVERSE(TOP); }
@@ -270,7 +272,17 @@ void pf_make_loop(pf *pf) {
 }
 
 
-
+/* Make sure all the finalizers get called. */
+void pf_bye(pf *pf) {
+    pf->ds = NIL;
+    pf->rs = NIL;
+    pf->free = NIL;
+    pf->dict = NIL;
+    pf->output = NIL;
+    pf->ip_abort = HALT;
+    pf->ip = HALT;
+    pf_gc(pf); // does not return
+}
 
 
 
@@ -337,7 +349,7 @@ pf* _px_new(void) {
     pf *pf = malloc(sizeof(*pf));
 
     // Garbage collector.
-    GC = gc_new(100000, pf, 
+    GC = gc_new(10000, pf, 
                 (gc_mark_roots)_px_mark_roots,
                 (gc_overflow)_ex_overflow);
 
@@ -375,7 +387,9 @@ pf* _px_new(void) {
 
     // Bootstrap repl and abort code.
     _px_def_all_prims(pf);
-    _ repl = MAKE_LOOP(SEQ(WORD("read"), WORD("interpret")));
+    _ rep = SEQ(WORD("read"), WORD("interpret"));
+    _ repl = MAKE_LOOP(rep);
+    pf->dict = ENV_DEF(pf->dict, SYMBOL("rep"), rep);
     pf->dict = ENV_DEF(pf->dict, SYMBOL("repl"), repl);
     pf->ip_abort = SEQ(WORD("print-error"), repl);
                        

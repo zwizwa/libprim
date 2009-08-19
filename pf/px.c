@@ -210,7 +210,10 @@ port *_px_port(pf *pf) {
 /* Print symbolic representation if possible. */
 _ px_write_word(pf *pf, _ ob) {
     _ sym = UNFIND(pf->dict, ob);
-    if (FALSE == sym) return px_write(pf, ob);
+    if (FALSE == sym) {
+        // This will print anonymous SEQ code in the wrong way..
+        return px_write(pf, ob);
+    }
     else return px_write(pf, sym);
 }
 
