@@ -33,6 +33,9 @@
 */
 typedef void (*pf_prim)(pf*);
 
+#define PUSH_RS(x)  pf->rs = LINEAR_CONS((x), pf->rs)
+#define DROP_RS()   _px_drop(pf, &pf->rs)
+
 void _px_run(pf *pf) {
     seq *s;
     prim *p;
@@ -50,25 +53,20 @@ void _px_run(pf *pf) {
   loop:
     /* Interpeter loop. */
     for(;;) {
-        // _PRINT_STATE();
+
+        /* Consume next instruction from RS. */
+        pair *rs = object_to_lpair(pf->rs);
+        if (unlikely(!rs)) goto halt;
+        _ ip = rs->car;
+        DROP_RS();
 
         /* Unpack code sequence, push RS. */
-        if ((s = object_to_seq(pf->ip))) {
-            pf->rs = LINEAR_CONS(s->next, pf->rs);
-            pf->ip = s->now;
+        if ((s = object_to_seq(ip))) {
+            PUSH_RS(s->next);
+            PUSH_RS(s->now);
         }
         /* Interpret primitive code or data and pop RS. */
         else {
-            /* Update continuation before executing primitive, so
-               can modify the machine state. */
-            _ ip = pf->ip;
-            pair *rs = object_to_lpair(pf->rs);
-            if (unlikely(!rs)) pf->ip = HALT;
-            else {
-                pf->ip = rs->car;
-                _px_drop(pf, &pf->rs);
-            }
-
             /* Primitive */
             if ((p = object_to_prim(ip, &pf->m))) {
                 pf_prim fn = (pf_prim)p->fn;
@@ -85,7 +83,7 @@ void _px_run(pf *pf) {
                     // TAG + ARG are NONLINEAR
                     _px_push(pf, COPY_FROM_GRAPH(pf->m.error_arg));
                     _px_push(pf, COPY_FROM_GRAPH(pf->m.error_tag));
-                    pf->ip = pf->ip_abort;
+                    PUSH_RS(pf->ip_abort);
                 }
                 pf->m.prim_entries--;
             }
@@ -114,7 +112,7 @@ void _px_run(pf *pf) {
             else {
                 _px_push(pf, COPY_FROM_GRAPH(ip));
                 _px_push(pf, SYMBOL("unknown-instruction"));
-                pf->ip = pf->ip_abort;
+                PUSH_RS(pf->ip_abort);
             }
         }
     }
@@ -267,8 +265,7 @@ void pf_compile(pf *pf) {
 }
 void pf_run(pf *pf){ 
     _ v = POP_TO_GRAPH;
-    pf->rs = LINEAR_CONS(pf->ip, pf->rs); 
-    pf->ip = v;
+    PUSH_RS(v);
 }
 void pf_make_loop(pf *pf) {
     _px_push(pf, MAKE_LOOP(POP_TO_GRAPH));
@@ -283,7 +280,7 @@ void pf_bye(pf *pf) {
     pf->dict = NIL;
     pf->output = NIL;
     pf->ip_abort = HALT;
-    pf->ip = HALT;
+    // pf->ip = HALT;
     pf_gc(pf); // does not return
 }
 
@@ -299,7 +296,7 @@ static void _px_mark_roots(pf *pf, gc_finalize fin) {
     MARK(rs);
     MARK(free);
     MARK(output);
-    MARK(ip);
+    // MARK(ip);
     MARK(ip_abort);
     MARK(dict);
     if (fin) { 
@@ -378,7 +375,7 @@ pf* _px_new(void) {
     pf->free = NIL;
     pf->dict = NIL;
     pf->rs = NIL;
-    pf->ip = HALT;
+    // pf->ip = HALT;
     pf->ip_abort = HALT;
 
     // Exceptions
@@ -406,12 +403,12 @@ pf* _px_new(void) {
    compiles it to code (this performs allocation from GC pool -- top
    eval is not linear), and executes this code until machine halt.  */
 void _px_interpret_list(pf *pf, _ nl_expr){
-    pf->ip = COMPILE_PROGRAM(nl_expr);
+    PUSH_RS(COMPILE_PROGRAM(nl_expr));
     _px_run(pf);
 }
 /* Find and run.  This is linear if the referenced code is. */
 void _px_interpret_symbol(pf *pf, _ sym) {
-    pf->ip = FIND(pf->dict, sym);
+    PUSH_RS(FIND(pf->dict, sym));
     _px_run(pf);
 }
 void _px_command(pf *pf, const char *str) {

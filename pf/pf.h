@@ -15,7 +15,7 @@ typedef struct {
     _ output;
 
     /* Graph memory. */
-    _ ip;
+    // _ ip;
     _ ip_abort;
     _ dict;
 
