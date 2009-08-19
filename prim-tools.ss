@@ -21,6 +21,7 @@
   (let* ((x (regexp-replace  #px"^\\S*?_" x ""))
          (x (regexp-replace* #px"_"       x "-"))
          (x (regexp-replace* #px"-to-"    x "->"))
+         (x (regexp-replace* #px"-with-"  x "/"))
          (x (pre->suf        #px"^bang-"  x "!"))
          (x (pre->suf        #px"^fetch-" x "@"))
          (x (pre->suf        #px"^from-"  x ">"))

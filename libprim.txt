@@ -2556,7 +2556,7 @@ Date: Wed Aug 19 16:46:09 CEST 2009
 How is this best implemented?
 
 
-Entry: >r r>
+Entry: No >r, nor r> : towards call/cc
 Date: Wed Aug 19 17:56:53 CEST 2009
 
 These don't work any more.  The problem is that there isn't really a
@@ -2567,5 +2567,25 @@ the top of RS as the continuation.
 
 What can be done is to modify the continuation such that an operation
 can be inserted after another one.  I.e. to implement `dip'.
+
+OK: removed IP register.  RUN is now simpy a push to RS.
+
+Let's rename RS to K.
+
+Now call/cc is very simple:
+
+void pf_call_with_cc(pf *pf) {
+    _ fn = TOP;
+    _ k = pf->k;
+    pf->k = LINEAR_CONS(fn, HALT);
+    _TOP = k;
+}
+
+Note these are linear one-shot contiuations, but they can be copied
+without causing any trouble.  They are also _data structures_ and
+cannot be applied like a function.
+
+But, maybe "run" should take linear lists, by pushing them onto K.
+
 
 

@@ -18,7 +18,7 @@ _ static inline _move(_ *ob, _ filler) {
 #define MOVE(from,filler) _move(&from,filler)
 #define FROM_TO(a,b) _px_from_to(pf, &(pf->a), &(pf->b))
 #define TOP  _px_top(pf)
-#define _TOP _CAR(pf->ds)  /* UNSAFE */
+#define _TOP _CAR(pf->p)  /* UNSAFE */
 
 void _px_need_free(pf *pf);
 void _px_unlink(pf* pf, _ ob);
@@ -38,7 +38,7 @@ static inline void _px_drop(pf *pf, _ *stack) {
     _px_unlink(pf, ob);
 }
 static inline void _px_push(pf *pf, _ ob) {
-    pf->ds = LINEAR_CONS(ob, pf->ds);
+    pf->p = LINEAR_CONS(ob, pf->p);
 }
 
 

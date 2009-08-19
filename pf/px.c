@@ -32,8 +32,8 @@ _ px_abort(pf *pf, _ tag, _ arg) {
     return RAISE_ERROR(tag, arg);
 }
 _ _px_top(pf *pf) {
-    if (unlikely (NIL == pf->ds)) px_error_underflow(pf);
-    return _CAR(pf->ds);
+    if (unlikely (NIL == pf->p)) px_error_underflow(pf);
+    return _CAR(pf->p);
 }
 
 _ px_error_underflow(pf *pf) {

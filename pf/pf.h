@@ -9,8 +9,8 @@ typedef struct {
     ex m;
 
     /* Linear memory. */
-    _ ds;    // parameter stack
-    _ rs;    // retain stack
+    _ p;    // parameter stack
+    _ k;    // continuation
     _ free;  // free list
     _ output;
 

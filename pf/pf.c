@@ -33,8 +33,8 @@
 */
 typedef void (*pf_prim)(pf*);
 
-#define PUSH_RS(x)  pf->rs = LINEAR_CONS((x), pf->rs)
-#define DROP_RS()   _px_drop(pf, &pf->rs)
+#define PUSH_K(x)  pf->k = LINEAR_CONS((x), pf->k)
+#define DROP_K()   _px_drop(pf, &pf->k)
 
 void _px_run(pf *pf) {
     seq *s;
@@ -55,15 +55,15 @@ void _px_run(pf *pf) {
     for(;;) {
 
         /* Consume next instruction from RS. */
-        pair *rs = object_to_lpair(pf->rs);
+        pair *rs = object_to_lpair(pf->k);
         if (unlikely(!rs)) goto halt;
         _ ip = rs->car;
-        DROP_RS();
+        DROP_K();
 
         /* Unpack code sequence, push RS. */
         if ((s = object_to_seq(ip))) {
-            PUSH_RS(s->next);
-            PUSH_RS(s->now);
+            PUSH_K(s->next);
+            PUSH_K(s->now);
         }
         /* Interpret primitive code or data and pop RS. */
         else {
@@ -83,7 +83,7 @@ void _px_run(pf *pf) {
                     // TAG + ARG are NONLINEAR
                     _px_push(pf, COPY_FROM_GRAPH(pf->m.error_arg));
                     _px_push(pf, COPY_FROM_GRAPH(pf->m.error_tag));
-                    PUSH_RS(pf->ip_abort);
+                    PUSH_K(pf->ip_abort);
                 }
                 pf->m.prim_entries--;
             }
@@ -112,7 +112,7 @@ void _px_run(pf *pf) {
             else {
                 _px_push(pf, COPY_FROM_GRAPH(ip));
                 _px_push(pf, SYMBOL("unknown-instruction"));
-                PUSH_RS(pf->ip_abort);
+                PUSH_K(pf->ip_abort);
             }
         }
     }
@@ -128,7 +128,7 @@ void _px_run(pf *pf) {
 
 // stacks + boxes  (linear memory management)
 void pf_drop(pf *pf) {
-    _px_drop(pf, &pf->ds);
+    _px_drop(pf, &pf->p);
 }
 void pf_dup(pf *pf) {
     _px_push(pf, _px_link(pf, TOP));
@@ -144,7 +144,7 @@ void pf_fetch_(pf *pf) {
 }
 void pf_bang_(pf *pf) {
     aref *x = object_to_box(TOP); _DROP();
-    EXCH(_CAR(pf->ds), x->object); _DROP();
+    EXCH(_CAR(pf->p), x->object); _DROP();
 }
 void pf_fetch_from_(pf *pf) {
     aref *x = object_to_box(TOP);
@@ -167,11 +167,11 @@ void pf_read(pf *pf) {
 }
 
 void pf_ps(pf *pf) {  // print stack
-    POST_STACK(pf->ds);
+    POST_STACK(pf->p);
 }
 void pf_pm(pf *pf) {  // print machine
-    _ex_printf(EX, "P: "); POST_STACK(pf->ds);
-    _ex_printf(EX, "R: "); POST_STACK(pf->rs);
+    _ex_printf(EX, "P: "); POST_STACK(pf->p);
+    _ex_printf(EX, "K: "); POST_STACK(pf->k);
     _ex_printf(EX, "F: %d\n", object_to_integer(LENGTH(pf->free)));
 }
 void pf_pd(pf *pf) {  // print dict
@@ -188,15 +188,14 @@ void pf_output(pf *pf) {
 }
 void pf_stack(pf *pf) {
     _px_need_free(pf);
-    FROM_TO(free, rs);
-    _CAR(pf->rs) = MOVE(pf->ds, NIL);
-    FROM_TO(rs, ds);
+    _ p = pf->p; pf->p = NIL;
+    _px_push(pf, p);
 }
 void pf_print_error(pf *pf) {
     _ex_printf(EX, "ERROR: ");
-    if (NIL == pf->ds) _px_push(pf, SYMBOL("unknown")); 
+    if (NIL == pf->p) _px_push(pf, SYMBOL("unknown")); 
     _WRITE();
-    if (NIL == pf->ds) _px_push(pf, VOID); 
+    if (NIL == pf->p) _px_push(pf, VOID); 
     if (TOP == VOID) { 
         _DROP(); 
     }
@@ -223,8 +222,6 @@ void pf_trap(pf *pf)    { TRAP(); }
 void pf_reverse(pf *pf) { _TOP = BANG_REVERSE(TOP); }
 void pf_add1(pf *pf)    { _TOP = ADD1(TOP); }
 
-void pf_to_r(pf *pf)    { FROM_TO(ds, rs); }
-void pf_from_r(pf *pf)  { FROM_TO(rs, ds); }
 
 // This won't take programs.
 void pf_interpret(pf *pf) {
@@ -265,17 +262,23 @@ void pf_compile(pf *pf) {
 }
 void pf_run(pf *pf){ 
     _ v = POP_TO_GRAPH;
-    PUSH_RS(v);
+    PUSH_K(v);
 }
 void pf_make_loop(pf *pf) {
     _px_push(pf, MAKE_LOOP(POP_TO_GRAPH));
+}
+void pf_call_with_cc(pf *pf) {
+    _ fn = TOP;
+    _ k = pf->k;
+    pf->k = LINEAR_CONS(fn, HALT);
+    _TOP = k;
 }
 
 
 /* Make sure all the finalizers get called. */
 void pf_bye(pf *pf) {
-    pf->ds = NIL;
-    pf->rs = NIL;
+    pf->p = NIL;
+    pf->k = NIL;
     pf->free = NIL;
     pf->dict = NIL;
     pf->output = NIL;
@@ -292,8 +295,8 @@ void pf_bye(pf *pf) {
 #define MARK(reg) pf->reg = gc_mark(GC, pf->reg)
 static void _px_mark_roots(pf *pf, gc_finalize fin) {
     printf(";; gc\n");
-    MARK(ds);
-    MARK(rs);
+    MARK(p);
+    MARK(k);
     MARK(free);
     MARK(output);
     // MARK(ip);
@@ -371,10 +374,10 @@ pf* _px_new(void) {
     pf->s_var       = SYMBOL("var");
 
     // Machine state
-    pf->ds = NIL;
+    pf->p = NIL;
     pf->free = NIL;
     pf->dict = NIL;
-    pf->rs = NIL;
+    pf->k = NIL;
     // pf->ip = HALT;
     pf->ip_abort = HALT;
 
@@ -403,12 +406,12 @@ pf* _px_new(void) {
    compiles it to code (this performs allocation from GC pool -- top
    eval is not linear), and executes this code until machine halt.  */
 void _px_interpret_list(pf *pf, _ nl_expr){
-    PUSH_RS(COMPILE_PROGRAM(nl_expr));
+    PUSH_K(COMPILE_PROGRAM(nl_expr));
     _px_run(pf);
 }
 /* Find and run.  This is linear if the referenced code is. */
 void _px_interpret_symbol(pf *pf, _ sym) {
-    PUSH_RS(FIND(pf->dict, sym));
+    PUSH_K(FIND(pf->dict, sym));
     _px_run(pf);
 }
 void _px_command(pf *pf, const char *str) {
