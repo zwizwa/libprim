@@ -2460,4 +2460,13 @@ in addition to the `ex' struct.  This can be easily changed.
 In order for this to work, the linear data needs to be well
 separated.  Let's make a separate LCONS data structure.
 
-Ok, almost done.
+Ok, almost done.  ex_bang_reverse was not polymorphic, and it wasn't
+completely clear where to do the graph -> lin conversion.
+
+NONLIN -> LIN conversion should happen in pf_ functions, while px_
+functions operate on nonlinear structures.  They can depend on linear
+structures, as long as they don't link them to anything.  I.e. inplace
+update is allowed, and some kinds of folding.
+
+
+
