@@ -2485,3 +2485,24 @@ LIN, but will simpy copy anything else.
 
 Let's default QUOTE such that it will place a LIN-wrapped copy of the
 quoted datum.
+
+
+Entry: GC restarts
+Date: Wed Aug 19 13:04:24 CEST 2009
+
+When this keeps growing, it's probably going to be a good idea to get
+rid of the GC restarts, and scan the C stack for references to update.
+Restarting works well for simple functions, but with more complicated
+C functions and these functions calling each other, the invariants (no
+alloc after mutation) are not so easy to maintain.
+
+
+Entry: PF read needs to be linear
+Date: Wed Aug 19 13:15:28 CEST 2009
+
+This is going to be more difficult to manage.  But I/O really needs to
+be free of GC issues.  Ports also need to be lowlevel (fd instead of
+FILE).
+
+
+

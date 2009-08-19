@@ -405,6 +405,11 @@ _ px_compile_program_env(pf *pf, _ E_top, _ E_local, _ src) {
 _ px_compile_program(pf *pf, _ src) {
     return px_compile_program_env(pf, NIL, pf->dict, src);
 }
+_ px_make_loop(pf *pf, _ code) {
+    _ ob = SEQ(code, VOID);
+    object_to_seq(ob)->next = ob;
+    return ob;
+}
 
 /* Walk the code, eliminating symbolic references where possible.
    Note: this only traverses the part of the code graph that's the

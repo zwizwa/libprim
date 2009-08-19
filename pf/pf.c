@@ -157,9 +157,16 @@ void pf_exchange(pf *pf) {
     _DROP();
     EXCH(x->object, _TOP);
 }
-
-
-
+void pf_read(pf *pf) {
+    /* FIXME: make sure read has a low probability to restart, which
+     * would mess up its state. */
+    // pf_gc(pf); 
+    
+    port p;
+    p.stream = stdin;
+    /* FIXME: read needs to produce linear data */
+    _px_push(pf, COPY_FROM_GRAPH(_ex_read(EX, &p)));
+}
 
 void pf_print_state(pf *pf) {
     _ex_printf(EX, "P: "); POST(pf->ds);
@@ -205,20 +212,44 @@ void pf_add1(pf *pf)    { _TOP = ADD1(TOP); }
 
 /* Note that the compiler uses nonlinear data structures.  When
    entering the compiler from withing PF, all data needs to be
-   converted to nonlinear form first. */
+   converted to nonlinear form first.
+
+   FIXME: this needs a proper check to make sure the data really is
+   nonlinear, before it can be taken out of the linear stack.
+*/
+
+_ _px_pop_to_graph(pf *pf) {
+    _ ob = TOP;
+    if (object_to_lpair(ob) || object_to_rc(ob, EX)) {
+        ob = COPY_TO_GRAPH(ob);
+    }
+    _DROP();
+    return ob;
+}
+#define POP_TO_GRAPH _px_pop_to_graph(pf)
+
 void pf_define(pf *pf)  { 
-    _ defs = COPY_TO_GRAPH(TOP); _DROP();
-    px_define(pf, defs);
+    px_define(pf, POP_TO_GRAPH);
 }
 void pf_compile(pf *pf) { 
-    _ defs = COPY_TO_GRAPH(TOP); _DROP();
-    _px_push(pf, COMPILE_PROGRAM(defs));
+    _px_push(pf, COMPILE_PROGRAM(POP_TO_GRAPH));
 }
 void pf_run(pf *pf){ 
-    _ v = TOP; _DROP();
+    _ v = POP_TO_GRAPH;
     pf->rs = LINEAR_CONS(pf->ip, pf->rs); 
     pf->ip = v;
 }
+void pf_interpret(pf *pf) {
+    _ v = POP_TO_GRAPH;
+    _px_push(pf, COMPILE_PROGRAM(CONS(v, NIL)));
+    _RUN();
+}
+void pf_make_loop(pf *pf) {
+    _px_push(pf, MAKE_LOOP(POP_TO_GRAPH));
+}
+
+
+
 
 
 /* GC+SETUP */

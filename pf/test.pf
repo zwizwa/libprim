@@ -1,0 +1,49 @@
+;; -*- scheme -*- 
+;; Bootstrap using s-expression syntax.
+
+;; '(abc  123 post) define
+;; abc
+
+(
+ '((abc 123 post)
+   (boo (var 6))
+   (loop 1 (print-state) (1 2) loop)
+   (def 456 post abc))
+ define
+ print-state
+ print-dict
+ '(1 2 3) post
+ '(1 2 3) reverse post
+
+
+ )
+
+(abc def)
+
+(
+
+ boo
+ post 123 boo ! boo post
+ boo @ post
+ boo post
+ boo @> post
+ boo post
+
+
+ 123 post
+
+ 123 add1 post
+
+ gc
+
+ 5 boo ! boo post
+ 10 boo exchange post
+ boo post
+ 
+ '(1 2 3) compile run print-state
+ '(1 2 3) run print-state
+ 
+ )
+
+     
+
