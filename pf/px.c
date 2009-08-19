@@ -28,8 +28,8 @@
 
 
 /* TOOLS+DATA */
-_ px_abort(pf *pf) {
-    return RAISE_ERROR(VOID, VOID); // tag not used
+_ px_abort(pf *pf, _ tag, _ arg) {
+    return RAISE_ERROR(tag, arg);
 }
 _ _px_top(pf *pf) {
     if (unlikely (NIL == pf->ds)) px_error_underflow(pf);
@@ -37,8 +37,7 @@ _ _px_top(pf *pf) {
 }
 
 _ px_error_underflow(pf *pf) {
-    _px_push(pf, pf->s_underflow);
-    return px_abort(pf);
+    return px_abort(pf, pf->s_underflow, VOID);
 }
 
 _ _px_make_rc(pf *pf, void *free, void *ctx) {
@@ -479,3 +478,6 @@ _ px_define(pf *pf, _ defs) {
 
 
 
+_ px_error_undefined(pf *pf, _ var) {
+    return ERROR("undefined", var);
+}

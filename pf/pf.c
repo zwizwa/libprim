@@ -83,8 +83,8 @@ void _px_run(pf *pf) {
                     _px_push(pf, SYMBOL("unknown-exception"));
                 case EXCEPT_ABORT:
                     // TAG + ARG are NONLINEAR
-                    pf->m.error_tag = VOID;
-                    pf->m.error_arg = VOID;
+                    _px_push(pf, COPY_FROM_GRAPH(pf->m.error_arg));
+                    _px_push(pf, COPY_FROM_GRAPH(pf->m.error_tag));
                     pf->ip = pf->ip_abort;
                 }
                 pf->m.prim_entries--;
@@ -191,10 +191,18 @@ void pf_stack(pf *pf) {
     FROM_TO(rs, ds);
 }
 void pf_print_error(pf *pf) {
-    if (NIL == pf->ds) _px_push(pf, VOID);
     _ex_printf(EX, "ERROR: ");
-    _POST();
-    _POST();
+    if (NIL == pf->ds) _px_push(pf, SYMBOL("unknown")); 
+    _WRITE();
+    if (NIL == pf->ds) _px_push(pf, VOID); 
+    if (TOP == VOID) { 
+        _DROP(); 
+    }
+    else { 
+        _ex_printf(EX, ": "); 
+        _WRITE(); 
+    }
+    _ex_printf(EX, "\n");
 }
 
 /* Since we have a non-rentrant interpreter with mutable state, this
@@ -215,7 +223,9 @@ void pf_add1(pf *pf)    { _TOP = ADD1(TOP); }
 void pf_interpret(pf *pf) {
     _ v = TOP;
     if (object_to_symbol(v, EX)) {
-        _TOP = FIND(pf->dict, v);
+        _ ob = FIND(pf->dict, v);
+        if (FALSE == ob) {_DROP(); ERROR_UNDEFINED(v);}
+        _TOP = ob;
         _RUN();
     }
 }
@@ -311,7 +321,7 @@ static void _px_def_all_prims(pf *pf) {
 _ _px_word(pf* pf, const char *str) {
     _ var = SYMBOL(str);
     _ rv = FIND(pf->dict, var);
-    if (FALSE == rv) ERROR("undefined", var);
+    if (FALSE == rv) ERROR_UNDEFINED(var);
     return rv;
 }
 

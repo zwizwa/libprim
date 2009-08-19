@@ -2517,3 +2517,10 @@ Essentially: allocation and reclaim of short lived linear objects
 won't trigger GC marking of long lived nonlinear objects.  The
 asynchronous GC only does work during ``highlevel'' data conversion ==
 code compilation.
+
+
+Entry: Static linearity checks
+Date: Wed Aug 19 14:35:50 CEST 2009
+
+It would be nice to find a way to statically enforce the linearity
+constraint.  Currently, it's quite error-prone to write primitives.
