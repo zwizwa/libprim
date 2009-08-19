@@ -2524,8 +2524,8 @@ If you have control over the GC (i.e. if you can guarantee that
 nothing else is running in the background) this can be done in any
 Scheme implementation.  PF is written from scratch mostly to figure
 out what it really depends on (i.e. the existence proof of a
-collection of primitives), and to have a lean result for embedded
-work.
+collection of primitives), and to have a lean implementation for
+embedded work.
 
 
 Entry: Static linearity checks
@@ -2548,4 +2548,10 @@ function and some other operations on the interpreter state.
 The only problem is Scheme's toplevel environment.  However, this
 could be hidden as dynamic scope in the continuation chain inside the
 state.
+
+
+Entry: Multiple dispatch
+Date: Wed Aug 19 16:46:09 CEST 2009
+
+How is this best implemented?
 
