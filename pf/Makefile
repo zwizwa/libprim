@@ -1,5 +1,5 @@
 APP=pf
-SRC=pf.c
+SRC=pf.c px.c
 DEP_OBJ=../leaf/leaf.a ../ex/ex.a
 
 OBJ=$(SRC:.c=.o)
@@ -19,6 +19,6 @@ all: pf $(DEP_OBJ)
 %.h_load: %.pf ../load.ss
 	mzscheme ../load.ss $< >$@
 
-GEN = pf.h_pf_prims pf.h_px_prims boot.h_load
+GEN = pf.h_pf_prims px.h_px_prims boot.h_load
 
 include ../Makefile.rules
