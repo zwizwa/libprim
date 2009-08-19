@@ -63,13 +63,13 @@ DEF_STRUCT(seq,   TAG_SEQ)
 #define NOP  CONSTANT(0x80)
 #define HALT CONSTANT(0x81)
 
-void _pf_push(pf *pf, _ ob);
-_ _pf_make_symbol(pf *pf, const char *str);
-// #define SYMBOL(str)   _pf_make_symbol(pf, str)
+// void _px_push(pf *pf, _ ob);
+// _ _px_make_symbol(pf *pf, const char *str);
+// #define SYMBOL(str)   _px_make_symbol(pf, str)
 #define NUMBER(n)     integer_to_object(n)
 
-void _pf_interpret_list(pf *pf, _ expr);
-#define EVAL(expr)    _pf_top_interpret_list((pf*)EX, expr)
+void _px_interpret_list(pf *pf, _ expr);
+#define EVAL(expr)    _px_top_interpret_list((pf*)EX, expr)
 
 
 #endif

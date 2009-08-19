@@ -2469,4 +2469,11 @@ structures, as long as they don't link them to anything.  I.e. inplace
 update is allowed, and some kinds of folding.
 
 
+Entry: LIN vs. BOX
+Date: Wed Aug 19 12:24:51 CEST 2009
+
+It's probably simpler to place ALL linear data that is supposed to go
+into the nonlinear tree in a BOX.  LIN is only useful for quotations,
+which can be nonlinear values.
+
 

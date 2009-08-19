@@ -1,15 +1,20 @@
 /*
-  A linear, concatenative stack language.  A modularized rework of the
-  ideas behind Packet Forth.
 
-  The main memory model uses stacks and queues.  The objects are the
-  same as used in EX.  The word "packet" refers to leaf objects, which
-  are atomic from the pov. of the scripting language.
+   PF: Compiler and helper functions.
 
-  The functions with "px_" prefix behave as EX expression primitives,
-  and could be made to cooperated with the Scheme interpreter.  All
-  other functions operating on the machine struct are prefixed with
-  "_px_".
+   The code in this file is partitioned in two classes:
+
+   px_   non-linear expression primitives
+   _px_  misc functions (not respecting px_ nor pf_ API) 
+
+   Note that the px_ functions are *NOT LINEAR*.  The linear stack
+   operations carry the pf_ prefix.  The compiler is written in terms
+   of nonlinear functions because:
+
+      - the code graph it produces is nonlinear
+      - writing a compiler in a linear language is more difficult
+      - C bridge to an expression language is simpler than to a stack language
+      - it makes interface with Scheme simpler (also written in terms of EX)
 
  */
 

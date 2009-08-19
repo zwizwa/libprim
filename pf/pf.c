@@ -8,7 +8,15 @@
 #include "pf.h_pf_prims"
 #include "px.h_px_prims"
 
-/* PF: VM and Stack Prims */
+/* 
+   PF: VM interpreter and Stack primitive functions
+
+   The code in this file is partitioned in two classes:
+
+   pf_   linear stack words (written in terms of _px_ and px_)
+   _px_  misc functions (not respecting px_ nor pf_ API) 
+
+*/
 
 
 
@@ -25,7 +33,7 @@
 */
 typedef void (*pf_prim)(pf*);
 
-void _pf_run(pf *pf) {
+void _px_run(pf *pf) {
     seq *s;
     prim *p;
     quote *q;
@@ -217,7 +225,7 @@ void pf_run(pf *pf){
 
 #define GC_DEBUG _ex_printf(EX, ";; %d\n", (int)GC->current_index)
 #define MARK(reg) pf->reg = gc_mark(GC, pf->reg)
-static void _pf_mark_roots(pf *pf, gc_finalize fin) {
+static void _px_mark_roots(pf *pf, gc_finalize fin) {
     printf(";; gc\n");
     MARK(ds);
     MARK(rs);
@@ -236,7 +244,7 @@ static void _pf_mark_roots(pf *pf, gc_finalize fin) {
     else return;  // we're in gc_grow() -> return
 }
 
-static _ _pf_prim(pf* pf, pf_prim fn, _ name) {
+static _ _px_prim(pf* pf, pf_prim fn, _ name) {
     prim *p = malloc(sizeof(*p));
     p->type = TYPES->prim_type;
     p->fn = fn;
@@ -245,39 +253,39 @@ static _ _pf_prim(pf* pf, pf_prim fn, _ name) {
     return const_to_object(p);
 }
 
-#define PRIM(fn)  _pf_prim(pf, fn)
+#define PRIM(fn)  _px_prim(pf, fn)
 
 static prim_def pf_prims[] = _pf_table_init;
-static void _pf_def_prims(pf *pf, prim_def *prims) {
+static void _px_def_prims(pf *pf, prim_def *prims) {
     prim_def *prim;
     for (prim = prims; prim->name; prim++) {
         _ var = SYMBOL(prim->name);
         pf->dict = ENV_DEF(pf->dict,
                            var,
-                           _pf_prim(pf, prim->fn, var));
+                           _px_prim(pf, prim->fn, var));
     }
 }
-static void _pf_def_all_prims(pf *pf) {
-    _pf_def_prims(pf, pf_prims);
+static void _px_def_all_prims(pf *pf) {
+    _px_def_prims(pf, pf_prims);
 }
 
-_ _pf_word(pf* pf, const char *str) {
+_ _px_word(pf* pf, const char *str) {
     _ var = SYMBOL(str);
     _ rv = FIND(pf->dict, var);
     if (FALSE == rv) ERROR("undefined", var);
     return rv;
 }
 
-#define WORD(str) _pf_word(pf, str)
+#define WORD(str) _px_word(pf, str)
 
-void _pf_load_lib(pf *pf);
+void _px_load_lib(pf *pf);
 
-pf* _pf_new(void) {
+pf* _px_new(void) {
     pf *pf = malloc(sizeof(*pf));
 
     // Garbage collector.
     GC = gc_new(100000, pf, 
-                (gc_mark_roots)_pf_mark_roots,
+                (gc_mark_roots)_px_mark_roots,
                 (gc_overflow)_ex_overflow);
 
     // Leaf types.
@@ -313,32 +321,32 @@ pf* _pf_new(void) {
     pf->output = _px_make_port(pf, stdout, "stdout");
 
     // Primitives
-    _pf_def_all_prims(pf);
+    _px_def_all_prims(pf);
     pf->ip_abort = FIND(pf->dict, SYMBOL("print-error"));
 
     // Highlevel bootstrap
-    _pf_interpret_list(pf, _ex_boot_load(EX, "boot.pf"));
+    _px_interpret_list(pf, _ex_boot_load(EX, "boot.pf"));
     return pf;
 }
 
 /* Top level evaluator.  This takes a (read-only) s-expression,
    compiles it to code (this performs allocation from GC pool -- top
    eval is not linear), and executes this code until machine halt.  */
-void _pf_interpret_list(pf *pf, _ nl_expr){
+void _px_interpret_list(pf *pf, _ nl_expr){
     pf->ip = COMPILE_PROGRAM(nl_expr);
-    _pf_run(pf);
+    _px_run(pf);
 }
 /* Find and run.  This is linear if the referenced code is. */
-void _pf_interpret_symbol(pf *pf, _ sym) {
+void _px_interpret_symbol(pf *pf, _ sym) {
     pf->ip = FIND(pf->dict, sym);
-    _pf_run(pf);
+    _px_run(pf);
 }
-void _pf_command(pf *pf, const char *str) {
-    _pf_interpret_symbol(pf, SYMBOL(str));
+void _px_command(pf *pf, const char *str) {
+    _px_interpret_symbol(pf, SYMBOL(str));
 }
 
 int main(int argc, char **argv) {
-    pf *pf = _pf_new();
-    _pf_run(pf);
+    pf *pf = _px_new();
+    _px_run(pf);
     return 0;
 }
