@@ -30,4 +30,4 @@ run_test: $(TEST)
 
 .PHONY: clean
 clean:
-	rm -f *.o *.d *.d.* *~ *.h_* *.c_* $(APP) $(TEST)
+	rm -f *.a *.o *.d *.d.* *~ *.h_* *.c_* $(APP) $(TEST)
