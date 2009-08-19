@@ -117,7 +117,11 @@ void _ex_overflow(ex *ex, long extra);
 _ ex_is_pair(ex *ex, _ o);
 static inline void _ex_length_rest(ex *ex, _ lst, _ *length, _ *rest) {
     long nb = 0;
-    while (TRUE == ex_is_pair(ex, lst)) { nb++; lst = _CDR(lst); }
+    while (object_to_lpair(lst) || 
+           object_to_pair(lst)) { 
+        nb++;
+        lst = _CDR(lst); 
+    }
     *rest = lst;
     *length = integer_to_object(nb);
 }

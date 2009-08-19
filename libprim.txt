@@ -2506,3 +2506,14 @@ FILE).
 
 
 
+Entry: PF design choices
+Date: Wed Aug 19 13:55:15 CEST 2009
+
+  - linear memory guarantees synchronous reclaim of leaf objects.
+
+  - embedding in nonlinear memory simplifies metaprogramming.
+
+Essentially: allocation and reclaim of short lived linear objects
+won't trigger GC marking of long lived nonlinear objects.  The
+asynchronous GC only does work during ``highlevel'' data conversion ==
+code compilation.

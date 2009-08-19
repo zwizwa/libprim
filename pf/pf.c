@@ -171,7 +171,7 @@ void pf_read(pf *pf) {
 void pf_print_state(pf *pf) {
     _ex_printf(EX, "P: "); POST(pf->ds);
     _ex_printf(EX, "R: "); POST(pf->rs);
-    _ex_printf(EX, "F: "); POST(pf->free);
+    _ex_printf(EX, "F: %d\n", object_to_integer(LENGTH(pf->free)));
 }
 void pf_print_dict(pf *pf) {
     _ E = pf->dict;
@@ -194,6 +194,7 @@ void pf_print_error(pf *pf) {
     if (NIL == pf->ds) _px_push(pf, VOID);
     _ex_printf(EX, "ERROR: ");
     _POST();
+    _POST();
 }
 
 /* Since we have a non-rentrant interpreter with mutable state, this
@@ -204,11 +205,22 @@ void pf_gc(pf *pf) {
 
 /* Primitives in terms of expressions.  Note that an upper case name
    like _XXX() is short for a stack word pf_xxx(pf *).  */
-void pf_write(pf *pf)   { px_write(pf, TOP); _DROP(); }
+void pf_write(pf *pf)   { WRITE(TOP); _DROP(); }
 void pf_post(pf *pf)    { POST(TOP); _DROP(); }
 void pf_trap(pf *pf)    { TRAP(); }
 void pf_reverse(pf *pf) { _TOP = BANG_REVERSE(TOP); }
 void pf_add1(pf *pf)    { _TOP = ADD1(TOP); }
+
+// This won't take programs.
+void pf_interpret(pf *pf) {
+    _ v = TOP;
+    if (object_to_symbol(v, EX)) {
+        _TOP = FIND(pf->dict, v);
+        _RUN();
+    }
+}
+
+
 
 /* Note that the compiler uses nonlinear data structures.  When
    entering the compiler from withing PF, all data needs to be
@@ -239,14 +251,10 @@ void pf_run(pf *pf){
     pf->rs = LINEAR_CONS(pf->ip, pf->rs); 
     pf->ip = v;
 }
-void pf_interpret(pf *pf) {
-    _ v = POP_TO_GRAPH;
-    _px_push(pf, COMPILE_PROGRAM(CONS(v, NIL)));
-    _RUN();
-}
 void pf_make_loop(pf *pf) {
     _px_push(pf, MAKE_LOOP(POP_TO_GRAPH));
 }
+
 
 
 
@@ -351,9 +359,12 @@ pf* _px_new(void) {
     // Stdout
     pf->output = _px_make_port(pf, stdout, "stdout");
 
-    // Primitives
+    // Bootstrap repl and abort code.
     _px_def_all_prims(pf);
-    pf->ip_abort = FIND(pf->dict, SYMBOL("print-error"));
+    _ repl = MAKE_LOOP(SEQ(WORD("read"), WORD("interpret")));
+    pf->dict = ENV_DEF(pf->dict, SYMBOL("repl"), repl);
+    pf->ip_abort = SEQ(WORD("print-error"), repl);
+                       
 
     // Highlevel bootstrap
     _px_interpret_list(pf, _ex_boot_load(EX, "boot.pf"));

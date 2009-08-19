@@ -4,7 +4,9 @@
 ;; '(abc  123 post) define
 ;; abc
 
-((read interpret) make-loop run)
+(repl)
+
+
 
 
 
