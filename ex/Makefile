@@ -1,5 +1,5 @@
 
-SRC=ex.c gc.c
+SRC=ex.c gc.c read.c
 
 OBJ=$(SRC:.c=.o)
 DEBUG_CFLAGS=-Wall -g

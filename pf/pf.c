@@ -805,7 +805,7 @@ pf* _pf_new(void) {
    compiles it to code (this performs allocation from GC pool -- top
    eval is not linear), and executes this code until machine halt.  */
 void _pf_top_interpret_list(pf *pf, _ expr){
-    pf->ip = px_compile_program(pf, expr);
+    pf->ip = COMPILE_PROGRAM(expr);
     _pf_run(pf);
 }
 /* Find and run.  This is linear if the referenced code is. */
