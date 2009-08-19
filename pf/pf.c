@@ -93,7 +93,7 @@ void _px_run(pf *pf) {
             else if ((q = object_to_quote(ip))) {
                 _ ob;
                 if ((l = object_to_lin(q->object))) {
-                    /* Linear objects need to be copied. */
+                    /* Unpack + link linear objects */
                     ob = _px_link(pf, l->object);
                 }
                 else {

@@ -2476,4 +2476,12 @@ It's probably simpler to place ALL linear data that is supposed to go
 into the nonlinear tree in a BOX.  LIN is only useful for quotations,
 which can be nonlinear values.
 
+This does break LIN->GRAPH->LIN equivalence, since all data will be
+wrapped.
 
+Something is not well specified in the data conversion: how to handle
+lists at compilation time?  The interpreter should be dumb: it unwraps
+LIN, but will simpy copy anything else.
+
+Let's default QUOTE such that it will place a LIN-wrapped copy of the
+quoted datum.

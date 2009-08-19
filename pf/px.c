@@ -331,15 +331,22 @@ _ px_compile_defs(pf *pf, _ E_top, _ defs) {
 _ px_quote(pf *pf, _ data)       { STRUCT(TAG_QUOTE, 1, data); }
 _ px_seq(pf *pf, _ sub, _ next)  { STRUCT(TAG_SEQ, 2, sub, next); }
 
-_ px_quote_datum(pf *pf, _ datum) {
-    // FIXME: distinguish between linear and graph data.
-    _ blessed = COPY_FROM_GRAPH(datum);
 
-    // Only LIN-wrap things that are necessary.
-    // if (object_to_lpair(blessed)) blessed = LIN(blessed);
-    blessed = LIN(blessed);
+/* This one is insidious..  The input code is always nonlinear, but
+   what if it already contains wrapped linear data?  This needs a
+   properly specified quote/unquote semantics.
 
-    return QUOTE(blessed);
+   Essentially, this can only receive atoms that can appear in *source
+   code*, so we only translate nonlinear lists to linear ones.
+*/
+
+_ px_quote_source_datum(pf *pf, _ datum) {
+    if ((object_to_pair(datum))) {
+        return QUOTE(LIN(COPY_FROM_GRAPH(datum)));
+    }
+    else {
+        return QUOTE(datum);
+    }
 }
 _ px_compile_program_env(pf *pf, _ E_top, _ E_local, _ src) {
     _ rv;
@@ -356,7 +363,7 @@ _ px_compile_program_env(pf *pf, _ E_top, _ E_local, _ src) {
             /* Special Form. */
             _ tag = _CAR(datum);
             if (tag == pf->s_quote) {
-                compiled = QUOTE_DATUM(_CADR(datum));
+                compiled = QUOTE_SOURCE_DATUM(_CADR(datum));
             }
             else if (tag == pf->s_var) {
                 _ val = (NIL == _CDR(datum) ? VOID : _CADR(datum));
@@ -364,7 +371,7 @@ _ px_compile_program_env(pf *pf, _ E_top, _ E_local, _ src) {
             }
             /* Quoted subprogram. */
             else {
-                compiled = QUOTE_DATUM
+                compiled = QUOTE  // Doesn't need wrapping.
                     (COMPILE_PROGRAM_ENV(E_top, E_local, datum));
             }
         }
@@ -379,7 +386,7 @@ _ px_compile_program_env(pf *pf, _ E_top, _ E_local, _ src) {
         }
         /* Quote literal data. */
         else {
-            compiled = QUOTE_DATUM(datum);
+            compiled = QUOTE_SOURCE_DATUM(datum);
         }
         /* Return if this was the last one. */
         if (NIL == CDR(src)) {
