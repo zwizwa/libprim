@@ -2409,6 +2409,8 @@ Date: Tue Aug 18 21:26:25 CEST 2009
 
 Scheme: 
 - dynamic parameters
+- dynamic wind
+- partial continuations
 
 PF: 
 - separate linear pair type
@@ -2419,3 +2421,32 @@ PF:
 
 EX:
 - primitives
+
+
+
+Entry: GC and read
+Date: Wed Aug 19 08:43:40 CEST 2009
+
+Because ports are stateful entities, the read operation might interact
+badly with GC restarts.
+
+It might be necessary to construct an intermediate representation.
+The real solution however is to make the reader pre-emptable at every
+CONS.  So, it's best to stick to the current version, since that
+change would be transparent once context switching is implemented.
+
+
+
+Entry: PF compiler: SC < PF
+Date: Wed Aug 19 09:25:54 CEST 2009
+
+Since it needs to construct the right data types, which ultimately tie
+into the memory manager through finalizers, it looks like the linear
+memory manager needs to be part of the Scheme's machine state if we
+want to create linear code..
+
+So no, this doesn't work..
+
+What might work is to do it the other way around: have PF state be an
+extension of SC state, so all Scheme code can run on the PF machine,
+_and_ use the PF compiler words, but not vice versa.
