@@ -2413,8 +2413,8 @@ Scheme:
 - partial continuations
 
 PF: 
-- separate linear pair type
-- export non-linear part as EX
+- separate linear pair type (OK)
+- export non-linear part as EX (OK)
 - polymorphy
 - packet reuse
 - exceptions
@@ -2554,4 +2554,18 @@ Entry: Multiple dispatch
 Date: Wed Aug 19 16:46:09 CEST 2009
 
 How is this best implemented?
+
+
+Entry: >r r>
+Date: Wed Aug 19 17:56:53 CEST 2009
+
+These don't work any more.  The problem is that there isn't really a
+return stack.  There is only a continuation.
+
+If this is the case then it is better to get rid of IP, and always use
+the top of RS as the continuation.
+
+What can be done is to modify the continuation such that an operation
+can be inserted after another one.  I.e. to implement `dip'.
+
 

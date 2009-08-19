@@ -148,7 +148,7 @@ void pf_bang_(pf *pf) {
     aref *x = object_to_box(TOP); _DROP();
     EXCH(_CAR(pf->ds), x->object); _DROP();
 }
-void pf_move_(pf *pf) {
+void pf_fetch_from_(pf *pf) {
     aref *x = object_to_box(TOP);
     _TOP = MOVE(x->object, VOID);
 }
@@ -224,6 +224,9 @@ void pf_post(pf *pf)    { POST(TOP); _DROP(); }
 void pf_trap(pf *pf)    { TRAP(); }
 void pf_reverse(pf *pf) { _TOP = BANG_REVERSE(TOP); }
 void pf_add1(pf *pf)    { _TOP = ADD1(TOP); }
+
+void pf_to_r(pf *pf)    { FROM_TO(ds, rs); }
+void pf_from_r(pf *pf)  { FROM_TO(rs, ds); }
 
 // This won't take programs.
 void pf_interpret(pf *pf) {
