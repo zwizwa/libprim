@@ -1,5 +1,5 @@
 APP=pf
-SRC=pf.c lib.c
+SRC=pf.c
 DEP_OBJ=../leaf/leaf.a ../ex/ex.a
 
 OBJ=$(SRC:.c=.o)

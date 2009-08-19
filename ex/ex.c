@@ -456,3 +456,15 @@ _ ex_raise_nargs_error(ex *ex, _ arg_o) {
 }
 
 
+
+/* IO */
+
+/* Use lowelevel port access, to be independent of object wrapping. */
+_ _ex_boot_load(ex *ex,  const char *bootfile) {
+    port *bootport = port_new(ex->p->port_type,
+                              fopen(bootfile, "r"),
+                              bootfile);
+    _ expr = _ex_read(ex, bootport);
+    port_free(bootport);
+    return expr;
+}

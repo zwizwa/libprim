@@ -361,9 +361,6 @@ _ px_write_word(pf *pf, _ ob) {
 
 _ px_write(pf *pf, _ ob) {
     void *x;
-    if (FALSE != _ex_write(EX, ob)) {
-        return VOID;
-    }
     /* Ports are RC wrapped in PF.*/
     if ((x = object_to_port(ob, EX))) {
         return _ex_write(EX, const_to_object(x));
@@ -422,9 +419,8 @@ _ px_write(pf *pf, _ ob) {
     else if (HALT == ob) {
         return _ex_printf(EX, "#halt");
     }
-    else {
-        return _ex_printf(EX, "#object<%p>",(void*)ob);
-    }
+
+    return _ex_write(EX, ob);
 }
 
 /* COMPILER */
@@ -796,8 +792,7 @@ pf* _pf_new(void) {
     pf->ip_abort = FIND(pf->dict, SYMBOL("print-error"));
 
     // Highlevel bootstrap
-    _pf_load_lib(pf);
-
+    _pf_top_interpret_list(pf, _ex_boot_load(EX, "boot.pf"));
     return pf;
 }
 

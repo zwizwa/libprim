@@ -854,18 +854,8 @@ void _sc_def_prim(sc *sc, const char *str, void *fn, long nargs) {
     _ var = SYMBOL(str);
     sc_bang_def_toplevel(sc, var, _sc_make_prim(sc, fn, nargs, var));
 }
-void _sc_load_lib(sc* sc);
 
-// Use lowelevel port access.
-static void _sc_boot(sc *sc) {
-    char *bootfile = "boot.scm";
-    port *bootport = port_new(TYPES->port_type,
-                              fopen(bootfile, "r"),
-                              bootfile);
-    _ boot = _ex_read(EX, bootport);
-    port_free(bootport);
-    _sc_top(sc, boot);
-}
+
 
 
 sc *_sc_new(void) {
@@ -919,11 +909,8 @@ sc *_sc_new(void) {
 
     sc_bang_abort_k(sc, abort_k);
 
-
-
-    /* Highlevel bootstrap from stdin. */
-    _sc_boot(sc);
-    // _sc_load_lib(sc);
+    /* Highlevel bootstrap. */
+    _sc_top(sc, _ex_boot_load(EX, "boot.scm"));
     return sc;
 }
 

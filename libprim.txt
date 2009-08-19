@@ -2437,7 +2437,7 @@ change would be transparent once context switching is implemented.
 
 
 
-Entry: PF compiler: SC < PF
+Entry: PF compiler: SC < PF ?
 Date: Wed Aug 19 09:25:54 CEST 2009
 
 Since it needs to construct the right data types, which ultimately tie
@@ -2450,3 +2450,6 @@ So no, this doesn't work..
 What might work is to do it the other way around: have PF state be an
 extension of SC state, so all Scheme code can run on the PF machine,
 _and_ use the PF compiler words, but not vice versa.
+
+Indeed: the `sc' struct only has the global registers and symbol cache
+in addition to the `ex' struct.  This can be easily changed.
