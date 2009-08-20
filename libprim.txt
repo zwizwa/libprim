@@ -2834,4 +2834,15 @@ expressions return values, but C's curly braces represent nested
 statements.  Maybe it's best to simply target GCC's statement
 expressions[1], and use the '?' condition operator.
 
+This seems more natural.  I'm also using a direct compiler instead of
+macros.  To make this look better though, the indentation needs to be
+changed so statement expressions can be assigned to variables to
+reduce the visual complexity of the nesting.
+
+That's a pretty-printing exercise, so consider the real problem
+solved.  The rest is play ;)
+
+So, prettyprinting.  What you want is "newline" to indent to the
+current indentation point.
+
 http://gcc.gnu.org/onlinedocs/gcc/Statement-Exprs.html

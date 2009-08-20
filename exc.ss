@@ -19,6 +19,7 @@
 (define (emit fmt . args)
   ((p-emit) (apply format fmt args)))
 
+
 (define (with-indentation thunk)
   (parameterize
       ((emit-margin ((emit-indent) (emit-margin))))
@@ -48,14 +49,9 @@
           (map (add-type "_")
                (map symbol->string formals))))))
 
-(define (st-if cond yes-thunk no-thunk)
-  (with-block (format "if (FALSE != ~a) " (expression cond)) yes-thunk)
-  (with-block (format "else ") no-thunk))
-
-(define (with-block pre thunk)
-  (emit (format "~a{" pre))
-  (with-indentation thunk)
-  (emit "}"))
+;(define (st-if cond yes-thunk no-thunk)
+;  (with-block (format "if (FALSE != ~a) " (expression cond)) yes-thunk)
+;  (with-block (format "else ") no-thunk))
 
 (define (with-begin thunk)
   (emit "({")
@@ -92,41 +88,22 @@
       (format "~a" x)))
 
 
-;; MACROS
-(define-syntax-rule
-  (block ((var expr) ...) body-expr)
-  (with-block
-   ""
-   (lambda ()
-     (st-declaration 'var 'expr) ...
-     body-expr)))
-(define-syntax-rule (return x)
-  (st-return 'x))
-
-(define-syntax-rule (def (name . formals) body)
-  (begin
-    (definition 'name 'formals)
-    body))
-
-(define-syntax-rule (ifelse cond yes no)
-  (st-if 'cond (lambda () yes) (lambda () no)))
-
-(def (bar x y)
-  (block ((a 123)
-          (b 345))
-    (block ((c (plus a b))
-            (d (min a)))
-       (ifelse (broem a) 
-               (return (foo c d x y))
-               (return (lalala))))))
-
-
-;; Direct interpreter
+;; Direct compiler
 
 (require mzlib/match)  ;; old matcher is more convenient
 
 (define (ex-compile expr)
-  (match expr
+  (match
+   expr
+   (('define (name . formals) body)
+    (begin
+      (definition name formals)
+      (emit "{")
+      (with-indentation
+       (lambda ()
+         (emit "return")
+         (ex-compile body)))
+      (emit "}")))
    (('let* bindings body)
     (with-begin
      (lambda ()
