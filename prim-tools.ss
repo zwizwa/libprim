@@ -1,5 +1,6 @@
 #lang scheme/base
 
+(require "tools.ss")
 (provide (all-defined-out))
 
 (define re-def (make-parameter #f))
@@ -84,13 +85,6 @@
    dict)
   (printf "~a{}}\n" prefix))
 
-(define (list->args lst)
-  (if (null? lst) '()
-      (cdr (apply append (for/list ((l lst)) (list ", " l))))))
-(define (n->args n)
-  (for/list ((i (in-range n)))
-    (format "x~a" i)))
-(define (string-append* lst) (apply string-append lst))
 
 (define (mprefix str)
   (string-append (macro-prefix) str))

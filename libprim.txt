@@ -2775,3 +2775,49 @@ END_MATCH
 
 
 where MATCH sets up the first '{' and each CASE starts with a '}'.
+
+
+Entry: Scheme -> EX compilation
+Date: Thu Aug 20 15:24:19 CEST 2009
+
+This seems really straightforward.  It would be nice to be able to
+statically check at least names and argument arity.
+
+About writing code generators: you _really_ want to write it as a
+coroutine (a `generator') that passes strings to an output port
+through a `yield' function, in this case traditionally called `emit'.
+
+Using mapping might be more elegant, but in this case due to small
+differences in tree structure, decoupling the collector from the
+enumerator is best.
+
+In C, there are statements and expressions.  For EX it's simpler to
+get rid of the statements early on, so one can focus on the
+expressions.  Also, they don't need to be converted to statements
+(CPS) since C's expression syntax will do just fine.
+
+Then, it's simpler to use syntax-rules style pattern matching to write
+the generator than an using scheme/match at runtime.
+
+A bit of work trying to get the basic abstractions right: statements
+emit a line, expressions use string substitution to be built
+recursively, function/constructor names get mapped, context arguments
+get added.  Everything is a function, except the language forms
+themselves, which are implemented as macros (`block' and `return').
+
+(block ((a 123)
+        (b 345))
+  (block ((c (plus a b))
+          (d (min a)))
+     (return (foo a b))))
+
+=>
+{
+    _ a = 123;
+    _ b = 345;
+    {
+        _ c = ex_plus(ex, a, b);
+        _ d = ex_min(ex, a);
+        return ex_foo(ex, a, b);
+    }
+}
