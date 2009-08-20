@@ -2803,21 +2803,29 @@ A bit of work trying to get the basic abstractions right: statements
 emit a line, expressions use string substitution to be built
 recursively, function/constructor names get mapped, context arguments
 get added.  Everything is a function, except the language forms
-themselves, which are implemented as macros (`block' and `return').
+themselves, which are implemented as macros (`def', `block' and `return').
 
-(block ((a 123)
-        (b 345))
-  (block ((c (plus a b))
-          (d (min a)))
-     (return (foo a b))))
+
+(def (bar x y)
+  (block ((a 123)
+          (b 345))
+    (block ((c (plus a b))
+            (d (min a)))
+       (return (foo c d x y)))))
 
 =>
+_ ex_bar(ex *ex, _ x, _ y)
 {
     _ a = 123;
     _ b = 345;
     {
         _ c = ex_plus(ex, a, b);
         _ d = ex_min(ex, a);
-        return ex_foo(ex, a, b);
+        return ex_foo(ex, c, d, x, y);
     }
 }
+
+Translating from Scheme-like syntax (eliminating 'return') will
+require automatic distinction between special forms and application
+forms.
+

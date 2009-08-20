@@ -37,6 +37,16 @@
 (define (s-declaration var expr) (statement "_ ~a = ~a" var (expression expr)))
 (define (s-return expr)          (statement "return ~a" (expression expr)))
 
+(define (add-type t) (lambda (x) (format "~a ~a" t x)))
+(define (pointer t) (format "*~a" t))
+(define (definition name formals)
+  (emit "_ ~a(~a)"
+        (map-name name)
+        (arglist
+         (map-def
+          (map (add-type "_")
+               (map symbol->string formals))))))
+
 (define (with-block thunk)
   (emit "{")
   (with-indentation thunk)
@@ -48,21 +58,26 @@
 ;; data context prefix).
 
 (define name-context (make-parameter "ex"))
-(define (map-name x)
-  (let ((ctx (name-context)))
-    (if ctx (format "~a_~a" (name-context) x) x)))
-(define (map-application lst)
-  (let ((ctx (name-context)))
-    (if ctx (cons ctx lst) lst)))
 
+(define ((if-ctx fn) x)
+  (let ((ctx (name-context)))
+    (if ctx (fn ctx x) x)))
+
+(define map-name (if-ctx (lambda (ctx x) (format "~a_~a" ctx x))))
+(define map-app  (if-ctx (lambda (ctx lst) (cons ctx lst))))
+(define map-def  (if-ctx (lambda (ctx lst)
+                           (cons ((add-type ctx)
+                                  (pointer ctx)) lst))))
+
+(define (arglist lst)
+  (string-append* (list->args lst)))
 (define (expression x)
   (if (list? x)
       (format "~a(~a)"
               (map-name (car x))
-              (string-append*
-               (list->args
-                (map-application
-                 (map expression (cdr x))))))
+              (arglist
+               (map-app
+                (map expression (cdr x)))))
       (format "~a" x)))
 
 
@@ -76,9 +91,14 @@
 (define-syntax-rule (return x)
   (s-return 'x))
 
+(define-syntax-rule (def (name . formals) body)
+  (begin
+    (definition 'name 'formals)
+    body))
 
-(block ((a 123)
-        (b 345))
-  (block ((c (plus a b))
-          (d (min a)))
-     (return (foo a b))))
+(def (bar x y)
+  (block ((a 123)
+          (b 345))
+    (block ((c (plus a b))
+            (d (min a)))
+       (return (foo c d x y)))))
