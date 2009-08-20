@@ -2509,23 +2509,106 @@ FILE).
 Entry: PF design choices
 Date: Wed Aug 19 13:55:15 CEST 2009
 
-So what problem does it actually solve?
+So what problems does it actually solve?  The PF design allows the
+combination of:
 
-  - linear memory guarantees synchronous reclaim of leaf objects.
+    * Synchronous finalization.
 
-  - embedding in nonlinear memory simplifies metaprogramming.
+    * Reflection.
 
-Essentially: allocation and reclaim of short lived linear objects
-won't trigger GC marking of long lived nonlinear objects.  The
-asynchronous GC only does work during ``highlevel'' data conversion ==
-code compilation.
+In PF, synchronous finalization is a consequence of the use of
+primitive functions that operate on a linear core memory: linear
+lists/trees and open/close RC-managed leaf objects).
 
-If you have control over the GC (i.e. if you can guarantee that
-nothing else is running in the background) this can be done in any
-Scheme implementation.  PF is written from scratch mostly to figure
-out what it really depends on (i.e. the existence proof of a
-collection of primitives), and to have a lean implementation for
-embedded work.
+Reflection -- here limited to compilation: the translation of source
+code represented as a data object to a representation of composite
+functions that can be executed by the interpreter -- is made practical
+by embedding the linear core machine in a non-linear dynamic language.
+
+This composite code is naturally represented as a non-linear data
+structure: it uses sharing (subroutine calls) and can contain cycles
+(program loops).
+
+While compilation itself is a nonlinear operations and might produce
+garbage that needs to be collected asynchronously, running the
+resulting code does not, as it only sequences linear operations.  Note
+that nonlinear data can be treated as constant by the linear
+primitives and interpreter because it is managed elsewhere, as long as
+the asynchronous GC traces all the nonlinear references in the linear
+memory.
+
+Dynamic features are helpful for debugging, testing and evolving
+design (= writing throwaway code).  This, however, is largely a matter
+of taste.  The usefulness of the linear memory manager has some deeper
+reasons though.
+
+Asynchronous GC doesn't work well in combination with finalizers:
+functions that free external resources (different from core memory)
+when their representation gets collected.  
+
+In practice, an ``external resource'' is anything with an
+open/use/close access semantics that _you cannot change_ for whatever
+reason.  This can be anything.  Some examples:
+
+   - A file in a filesystem.
+
+   - A hardware resource.
+   
+   - Cache-managed resources (i.e. processor memory cache).
+
+( The latter case might be unclear.  Here the open/close is not
+  explicit, but some resource will be evicted whenever a resource
+  that's not in the cache is accessed.  A cache doesn't behave as
+  memory because there is no `memory-full' notification when an
+  eviction happens.  Absence of this signal is actually the basic
+  idea: it frees the user from having to ``pool'' the resource.  In
+  some cases however (essentially due to broken design, when you can't
+  bypass the cache API), you want to regain control over the pooling
+  behaviour by manipulating the access patterns from an external
+  pooling mechanism.  Note that in general, this is only a performance
+  problem: dead references will eventuall get evicted from the cache
+  because they are never accessed, but they might trigger eviction of
+  _other_ components that are still in use.  I.e. the round-robin
+  access pattern typical for an asynchronous GC does exactly this in
+  the case of an LRU cache strategy. )
+
+The problem is that you never know when the GC runs, which might lead
+you to cases where you're waiting on the availability of a resource
+that's unreachable, but not yet collected.  Triggering local GC in
+this case isn't a solution: the reference could be held by an
+unreachable representation object in a _different_ program that uses
+asynchronous GC which doesn't expose an interface to its GC trigger.
+The real problem here seems to be that asynchronous GC is essentially
+a _global_ operation, and making this work with low-level resource
+management requires a specific kind of resource -> GC signalling to
+happen between all components involved.
+
+In stark contrast, the open/close semantics composes easily (a
+constructor/destructor calls several constructors/destructors), and
+shields the lower layers from what happens above.  This means that in
+practical situations, open/close resource semantics are the only
+available option, and in the case where fast reclaim is necessary, a
+linear container memory might be the simplest solution.
+
+A linear _concatenative_ language gives you many of the benefits of a
+higher level safe language, with the added benefit of not needing an
+asynchronous GC, at the expense of giving up the ``random access''
+that come with lexical variables.
+
+Of course, it is also possible to translate this to a language _with_
+lexical variables as long as proper constraints are placed on variable
+references: every variable needs to be referenced exactly once.  This
+can be enforced statically.  This seems to be harder to get right
+though (i.e. use-once closures).  However, if such a language can be
+defined, it can probably be directly translated into the PF
+concatenative execution model.
+
+Note that Real-Time GC (incremental GC with aribrarily low upper
+bounds on collection times) isn't a solution to the problem unless it
+can manage _all_ resources in a bounded time.  Collection still isn't
+synchronous, so any depletion event needs to propagate into the
+collector, which might break the upper collection bounds as it
+requires a full GC.
 
 
 Entry: Static linearity checks
@@ -2640,6 +2723,30 @@ run
 ps
 <3> 1 2 3
 
+The first paper about delimited continuations seems to be this
+one[1].  In the introduction it mentions that the crucial idea is to
+represent continuations as functions that can be composed.
+In contrast, traditional continuations cannot be composed, as they do
+not return a value to the calling context (it is discarded).
+
+On page 7, on changing the CEK machine: ``One solution is changing
+(CEK7) so that the invoked continuation is concatenated to the current
+one: ...''  Apparently this is problematic for the denotational
+semantics (continuations being opaque?) but I see no problems on the
+implementation side.
+
+Essentially, in PF this concatenation could be made ``lazy'' (just
+like SEQ SUBroutines) by allowing K to be a tree instead of a list.
+That way the interpreter can unpack branches one cell at a time.
+Otoh, it seems simpler to place the burdon in `run' as it is now.
+
+There are some other problems with the current implementation though:
+the `prompt-tag' and `undip' functions are special, but can occur in
+lists that are representing a continuation.  Therefore it is probably
+best to represent the continuations abstractly to prevent programs
+from destructing them.  In any case, it could be left as is now.  Just
+keep in mind: a list of code can be converted to a continuation, but
+vise versa isn't really sound.
 
 [1] http://www.ccs.neu.edu/scheme/pubs/felleisen-beyond.pdf
 
@@ -2653,3 +2760,18 @@ primitive exceptions.  There is only one remedy: never keep linear
 variables on the C stack.  But this can be tedious..
 
 
+Entry: Pattern matching for EX
+Date: Thu Aug 20 11:28:14 CEST 2009
+
+This really shouldn't be so difficult: from the data structures, it
+would be a generation of a couple of CPP macros that setup a lexical
+environment.  It would require some trickery with curly braces though.
+
+MATCH(v) 
+   CASE(pair, a, d) { }
+   CASE(NIL)        { }
+   ELSE             { }
+END_MATCH
+
+
+where MATCH sets up the first '{' and each CASE starts with a '}'.
