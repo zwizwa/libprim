@@ -281,7 +281,9 @@ _ px_write(pf *pf, _ ob) {
     else if (HALT == ob) {
         return _ex_printf(EX, "#halt");
     }
-
+    else if (pf->ip_prompt_tag == ob) {
+        return _ex_printf(EX, "#prompt");
+    }
     return _ex_write(EX, ob);
 }
 

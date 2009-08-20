@@ -2581,11 +2581,39 @@ void pf_call_with_cc(pf *pf) {
     _TOP = k;
 }
 
-Note these are linear one-shot contiuations, but they can be copied
+Note these are linear one-shot continuations, but they can be copied
 without causing any trouble.  They are also _data structures_ and
 cannot be applied like a function.
 
 But, maybe "run" should take linear lists, by pushing them onto K.
 
+Note this is problematic without partial continuations (which should
+be the default..)
 
 
+
+Entry: Lowhanging fruit
+Date: Wed Aug 19 20:03:57 CEST 2009
+
+- dip
+
+- map
+
+- linear lists (partial continuations) should not be recognized by
+  `run' -> use `run-list' or so.
+
+
+Map: This can't be a primitive, but I prefer to make it fast (local),
+which could be done by modifying the continuation from the primitive.
+
+It needs 3 storage locations: in out fn
+
+  - move result to OUT
+  - replace with next from IN
+  - push FN to K
+
+What I really need is a better way to express all these stack
+permuations.
+
+Dip: there's a problem here: quote isn't a linear atom, so it should
+be handled by undip.

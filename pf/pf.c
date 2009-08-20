@@ -33,9 +33,6 @@
 */
 typedef void (*pf_prim)(pf*);
 
-#define PUSH_K(x)  pf->k = LINEAR_CONS((x), pf->k)
-#define DROP_K()   _px_drop(pf, &pf->k)
-
 void _px_run(pf *pf) {
     seq *s;
     prim *p;
@@ -78,11 +75,11 @@ void _px_run(pf *pf) {
                     fn(pf);
                     break;
                 default:
-                    _px_push(pf, SYMBOL("unknown-exception"));
+                    PUSH_P(SYMBOL("unknown-exception"));
                 case EXCEPT_ABORT:
                     // TAG + ARG are NONLINEAR
-                    _px_push(pf, COPY_FROM_GRAPH(pf->m.error_arg));
-                    _px_push(pf, COPY_FROM_GRAPH(pf->m.error_tag));
+                    PUSH_P(COPY_FROM_GRAPH(pf->m.error_arg));
+                    PUSH_P(COPY_FROM_GRAPH(pf->m.error_tag));
                     PUSH_K(pf->ip_abort);
                 }
                 pf->m.prim_entries--;
@@ -99,7 +96,7 @@ void _px_run(pf *pf) {
                        linear memory manager. */
                     ob = q->object;
                 }
-                _px_push(pf, ob);
+                PUSH_P(ob);
             }
             /* The empty program. */
             else if (NOP == ip) {
@@ -110,8 +107,8 @@ void _px_run(pf *pf) {
             }
             /* Unknown non-seq. */
             else {
-                _px_push(pf, COPY_FROM_GRAPH(ip));
-                _px_push(pf, SYMBOL("unknown-instruction"));
+                PUSH_P(COPY_FROM_GRAPH(ip));
+                PUSH_P(SYMBOL("unknown-instruction"));
                 PUSH_K(pf->ip_abort);
             }
         }
@@ -131,7 +128,7 @@ void pf_drop(pf *pf) {
     _px_drop(pf, &pf->p);
 }
 void pf_dup(pf *pf) {
-    _px_push(pf, _px_link(pf, TOP));
+    PUSH_P(_px_link(pf, TOP));
 }
 void pf_to_dict(pf *pf) {
     _ ob = COPY_TO_GRAPH(TOP);
@@ -163,7 +160,7 @@ void pf_read(pf *pf) {
     port p;
     p.stream = stdin;
     /* FIXME: read needs to produce linear data */
-    _px_push(pf, COPY_FROM_GRAPH(_ex_read(EX, &p)));
+    PUSH_P(COPY_FROM_GRAPH(_ex_read(EX, &p)));
 }
 
 void pf_ps(pf *pf) {  // print stack
@@ -195,18 +192,18 @@ void pf_cons(pf *pf) {
 }
 
 void pf_output(pf *pf) {
-    _px_push(pf, _px_link(pf, pf->output));
+    PUSH_P(_px_link(pf, pf->output));
 }
 void pf_stack(pf *pf) {
     _px_need_free(pf);
     _ p = pf->p; pf->p = NIL;
-    _px_push(pf, p);
+    PUSH_P(p);
 }
 void pf_print_error(pf *pf) {
     _ex_printf(EX, "ERROR: ");
-    if (NIL == pf->p) _px_push(pf, SYMBOL("unknown")); 
+    if (NIL == pf->p) PUSH_P(SYMBOL("unknown")); 
     _WRITE();
-    if (NIL == pf->p) _px_push(pf, VOID); 
+    if (NIL == pf->p) PUSH_P(VOID); 
     if (TOP == VOID) { 
         _DROP(); 
     }
@@ -274,7 +271,7 @@ void pf_define(pf *pf)  {
     px_define(pf, POP_TO_GRAPH);
 }
 void pf_compile(pf *pf) { 
-    _px_push(pf, COMPILE_PROGRAM(POP_TO_GRAPH));
+    PUSH_P(COMPILE_PROGRAM(POP_TO_GRAPH));
 }
 void pf_run(pf *pf){ 
     _ v = TOP;
@@ -288,6 +285,36 @@ void pf_run(pf *pf){
         PUSH_K(POP_TO_GRAPH);
     }
 }
+void pf_dip(pf *pf) {
+    FROM_TO(p,k);
+    PUSH_K(pf->ip_undip);
+    _RUN();
+}
+void pf_undip(pf *pf) {
+    FROM_TO(k,p);
+}
+
+/* It's continuation frame is used as a marker.  The function itself
+   is a NOP. */
+void pf_prompt_tag(pf *pf) { }
+void pf_reset(pf *pf) {
+    PUSH_K(pf->ip_prompt_tag);
+    _RUN();
+}
+void pf_shift(pf *pf) {
+    PUSH_P(NIL);
+    _ *pk = &(_CAR(pf->p));
+    pair *p = CAST(lpair, pf->k);
+    /* Move cells from pk->k to k upto the prompt tag. */
+    while(p->car != pf->ip_prompt_tag) {
+        *pk = pf->k;
+        pf->k = p->cdr;
+        pk = &_CDR(*pk);
+        p = CAST(lpair, pf->k);
+    }
+    *pk = NIL;
+}
+
 void pf_bang_cc(pf *pf) {
     _ v = TOP;
     _px_unlink(pf, pf->k);
@@ -295,7 +322,7 @@ void pf_bang_cc(pf *pf) {
     _DROP();
 }
 void pf_make_loop(pf *pf) {
-    _px_push(pf, MAKE_LOOP(POP_TO_GRAPH));
+    PUSH_P(MAKE_LOOP(POP_TO_GRAPH));
 }
 void pf_call_with_cc(pf *pf) {
     _ fn = TOP;
@@ -304,7 +331,7 @@ void pf_call_with_cc(pf *pf) {
     _TOP = k;
 }
 void pf_copy_cc(pf *pf) {
-    _px_push(pf, _px_link(pf, pf->k));
+    PUSH_P(_px_link(pf, pf->k));
 }
 
 
@@ -315,6 +342,7 @@ void pf_bye(pf *pf) {
     pf->free = NIL;
     pf->dict = NIL;
     pf->output = NIL;
+    pf->ip_undip = HALT;
     pf->ip_abort = HALT;
     pf->ip_repl  = HALT;
     // pf->ip = HALT;
@@ -336,6 +364,7 @@ static void _px_mark_roots(pf *pf, gc_finalize fin) {
     // MARK(ip);
     MARK(ip_abort);
     MARK(ip_repl);
+    MARK(ip_undip);
     MARK(dict);
     if (fin) { 
         fin(GC); 
@@ -413,7 +442,6 @@ pf* _px_new(void) {
     pf->free = NIL;
     pf->dict = NIL;
     pf->k = NIL;
-    // pf->ip = HALT;
     pf->ip_abort = HALT;
 
     // Exceptions
@@ -431,8 +459,8 @@ pf* _px_new(void) {
     pf->dict = ENV_DEF(pf->dict, SYMBOL("repl"), repl);
     pf->ip_repl  = repl;
     pf->ip_abort = SEQ(WORD("print-error"), WORD("abort-repl"));
-                       
-
+    pf->ip_undip = WORD("undip");
+    pf->ip_prompt_tag = WORD("prompt-tag");
     // Highlevel bootstrap
     _px_interpret_list(pf, _ex_boot_load(EX, "boot.pf"));
     return pf;

@@ -18,6 +18,8 @@ typedef struct {
     // _ ip;
     _ ip_repl;
     _ ip_abort;
+    _ ip_undip;
+    _ ip_prompt_tag;
     _ dict;
 
     /* Symbol cache. */
@@ -61,8 +63,8 @@ DEF_STRUCT(quote, TAG_QUOTE)
 DEF_STRUCT(seq,   TAG_SEQ)
 
 // The empty program.
-#define NOP  CONSTANT(0x80)
-#define HALT CONSTANT(0x81)
+#define NOP    CONSTANT(0x80)
+#define HALT   CONSTANT(0x81)
 
 // void _px_push(pf *pf, _ ob);
 // _ _px_make_symbol(pf *pf, const char *str);
@@ -72,5 +74,10 @@ DEF_STRUCT(seq,   TAG_SEQ)
 void _px_interpret_list(pf *pf, _ expr);
 #define EVAL(expr)    _px_top_interpret_list((pf*)EX, expr)
 
+
+#define PUSH_K(x)  pf->k = LINEAR_CONS((x), pf->k)
+#define DROP_K()   _px_drop(pf, &pf->k)
+
+#define PUSH_P(x)  _px_push(pf, (x))
 
 #endif
