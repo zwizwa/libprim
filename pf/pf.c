@@ -236,25 +236,38 @@ void pf_reverse(pf *pf) { _TOP = BANG_REVERSE(TOP); }
 void pf_add1(pf *pf)    { _TOP = ADD1(TOP); }
 
 
-// This won't take programs.
 void pf_interpret(pf *pf) {
     _ v = TOP;
+    /* Perform linearly if possible. */
     if (object_to_symbol(v, EX)) {
         _ ob = FIND(pf->dict, v);
         if (FALSE == ob) {_DROP(); ERROR_UNDEFINED(v);}
         _TOP = ob;
         _RUN();
+        return;
     }
+    if (GC_INTEGER == GC_TAG(v)) {
+        return;
+    }
+    if (object_to_lpair(v)) {
+        if (pf->s_quote == _CAR(v)) { 
+            pair *dp = CAST(lpair, _CDR(v));
+            _ datum = dp->car;
+            dp->car = VOID;
+            _DROP();
+            PUSH_P(datum);
+            return;
+        }
+    }
+    /* Compile quotation (nonlinearly). */
+    _COMPILE();
 }
 
 
 
 /* Note that the compiler uses nonlinear data structures.  When
-   entering the compiler from withing PF, all data needs to be
+   entering the compiler from within PF, all data needs to be
    converted to nonlinear form first.
-
-   FIXME: this needs a proper check to make sure the data really is
-   nonlinear, before it can be taken out of the linear stack.
 */
 
 _ _px_pop_to_graph(pf *pf) {
@@ -270,6 +283,9 @@ _ _px_pop_to_graph(pf *pf) {
 void pf_define(pf *pf)  { 
     px_define(pf, POP_TO_GRAPH);
 }
+void pf_find(pf *pf) {
+    _TOP = FIND(pf->dict, TOP);
+}
 void pf_compile(pf *pf) { 
     PUSH_P(COMPILE_PROGRAM(POP_TO_GRAPH));
 }
@@ -280,6 +296,7 @@ void pf_run(pf *pf){
            pushes a partial continuation: it does not replace a full
            one! */
         pf->k = BANG_APPEND(v, pf->k);
+        _TOP = VOID; _DROP();
     }
     else {
         PUSH_K(POP_TO_GRAPH);

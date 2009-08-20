@@ -2617,3 +2617,39 @@ permuations.
 
 Dip: there's a problem here: quote isn't a linear atom, so it should
 be handled by undip.
+
+
+
+Entry: Delimited Continuations
+Date: Thu Aug 20 09:27:08 CEST 2009
+
+In contrast with the previous PF implementation, which was mostly an
+indirect threaded Forth, the current VM has a direct representation of
+continuations.  Partial continuations are not so difficult to
+construct on top of this: they simply splice the current K upto a
+marker.
+
+I prefer to use shift/reset, so let's implement that first.
+
+Seems to work:
+
+(shift 1 2 3) reset
+ps
+<1> [{'1 '2 '3}]
+run
+ps
+<3> 1 2 3
+
+
+[1] http://www.ccs.neu.edu/scheme/pubs/felleisen-beyond.pdf
+
+
+Entry: Error prone
+Date: Thu Aug 20 10:01:05 CEST 2009
+
+As mentioned before, writing the PF primitives is error prone.
+Linearity constraints are difficult to maintain in the presence of
+primitive exceptions.  There is only one remedy: never keep linear
+variables on the C stack.  But this can be tedious..
+
+
