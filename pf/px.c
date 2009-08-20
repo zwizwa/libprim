@@ -7,15 +7,24 @@
    px_   non-linear expression primitives
    _px_  misc functions (not respecting px_ nor pf_ API) 
 
-   Note that the px_ functions are *NOT LINEAR*.  The linear stack
-   operations carry the pf_ prefix.  The compiler is written in terms
-   of nonlinear functions because:
+   Note that the px_ functions are *NOT LINEAR*.  They respect the API
+   of the EX language: a mostly functional dynamically typed
+   expression language using the C-stack.  The linear stack operations
+   carry the pf_ prefix and are defined separately in the pf.c file.
+   The compiler is written in terms of nonlinear functions because:
 
-      - the code graph it produces is nonlinear
-      - writing a compiler in a linear language is more difficult
-      - C bridge to an expression language is simpler than to a stack language
-      - it makes interface with Scheme simpler (also written in terms of EX)
+      - The code graph it produces is nonlinear (loops + procedure reuse)
 
+      - C's lexical scope meshes better with an expression language
+        than a stack language.
+
+      - It will make the interface with SC simpler, which is also
+        written in EX.
+
+      - I find writing a compiler (a tree/graph processor) in a
+        combinator language needs too much cleverness.  Due to
+        reliance on random access, data structure translation begs for
+        lexical scope, and is facilitated by pattern matching.
  */
 
 #include <stdlib.h>

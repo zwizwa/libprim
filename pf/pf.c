@@ -9,7 +9,7 @@
 #include "px.h_px_prims"
 
 /* 
-   PF: VM interpreter and Stack primitive functions
+   PF: VM interpreter and Stack primitive functions.
 
    The code in this file is partitioned in two classes:
 
@@ -29,7 +29,7 @@
       SEQ   = (SUB : SUB)            ;; `:' is graph CONS
       SUB   = PRIM | QUOTE | SEQ
  
-      RS    = NIL | (SUB . RS)       ;; `.' is linear CONS
+      K     = NIL | (SUB . K)        ;; `.' is linear CONS
 */
 typedef void (*pf_prim)(pf*);
 
@@ -227,14 +227,14 @@ void pf_gc(pf *pf) {
 
 /* Primitives in terms of expressions.  Note that an upper case name
    like _XXX() is short for a stack word pf_xxx(pf *).  */
-void pf_write(pf *pf)   { WRITE(TOP); _DROP(); }
-void pf_p(pf *pf)       { _WRITE(); _ex_printf(EX, " "); }
-void pf_cr(pf *pf)      { _ex_printf(EX, "\n"); }
-void pf_post(pf *pf)    { POST(TOP); _DROP(); }
-void pf_trap(pf *pf)    { TRAP(); }
-void pf_reverse(pf *pf) { _TOP = BANG_REVERSE(TOP); }
-void pf_add1(pf *pf)    { _TOP = ADD1(TOP); }
-
+void pf_write(pf *pf)     { WRITE(TOP); _DROP(); }
+void pf_p(pf *pf)         { _WRITE(); _ex_printf(EX, " "); }
+void pf_cr(pf *pf)        { _ex_printf(EX, "\n"); }
+void pf_post(pf *pf)      { POST(TOP); _DROP(); }
+void pf_trap(pf *pf)      { TRAP(); }
+void pf_reverse(pf *pf)   { _TOP = BANG_REVERSE(TOP); }
+void pf_add1(pf *pf)      { _TOP = ADD1(TOP); }
+void pf_find(pf *pf)      { _TOP = FIND(pf->dict, TOP); }
 
 void pf_interpret(pf *pf) {
     _ v = TOP;
@@ -280,15 +280,10 @@ _ _px_pop_to_graph(pf *pf) {
 }
 #define POP_TO_GRAPH _px_pop_to_graph(pf)
 
-void pf_define(pf *pf)  { 
-    px_define(pf, POP_TO_GRAPH);
-}
-void pf_find(pf *pf) {
-    _TOP = FIND(pf->dict, TOP);
-}
-void pf_compile(pf *pf) { 
-    PUSH_P(COMPILE_PROGRAM(POP_TO_GRAPH));
-}
+void pf_make_loop(pf *pf) { PUSH_P(MAKE_LOOP(POP_TO_GRAPH)); }
+void pf_define(pf *pf)    { px_define(pf, POP_TO_GRAPH); }
+void pf_compile(pf *pf)   { PUSH_P(COMPILE_PROGRAM(POP_TO_GRAPH)); }
+
 void pf_run(pf *pf){ 
     _ v = TOP;
     if (object_to_lpair(v)) {
@@ -311,9 +306,11 @@ void pf_undip(pf *pf) {
     FROM_TO(k,p);
 }
 
-/* It's continuation frame is used as a marker.  The function itself
-   is a NOP. */
-void pf_prompt_tag(pf *pf) { }
+
+/* Delimited continuations. */
+void pf_prompt_tag(pf *pf) { 
+/* This primitive's continuation frame is used as a marker. */
+}
 void pf_reset(pf *pf) {
     PUSH_K(pf->ip_prompt_tag);
     _RUN();
@@ -332,25 +329,26 @@ void pf_shift(pf *pf) {
     *pk = NIL;
 }
 
-void pf_bang_cc(pf *pf) {
-    _ v = TOP;
-    _px_unlink(pf, pf->k);
-    pf->k = MOVE(_TOP, VOID);
-    _DROP();
-}
-void pf_make_loop(pf *pf) {
-    PUSH_P(MAKE_LOOP(POP_TO_GRAPH));
-}
+/* Full continuations.  These aren't really so important with
+   delimited continuations implemented. */
 void pf_call_with_cc(pf *pf) {
     _ fn = TOP;
     _ k = pf->k;
     pf->k = LINEAR_CONS(fn, HALT);
     _TOP = k;
 }
-void pf_copy_cc(pf *pf) {
-    PUSH_P(_px_link(pf, pf->k));
+void pf_bang_cc(pf *pf) {
+    _ v = TOP;
+    _px_unlink(pf, pf->k);
+    pf->k = MOVE(_TOP, VOID);
+    _DROP();
 }
-
+void pf_bang_abort(pf *pf) {
+    _ v = TOP;
+    _px_unlink(pf, pf->k);
+    pf->k = v;
+    _TOP = VOID; _DROP();
+}
 
 /* Make sure all the finalizers get called. */
 void pf_bye(pf *pf) {
@@ -362,7 +360,6 @@ void pf_bye(pf *pf) {
     pf->ip_undip = HALT;
     pf->ip_abort = HALT;
     pf->ip_repl  = HALT;
-    // pf->ip = HALT;
     pf_gc(pf); // does not return
 }
 
