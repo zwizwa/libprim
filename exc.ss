@@ -8,7 +8,7 @@
 (define emit-indent
   (make-parameter
    (lambda (str)
-     (string-append str "    "))))
+     (string-append str "  "))))
 (define p-emit
   (make-parameter
    (lambda (str)
@@ -33,9 +33,10 @@
 ;; We're using just variable declarations and return statements.  The
 ;; rest are expressions.
 
-(define (statement fmt . args)   (apply emit (string-append fmt ";") args))
-(define (s-declaration var expr) (statement "_ ~a = ~a" var (expression expr)))
-(define (s-return expr)          (statement "return ~a" (expression expr)))
+(define (statement fmt . args)    (apply emit (string-append fmt ";") args))
+(define (st-declaration var expr) (statement "_ ~a = ~a" var (expression expr)))
+(define (st-expression expr)      (statement "~a" (expression expr)))
+(define (st-return expr)          (statement "return ~a" (expression expr)))
 
 (define (add-type t) (lambda (x) (format "~a ~a" t x)))
 (define (pointer t) (format "*~a" t))
@@ -47,10 +48,20 @@
           (map (add-type "_")
                (map symbol->string formals))))))
 
-(define (with-block thunk)
-  (emit "{")
+(define (st-if cond yes-thunk no-thunk)
+  (with-block (format "if (FALSE != ~a) " (expression cond)) yes-thunk)
+  (with-block (format "else ") no-thunk))
+
+(define (with-block pre thunk)
+  (emit (format "~a{" pre))
   (with-indentation thunk)
   (emit "}"))
+
+(define (with-begin thunk)
+  (emit "({")
+  (with-indentation thunk)
+  (emit "})"))
+
 
 ;; Expressions are composed recursively as strings.
 ;; Constructor/function names use a global translation (to enable
@@ -85,20 +96,42 @@
 (define-syntax-rule
   (block ((var expr) ...) body-expr)
   (with-block
+   ""
    (lambda ()
-     (s-declaration 'var 'expr) ...
+     (st-declaration 'var 'expr) ...
      body-expr)))
 (define-syntax-rule (return x)
-  (s-return 'x))
+  (st-return 'x))
 
 (define-syntax-rule (def (name . formals) body)
   (begin
     (definition 'name 'formals)
     body))
 
+(define-syntax-rule (ifelse cond yes no)
+  (st-if 'cond (lambda () yes) (lambda () no)))
+
 (def (bar x y)
   (block ((a 123)
           (b 345))
     (block ((c (plus a b))
             (d (min a)))
-       (return (foo c d x y)))))
+       (ifelse (broem a) 
+               (return (foo c d x y))
+               (return (lalala))))))
+
+
+;; Direct interpreter
+
+(require mzlib/match)  ;; old matcher is more convenient
+
+(define (ex-compile expr)
+  (match expr
+   (('let* bindings body)
+    (with-begin
+     (lambda ()
+       (for ((b bindings)) (apply st-declaration b))
+       (ex-compile body))))
+   (else
+    (st-expression expr))))
+              

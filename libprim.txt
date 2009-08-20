@@ -2829,3 +2829,9 @@ Translating from Scheme-like syntax (eliminating 'return') will
 require automatic distinction between special forms and application
 forms.
 
+There's another thing that's really annoying: nested Scheme/lisp
+expressions return values, but C's curly braces represent nested
+statements.  Maybe it's best to simply target GCC's statement
+expressions[1], and use the '?' condition operator.
+
+http://gcc.gnu.org/onlinedocs/gcc/Statement-Exprs.html
