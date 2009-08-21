@@ -121,12 +121,16 @@ let _square   = Seq(_dup, _multiply) ;;
 : fac ( n -- n! ) dup 1 = [ 1 ] [ dup 1 - fac ] if * ;
 *)
 
-(* 
+(*
+
+This doesn't work because it's a recursive _data_ definition: OCaml is
+strict, so such things need to be solved using mutation.
+
 let rec _fac =
   Seq(_dup,
   Seq(lit 1,
   Seq(_equals,
-  Seq(quot (lit 1),  (* Note: double quotation! *)
+  Seq(quot (lit 1),  
   Seq(quot ((Seq(_dup,
              Seq(lit 1,
              Seq(_minus, 

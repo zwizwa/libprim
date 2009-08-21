@@ -2965,6 +2965,29 @@ restrictive.  It is definitely more easy to get things right once they
 pass the type checker.  I should have a closer look at Typed
 Scheme[3].
 
+Now, getting the 'fac' example running. In factor:
+
+  : fac ( n -- n! ) dup 1 = [ 1 ] [ dup 1 - fac ] if * ;
+
+What is necessary is a way to define a cyclic data structure.
+Apparently `let rec' does not allow this:
+
+let rec _fac =
+  Seq(_dup,
+  Seq(lit 1,
+  Seq(_equals,
+  Seq(quot (lit 1),  
+  Seq(quot ((Seq(_dup,
+             Seq(lit 1,
+             Seq(_minus, 
+                 _fac))))),
+  Seq(_if, 
+      _multiply))))));;
+
+=> Error: This kind of expression is not allowed as right-hand side of `let rec'
+
+
+
 
 [1] http://lambda-the-ultimate.org/node/983
 [2] http://calculist.blogspot.com/2008/09/true-unions-revisited.html
