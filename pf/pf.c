@@ -51,18 +51,18 @@ void _px_run(pf *pf) {
     /* Interpeter loop. */
     for(;;) {
 
-        /* Consume next instruction from RS. */
+        /* Consume next instruction from K. */
         pair *rs = object_to_lpair(pf->k);
         if (unlikely(!rs)) goto halt;
         _ ip = rs->car;
         DROP_K();
 
-        /* Unpack code sequence, push RS. */
+        /* Unpack code sequence, push K. */
         if ((s = object_to_seq(ip))) {
             PUSH_K(s->next);
             PUSH_K(s->now);
         }
-        /* Interpret primitive code or data and pop RS. */
+        /* Interpret primitive code or data and pop K. */
         else {
             /* Primitive */
             if ((p = object_to_prim(ip, &pf->m))) {
