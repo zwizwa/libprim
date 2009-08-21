@@ -51,18 +51,20 @@ let apply a  =
 
 let step s =
   match s with
-      Halt (res) -> Halt (res)
-    | State (stk, Done) -> Halt (Success (stk))
-    | State (Push(Code(sub),stk), Frame(Run, k)) -> State(stk, Frame(sub, k))
-    | State (stk, Frame(sub, k)) ->
+      Halt(res) -> Halt (res)
+    | State(stk, Done) -> Halt (Success(stk))
+    | State(stk, Frame(sub, k)) ->
         (match sub with
-             Run -> Halt(Error)
-           | Prim (fn) -> 
+             Run -> 
+               (match stk with
+                    Push(Code(sub), stk) -> State(stk, Frame(sub, k))
+                  | _ -> Halt(Error))
+           | Prim(fn) -> 
                (match apply(fn, stk) with
                     Error -> Halt (Error)
                   | Success(stack) -> State(stack, k))
-           | Quote (dat) -> State(Push(dat,stk), k)
-           | Seq (now, next) -> State(stk, Frame(now, Frame(next, k))))
+           | Quote(dat) -> State(Push(dat,stk), k)
+           | Seq(now, next) -> State(stk, Frame(now, Frame(next, k))))
 ;;
 
 (* Start execution with an empty parameter stack and a continuation
