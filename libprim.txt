@@ -2890,7 +2890,7 @@ In PF all variables refer to code: primitives, quotations or SUB
 cells.
 
 
-Entry: Interpreter in Ocaml
+Entry: PF interpreter in Ocaml
 Date: Fri Aug 21 08:14:26 CEST 2009
 
 I'd like to encode the interpreter data types in something more rigid,
@@ -2997,3 +2997,17 @@ let rec _fac =
 [6] http://www.haskell.org/haskellwiki/GADTs_for_dummies
 [7] http://zwizwa.be/darcs/libprim/pf/pf.ml
 
+
+Entry: PF interpreter in Haskell
+Date: Fri Aug 21 17:02:45 CEST 2009
+
+That was fun.  Let's try the Haskell version.  First, how does this
+work..  Loading the file pf.hs in ghci:
+
+> :l ~/libprim/misc/pf
+
+To reload:
+
+> :r
+
+[1] http://learnyouahaskell.com
