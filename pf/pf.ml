@@ -6,20 +6,28 @@ type sub =
   | Quote   of datum
   | Seq     of sub * sub
 
-
-and prim = Dup | Drop | Pick | Mul | Min
+and binop = Multiply | Minus | Equals
+and prim  = Dup | Drop | Pick | Binop of binop
 and value = 
-    Success of stack
-  | Error
+    Error of string
+  | Success of stack
 
-(* Note that `Run' is not a `prim', because it modifies the
-   continuation directly, while a `prim' maps a stack -> value. *)
+
+(* Notes:
+   
+   - `Run' is not a `prim', because it modifies the continuation
+     directly, while a `prim' maps a stack -> value. 
+
+   - The binop type isn't necessary, but it makes the interpreter look
+     nicer.  The C version has only one primitive type.
+*)
 
 
 (* State. *)
 
 and datum =
     False
+  | True
   | Number of int
   | Code   of sub 
   | Stack  of stack
@@ -38,22 +46,29 @@ and state =
 
 ;;
 
-(* Simpler constructor for numbers. *)
+(* Simpler constructor for numbers and quoted programs. *)
 let lit n   = Quote(Number(n)) ;;
-
+let quot sub  = Quote(Code(sub)) ;;
 
 (* Code primitives. *)
 let apply a  =
   match a with
       (Dup, Push(d, stk)) -> Success(Push(d,Push(d,stk)))
     | (Drop, Push(d, stk)) -> Success(stk)
-    | (Mul, Push(Number(r), Push(Number(l), stk))) -> Success(Push(Number(l * r), stk))
-    | (Min, Push(Number(r), Push(Number(l), stk))) -> Success(Push(Number(l - r), stk))
     | (Pick, Push(condition, Push(no, Push (yes, stk)))) ->
         (match condition with
              False -> Success(Push(no, stk))
            | _ -> Success(Push(yes, stk)))
-    | _ -> Error
+    | (Binop (op), Push(Number(r), Push(Number(l), stk))) ->
+        Success
+          (Push
+             ((match op with
+                   Multiply -> Number(l * r)
+                 | Minus -> Number(l - r)
+                 | Equals -> if (l = r) then True else False),
+              stk))
+    | _ -> Error "invalid argument"
+
 ;;
     
 (* Composite code interpreter step function. *)
@@ -66,10 +81,10 @@ let step s =
              Run -> 
                (match stk with
                     Push(Code(sub), stk) -> State(stk, Frame(sub, k))
-                  | _ -> Halt(Error))
+                  | _ -> Halt(Error "run: stack underflow"))
            | Prim(fn) -> 
                (match apply(fn, stk) with
-                    Error -> Halt (Error)
+                    Error(msg) -> Halt (Error(msg))
                   | Success(stack) -> State(stack, k))
            | Quote(dat) -> State(Push(dat,stk), k)
            | Seq(now, next) -> State(stk, Frame(now, Frame(next, k))))
@@ -90,16 +105,17 @@ let run code =
 (* Dictionary *)
 
 (* Bootstrap dictionary with primitive stack and machine transformers. *)
-let _dup    = Prim Dup ;;
-let _drop   = Prim Drop ;;
-let _pick   = Prim Pick ;;
-let _mul    = Prim Mul ;;
-let _min    = Prim Min ;;
-let _run    = Run ;;
+let _dup      = Prim Dup ;;
+let _drop     = Prim Drop ;;
+let _pick     = Prim Pick ;;
+let _multiply = Prim (Binop Multiply) ;;
+let _minus    = Prim (Binop Minus) ;;
+let _equals   = Prim (Binop Equals) ;;
+let _run      = Run ;;
 
 (* Highlevel library code *)
-let _if     = Seq(_pick, _run) ;;
-let _square = Seq(_dup, _mul) ;;
+let _if       = Seq(_pick, _run) ;;
+let _square   = Seq(_dup, _multiply) ;;
 
 (* Faculty in Factor:
 : fac ( n -- n! ) dup 1 = [ 1 ] [ dup 1 - fac ] if * ;
@@ -107,18 +123,25 @@ let _square = Seq(_dup, _mul) ;;
 
 (* 
 let rec _fac =
-  Seq(Quote (lit 1),  (* Note: double quote! *)
-      Seq(Seq(_dup,
-              Seq(lit 1,
-                  Seq(_min, _fac))),
-          Seq(_if, _mul))) ;;
-*)            
-                      
+  Seq(_dup,
+  Seq(lit 1,
+  Seq(_equals,
+  Seq(quot (lit 1),  (* Note: double quotation! *)
+  Seq(quot ((Seq(_dup,
+             Seq(lit 1,
+             Seq(_minus, 
+                 _fac))))),
+  Seq(_if, 
+      _multiply))))));;
+*)
 
 (* Test *)
-run (Seq(lit 123, _square));;
-run (Seq(lit 10, Seq(lit 3, _min)));;
-
+let run_tests =
+  (run (Seq(lit 123, _square)),
+   run (Seq(lit 10, Seq(lit 3, _minus))),
+   run (Seq(lit 1, Seq(lit 1, _equals))),
+   run (Seq(lit 1, Seq(lit 2, _equals))))
+;;
 
 
 (* EXAMPLES:
