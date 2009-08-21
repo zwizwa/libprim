@@ -2786,7 +2786,6 @@ statically check at least names and argument arity.
 About writing code generators: you _really_ want to write it as a
 coroutine (a `generator') that passes strings to an output port
 through a `yield' function, in this case traditionally called `emit'.
-
 Using mapping might be more elegant, but in this case due to small
 differences in tree structure, decoupling the collector from the
 enumerator is best.
@@ -2889,4 +2888,39 @@ references linked to their definition points.
 
 In PF all variables refer to code: primitives, quotations or SUB
 cells.
+
+
+Entry: Interpreter in Ocaml
+Date: Fri Aug 21 08:14:26 CEST 2009
+
+I'd like to encode the interpreter data types in something more rigid,
+to see if I missed some corner case.
+
+The first thing to realize is to distinguish types and constructors.
+
+      SEQ = (SUB : SUB)            ;; `:' is graph CONS
+      SUB = PRIM | QUOTE | SEQ
+ 
+      RS  = HALT | (SUB . RS)      ;; `.' is linear CONS
+
+type sub  = 
+    Prim
+  | Quote
+  | Seq   of sub * sub ;;
+
+type k = 
+    MT 
+  | Frame of sub * k ;;
+
+The second thing is to realize that dynamic typing is a _lot_ less
+restrictive than the ML type system.  Especially the wrapping
+necessary make unions of other types.  Dave Herman describes it
+here[2] in relation to the way it's done in Typed Scheme[3].
+
+
+
+[1] http://lambda-the-ultimate.org/node/983
+[2] http://calculist.blogspot.com/2008/09/true-unions-revisited.html
+[3] http://www.ccs.neu.edu/home/samth/typed-scheme/
+
 
