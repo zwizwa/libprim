@@ -1,6 +1,6 @@
 #lang scheme/base
 
-;; Simple prettyprinter.
+;; Simple prettyprinter for semi-scheme -> C compilation.
 
 (require "tools.ss")
 (provide (all-defined-out))
@@ -139,13 +139,12 @@
    (pp-display ";")))
 
 
-
-(emit-definition
- '(define (foo a b c)
-    (let* ((x (plus b c))
-           (y (let* ((d (min a b))
-                     (e (max a b)))
-                (set x 1)
-                (times d e))))
-      (bar x y))))
-(pp-enter)
+(define (compile-file file)
+  (with-input-from-file file
+    (lambda ()
+      (let loop ()
+        (let ((expr (read)))
+          (when (not (eof-object? expr))
+            (emit-definition expr)
+            (pp-enter)
+            (loop)))))))
