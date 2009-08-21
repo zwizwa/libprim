@@ -7,7 +7,7 @@ type sub =
   | Seq     of sub * sub
 
 
-and prim = Dup | Drop | Run
+and prim = Dup | Drop
 and value = 
     Success of stack
   | Error
