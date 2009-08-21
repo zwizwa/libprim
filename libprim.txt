@@ -2954,6 +2954,11 @@ simple enumeration.
 
 Good.  It's running.  See code here [7].
 
+I've added 'Run' which leads to some arbitrariness in encoding the
+types.  Is Run a prim or a special case of code?  I'd say the latter
+since it operates on the whole machine state instead of just the
+parameter stack.
+
 [1] http://lambda-the-ultimate.org/node/983
 [2] http://calculist.blogspot.com/2008/09/true-unions-revisited.html
 [3] http://www.ccs.neu.edu/home/samth/typed-scheme/

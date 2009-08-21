@@ -1,14 +1,20 @@
 (* Code. *)
 
 type sub = 
-    Prim  of prim
-  | Quote of datum
-  | Seq   of sub * sub
+    Run
+  | Prim    of prim
+  | Quote   of datum
+  | Seq     of sub * sub
 
-and prim = Dup | Drop
-and result = 
+
+and prim = Dup | Drop | Run
+and value = 
     Success of stack
   | Error
+
+(* Note that `Run' is not a `prim', because it modifies the
+   continuation directly, while a `prim' maps a stack -> value. *)
+
 
 (* State. *)
 
@@ -26,7 +32,7 @@ and cont =
   | Frame of sub * cont
 
 and state =
-    Halt  of result
+    Halt  of value
   | State of stack * cont
 
 ;;
@@ -47,14 +53,16 @@ let step s =
   match s with
       Halt (res) -> Halt (res)
     | State (stk, Done) -> Halt (Success (stk))
-    | State (stk, Frame (sub, k)) ->
-        match sub with
-            Prim (fn) -> 
-              (match apply(fn, stk) with
-                   Error -> Halt (Error)
-                 | Success(stack) -> State(stack, k))
-          | Quote (dat) -> State(Push(dat,stk), k)
-          | Seq (now, next) -> State(stk, Frame(now, Frame(next, k)))
+    | State (Push(Code(sub),stk), Frame(Run, k)) -> State(stk, Frame(sub, k))
+    | State (stk, Frame(sub, k)) ->
+        (match sub with
+             Run -> Halt(Error)
+           | Prim (fn) -> 
+               (match apply(fn, stk) with
+                    Error -> Halt (Error)
+                  | Success(stack) -> State(stack, k))
+           | Quote (dat) -> State(Push(dat,stk), k)
+           | Seq (now, next) -> State(stk, Frame(now, Frame(next, k))))
 ;;
 
 (* Start execution with an empty parameter stack and a continuation
@@ -74,7 +82,7 @@ let run code =
 Execute the code "123 dup"
 
   # run (Seq (Quote (Number 123), Prim Dup)) ;;
-  - : result = Success (Push (Number 123, Push (Number 123, Empty)))
+  - : value = Success (Push (Number 123, Push (Number 123, Empty)))
 
 Define a word `foo'
 
@@ -84,6 +92,6 @@ Define a word `foo'
 Execute the code "foo 456"
 
   # run (Seq (foo, Quote (Number 456)));;
-  - : result = Success (Push (Number 456, Push (Number 123, Push (Number 123, Empty))))
+  - : value = Success (Push (Number 456, Push (Number 123, Push (Number 123, Empty))))
 
 *)
