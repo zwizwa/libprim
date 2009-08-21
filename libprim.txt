@@ -2947,10 +2947,16 @@ Aha.  Ok I understand.  Constructors can take multiple inputs, but
 functions always take a signle one.  Multiple inputs are handled using
 currying.  A constructor seems to be a function that takes a tuple.
 
+Next: how do you put a function in a datatype?  I.e. the prim type is
+actually state -> state.  Looks like I want GADTs[4][5][6].  This
+looks like a can of worms I don't want to get into yet.  Let's use
+simple enumeration.
+
 
 
 [1] http://lambda-the-ultimate.org/node/983
 [2] http://calculist.blogspot.com/2008/09/true-unions-revisited.html
 [3] http://www.ccs.neu.edu/home/samth/typed-scheme/
-
-
+[4] http://www.haskell.org/haskellwiki/Generalised_algebraic_datatype
+[5] http://okmij.org/ftp/ML/GADT.ml
+[6] http://www.haskell.org/haskellwiki/GADTs_for_dummies
