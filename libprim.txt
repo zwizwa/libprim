@@ -2917,6 +2917,36 @@ restrictive than the ML type system.  Especially the wrapping
 necessary make unions of other types.  Dave Herman describes it
 here[2] in relation to the way it's done in Typed Scheme[3].
 
+type sub  = 
+    Prim  of prim
+  | Quote of datum
+  | Seq   of sub * sub
+
+and k = 
+    MT 
+  | Frame of sub * k
+
+and datum =
+    Number of int
+  | Code of sub 
+  | Pair of pair
+
+and prim =
+    Address of int
+
+and pair =
+    Nil
+  | Cons of datum * datum
+
+;;
+
+Now I'm trying to express the interpreter.  Ocaml's syntax is weird.
+Constructors have different syntax from functions?
+
+Aha.  Ok I understand.  Constructors can take multiple inputs, but
+functions always take a signle one.  Multiple inputs are handled using
+currying.  A constructor seems to be a function that takes a tuple.
+
 
 
 [1] http://lambda-the-ultimate.org/node/983

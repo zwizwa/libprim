@@ -1,30 +1,44 @@
-
-type sub  = 
+(* Code is nonlinear. *)
+type sub = 
     Prim  of prim
   | Quote of datum
   | Seq   of sub * sub
 
+and prim =
+    Address of int
+
+(* State is linear. *)
 and k = 
-    MT 
+    Done
   | Frame of sub * k
 
 and datum =
     Number of int
-  | Code of sub 
-  | Pair of pair
+  | Code   of sub 
+  | Stack  of stack
 
-and prim =
-    Address of int
-
-and pair =
-    Nil
-  | Cons of datum * datum
+and stack =
+    Empty
+  | Push of datum * stack
 
 and state =
-    State of pair * k
+    Halt  of stack
+  | State of stack * k
 
 ;;
 
 
-(* let run state =
-  match state *)
+
+
+let run s =
+  match s with
+      Halt (p) -> Halt (p)
+    | State (p, Done) -> Halt (p)
+    | State (p, Frame (sub, knext)) ->
+        match sub with
+            Prim (p) -> s
+          | Seq (now, next) -> s
+          | Quote (d) -> State(Push(d,p), knext)
+;;
+          
+    
