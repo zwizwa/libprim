@@ -6,7 +6,6 @@ type sub =
   | Seq   of sub * sub
 
 and prim = Dup | Drop
-and app = App of prim * stack
 and result = 
     Success of stack
   | Error
@@ -35,10 +34,10 @@ and state =
 
 (* Code primitives. *)
 
-let call a  =
+let apply a  =
   match a with
-      App (Dup, Push(d, stk)) -> Success(Push(d,Push(d,stk)))
-    | App (Drop, Push(d, stk)) -> Success(stk)
+      (Dup, Push(d, stk)) -> Success(Push(d,Push(d,stk)))
+    | (Drop, Push(d, stk)) -> Success(stk)
     | _ -> Error
 ;;
     
@@ -51,7 +50,7 @@ let step s =
     | State (stk, Frame (sub, k)) ->
         match sub with
             Prim (fn) -> 
-              (match call(App(fn, stk)) with
+              (match apply(fn, stk) with
                    Error -> Halt (Error)
                  | Success(stack) -> State(stack, k))
           | Quote (dat) -> State(Push(dat,stk), k)
