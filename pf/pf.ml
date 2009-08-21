@@ -121,8 +121,7 @@ let _square   = Seq(_dup, _multiply) ;;
 : fac ( n -- n! ) dup 1 = [ 1 ] [ dup 1 - fac ] if * ;
 *)
 
-(*
-
+(* 
 This doesn't work because it's a recursive _data_ definition: OCaml is
 strict, so such things need to be solved using mutation.
 
@@ -147,22 +146,3 @@ let run_tests =
    run (Seq(lit 1, Seq(lit 2, _equals))))
 ;;
 
-
-(* EXAMPLES:
-
-Execute the code "123 dup"
-
-  # run (Seq (Quote (Number 123), Prim Dup)) ;;
-  - : value = Success (Push (Number 123, Push (Number 123, Empty)))
-
-Define a word `foo'
-
-  # let foo = (Seq (Quote (Number 123), Prim Dup)) ;;
-  val foo : sub = Seq (Quote (Number 123), Prim Dup)
-
-Execute the code "foo 456"
-
-  # run (Seq (foo, Quote (Number 456)));;
-  - : value = Success (Push (Number 456, Push (Number 123, Push (Number 123, Empty))))
-
-*)
