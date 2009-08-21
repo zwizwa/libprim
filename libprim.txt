@@ -2845,4 +2845,48 @@ solved.  The rest is play ;)
 So, prettyprinting.  What you want is "newline" to indent to the
 current indentation point.
 
-http://gcc.gnu.org/onlinedocs/gcc/Statement-Exprs.html
+--
+
+Trying something else: rewrote it to make it more _manual_ :
+essentially the code makes decisions locally about whether to "press
+enter" or whether to change indentation or not.  This seems to work
+quite well.
+
+(emit-definition
+ '(define (foo a b c)
+    (let* ((x (plus b c))
+           (y (let* ((d (min a b))
+                     (e (max a b)))
+                (times d e))))
+      (bar x y))))
+(pp-enter)
+
+=>
+_ ex_foo(ex *ex, _ a, _ b, _ c)
+{
+  return ({ _ x = ex_plus(ex, b, c)
+            _ y = ({ _ d = ex_min(ex, a, b)
+                     _ e = ex_max(ex, a, b)
+                     ex_times(ex, d, e); })
+            ex_bar(ex, x, y); });
+}
+
+
+OK..  I now see that this is not trivial because it requires
+backtracking.  Better use something that's seen some thinking[3].
+
+[1] http://gcc.gnu.org/onlinedocs/gcc/Statement-Exprs.html
+[2] http://www.iai.uni-bonn.de/~ralf/hw2001/9.html
+[3] http://planet.plt-scheme.org/display.ss?package=pprint.plt&owner=dherman
+[4] http://eprints.kfupm.edu.sa/69518/1/69518.pdf
+
+Entry: Terminology
+Date: Thu Aug 20 22:59:14 CEST 2009
+
+I shouldn't be calling the code graph an AST (abstract syntax _tree_)
+since it is a _linked_ AST, which in general is a graph: variable
+references linked to their definition points.
+
+In PF all variables refer to code: primitives, quotations or SUB
+cells.
+

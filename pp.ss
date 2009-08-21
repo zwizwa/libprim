@@ -33,7 +33,7 @@
   (pp-enter))
 
 (define (pp-make-spaces n)
-  (string-append* (for/list ((_ (in-range n))) ".")))
+  (string-append* (for/list ((_ (in-range n))) " ")))
 
 (define (pp-display-add-indent str)
   (pp-display str)
@@ -63,39 +63,54 @@
                            (cons ((add-type ctx)
                                   (pointer ctx)) lst))))
 
+(require mzlib/match)
+
 ;; Statements
 (define (emit-return expr)
   (pp-display-add-indent "return ")
   (emit-expression expr)
-  (pp-display ";")
-  (pp-enter))
+  (pp-display ";"))
 
-(define (emit-definition name formals expr)
-  (pp-display
-   (format "_ ~a(~a)"
-           (map-name name)
-           (arglist
-            (map-def
-             (map (add-type "_")
-                  (map symbol->string formals))))))
-  (pp-enter)
-  (pp-display "{")
-  (pp-start-indent
-   (lambda () (emit-return expr)))
-  (pp-display "}"))
-   
-(require mzlib/match)
-(define (emit-expression expr)
+(define emit-definition
+  (match-lambda
+   (('define (name . formals) expr)
+    (pp-display
+     (format "_ ~a(~a)"
+             (map-name name)
+             (arglist
+              (map-def
+               (map (add-type "_")
+                    (map symbol->string formals))))))
+    (pp-enter)
+    (pp-display "{")
+    (pp-start-indent
+     (lambda () (emit-return expr)))
+    (pp-display "}"))))
+
+;; Expressions
+
+(define-syntax-rule (pp-save . body)
   (parameterize ((pp-margin (pp-margin))) ;; save-excursion
+    . body))
+
+(define (emit-expression expr)
+  (pp-save
     (match
      expr
-     (('let* bindings body)
+     (('let* bindings . body)
       (begin
         (pp-display-add-indent "({ ")
         (for ((b bindings))
           (apply emit-binding b)
           (pp-enter))
-        (emit-expression body)))
+        (let loop ((e body))
+          (if (null? e)
+              (pp-display "})")
+              (begin
+                (emit-expression (car e))
+                (pp-display ";")
+                (unless (null? (cdr e)) (pp-enter))
+                (loop (cdr e)))))))
      ((fn . args)
       (pp-display-add-indent
        (format "~a(" (map-name fn)))
@@ -105,18 +120,32 @@
             (begin
               (emit-expression (car a))
               (unless (null? (cdr a))
-                (pp-display ","))
+                (pp-display ", ")
+                ;; Do this contitionally, using backtracking?
+                ;; I.e. fail when a subexpression contains multiple
+                ;; lines, or when it wraps over the edge.
+
+                ;; (pp-enter)
+                )
               (loop (cdr a))))))
      (else
       (pp-display (format "~a" expr))))))
 
 (define (emit-binding var expr)
-  (pp-display-add-indent
-   (format "_ ~a = " var))
-  (emit-expression expr))
+  (pp-save
+   (pp-display-add-indent
+    (format "_ ~a = " var))
+   (emit-expression expr)
+   (pp-display ";")))
 
-(emit-definition 'foo '(a b c) '(foo a b))
-(pp-enter)
 
-(emit-expression '(foo a b))
+
+(emit-definition
+ '(define (foo a b c)
+    (let* ((x (plus b c))
+           (y (let* ((d (min a b))
+                     (e (max a b)))
+                (set x 1)
+                (times d e))))
+      (bar x y))))
 (pp-enter)
