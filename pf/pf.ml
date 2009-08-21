@@ -22,13 +22,13 @@ and stack =
     Empty
   | Push of datum * stack
 
-and continuation = 
+and cont = 
     Done
-  | Frame of sub * continuation
+  | Frame of sub * cont
 
 and state =
     Halt  of result
-  | State of stack * continuation
+  | State of stack * cont
 
 ;;
 
