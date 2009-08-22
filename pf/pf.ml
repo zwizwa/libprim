@@ -164,8 +164,10 @@ let d1 =
 
 (* Add highlevel library code *)
 let d2 =
-  [Entry ("if",    compile d1 ["choose"; "run"]),
-   Entry ("quare", compile d1 ["dup"; "*"])] ;;
+  Entry ("if",     compile d1 ["choose"; "run"]) ::
+  Entry ("square", compile d1 ["dup"; "*"]) ::
+  d1 ;;
+
 
 
 
@@ -197,11 +199,13 @@ let rec _fac =
 
 (* Test *)
 
-(*
-let run_tests =
-  (run (Seq(lit 123, _square)),
-   run (Seq(lit 10, Seq(lit 3, _minus))),
-   run (Seq(lit 1, Seq(lit 1, _equals))),
-   run (Seq(lit 1, Seq(lit 2, _equals))))
-;;
-*)
+
+let run_tests d =
+  (run (Seq(lit 123, find d "square")),
+   run (Seq(lit 10,  Seq(lit 3, find d "-"))),
+   run (Seq(lit 1,   Seq(lit 1, find d "="))),
+   run (Seq(lit 1,   Seq(lit 2, find d "=")))) ;;
+
+run_tests d2 ;;
+
+
