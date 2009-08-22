@@ -11,17 +11,23 @@
 
    Data references are constrained by the following rules:
 
-     L  All data structures in linear memory are flat trees,
-        represented as (possibly nested) stacks.  Multiple references
-        to the same linear object are not allowed.
+     L  Multiple references _to_ the same linear object are not
+        allowed.  All data structures in linear memory are flat trees,
+        represented as (possibly nested) stacks.
    
-     NL This excludes references from linear -> nonlinear memory.  As
-        a consequence, nonlinear memory can (and needs to) contain
-        multiple references and cycles.
+     NL There are no restrictions on references _to_ nonlinear
+        objects.  Nonlinear memory can (and needs to) contain multiple
+        references and cycles.
+
+   Nonlinear objects cannot refer to linear ones, but the other way is
+   not a problem.  To linear memory, nonlinear data structures behave
+   as constants.
 
    All nonlinear data definitions in this file are annotated as NL.
-   The default is linear.  Linearity constraints are not enforced
-   statically.
+   Currently there is only one: `sub', representing a compiled
+   subroutine.  The default is linear.
+
+   Linearity constraints are not enforced statically.
 
 *)
 
