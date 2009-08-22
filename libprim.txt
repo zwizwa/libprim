@@ -3183,3 +3183,19 @@ type sub =
 instead of having to break it down to tags where each state -> state
 function is interpreted.
 
+
+Entry: Next
+Date: Sat Aug 22 15:22:33 CEST 2009
+
+After the small excursion to Ocaml land (maybe I should forgo the
+Haskell version?) it's time to get back on track and get this thing
+working before next week.
+
+Goals: 
+
+ - tasks/assymetric coroutines with proper stack switching.
+
+ - automatic wrapping of C APIs.
+
+
+

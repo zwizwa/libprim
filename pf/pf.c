@@ -236,6 +236,9 @@ void pf_reverse(pf *pf)   { _TOP = BANG_REVERSE(TOP); }
 void pf_add1(pf *pf)      { _TOP = ADD1(TOP); }
 void pf_find(pf *pf)      { _TOP = FIND(pf->dict, TOP); }
 
+void pf_display(pf *pf)   { px_display(pf, TOP); _DROP(); } 
+
+
 void pf_interpret(pf *pf) {
     _ v = TOP;
     /* Perform linearly if possible. */
@@ -443,8 +446,9 @@ pf* _px_new(void) {
     TYPES->rc_type = (void*)0xF002; 
 
     // Write delegate
-    pf->m.write = (ex_write_method)px_write;
-    pf->m.port  = (_ex_port_method)_px_port;
+    pf->m.write = (ex_m_write)px_write;
+    pf->m.port  = (_ex_m_port)_px_port;
+    pf->m.make_string = (_ex_m_make_string)_px_make_string;
 
     // Symbol cache
     pf->s_underflow = SYMBOL("underflow");
@@ -467,7 +471,11 @@ pf* _px_new(void) {
 
     // Bootstrap repl and abort code.
     _px_def_all_prims(pf);
-    _ rep = SEQ(WORD("read"), WORD("interpret"));
+    _ rep = 
+        SEQ(QUOTE(LIN(_px_make_string(pf, "> "))),
+            SEQ(WORD("display"),
+                SEQ(WORD("read"), 
+                    WORD("interpret"))));
     _ repl = MAKE_LOOP(rep);
     pf->dict = ENV_DEF(pf->dict, SYMBOL("rep"), rep);
     pf->dict = ENV_DEF(pf->dict, SYMBOL("repl"), repl);

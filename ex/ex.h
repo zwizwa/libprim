@@ -34,9 +34,9 @@ typedef struct {
 } ex_r;
 
 typedef struct _ex ex;
-typedef object (*ex_write_method)(ex *ex, object ob);
-typedef port*  (*_ex_port_method)(ex *ex);
-typedef object (*_ex_make_string_method)(ex *ex, const char *str);
+typedef object (*ex_m_write)(ex *ex, object ob);
+typedef port*  (*_ex_m_port)(ex *ex);
+typedef object (*_ex_m_make_string)(ex *ex, const char *str);
 struct _ex {
     void *type;
 
@@ -57,9 +57,9 @@ struct _ex {
     base_types *p;
 
     /* Printing: delegate + current port. */
-    ex_write_method write;
-    _ex_port_method port;
-    _ex_make_string_method make_string;
+    ex_m_write write;
+    _ex_m_port port;
+    _ex_m_make_string make_string;
 
 };
 

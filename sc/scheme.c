@@ -876,9 +876,9 @@ sc *_sc_new(void) {
     TYPES->port_type = port_class_new();
 
     /* EX virtual methods */
-    sc->m.port = (_ex_port_method)_sc_port;
-    sc->m.write = (ex_write_method)sc_write;
-    sc->m.make_string = (_ex_make_string_method)_sc_make_string;
+    sc->m.port = (_ex_m_port)_sc_port;
+    sc->m.write = (ex_m_write)sc_write;
+    sc->m.make_string = (_ex_m_make_string)_sc_make_string;
 
     /* Data roots. */
     _ out = _sc_make_port(sc, stderr, "stderr");

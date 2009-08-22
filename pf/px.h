@@ -59,8 +59,10 @@ static inline void *object_rc_struct(object ob, ex *m, void *type) {
         return (name*)object_rc_struct(ob,m,m->p->name##_type); }
 
 DEF_RC_TYPE(port)
+DEF_RC_TYPE(bytes)
 
 port *_px_port(pf *pf);
 _ _px_make_port(pf *pf, FILE *f, const char *name);
+_ _px_make_string(pf *pf, const char *name);
 
 #endif

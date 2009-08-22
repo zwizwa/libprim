@@ -63,8 +63,19 @@ _ _px_make_port(pf *pf, FILE *f, const char *name) {
                        &(TYPES->port_type->free),
                        port_new(TYPES->port_type, stdout, name));
 }
+_ _px_make_string(pf *pf, const char *name) {
+    return _px_make_rc(pf, 
+                       &(TYPES->bytes_type->free),
+                       bytes_from_cstring(TYPES->bytes_type, name));
+}
 _ _px_make_symbol(pf *pf, const char *str){
     return const_to_object(symbol_from_string(TYPES->symbol_type, str));
+}
+
+_ px_display(pf *pf, _ ob) { 
+    bytes *b = CAST(bytes, ob);
+    fwrite(b->bytes, 1, strlen(b->bytes), _px_port(pf)->stream);
+    return VOID;
 }
 
 
