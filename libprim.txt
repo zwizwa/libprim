@@ -1965,6 +1965,9 @@ the machine continuation).
       However, this is not a linear operation.
 
 
+( Note that the isomorphisms need some work to figure out quoting
+issues.  Essentially it will boil down to different kinds of
+continuation frames. )
 
 
 
@@ -3198,4 +3201,53 @@ Goals:
  - automatic wrapping of C APIs.
 
 
+
+Entry: Closures / Different continuation types
+Date: Sat Aug 22 18:22:21 CEST 2009
+
+The 'cons' trick to make a runnable continuation out of lists
+(possibly consed to existing code) doesn't work: code needs to be
+quoted.
+
+> '(1 2 3) run
+> ERROR: unknown-instruction: 1
+
+Maybe it was really a good idea to go for the Ocaml route: now I can
+try to express these things in a type system to eliminate glossing
+over those level-shifting tricks that tend to seep in to ``just make
+it work''.  This is something to be _really_ careful about.  Something
+I've only learned to appreciate recently..  It makes things more
+complex, but it is well worth it when you try reasoning about the
+code.  Guy Steele mentioned this in [1].  It is also quite central to
+the PLT module system[2].
+
+Intuitively: it is about a more general principle of not giving into
+the ``turing machine feedback loop''.  Recursion (or iteration) is a
+fine tool, but too much mixing makes things hard to understand.  More
+often you want to abstract direct recursion into combinators.
+
+For my taste Joy relies too much on `i' which constantly shifts
+levels.  However it does illustrate a point: if you want a really
+simple language: eval everything.
+
+What would work is to have different 'frame' types to instruct the
+interpreter to handle these speical cases.  Also, the stuff you pinch
+off of a continuation stack should really be opaque.  Composable, yes,
+but not decomposable..  Maybe there could be two kinds: interpreting
+and non-interpreting frames?  So it looks like we need different kinds
+of continuations after all..  They can all be differently tagged
+linear pair types though.
+
+
+[1] http://www.ai.mit.edu/projects/dynlangs/wizards-panels.html
+[2] http://www.cs.utah.edu/plt/publications/macromod.pdf
+
+
+Entry: Quote of the day
+Date: Sat Aug 22 18:50:04 CEST 2009
+
+Attributed to Matthew Flatt:
+ ``You need a certain amount complexity to make things look simple.''
+
+[1] http://list.cs.brown.edu/pipermail/plt-scheme/2009-August/035243.html
 

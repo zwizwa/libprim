@@ -235,6 +235,7 @@ port *_px_port(pf *pf) {
 /* Print as part of code sequence. */
 _ px_write_name_or_quotation(pf *pf, _ ob) {
     quote *q;
+    lin *l;
     /* Try to resolve the name. */
     _ sym = UNFIND(pf->dict, ob);
 
@@ -250,7 +251,13 @@ _ px_write_name_or_quotation(pf *pf, _ ob) {
             return px_write(pf, q->object);
         } else {
             _ex_printf(EX, "'");
-            return px_write(pf, q->object);
+            /* Don't print the LIN wrapper. */
+            if ((l = object_to_lin(q->object))) {
+                return px_write(pf, l->object);
+            }
+            else {
+                return px_write(pf, q->object);
+            }
         }
     }
 
@@ -303,18 +310,13 @@ _ px_write(pf *pf, _ ob) {
             }
         }
     }
-    else if ((x = object_to_quote(ob))) {
+    /* Primitive or quoted datum. */
+    else if ((x = object_to_quote(ob)) ||
+             (x = object_to_prim(ob, EX))) {
         quote *q = (quote*)x;
         /* Print it as a singleton. */
         _ex_printf(EX, CL);
-        px_write_name_or_quotation(EX, ob);
-        return _ex_printf(EX, CR);
-
-    }
-    /* Primitive */
-    else if ((object_to_prim(ob, EX))) {
-        _ex_printf(EX, CL);
-        px_write_name_or_quotation(pf, ob); 
+        px_write_name_or_quotation(pf, ob);
         return _ex_printf(EX, CR);
     }
     else if (NOP == ob) {
