@@ -227,14 +227,35 @@ port *_px_port(pf *pf) {
     return object_to_port(pf->output, &pf->m);
 }
 
-/* Print symbolic representation if possible. */
-_ px_write_word(pf *pf, _ ob) {
+/* Code _printing_. tries to guess what form of quotation the object
+   came from.  The code is largely trial and error, trying to handle
+   all the corner cases.  See also the quote, seq and prim cases in
+   px_write() */
+
+/* Print as part of code sequence. */
+_ px_write_name_or_quotation(pf *pf, _ ob) {
+    quote *q;
+    /* Try to resolve the name. */
     _ sym = UNFIND(pf->dict, ob);
-    if (FALSE == sym) {
-        // This will print anonymous SEQ code in the wrong way..
-        return px_write(pf, ob);
+
+    /* Print name if it has one. */
+    if (FALSE != sym) return px_write(pf, sym);
+
+    /* If the object was a data quotation that's not registered as
+       code in the dictionary, print it as an inline quotation.*/
+    if ((q = object_to_quote(ob))) {
+        if ((object_to_seq(q->object)) ||
+            (object_to_quote(q->object)) ||
+            (object_to_prim(q->object, EX))) {
+            return px_write(pf, q->object);
+        } else {
+            _ex_printf(EX, "'");
+            return px_write(pf, q->object);
+        }
     }
-    else return px_write(pf, sym);
+
+    /* Otherwise indicate that there the object has no name. */
+    return _ex_printf(EX, "_");
 }
 
 const char *CL = "{";
@@ -261,11 +282,11 @@ _ px_write(pf *pf, _ ob) {
         _ex_printf(EX, CL);
         for(;;) {
             seq *s = (seq*)x;
-            px_write_word(pf, s->now);
+            px_write_name_or_quotation(pf, s->now);
             _ex_printf(EX, " ");
             ob = s->next;
             if (!(x = object_to_seq(ob))) {
-                px_write_word(pf, s->next);
+                px_write_name_or_quotation(pf, s->next);
                 _ex_printf(EX, CR);
                 return VOID;
             }
@@ -284,21 +305,32 @@ _ px_write(pf *pf, _ ob) {
     }
     else if ((x = object_to_quote(ob))) {
         quote *q = (quote*)x;
-        /* Primitive */
-        if ((object_to_prim(q->object, EX))) {
+
+        /* Check if it has a name. */
+        _ sym = UNFIND(pf->dict, q->object);
+        if (FALSE != sym) {
             _ex_printf(EX, CL);
-            px_write_word(pf, q->object); 
+            px_write(pf, sym);
             return _ex_printf(EX, CR);
         }
         /* Sequence */
-        else if ((object_to_seq(q->object))) {
+        else if ((object_to_seq(q->object)) ||
+                 (object_to_prim(q->object, EX))) {
             return px_write(pf, q->object);
         }
         /* Datum */
-        else {
+        else { 
+            _ex_printf(EX, CL);
             _ex_printf(EX, "'");
-            return px_write(pf, q->object);
+            px_write(pf, q->object);
+            return _ex_printf(EX, CR);
         }
+    }
+    /* Primitive */
+    else if ((object_to_prim(ob, EX))) {
+        _ex_printf(EX, CL);
+        px_write_name_or_quotation(pf, ob); 
+        return _ex_printf(EX, CR);
     }
     else if (NOP == ob) {
         return _ex_printf(EX, "#nop");
