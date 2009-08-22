@@ -22,6 +22,7 @@
    All nonlinear data definitions in this file are annotated as NL.
    The default is linear.  Linearity constraints are not enforced
    statically.
+
 *)
 
 
@@ -44,7 +45,7 @@ and prim  = Dup | Drop | Choose | Binop of binop
 and binop = Multiply | Minus | Equals
 
 (* -- Evaluation result *)
-and value = Error of string | Success of stack
+and value = Error of string | OK of stack
 
 (* -- Tagged dynamic data type.  Programmer visible.  In practice this
       contains additional `leaf objects' with an open/close management
@@ -78,29 +79,27 @@ let quot sub = Quote(Code(sub)) ;;
 (* Code primitives. *)
 let apply a  =
   match a with
-      (Dup, Push(d, stk)) -> Success(Push(d,Push(d,stk)))
-    | (Drop, Push(d, stk)) -> Success(stk)
+      (Dup, Push(d, stk)) -> OK(Push(d,Push(d,stk)))
+    | (Drop, Push(d, stk)) -> OK(stk)
     | (Choose, Push(condition, Push(no, Push (yes, stk)))) ->
         (match condition with
-             False -> Success(Push(no, stk))
-           | _ -> Success(Push(yes, stk)))
+             False -> OK(Push(no, stk))
+           | other -> OK(Push(yes, stk)))
     | (Binop (op), Push(Number(r), Push(Number(l), stk))) ->
-        Success
-          (Push
+        OK(Push
              ((match op with
                    Multiply -> Number(l * r)
-                 | Minus -> Number(l - r)
-                 | Equals -> if (l = r) then True else False),
+                 | Minus    -> Number(l - r)
+                 | Equals   -> if (l = r) then True else False),
               stk))
-    | _ -> Error "invalid argument"
-
+    | other -> Error "invalid argument"
 ;;
     
 (* Composite code interpreter step function. *)
 let step s =
   match s with
       Halt(res) -> Halt (res)
-    | State(stk, Done) -> Halt (Success(stk))
+    | State(stk, Done) -> Halt (OK(stk))
     | State(stk, Next(sub, k)) ->
         (match sub with
              Nop -> State(stk, k)
@@ -108,11 +107,11 @@ let step s =
            | Run -> 
                (match stk with
                     Push(Code(sub), stk) -> State(stk, Next(sub, k))
-                  | _ -> Halt(Error "run: stack underflow"))
+                  | other -> Halt(Error "run: invalid argument"))
            | Prim(fn) -> 
                (match apply(fn, stk) with
                     Error(msg) -> Halt (Error(msg))
-                  | Success(stack) -> State(stack, k))
+                  | OK(stack) -> State(stack, k))
            | Quote(dat) -> State(Push(dat,stk), k)
            | Seq(now, later) -> State(stk, Next(now, Next(later, k))))
 ;;
@@ -174,6 +173,16 @@ let d2 =
   d1 ;;
 
 
+(* Test *)
+let run_tests d =
+  (run (compile d ["12"; "square"]),
+   run (compile d ["10"; "3"; "-"]),
+   run (compile d ["1"; "1"; "="]),
+   run (compile d ["1"; "2"; "="])) 
+;;
+run_tests d2 ;;
+
+(* TODO: recursion *)
 
 (* Faculty in Factor:
 : fac ( n -- n! ) dup 1 = [ 1 ] [ dup 1 - fac ] if * ;
@@ -195,18 +204,3 @@ let rec _fac =
   Seq(_if, 
       _multiply))))));;
 *)
-
-(* Test *)
-
-
-let run_tests d =
-  (run (compile d ["12"; "square"]),
-   run (compile d ["10"; "3"; "-"]),
-   run (compile d ["1"; "1"; "="]),
-   run (compile d ["1"; "2"; "="])) 
-;;
-
-
-run_tests d2 ;;
-
-
