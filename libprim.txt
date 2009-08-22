@@ -3165,3 +3165,21 @@ there are in a functional programming language based on the lamda
 calculus.
 
 However, they can be simulated by `consing' data onto code.
+
+
+Entry: Ocaml and tagged interpreters
+Date: Sat Aug 22 12:23:04 CEST 2009
+
+It seems to me that not being able to define data types that can
+contain functions is quite a limitation.  Maybe there is something I
+didn't get?  Maybe this only can't be done _recursively_ ?
+
+I.e. what I want is:
+
+type sub =
+    Prim    of (state -> state)
+  | Seq     of sub * sub (* NL *)
+
+instead of having to break it down to tags where each state -> state
+function is interpreted.
+
