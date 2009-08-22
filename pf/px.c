@@ -315,8 +315,9 @@ _ px_write(pf *pf, _ ob) {
 */
 
 
-/* Convert definition list of (name . src) pairs to a compiled
-   dictionary, using E_top for undefined references. */
+/* Convert definition list of (name . src) symbolic code pairs to a
+   compiled dictionary of (name . code) pairs, using E_top for
+   undefined references. */
 
 _ px_skeleton_entry(pf *pf, _ code) { return CONS(CAR(code), VOID); }
 _ px_compile_defs(pf *pf, _ E_top, _ defs) {
@@ -324,7 +325,7 @@ _ px_compile_defs(pf *pf, _ E_top, _ defs) {
     _ E_local = _ex_map1_prim(EX, (ex_1)px_skeleton_entry, defs);
     _ penv  = E_local;
     _ pdefs = defs;
-    /* Translate to AST. */
+    /* Translate to code graph. */
     while (NIL != penv) { 
         _ entry = CAR(penv);
         _ src   = CDAR(pdefs);
@@ -341,7 +342,7 @@ _ px_compile_defs(pf *pf, _ E_top, _ defs) {
     return E_local;
 }
 
-/* Compile anonymous code to AST. */
+/* Compile anonymous symbolic code to code graph. */
 _ px_quote(pf *pf, _ data)       { STRUCT(TAG_QUOTE, 1, data); }
 _ px_seq(pf *pf, _ sub, _ next)  { STRUCT(TAG_SEQ, 2, sub, next); }
 

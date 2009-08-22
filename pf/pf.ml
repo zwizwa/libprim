@@ -1,50 +1,69 @@
-(* Code. *)
+(* PF virtual machine.
 
-type sub = 
-    Run
-  | Prim    of prim
-  | Quote   of datum
-  | Seq     of sub * sub
+   The memory model is built as a recursive data type rooted at a
+   `state' object.  When reflection is desired, there is also a `dict'
+   object mapping symbolic names to `sub' instances.
 
-and binop = Multiply | Minus | Equals
-and prim  = Dup | Drop | Pick | Binop of binop
-and value = 
-    Error of string
-  | Success of stack
+   In the C implementation, memory is segmented into two regions:
+   linear and nonlinear memory, both using different memory management
+   facilities.  Note that this Ocaml encoding doesn't reflect this
+   fact: it is mainly intended to specify the interpreter.
 
+   Data references are constrained by the following rules:
 
-(* Notes:
+     L  All data structures in linear memory are flat trees,
+        represented as (possibly nested) stacks.  Multiple references
+        to the same linear object are not allowed.
    
-   - `Run' is not a `prim', because it modifies the continuation
-     directly, while a `prim' maps a stack -> value. 
+     NL This excludes references from linear -> nonlinear memory.  As
+        a consequence, nonlinear memory can (and needs to) contain
+        multiple references and cycles.
 
-   - The binop type isn't necessary, but it makes the interpreter look
-     nicer.  The C version has only one primitive type.
+   All nonlinear data definitions in this file are annotated as NL.
+   The default is linear.  Linearity constraints are not enforced
+   statically.
 *)
 
 
-(* State. *)
+(* REPRESENTATION *)
 
+(* -- Code 
+
+`Run' is not a `prim', because it modifies the continuation directly,
+while a `prim' is limited in scope in that it maps a stack -> value.
+The `binop' type isn't necessary, but it makes the interpreter look
+nicer.  The C version has only one primitive type. *)
+
+type sub =
+    Run
+  | Prim    of prim
+  | Quote   of datum
+  | Seq     of sub * sub (* NL *)
+and prim  = Dup | Drop | Pick | Binop of binop
+and binop = Multiply | Minus | Equals
+
+(* -- Evaluation result *)
+and value = Error of string | Success of stack
+
+(* -- Tagged dynamic data type.  Programmer visible. *)
 and datum =
-    False
+    False 
   | True
   | Number of int
   | Code   of sub 
   | Stack  of stack
 
-and stack =
-    Empty
-  | Push of datum * stack
+(* -- Machine state: contains the two linear stacks. *)
+and state = Halt  of value | State of stack * cont
 
-and cont = 
-    Done
-  | Frame of sub * cont
-
-and state =
-    Halt  of value
-  | State of stack * cont
-
+(* -- Parameter and continuation stacks.  Isomorphic but not equal. *)
+and stack = Empty | Push  of datum * stack
+and cont  = Done  | Frame of sub   * cont
 ;;
+
+
+
+(* INTERPRETATION *)
 
 (* Simpler constructor for numbers and quoted programs. *)
 let lit n   = Quote(Number(n)) ;;
