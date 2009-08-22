@@ -98,6 +98,11 @@ object _ex_write(ex *ex, object o) {
         }
         return VOID;
     }
+    if ((x = object_struct(o, ex->p->bytes_type))) {
+        bytes *b = (bytes *)x;
+        bytes_write_string(b, p->stream);
+        return VOID;
+    }
     if ((x = object_struct(o, ex->p->rc_type))) {
         rc *r = (rc*)x;
         port_printf(p, "#rc:");

@@ -169,9 +169,9 @@ _ sc_write(sc *sc,  _ o) {
     void *x;
 
     /* FIXME: Bytes and strings are currently the same. */
-    if (TRUE == sc_is_bytes(sc, o)) {
-        bytes_write_string(object_to_bytes(o, &sc->m), _sc_port(sc)->stream);
-        return VOID;
+    if ((x = object_to_port(o, EX)) ||
+        (x = object_to_bytes(o, EX))) {
+        return _ex_write(EX, const_to_object(x));
     }
     vector *v = object_to_vector(o);
     if (TRUE == sc_is_state(sc, o))   return _ex_write_vector(EX, "state", v);

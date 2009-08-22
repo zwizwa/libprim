@@ -242,12 +242,17 @@ const char *CR = "}";
 
 _ px_write(pf *pf, _ ob) {
     void *x;
-    /* Ports are RC wrapped in PF.*/
-    if ((x = object_to_port(ob, EX))) {
+    /* Ports and strings are RC wrapped in PF.  Pass them wrapped as
+       const. */
+    if ((x = object_to_port(ob, EX)) ||
+        (x = object_to_bytes(ob, EX))) {
         return _ex_write(EX, const_to_object(x));
     }
     else if ((x = object_to_box(ob))) {
         return _ex_write_vector(EX, "box", object_to_vector(ob));
+    }
+    else if ((x = object_to_lin(ob))) {
+        return _ex_write_vector(EX, "lin", object_to_vector(ob));
     }
     /* SEQ and QUOTE are decompiled.  Use square brackets to
        distinguish from lists. */

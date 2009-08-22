@@ -261,9 +261,11 @@ void pf_interpret(pf *pf) {
             PUSH_P(datum);
             return;
         }
+        /* Compile quotation (nonlinearly). */
+        _COMPILE();
+        return;
     }
-    /* Compile quotation (nonlinearly). */
-    _COMPILE();
+    /* Datum: leave intact. */
 }
 
 
