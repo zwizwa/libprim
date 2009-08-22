@@ -134,11 +134,16 @@ let run code =
 (* Dictionary *)
 type entry = Entry of string * sub ;;
 exception Undefined of string ;;
+
 let rec find entries var =
   match entries with
       [] -> raise (Undefined(var))
     | Entry(name, sub) :: es -> 
         if (name = var) then sub else find es var ;;
+
+let interpret entries str =
+  try find entries str
+  with Undefined(var) -> Quote(Number(int_of_string var)) ;;
 
 (* Using the analogy of Lisp lists in `dot notation', this converts a
    `proper' source list (a b c d) to an `improper' list (A B C . D) of
@@ -149,8 +154,8 @@ let rec find entries var =
 let rec compile d src =
   match src with
       [] -> Nop
-    | [var] -> find d var 
-    | var :: s -> Seq(find d var, compile d s)
+    | [var] -> interpret d var 
+    | var :: s -> Seq(interpret d var, compile d s)
 
 (* Bootstrap dictionary with primitive stack and machine transformers. *)
 let d1 =
@@ -169,12 +174,6 @@ let d2 =
   d1 ;;
 
 
-
-
-(*
-let _if       = Seq(_pick, _run) ;;
-let _square   = Seq(_dup, _multiply) ;;
-*)
 
 (* Faculty in Factor:
 : fac ( n -- n! ) dup 1 = [ 1 ] [ dup 1 - fac ] if * ;
@@ -201,10 +200,12 @@ let rec _fac =
 
 
 let run_tests d =
-  (run (Seq(lit 123, find d "square")),
-   run (Seq(lit 10,  Seq(lit 3, find d "-"))),
-   run (Seq(lit 1,   Seq(lit 1, find d "="))),
-   run (Seq(lit 1,   Seq(lit 2, find d "=")))) ;;
+  (run (compile d ["12"; "square"]),
+   run (compile d ["10"; "3"; "-"]),
+   run (compile d ["1"; "1"; "="]),
+   run (compile d ["1"; "2"; "="])) 
+;;
+
 
 run_tests d2 ;;
 
