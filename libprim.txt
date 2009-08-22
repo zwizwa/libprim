@@ -1868,46 +1868,108 @@ So, can the types be made a bit more intuitive?
 Entry: New PF interpreter
 Date: Sun Aug 16 12:09:57 CEST 2009
 
-The interpreter evaluates the following data structure:
+
+The interpreter evaluates the following recursive data structure.
+
+( Note that this represents fully resolved byte code: it doesn't contain
+  any variable references. )
 
       SEQ = (SUB : SUB)            ;; `:' is graph CONS
       SUB = PRIM | QUOTE | SEQ
  
-      RS  = HALT | (SUB . RS)      ;; `.' is linear CONS
+      K   = HALT | (SUB . K)       ;; `.' is linear CONS
 
-SEQ   Code sequencing provides the encoding of ``what to do _now_ and
-      what to do _next_''.
+SEQ  Code sequencing provides the encoding of what to do _now_ and what
+     to do _next_
 
-SUB   A subroutine is a basic unit of work: invoke a primitive
-      function, load a data object or perform an abstraction.
+SUB  A subroutine is a basic unit of work: invoke a primitive function,
+     load a data object onto the parameter stack, or perform a
+     code sequence.
 
-RS    The return stack (or continuation) is constructed at run-time,
-      representing the rest of the evaluation, finishing with HALT.
+K    The continuation is a stack constructed at run-time, representing
+     the rest of the evaluation, finishing with HALT.
 
-Execution will push the second SUB to RS whenever a SEQ is
-encountered, and pops RS when evaluating a PRIM or a QUOTE.
 
-Note that the RS ``program'' is essentially a chained SEQ sequence
-terminated with a HALT primitive.  The only difference is that it is
-built out of a _linear_ data structure, while code resides in graph
-memory.
+The interpreter uses this data structure as follows (in pseudo code,
+an ML implementation can be found here[1]).
 
-This mechanism gives proper tail call handling.  The basic idea is
-described here[1], and is how Scheme's `begin' works.  Essentially,
-you never push the return stack unless you have anything to do _next_,
-which is what SEQ encodes explicitly.
+      sub = POP(K)
+      case sub
+         SEQ (now : next)  
+           -> K = PUSH(now, PUSH(next, K))
+         PRIM
+           -> execute PRIM
+         QUOTE
+           -> load data item on parameter stack
 
-Now note that if the ``now'' SUB in a SEQ is a PRIM or a QUOTE, an RS
-push isn't necessary.  Remarkably, this ``optimization'' is how
-traditional threaded Forth works by default.  Next to this it has
-proper tail call handling added as an optimization, by patching the
-last element in a word list whenever it is a highlevel call.  In
-contrast, in the PF approach, proper tail calls are a _consequence_ of
-the representation.  Of course, since our _source_ representation
-doesn't contain improper lists, this ``patching of tail calls'' still
-needs to be performed at compile time.
+SUB is the main code type (the subroutine).  It is what you pass to
+`run', and it is what can be found as resume points in the
+continuation.  It includes primitive code and data, as well as
+composite code sequences (SEQ).
 
-[1] http://repository.readscheme.org/ftp/papers/ai-lab-pubs/AIM-443.pdf
+When a SEQ is encoded, the two SUBs will be pushed onto K in the
+correct order.  Note that this encoding automatically gives proper
+tail call handling[2]: loops can be implemented using recursion
+without blowing up the K stack.
+
+
+                            * * *
+
+The above is the representation of compiled code.
+
+Concatenative (Joy-like) code can be compiled straightforwardly to
+SEQ-based code.  This can be illustrated using the standard lisp
+CDR-linked pair notation to represent both source code CONS pairs and
+SUB pairs.  The the symbolic program
+
+   (a b c d)     = CONS(a, CONS(b, CONS(c, CONS(d, NIL))))
+
+is compiled to an improper list 
+
+   (A B C . D)   = SEQ(A, SEQ(B, SEQ(C, D)))
+
+where each symbol x is mapped to a corresponding X representing a SUB.
+Resolution happens using a global vocabulary that maps symbols to
+SUBs.
+ 
+                            * * *
+
+The code representation as a binary graph has several advantages
+related to the similarity between binary graphs and binary trees (PF's
+linear pair data structure for data storage and representing
+the machine continuation).
+
+    - SEQ as a pair of SUBs gives a very direct encoding of "now" vs
+      "next".  This makes it really easy to represent continuations as
+      a stack of SUBs.
+
+    - The continuation K ``looks like'' a SEQ (a particular kind of
+      SUB), in that it is a linear pair of a SUB and a K.
+
+    - The machine can run without nonlinear data allocation:
+      continuation push/pops are linear.
+
+    - One-shot full and partial continuations (segments of the K
+      stack) are (isomorphic to) linear lists.
+
+    - This isomorphism obviously works also the other way: linear
+      lists constructed at run time can be converted to one-shot full
+      or partial continuations.  (This can be used to emulate one-shot
+      `closures'.)
+
+    - Linear one-shot closures/continuations can be _copied_ to make
+      them multi-shot.  
+
+    - They can also be _compiled_ to code (linear pairs represented by
+      nonlinear SEQ pairs) so they can be reused any number of times.
+      However, this is not a linear operation.
+
+
+
+
+
+[1] http://zwizwa.be/darcs/libprim/pf/pf.ml
+[2] http://repository.readscheme.org/ftp/papers/ai-lab-pubs/AIM-443.pdf
 
 
 
@@ -2901,7 +2963,7 @@ The first thing to realize is to distinguish types and constructors.
       SEQ = (SUB : SUB)            ;; `:' is graph CONS
       SUB = PRIM | QUOTE | SEQ
  
-      RS  = HALT | (SUB . RS)      ;; `.' is linear CONS
+      K   = HALT | (SUB . K)      ;; `.' is linear CONS
 
 type sub  = 
     Prim
@@ -2986,7 +3048,8 @@ let rec _fac =
 
 => Error: This kind of expression is not allowed as right-hand side of `let rec'
 
-
+How to solve this?  In Scheme it's easy: just dump a symbol at first,
+then walk the data structure and set! the value.
 
 
 [1] http://lambda-the-ultimate.org/node/983
@@ -2996,6 +3059,8 @@ let rec _fac =
 [5] http://okmij.org/ftp/ML/GADT.ml
 [6] http://www.haskell.org/haskellwiki/GADTs_for_dummies
 [7] http://zwizwa.be/darcs/libprim/pf/pf.ml
+[8] http://caml.inria.fr/pub/ml-archives/caml-list/2008/12/460de486fcbbc2eca13e5c77d014da17.en.html
+
 
 
 Entry: PF interpreter in Haskell
@@ -3010,4 +3075,93 @@ To reload:
 
 > :r
 
+
+Oops.. ran out of steam..  maybe one lanuage in one day is enough..
+
+I wonder though: the only apparent difference with Ocaml (apart from
+the pure and lazy things) is that constructors seem to be curried
+functions, while on Ocaml they take tuples.
+
+
 [1] http://learnyouahaskell.com
+
+
+Entry: Remarks about the PF interpreter
+Date: Sat Aug 22 08:15:00 CEST 2009
+
+Refer to entry://20090816-120957
+
+Note it is important to distinguish the byte code graph data structure
+from an AST or the untyped s-expression encoding of _symbolic_ code.
+
+The SEQ type can have sharing (shared subroutines) or loops (direct or
+mutual recursion), while an AST or an s-expression is really a flat
+_tree_.
+
+
+    - symbolic source code like:  ``1 dup cons''
+
+      here the symbols are translated by a dictionary (vocabulary)
+      that maps symbol -> SUB.  symbolic code is a _tree_ represented
+      as an _untyped_ s-expression.
+
+    - `byte code graph'.  Each symbolic source code definition can be
+      compiled to a single SUB (subroutine) type, which is _directly
+      linked_ to other SUB types by data sharing.  Because it's a
+      graph, this data structure is not easily printed.
+
+    - AST: because the original syntax is so simple, the intermediate
+      form one would traditionally use in an interpreter = a data
+      structure with a recursive type that represents the same _tree_
+      as a source code s-expression, is _not_ present in the current
+      PF implementation.  Compilation goes straight from symbolic code
+      as non-annotated s-expressions to the `byte code graph'.
+
+
+IMPLEMENTATION
+
+      One could _implement_ a SEQ(foo,bar) as the following machine
+      code:
+
+                  call <address of foo>
+                  jump <address of bar>
+
+      Note that the `first' slot in a SEQ will push the return stack
+      when it points to another SEQ.  If foo were a prim, the `call'
+      instruction could be replaced by inlined machine code
+      implementing the primitive, or a call to a machine code
+      subroutine.
+
+      In the case 'bar' is a subroutine that's used only once, it
+      could be inlined to eliminate the jump.
+
+      Alternatively, if the machine has a literal push instructiom, an
+      even simpler representation would be something like:
+
+                  push <address of bar>
+                  jump <address of foo>
+
+
+
+Entry: The return stack should contain XTs
+Date: Sat Aug 22 10:40:14 CEST 2009
+
+Something that has always bothered me about Forth is that the return
+stack contains _pointers_ to XTs (i.e. XT _arrays) while `execute'
+takes XTs.
+
+In other word: the return stack _itself_ is not a program.  This is a
+consequence of having two forms of code: threaded code and machine
+code.  An XT is often implemented as a pointer to machine code (direct
+threaded) or a pointer to a pointer to machine code (indirect
+threaded).
+
+
+Entry: PF closure
+Date: Sat Aug 22 10:46:47 CEST 2009
+
+Because there is no nested lexical scope, there are no closures as
+there are in a functional programming language based on the lamda
+calculus.
+
+However, they can be simulated by `consing' data onto code.
