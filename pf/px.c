@@ -305,26 +305,26 @@ _ px_write(pf *pf, _ ob) {
     }
     else if ((x = object_to_quote(ob))) {
         quote *q = (quote*)x;
+        /* Check if it has a name, then print it as a singleton. */
+        _ex_printf(EX, CL);
 
-        /* Check if it has a name. */
         _ sym = UNFIND(pf->dict, q->object);
         if (FALSE != sym) {
-            _ex_printf(EX, CL);
             px_write(pf, sym);
-            return _ex_printf(EX, CR);
         }
         /* Sequence */
         else if ((object_to_seq(q->object)) ||
+                 (object_to_quote(q->object)) ||
                  (object_to_prim(q->object, EX))) {
-            return px_write(pf, q->object);
+            px_write(pf, q->object);
         }
         /* Datum */
         else { 
-            _ex_printf(EX, CL);
             _ex_printf(EX, "'");
             px_write(pf, q->object);
-            return _ex_printf(EX, CR);
         }
+        return _ex_printf(EX, CR);
+
     }
     /* Primitive */
     else if ((object_to_prim(ob, EX))) {
