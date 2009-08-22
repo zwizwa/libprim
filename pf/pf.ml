@@ -87,7 +87,7 @@ let apply a  =
   match a with
       (Dup, Push(d, stk)) -> OK(Push(d,Push(d,stk)))
     | (Drop, Push(d, stk)) -> OK(stk)
-    | (Choose, Push(condition, Push(no, Push (yes, stk)))) ->
+    | (Choose, Push(no, Push(yes, Push (condition, stk)))) ->
         (match condition with
              False -> OK(Push(no, stk))
            | other -> OK(Push(yes, stk)))
@@ -188,25 +188,49 @@ let run_tests d =
 ;;
 run_tests d2 ;;
 
-(* TODO: recursion *)
 
-(* Faculty in Factor:
-: fac ( n -- n! ) dup 1 = [ 1 ] [ dup 1 - fac ] if * ;
+(* Recursion. 
+
+   This requires a recursive data structure.
+
+   Until I figure out how to do this in the `compile' function (would
+   require two passes and data structure mutation) the recursive code
+   structure is created here using `let rec'.
+
+   Because this form can only pierce through 1 layer of constructors
+   to patch up the graph structure, a number of intermediate nodes are
+   defined.  See here for more info:
+
+   http://caml.inria.fr/pub/docs/manual-ocaml/manual021.html#s:letrecvalues
+
+   The definition of the `fac' word in Factor:
+
+      : fac ( n -- n! ) dup 1 = [ 1 ] [ dup 1 - fac ] if * ;
+
+   Note also that below is more like an encoding of:
+
+      : dup1- dup 1 - ;
+      : fac   dup 1 = [ 1 ] [ dup1- fac ] if * ;
+
+   It's of course equivalent: the corresponding Seq trees have the
+   same fringe, but their structure is different.
+
+
 *)
 
-(* 
-This doesn't work because it's a recursive _data_ definition: OCaml is
-strict, so such things need to be solved using mutation.
+let rec _fac  = Seq(compile d2 ["dup"; "1"; "="], n1)
+and      n1   = Seq(Quote(Code(compile d2 ["1"])), n5)
+and      n2   = Seq(compile d2 ["dup"; "1"; "-"], _fac)
+and      n3   = Code(n2)
+and      n4   = Quote(n3)
+and      n5   = Seq(n4, n6)
+and      n6   = compile d2 ["if"; "*"]
+;;
 
-let rec _fac =
-  Seq(_dup,
-  Seq(lit 1,
-  Seq(_equals,
-  Seq(quot (lit 1),  
-  Seq(quot ((Seq(_dup,
-             Seq(lit 1,
-             Seq(_minus, 
-                 _fac))))),
-  Seq(_if, 
-      _multiply))))));;
+let d3 = Entry ("fac", _fac) :: d2 ;;
+
+(*
+# run (compile d3 ["6"; "fac"]) ;;
+- : value = OK (Push (Number 720, Empty))
 *)
+

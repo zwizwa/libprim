@@ -3186,6 +3186,17 @@ type sub =
 instead of having to break it down to tags where each state -> state
 function is interpreted.
 
+Actually.  Look at [1] Function types.  
+
+Also [2] Recursive values which are not functions.  About recursive
+values: apparently it is only able to handle `simple' expressions.
+``Informally, the class of accepted definitions consists of those
+definitions where the defined names occur only inside function bodies
+or as argument to a data constructor.''[3]
+
+[1] http://caml.inria.fr/pub/docs/oreilly-book/html/book-ora016.html#toc21
+[2] http://caml.inria.fr/pub/docs/oreilly-book/html/book-ora016.html#toc23
+[3] http://caml.inria.fr/pub/docs/manual-ocaml/manual021.html#s:letrecvalues
 
 Entry: Next
 Date: Sat Aug 22 15:22:33 CEST 2009
@@ -3251,3 +3262,21 @@ Attributed to Matthew Flatt:
 
 [1] http://list.cs.brown.edu/pipermail/plt-scheme/2009-August/035243.html
 
+
+
+Entry: Asymmetric Coroutines in Lua
+Date: Sat Aug 22 22:39:04 CEST 2009
+
+It makes the point that, like partial continuations (PC), asymetric
+coroutines (AC) are easier to use because they are composable just
+like routines, while symmetric coroutines are hard to set up.
+
+Coroutines cannot yield when there is a C function call in the stack.
+
+The authors mentioned they were working on investigating the relation
+between AC and PC.  From what I tried in Scheme, an AC can be
+implemented in terms of a PC.  Also the other way around?  They both
+are essentially segments of a control stack.
+
+[1] http://lambda-the-ultimate.org/node/438#comment
+[2] http://www.inf.puc-rio.br/~roberto/docs/corosblp.pdf

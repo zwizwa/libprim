@@ -51,7 +51,7 @@ void _px_run(pf *pf) {
     /* Interpeter loop. */
     for(;;) {
 
-        /* Consume next instruction from K. */
+        /* Consume next instruction: pop K. */
         pair *rs = object_to_lpair(pf->k);
         if (unlikely(!rs)) goto halt;
         _ ip = rs->car;
@@ -62,7 +62,7 @@ void _px_run(pf *pf) {
             PUSH_K(s->next);
             PUSH_K(s->now);
         }
-        /* Interpret primitive code or data and pop K. */
+        /* Interpret primitive code or data. */
         else {
             /* Primitive */
             if ((p = object_to_prim(ip, &pf->m))) {
@@ -75,7 +75,8 @@ void _px_run(pf *pf) {
                     fn(pf);
                     break;
                 default:
-                    PUSH_P(SYMBOL("unknown-exception"));
+                    pf->m.error_tag = SYMBOL("unknown-primitive-exception");
+                    pf->m.error_arg = integer_to_object(ex);
                 case EXCEPT_ABORT:
                     // TAG + ARG are NONLINEAR
                     PUSH_P(COPY_FROM_GRAPH(pf->m.error_arg));
@@ -113,12 +114,10 @@ void _px_run(pf *pf) {
             }
         }
     }
-
   halt:
     /* Return to caller. */
     EX->top_entries--;
     return;
-
 }
 
 /* PRIMITIVES */
@@ -242,7 +241,7 @@ void pf_display(pf *pf)   { px_display(pf, TOP); _DROP(); }
 void pf_words(pf *pf) {
     _ d = pf->dict;
     while (NIL != d) {
-        px_write(EX, CAAR(d)); 
+        px_write(pf, CAAR(d)); 
         _SPACE();
         d = CDR(d);
     }
@@ -505,6 +504,7 @@ pf* _px_new(void) {
    eval is not linear), and executes this code until machine halt.  */
 void _px_interpret_list(pf *pf, _ nl_expr){
     PUSH_K(COMPILE_PROGRAM(nl_expr));
+    nl_expr = NIL;
     _px_run(pf);
 }
 /* Find and run.  This is linear if the referenced code is. */
