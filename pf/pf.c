@@ -228,7 +228,8 @@ void pf_gc(pf *pf) {
 /* Primitives in terms of expressions.  Note that an upper case name
    like _XXX() is short for a stack word pf_xxx(pf *).  */
 void pf_write(pf *pf)     { WRITE(TOP); _DROP(); }
-void pf_p(pf *pf)         { _WRITE(); _ex_printf(EX, " "); }
+void pf_space(pf *pf)     { _ex_printf(EX, " "); }
+void pf_p(pf *pf)         { _WRITE(); _SPACE(); }
 void pf_cr(pf *pf)        { _ex_printf(EX, "\n"); }
 void pf_post(pf *pf)      { POST(TOP); _DROP(); }
 void pf_trap(pf *pf)      { TRAP(); }
@@ -238,6 +239,15 @@ void pf_find(pf *pf)      { _TOP = FIND(pf->dict, TOP); }
 
 void pf_display(pf *pf)   { px_display(pf, TOP); _DROP(); } 
 
+void pf_words(pf *pf) {
+    _ d = pf->dict;
+    while (NIL != d) {
+        px_write(EX, CAAR(d)); 
+        _SPACE();
+        d = CDR(d);
+    }
+    _CR();
+}
 
 void pf_interpret(pf *pf) {
     _ v = TOP;

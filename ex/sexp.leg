@@ -2,7 +2,8 @@ Read    = - n:Next                       { ob = n; }
 
 Next    = Datum | EOF | Junk
 
-Datum   = Quote | Const | List 
+Datum   = Quote | UQuote | QQuote
+        | Const | List 
         | Number | Symbol | String
 
 List    = LP Tail
@@ -11,6 +12,8 @@ Tail    = a:Datum Dot d:Datum RP         { $$= CONS(a,d) }
         | d:Datum t:Tail                 { $$= CONS(d,t) }
 
 Quote   = - ['] - d:Datum                { $$= QUOTE(d) }
+UQuote  = - [,] - d:Datum                { $$= UNQUOTE(d) }
+QQuote  = - [`] - d:Datum                { $$= QUASIQUOTE(d) }
 
 Const   = True | False
 
@@ -27,8 +30,8 @@ String  = - ["] < ( !["] . )* > ["]      { $$= STRING(yytext) }
 
 Letter   = [A-Za-z]
 Digit    = [0-9]
-Reserved = [()"';]
-Special  = !(Reserved | Space) .
+Reserved = [()"'`,;]
+Special  = !(Reserved | Space | Letter | Digit) .
 NonDigit = Letter | Special
 Char     = Digit | NonDigit
 

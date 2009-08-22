@@ -1,11 +1,8 @@
 ;; -*- scheme -*- 
 ;; Bootstrap using s-expression syntax.
 
-;; '(abc  123 post) define
-;; abc
-
-
-("libprim/PF" display cr repl)
-
-
+('((i . (compile run))) define
+ 
+ "libprim/PF" display cr
+ repl)
 

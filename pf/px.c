@@ -519,7 +519,7 @@ _ px_define(pf *pf, _ defs) {
     while (NIL != E) {
         _ var = _CAAR(E);
         _ val = _CDAR(E);
-        _ex_printf(EX, "define: "); POST(var);
+        // _ex_printf(EX, "define: "); POST(var);
         pf->dict = ENV_DEF(pf->dict, var, val);
         E = _CDR(E);
     }

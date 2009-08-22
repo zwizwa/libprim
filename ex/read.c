@@ -14,6 +14,8 @@ static port *p = NULL;
 #define NUMBER integer_to_object
 #define JUNK(str) CONS(SYMBOL("junk"), STRING(str))
 #define QUOTE(ob) CONS(SYMBOL("quote"), CONS(ob, NIL))
+#define UNQUOTE(ob) CONS(SYMBOL("unquote"), CONS(ob, NIL))
+#define QUASIQUOTE(ob) CONS(SYMBOL("quasiquote"), CONS(ob, NIL))
 
 #define YY_INPUT(buf, result, max_size)                          \
     {                                                            \
