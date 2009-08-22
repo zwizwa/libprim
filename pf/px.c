@@ -305,24 +305,9 @@ _ px_write(pf *pf, _ ob) {
     }
     else if ((x = object_to_quote(ob))) {
         quote *q = (quote*)x;
-        /* Check if it has a name, then print it as a singleton. */
+        /* Print it as a singleton. */
         _ex_printf(EX, CL);
-
-        _ sym = UNFIND(pf->dict, q->object);
-        if (FALSE != sym) {
-            px_write(pf, sym);
-        }
-        /* Sequence */
-        else if ((object_to_seq(q->object)) ||
-                 (object_to_quote(q->object)) ||
-                 (object_to_prim(q->object, EX))) {
-            px_write(pf, q->object);
-        }
-        /* Datum */
-        else { 
-            _ex_printf(EX, "'");
-            px_write(pf, q->object);
-        }
+        px_write_name_or_quotation(EX, ob);
         return _ex_printf(EX, CR);
 
     }
