@@ -35,6 +35,7 @@ Note that the `binop' type isn't necessary, but it makes the
 interpreter look nicer.  The C version has only one primitive type. *)
 type sub =
     Run
+  | Nop
   | Abort      
   | Prim    of prim
   | Quote   of datum
@@ -102,7 +103,8 @@ let step s =
     | State(stk, Done) -> Halt (Success(stk))
     | State(stk, Next(sub, k)) ->
         (match sub with
-             Abort -> (Halt(Error "abort"))
+             Nop -> State(stk, k)
+           | Abort -> (Halt(Error "abort"))
            | Run -> 
                (match stk with
                     Push(Code(sub), stk) -> State(stk, Next(sub, k))
@@ -131,6 +133,24 @@ let run code =
 
 (* Dictionary *)
 type entry = Entry of string * sub ;;
+exception Undefined of string ;;
+let rec find entries var =
+  match entries with
+      [] -> raise (Undefined(var))
+    | Entry(name, sub) :: es -> 
+        if (name = var) then sub else find es var ;;
+
+(* Using the analogy of Lisp lists in `dot notation', this converts a
+   `proper' source list (a b c d) to an `improper' list (A B C . D) of
+   chained Seq pairs.  This ensures that the call to `D' doesn't push
+   the contination stack when the Seq instruction is interpreted:
+   there is nothing to do after `D'. *)
+
+let rec compile d src =
+  match src with
+      [] -> Nop
+    | [var] -> find d var 
+    | var :: s -> Seq(find d var, compile d s)
 
 (* Bootstrap dictionary with primitive stack and machine transformers. *)
 let d1 =
@@ -142,19 +162,10 @@ let d1 =
    Entry ("=",      Prim (Binop Equals));
    Entry ("run",    Run)];;
 
-(* FIXME: report `find' errors. *)
-let rec find entries var =
-  match entries with
-      [] -> Abort 
-    | Entry(name, sub) :: es -> 
-        if (name = var) then sub else find es var ;;
-
-let compile entries src = Abort ;;
-
 (* Add highlevel library code *)
 let d2 =
-  [Entry ("if",    compile d1 ["pick", "run"]),
-   Entry ("quare", compile d1 ["dup", "*"])] ;;
+  [Entry ("if",    compile d1 ["choose"; "run"]),
+   Entry ("quare", compile d1 ["dup"; "*"])] ;;
 
 
 
