@@ -3278,5 +3278,179 @@ between AC and PC.  From what I tried in Scheme, an AC can be
 implemented in terms of a PC.  Also the other way around?  They both
 are essentially segments of a control stack.
 
+The update is here[3][4].
+
+A library by Sandro Magi (naasking)[5][6].  Looks like this is the
+place to contiue working.  I missed it last time, since I went to the
+sigfpe[7] article for inspiration.  Currently, libprim/task.c has
+stack copying coroutines.
+
 [1] http://lambda-the-ultimate.org/node/438#comment
 [2] http://www.inf.puc-rio.br/~roberto/docs/corosblp.pdf
+[3] http://lambda-the-ultimate.org/node/2868
+[4] http://citeseerx.ist.psu.edu/viewdoc/summary?doi=10.1.1.58.4017
+[5] http://code.google.com/p/libconcurrency/
+[6] http://higherlogics.blogspot.com/2008/07/coroutines-in-c-redux.html
+[7] http://homepage.mac.com/sigfpe/Computing/continuations.html
+[8] http://www.reddit.com/comments/6s5tt/coroutines_in_c
+
+
+Entry: Making partial continuations abstract
+Date: Sun Aug 23 09:35:40 CEST 2009
+
+So, it looks like it's clear that PCs are the proper abstraction
+mechanism: they are k-stack segments that can be concatenated to the
+current continuation.
+
+There are several ways to approach this.  However, considering that
+the tagging needs to use _linear_ memory, the appropriate way is to
+tag the pairs.  If this is the way to do things, is it possible to
+move other kinds of tagging to a ``snapped'' pair-based encoding?
+
+I.e. instead of Seq(Quote(a), b) use SeqQuote(a, b)
+
+It doesn't look like it: there are several disadvantages to not having
+Quote(...) and Prim(...) as separate instances of a sub (subroutine)
+type.  These are used a lot as a single type and should be bundled, so
+they don't complicate matters.
+
+So what about this:
+
+
+
+and cont  = 
+    Done  
+    | Next of sub * cont
+    | Late of datum * cont
+
+Where 'Late' has the implied semantics of using `interpret' to convert
+datum -> sub.  This would allow certain kinds of cheap, linear
+reflective behaviour to be implemented.
+
+( Note: I'm _only_ trying to work around the construction of a Quote
+type, which is nonlinear.  I.e. it is an optimization that allows the
+use of linear data only. )
+
+
+Entry: Tree permutations
+Date: Sun Aug 23 10:00:42 CEST 2009
+
+It's suspiciously difficult because of the possible type exceptions
+that might mess up temporary storage on the data stack.  So let's
+forget about optimality and write well-factored code.
+
+A linear language specification needs a sublanguage for specifying
+_tree permutations_.  Essentially, once you've figured out which
+pointers permute, the inverse is just the inverse permutation.  This
+needs to be split in two parts:
+
+      - make sure the tree has the structure you expect (type check)
+
+      - perform permutation
+
+Essentially, I want th tree transformation to be safe and guaranteed
+linear in the first place, and correct in the 2nd place (which is then
+easily checked in the terminal).
+
+Probably Knuth has something to say about this.  Also, I ran into a
+tree transformation language a while back.  Forgot where..  Was a
+Belgian guy.
+
+Also, I did something like this before.  Probably hidden somewhere in
+Staapl / Brood code archives..  Poke?
+
+This looks like a nice exercise to write a compiler for.
+
+Can it be done using binary tree rotations?
+
+( Really, I've done all this before..  But where? )
+
+Suppose the stack is this: (L . S)
+
+`cons' will be something like  (L . (d . S)) -> ((d . L) . S)
+then the reverse `uncons' is:  ((d . L) . S) -> (L . (d . S))
+
+They are indeed simple tree rotations.
+
+A left rotation can be transformed into a right rotation as
+LEFT = FLIP * RIGHT * FLIP
+
+Nope!  They are not tree rotations.  They are rotations followd by a
+particular flip:
+
+               LEFT                 FLIP
+(L . (d . S))  --->  ((L . d) . S)  --->   ((d . L) . S)
+
+Anyways, it doesn't seem so difficult to compile such a definition
+into a program that deconstructs the list, and then re-uses the list
+cells to reconstruct it.
+
+This can even be done manually.  I've summarized it in the next post.
+
+
+
+Entry: Writing linear tree transformations
+Date: Sun Aug 23 10:58:56 CEST 2009
+
+/* Implementing (conservative) tree transformations. 
+
+   A tree transformer can be derived using the following manual
+   compilation approach:
+
+       1. Write down the transform in a high level dotted pair form:
+          LHS -> RHS
+    
+       2. Following the structure in LHS, bind the nodes (and
+          deconstructed dot pairs) to C lexical variables using
+          type-checking casts for the pairs.  This makes sure
+          exceptions happen before we mutate anything.  
+
+       3. Rebuild the tree by re-using the pairs to create the dotted
+          tree in the RHS.
+
+   To increase readability, index the pairs from left to right as they
+   appear in the textual form of LHS and RHS.
+
+*/
+
+
+/*  D = datum
+    L = list
+    P = parameter stack
+    
+      (L . (D . P)) -> ((D . L) . P)
+*/
+void pf_cons(pf *pf) {
+    pair *dot0 = CAST(lpair, pf->p);
+    pair *dot1 = CAST(lpair, dot0->cdr);
+    _ L = dot0->car;
+    _ D = dot1->car;
+    _ P = dot1->cdr;
+    pf->p     = VEC(dot1);
+    dot1->car = VEC(dot0);
+    dot0->car = D;
+    dot0->cdr = L;
+    dot1->cdr = P;
+}
+
+/*  D = datum
+    L = list
+    P = parameter stack
+
+      ((D . L) . P) -> (L . (D . P))
+*/
+void pf_uncons(pf *pf) {
+    pair *dot0 = CAST(lpair, pf->p);
+    pair *dot1 = CAST(lpair, dot0->car);
+    _ D = dot1->car;
+    _ L = dot1->cdr;
+    _ P = dot0->cdr;
+    pf->p     = VEC(dot0);
+    dot0->cdr = VEC(dot1);
+    dot0->car = L;
+    dot1->car = D;
+    dot1->cdr = P;
+}
+
+
+

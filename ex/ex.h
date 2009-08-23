@@ -145,5 +145,9 @@ _ _ex_map2_prim(ex *ex, ex_2 fn, _ l_in1, _ l_in2);
 _ _ex_read(ex *ex, port *input_port);
 _ _ex_boot_load(ex *ex,  const char *bootfile);
 
+
+#define VEC(x) (vector_to_object(((void*)(x))))
+
+
 #endif
 

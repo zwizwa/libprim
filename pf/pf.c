@@ -178,17 +178,67 @@ void pf_pd(pf *pf) {  // print dict
     }
 }
 
-void pf_cons(pf *pf) {
-    _ lst   = LCAR(pf->p);  
-    _ prest = _CDR(pf->p);
-    _ ob    = LCAR(prest);
-    _ cell  = pf->p;
 
-    pf->p = prest;
-    _CAR(prest) = cell;
-    _CAR(cell) = ob;
-    _CDR(cell) = lst;
+/* Implementing (conservative) tree transformations. 
+
+   A tree transformer can be derived using the following manual
+   compilation approach:
+
+       1. Write down the transform in a high level dotted pair form:
+          LHS -> RHS
+    
+       2. Following the structure in LHS, bind the nodes (and
+          deconstructed dot pairs) to C lexical variables using
+          type-checking casts for the pairs.  This makes sure
+          exceptions happen before we mutate anything.  
+
+       3. Rebuild the tree by re-using the pairs to create the dotted
+          tree in the RHS.
+
+   To increase readability, index the pairs from left to right as they
+   appear in the textual form of LHS and RHS.
+
+*/
+
+
+/*  D = datum
+    L = list
+    P = parameter stack
+    
+      (L . (D . P)) -> ((D . L) . P)
+*/
+void pf_cons(pf *pf) {
+    pair *dot0 = CAST(lpair, pf->p);
+    pair *dot1 = CAST(lpair, dot0->cdr);
+    _ L = dot0->car;
+    _ D = dot1->car;
+    _ P = dot1->cdr;
+    pf->p     = VEC(dot1);
+    dot1->car = VEC(dot0);
+    dot0->car = D;
+    dot0->cdr = L;
+    dot1->cdr = P;
 }
+
+/*  D = datum
+    L = list
+    P = parameter stack
+
+      ((D . L) . P) -> (L . (D . P))
+*/
+void pf_uncons(pf *pf) {
+    pair *dot0 = CAST(lpair, pf->p);
+    pair *dot1 = CAST(lpair, dot0->car);
+    _ D = dot1->car;
+    _ L = dot1->cdr;
+    _ P = dot0->cdr;
+    pf->p     = VEC(dot0);
+    dot0->cdr = VEC(dot1);
+    dot0->car = L;
+    dot1->car = D;
+    dot1->cdr = P;
+}
+
 
 void pf_output(pf *pf) {
     PUSH_P(_px_link(pf, pf->output));
