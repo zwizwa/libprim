@@ -14,8 +14,6 @@ all: pf $(DEP_OBJ)
 	mzscheme pf_prims.ss $< >$@
 %.h_px_prims: %.c px_prims.ss ../prim-tools.ss
 	mzscheme px_prims.ss $< >$@
-%.h_ex_prims: %.c ../ex/ex_prims.ss ../prim-tools.ss
-	mzscheme ../ex/ex_prims.ss $< >$@
 %.h_load: %.pf ../load.ss
 	mzscheme ../load.ss $< >$@
 
