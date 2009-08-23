@@ -3332,8 +3332,21 @@ datum -> sub.  This would allow certain kinds of cheap, linear
 reflective behaviour to be implemented.
 
 ( Note: I'm _only_ trying to work around the construction of a Quote
-type, which is nonlinear.  I.e. it is an optimization that allows the
-use of linear data only. )
+type, which is nonlinear.  I.e. it is a flattening optimization that
+allows the use of linear data only. )
+
+What about calling 'Late' something like 'Data' or 'Close'.  It really
+doesn't need `interpret' semantics: it can be a pure quote, because
+the call to `interpret' can be inserted directly into the
+continuation.
+
+This looks alright.  I just have to convince myself that this is
+elegant: I.e. that it's really necessary to have 2 quotation
+mechanisms: one part of nonlinear code (enabling data to behave as
+code + be shared), and one part of linearly constructed code (data as
+code, but not shared).  
+
+Let's give it some fermentation..
 
 
 Entry: Tree permutations
