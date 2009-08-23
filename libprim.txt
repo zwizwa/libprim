@@ -3285,6 +3285,10 @@ place to contiue working.  I missed it last time, since I went to the
 sigfpe[7] article for inspiration.  Currently, libprim/task.c has
 stack copying coroutines.
 
+So, what am I going to do?  Stack copying already works, so it could
+be a fall-back.  Implementing one-shot continuations could then be
+implemented as an additional feature.
+
 [1] http://lambda-the-ultimate.org/node/438#comment
 [2] http://www.inf.puc-rio.br/~roberto/docs/corosblp.pdf
 [3] http://lambda-the-ultimate.org/node/2868
@@ -3454,3 +3458,16 @@ void pf_uncons(pf *pf) {
 
 
 
+Entry: peg/leg leaky?
+Date: Sun Aug 23 11:18:05 CEST 2009
+
+Let's clean up the reader.  There is a problem with the peg/leg
+parser: it uses malloc() but no free().  OK for one-shot tools but if
+I'm going to keep using it, it's probably best to handle that
+problem..
+
+Ok, it apparently reuses its buffers, and grows them whenever
+necessary.  I guess that's OK.
+
+So, now I just need to be careful to not upset it.  Probably best to
+use malloc()

@@ -239,6 +239,16 @@ void pf_uncons(pf *pf) {
     dot1->cdr = P;
 }
 
+/*  (A . (B . P)) -> (B . (A . P)) */
+void pf_swap(pf *pf) {
+    pair *dot0 = CAST(lpair, pf->p);
+    pair *dot1 = CAST(lpair, dot0->cdr);
+    _ A = dot0->car;
+    _ B = dot1->car;
+    dot0->car = B;
+    dot1->car = A;
+}
+
 
 void pf_output(pf *pf) {
     PUSH_P(_px_link(pf, pf->output));
