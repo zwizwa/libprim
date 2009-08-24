@@ -2588,7 +2588,8 @@ lists/trees and open/close RC-managed leaf objects).
 Reflection -- here limited to compilation: the translation of source
 code represented as a data object to a representation of composite
 functions that can be executed by the interpreter -- is made practical
-by embedding the linear core machine in a non-linear dynamic language.
+by embedding the linear core machine in a non-linear dynamic
+language.
 
 This composite code is naturally represented as a non-linear data
 structure: it uses sharing (subroutine calls) and can contain cycles
@@ -3348,6 +3349,16 @@ code, but not shared).
 
 Let's give it some fermentation..
 
+EDIT: One thing to note is that the continuation doesn't need this
+whole tail-recursive constraint: it is always consed to the empty
+continuation, which leads to a machine halt state.  So it really _is_
+a pair.
+
+All this is because of subtle differences is between `code', `closure'
+and `continuation'.  (I need a better name for `closure' though.)
+
+
+
 
 Entry: Tree permutations
 Date: Sun Aug 23 10:00:42 CEST 2009
@@ -3484,3 +3495,73 @@ necessary.  I guess that's OK.
 
 So, now I just need to be careful to not upset it.  Probably best to
 use malloc()
+
+
+Entry: Different continuation types
+Date: Mon Aug 24 11:03:53 CEST 2009
+
+Continuing the ideas in [1].  Starting with the following context:
+
+  * A partial application is a binding of data context to code.
+    Suppose you have an object referenced by `ob' and an operation
+    `op' that expects such an object as the first parameter on the
+    stack, the following code would be a closure:
+
+          (ob op)
+
+  * In Joy, code == data.  The PF VM wouldn't need to distinguish
+    pairs for code, partial applications and partial continuations.
+    Their difference is only visible through usage: they are all
+    represented as lists.
+
+  * In PF, these 3 need a different representation because code is
+    nonlinear, while partial applications and continuations are
+    linear.
+    
+
+
+
+
+What about this:
+
+and stack = Empty | Push of datum * stack
+
+and cont  = Done  | Run  of sub   * cont
+                  | Push of datum * cont
+
+
+[1] entry://20090823-093540
+
+
+
+Entry: A Joy machine
+Date: Mon Aug 24 12:21:55 CEST 2009
+
+To get a better idea of how PF differes from Joy, I'm trying to
+implement an interpreter in Ocaml[1].
+
+What surprises me is that this needs reduction, while compiled PF
+doesn't need it.  This makes sense to some degree, but I don't find
+the vocabulary to express it..
+
+I guess I'm surprised that in the PF VM, I didn't need a separate
+representation of redex: there is just primitive application and
+sequencing.  Maybe that's the reason: there is only one kind of
+continuation, while in the Joy VM, there are several, and thus need to
+be distinguished somehow.
+
+Intermediate form: redex + pstack + cont, where cont is a quotation
+(list).  Probably the redex isn't necessary, since the reduction of
+the next term in the program can be performed in-place.  This makes
+the machine simpler.
+
+Also, names in the dictionary map to quotations.
+
+
+
+
+
+
+
+[1] http://zwizwa.be/darcs/libprim/pf/joy.ml
+

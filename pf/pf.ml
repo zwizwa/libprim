@@ -36,14 +36,16 @@
 
 (* -- Code 
 
+Code is either a primitive node or a binary tree of code.  The fringe
+of this binary tree is the sequence of primitives that implement its
+behaviour.
+
 `Run' is not a `prim', because it modifies the continuation directly,
 while a `prim' is limited in scope in that it maps a stack -> value.
 Note that the `binop' type isn't necessary, but it makes the
 interpreter look nicer.  The C version has only one primitive type. *)
 type sub =
-    Run
-  | Nop
-  | Abort      
+    Run | Nop | Abort      
   | Prim    of prim
   | Quote   of datum
   | Seq     of sub * sub (* NL *)
@@ -53,15 +55,14 @@ and binop = Multiply | Minus | Equals
 (* -- Evaluation result *)
 and value = Error of string | OK of stack
 
-(* -- Tagged dynamic data type.  Programmer visible.  In practice this
-      contains additional `leaf objects' with an open/close management
-      protocol, implemented in C. *)
-and datum =
-    False 
-  | True
-  | Number of int
-  | Code   of sub 
-  | Stack  of stack
+(* -- Programmer visible data is represented as a universal (dynamic)
+      type.  In practice this contains additional `leaf objects' with
+      an open/close management protocol, implemented in C. *)
+and datum = 
+    False | True 
+  | Number of int 
+  | Code of sub 
+  | Stack of stack
 
 (* -- Machine state: contains the two linear stacks necessary to
       complete the current computation, or a halting condition. *)
