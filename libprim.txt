@@ -3565,3 +3565,127 @@ Also, names in the dictionary map to quotations.
 
 [1] http://zwizwa.be/darcs/libprim/pf/joy.ml
 
+
+Entry: SEQ -- why encode the byte code as a binary tree instead of nested lists?
+Date: Mon Aug 24 17:16:15 CEST 2009
+
+(From a discussion with Dominikus.)
+
+Why use a binary tree instead of a list to represent byte code?
+
+We start with the assumption that we agree on representing byte code
+as a recursive data type (i.e. as opposed to using low-level arrays
+and pointers/indices), and that we agree on wanting proper tail call
+handling so loops can be expressed as recursive calls without blowing
+up the context stack.
+
+To do this correctly, given a concatenative function specified by the
+code sequence "a b c ... z", the _last_ procedure `z' needs to be
+handled in a special way.  Before `z' is invoked, no context needs to
+be saved because there is nothing to do afterwards.  This is in
+contrast with the function calls `a', `b', `c' ... which need the
+computation to resume and thus require a context save.
+
+Now, in the case of a compiled language, you have two options.  You
+either perform this special treatment of the last element in the list
+at run time, or you perform it at compile time and represent the code
+in a data structure that doesn't need any special case handling by the
+interpreter. 
+
+This is exactly what SEQ does: it provides a data structure which can
+be interpreted without special-casing.  The `handling' of tail calls
+is done at compile time only, by encoding the program as a binary
+tree.  Interpreting the binary tree has only one case: the first
+branch needs context save, while the latter one doesn't.
+
+
+Entry: Rant about reflection
+Date: Mon Aug 24 19:04:41 CEST 2009
+
+PF isn't really so much about Forth.  The name is a historical
+accident..  PF is really about building a simple, safe, dynamically
+typed language with linear memory management.
+
+Let me rant a bit.
+
+Forth is.. well.. Forth :) There isn't much to say about it, except
+that it's a very nice machine model with a hacked-together text
+interpreter that's really too reflective.
+
+Over the last couple of years I've moved more into the direction of
+less reflective code, mostly guided by the PLT Scheme approach to
+domain specific languages.  The attempt in Staapl to ``unroll'' the
+very reflective nature of standard Forth stands as one of the pilars
+of my approach to concatenative languages.
+
+In general the pattern seems to be that using very reflective
+languages leads to very simple language cores and a lot of expressive
+freedom, but in turn makes it easier to write programs that are harder
+to understand.
+
+In a static programming style you put the cleverness in the types and
+other static constraints: something a compiler can check and proove
+consistent.  In a dynamic language the cleverness goes right into the
+core of things: anything can be special-cased.
+
+The main point being that when code bases grow it seems to be
+beneficial to be able to bolt things down in a more static way: huge
+code bases can't be kept in a human head so you need a machine to help
+manage at least part of the consistency.  Adding some static
+properties seems to be the only way to do that effectively.
+
+I'm currently right in the middle of these two paradigms: I realize
+dynamic languages are essential for debugging and exploration, but
+also that static structure is necessary to put more meaning into code
+you write for "later" when it's meaning is no longer in your
+short-term memory.  The holy grail seems to be to find ways to combine
+these two in a productive manner.  Gradual typing seems to be the way
+to go.
+
+
+Entry: JOY: Intensional quotation
+Date: Mon Aug 24 20:32:40 CEST 2009
+
+I need to cleanup some confusion wrt. terminology.  
+
+What I mean, and what I gather from the use of the word `intensional'
+in MetaOcaml publications and in work on Joy[1] is this:
+
+Both intensional and extensional quotations can be _constructucted_ by
+building larger objects that contain other quotations as subparts, but
+only intensional quotations can be _deconstructed_ i.e. interpreted as
+a list.
+
+Because the use of extensional quotation requires two different types
+with different operators, Manfred concludes that ``On the whole, then,
+it does seem preferable to have quotation as an intensional
+constructor.''  
+
+PF (and Scat in Staapl) do it differently to be able to compile
+quotations to a more efficient form.  MetaOcaml does it differently to
+not loose well-typed guarantees.  In general it seems to me that
+extensional quotation is the sensible default: loose reflective object
+language expressivity to gain meta language expressivity.
+
+
+
+
+Now, the confusing part: when I read the wikipedia definition[2], it
+seems to be the other way around:
+
+ * an intensional definition gives the meaning of a term by specifying
+   all the properties required to come to that definition, that is,
+   the necessary and sufficient conditions for belonging to the set
+   being defined.
+
+ * anextensional definition formulates a meaning by specifying its
+   extension, that is, every object that falls under the definition of
+   the concept or term in question.
+
+Huh?
+
+
+[1] http://www.latrobe.edu.au/philosophy/phimvt/joy/j07rrs.html
+[2] http://en.wikipedia.org/wiki/Intensional_definition
+[3] http://ccl.clozure.com/irc-logs/scheme/2008-10/scheme-2008.10.22.txt
+

@@ -1,25 +1,26 @@
 (* Joy virtual machine.
 
-   The point of this code is to illustrate the difference between Joy
-   a highly reflective concatenative language, and PF, an early-bound,
-   linear language with limited reflection.
+   The point of this code is to illustrate the difference between Joy,
+   a highly reflective concatenative language with intensional[1]
+   quotations, and PF, an early-bound, linear language with
+   extensional quotation.
 
    In Joy, lists, code, partial applications and continuations are
-   represented using the same list data structure (= Intensional
-   representation).  In PF, all these are extensional.  It is possible
-   to convert lists to code and partial applications, but not the
-   other way around.  I.e. these are all abstract objects, which
-   allows them to be compiled (reduced before the program runs) and
-   provide some guarantees about the behaviour of a program
-   (i.e. linear memory usage).
+   represented using the same list data structure (= intensional
+   representation).
+
+   In PF, all these constructs are extensional.  It is possible to
+   convert lists to code and partial applications, but not the other
+   way around.
 
    The Joy interpreter state machine is represented by a parameter
-   stack and a continuation.  Note that because there is only one kind
-   of continuation(as opposed to Scheme i.e.) it is possible to allow
-   the continuation to _be_ a quotation.  In CEK machine terminology:
-   the current reducable expression (C) and the continuation (K) are
-   the same thing.  Also, there is only a global environment (E).
+   stack and a continuation.  Because there is only _one kind_ of
+   continuation (code sequencing) it is possible to allow the
+   continuation to _be_ a quotation.  (This is in contrast to
+   i.e. Scheme, which has different types of ontinuation frames for
+   sequencing, parameter evaluation, set!, ...)
 
+   [1] http://www.latrobe.edu.au/philosophy/phimvt/joy/j07rrs.html
 *)
 
 
@@ -29,7 +30,7 @@
 (* Note that the Joy specification doesn't provide an operational
    semantics.  It provides just a (high level) denotational semantics.
 
-   This VM allows the programmer to see at least some part of the
+   This VM allows the programmer to see a little bit more of the
    operational side, by exposing these high level data primitives that
    are part of the implementation ... *)
 
@@ -40,12 +41,13 @@ type datum =
   | List   of (datum list)
 
 (* ... but not the low level code primitives ... *)
+
 and prim     = Run | Nop | Abort | Stackop of stackop
 and stackop  = Dup | Drop | Choose | Binop of binop
 and binop    = Multiply | Minus | Equals
 
 (* ... nor the intermediate state of the interpreter.  However, the
-   parameter stack and continuation are represented as `list'
+   parameter stack and continuation are represented as list
    structures, and can be replaced or modified by the programmer
    through the appropriate impure primitive functions.  *)
 
@@ -60,31 +62,27 @@ and definition =
       
 
 
-(* In a concatenative language, all code can be `fully expanded' to a
-   possibly infinite sequence of primitive functions.
+(* In a purely concatenative language, all code can be fully expanded
+   to a possibly infinite sequence of primitive functions.  A
+   semantics can then be added by ``doing something'' with this
+   sequence.
 
-   An interpreter for a concatenative language takes a particular data
-   structure and turns it into an (infinite) sequence of primitive
-   functions, which can then be applied to a stack (stack machine
-   implementation), or reduced according to a set of primitive
-   reduction rules (a rewriting machine implementation).
+   - a stack implementation will take each function and apply it to a
+     stack data structure (or more generally a state structure if
+     continuation modification is allowed).
 
-   In Joy, code is represented by quotations which can contain symbols
-   that refer to quotations stored in a dictionary.  We call such a
-   symbol -> quotation reference an `abstraction'.
-
-   In this stack machine VM, evaluation of code boils down to
-   recursively expanding the first element in a quotation until it is
-   a primitive function and executing it, continuing with the next.
-
-   In PF, the expansion happens in two steps.  Compilation converts an
-   environment and a symbolic code tree into a binary graph which is
-   then flattened into a sequence of primitives at run time.
-
+   - a rewriting engine could transform the stream / list of
+     primitives into an irreducible stream / list.
 *) 
 
-exception Error of string ;;
+exception InvalidRunState of state ;;
 exception InvalidStackop of stackop * datum list;;
+
+(* In this stack machine VM, evaluation of code boils down to
+   recursively expanding the first element in a quotation until it is
+   a primitive function and executing it, continuing with the next.
+   There are 2 places where this function is called: after resolving a
+   symbol to a quotation, and when interpreting the `i' operation. *)
 
 let rec expand quot k =
   match quot with
@@ -111,8 +109,12 @@ let op prim state =
   match (prim,state) with
       (Run, State(List(quot) :: stk, k)) -> State(stk, expand quot k)
     | (Stackop(op), State(stk, k)) -> State(stackop op stk, k)
-    | _ -> raise (Error "invalid argument (run)")
+    | _ -> raise (InvalidRunState state)
 ;;
+
+(* In Joy, code is represented by quotations which can contain symbols
+   that refer to quotations stored in a dictionary.  We call such a
+   symbol -> quotation reference an `abstraction'. *)
 
 let rec find defs var =
   match defs with
@@ -120,6 +122,9 @@ let rec find defs var =
     | Def(name, code) :: es -> 
         if (name = var) then code else find es var ;;
 
+(* The interpreter step performs expansions (symbol -> quotation list)
+   and contractions: application of primitive functions to the machine
+   state. *)
 let step env state =
   match state with
       Halt(res) -> Halt (res)
@@ -136,15 +141,16 @@ let step env state =
 
 
 
-(* Start execution with an empty parameter stack and a continuation
-   frame containing a single subroutine. *)
-let run env code =
+(* Execution starts with an empty parameter stack and a continuation
+   frame containing a single quotation.  The result of the computation
+   is the remaining parameter stack. *)
+let run env quot =
   let rec loop state =
     match state with
         Halt (res) -> res 
       | s -> loop (step env s)
   in
-    loop (State([], code))
+    loop (State([], quot))
 ;;
 
 
