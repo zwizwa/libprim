@@ -70,9 +70,19 @@ and state =
     Halt  of value 
   | State of stack * cont
 
-(* -- Parameter and continuation stacks.  Isomorphic, but not equal. *)
-and stack = Empty | Push of datum * stack
-and cont  = Done  | Next of sub   * cont
+(* -- Parameter stack. *)
+and stack = 
+    Empty 
+  | Push of datum * stack
+
+
+(* -- Continuation stack.  There are two kinds of frames.  `Next' is
+      used for `Seq' continations, while `Data' is used for `Dip'
+      continuations or construction of partial applications. *)
+and cont  = 
+    Done
+  | Next of sub   * cont
+  | Data of datum * cont
 ;;
 
 
@@ -107,6 +117,7 @@ let step s =
   match s with
       Halt(res) -> Halt (res)
     | State(stk, Done) -> Halt (OK(stk))
+    | State(stk, Data(dat, k)) -> State(Push(dat, stk), k)
     | State(stk, Next(sub, k)) ->
         (match sub with
              Nop -> State(stk, k)

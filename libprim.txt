@@ -3509,10 +3509,10 @@ Continuing the ideas in [1].  Starting with the following context:
 
           (ob op)
 
-  * In Joy, code == data.  The PF VM wouldn't need to distinguish
-    pairs for code, partial applications and partial continuations.
-    Their difference is only visible through usage: they are all
-    represented as lists.
+  * In Joy, code == data.  Its VM wouldn't need to distinguish pairs
+    for code, partial applications and partial continuations.  Their
+    difference is only visible through usage: they are all represented
+    as lists.
 
   * In PF, these 3 need a different representation because code is
     nonlinear, while partial applications and continuations are
@@ -3524,11 +3524,21 @@ Continuing the ideas in [1].  Starting with the following context:
 
 What about this:
 
-and stack = Empty | Push of datum * stack
+and stack = Empty | Next of datum * stack
 
-and cont  = Done  | Run  of sub   * cont
-                  | Push of datum * cont
+and cont  = Done  | Next of sub   * cont
+                  | Data of datum * cont
 
+Wait.  There is already a mechanism to construct partial applications
+as continuations: `dip' followed by `run'.
+
+The question is then: what is best?  Explicit tagging (using different
+continuation frame types) or ``prefix parsing''.
+
+It seems to me that tagging is better behaved: in that case each frame
+has its meaning isolated, and doesn't depend on the meaning of the
+previous frame.  So be it: tagged frames.  This also makes `dip'
+simpler.
 
 [1] entry://20090823-093540
 
