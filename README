@@ -1,0 +1,26 @@
+The libprim project's Scheme and PF interpreters.
+
+Note: this is still full of scaffolding.
+No ./configure script yet
+
+Building
+--------
+
+Type "make" at the top level directory.
+This produces sc/scheme and sc/pf.
+
+Both applications need to run in their own directory to find their boot scripts.
+
+
+Dependencies
+------------
+
+The usual (GNU make + GCC) plus
+
+`mzscheme' for bootstrap code generation
+http://plt-scheme.org
+
+`leg' for the s-expression parser 
+http://piumarta.com/software/peg/
+
+
