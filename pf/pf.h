@@ -11,14 +11,13 @@ typedef struct {
     /* Linear memory. */
     _ p;    // parameter stack
     _ k;    // continuation
-    _ free;  // free list
+    _ freelist;
     _ output;
 
     /* Graph memory. */
     // _ ip;
     _ ip_repl;
     _ ip_abort;
-    _ ip_undip;
     _ ip_prompt_tag;
     _ dict;
 
@@ -75,7 +74,8 @@ void _px_interpret_list(pf *pf, _ expr);
 #define EVAL(expr)    _px_top_interpret_list((pf*)EX, expr)
 
 
-#define PUSH_K(x)  pf->k = LINEAR_CONS((x), pf->k)
+#define PUSH_K_NEXT(x)  pf->k = LINEAR_NEXT((x), pf->k)
+#define PUSH_K_DATA(x)  pf->k = LINEAR_CONS((x), pf->k)
 #define DROP_K()   _px_drop(pf, &pf->k)
 
 #define PUSH_P(x)  _px_push(pf, (x))

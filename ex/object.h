@@ -59,7 +59,8 @@ static inline unsigned long VECTOR_TAG(unsigned long x) {
 #define TAG_VECTOR    VECTOR_TAG(0)   /* The flat vector. */
 #define TAG_PAIR      VECTOR_TAG(1)   /* The CONS cell. */
 #define TAG_AREF      VECTOR_TAG(2)   /* Reference with finalization. */
-#define TAG_LPAIR     VECTOR_TAG(3)   /* Linear pair. */
+#define TAG_LPAIR     VECTOR_TAG(3)   /* Linear data list pair. */
+#define TAG_LNEXT     VECTOR_TAG(4)   /* Linear code continuation frame. */
 
 // 3-7: reserved
 #define GC_VECTOR_USER_START 8
@@ -80,6 +81,7 @@ typedef struct {
 } pair;
 
 typedef pair lpair;
+typedef pair lnext;
 
 
 /* Conversion from tagged objects to one of the 4 C data types.  When
@@ -168,6 +170,13 @@ static inline unsigned long vector_to_flags(vector *v) {
 static inline void vector_set_flags(vector* v, long flags){
     v->header |= flags;
 }
+// note: vector_set_flags only performs bitwise OR
+static inline void vector_reset_flags(vector *v, long flags) {
+    v->header &= GC_VECTOR_TAG_MASK;
+    v->header |= flags;
+}
+
+
 static inline unsigned long object_get_vector_flags(object o){
     vector *v = object_to_vector(o);
     if (!v) return -1;
@@ -194,9 +203,10 @@ static inline void *object_to_struct(object ob, long tag) {
 #define _CDAR(o) _CDR(_CAR(o))
 #define _CADDR(o) _CAR(_CDDR(o))
 
-DEF_STRUCT(pair,  TAG_PAIR)
-DEF_STRUCT(lpair, TAG_LPAIR)
-DEF_STRUCT(aref,  TAG_AREF)
+DEF_STRUCT(pair,   TAG_PAIR)
+DEF_STRUCT(lpair,  TAG_LPAIR)
+DEF_STRUCT(lnext,  TAG_LNEXT)
+DEF_STRUCT(aref,   TAG_AREF)
 // DEF_STRUCT(box,  TAG_BOX)
 
 

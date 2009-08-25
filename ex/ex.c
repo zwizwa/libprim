@@ -47,10 +47,15 @@ object _ex_write(ex *ex, object o) {
         if (TAG_VECTOR == flags) { 
             return _ex_write_vector(ex, "", v);
         }
-        if ((TAG_PAIR == flags) || (TAG_LPAIR == flags)) {
+
+        // FIXME: handle one type consed to another!
+        if ((TAG_PAIR == flags) || 
+            (TAG_LPAIR == flags) ||
+            (TAG_LNEXT == flags)) {
             char *LP,*RP;
             if ((TAG_PAIR == flags)) {LP="("; RP=")";}
             else if ((TAG_LPAIR == flags)) {LP="["; RP="]";}
+            else if ((TAG_LNEXT == flags)) {LP="<"; RP=">";}
 
             port_printf(p, LP);
             for(;;) {
@@ -60,8 +65,8 @@ object _ex_write(ex *ex, object o) {
                     port_printf(p, RP);
                     return VOID;
                 }
-                if (!(object_to_pair(o) ||
-                      object_to_lpair(o))) {
+                if (!(object_to_vector(o) &&
+                      (flags == object_get_vector_flags(o)))) {
                     port_printf(p, " . ");
                     ex->write(ex, o);
                     port_printf(p, RP);

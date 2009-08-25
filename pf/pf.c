@@ -50,67 +50,79 @@ void _px_run(pf *pf) {
   loop:
     /* Interpeter loop. */
     for(;;) {
+        pair *rs;
+
+        /* Quote linear datum (Implement the `dip' continuation.) */
+        rs = object_to_lpair(pf->k);
+        if (unlikely(rs)) {
+            PUSH_P(rs->car);
+            rs->car = VOID;
+            DROP_K();
+        }
 
         /* Consume next instruction: pop K. */
-        pair *rs = object_to_lpair(pf->k);
-        if (unlikely(!rs)) goto halt;
-        _ ip = rs->car;
-        DROP_K();
-
-        /* Unpack code sequence, push K. */
-        if ((s = object_to_seq(ip))) {
-            PUSH_K(s->next);
-            PUSH_K(s->now);
-        }
-        /* Interpret primitive code or data. */
         else {
-            /* Primitive */
-            if ((p = object_to_prim(ip, &pf->m))) {
-                pf_prim fn = (pf_prim)p->fn;
-                int ex;
-                pf->m.r.prim = p;
-                pf->m.prim_entries++;
-                switch(ex = setjmp(pf->m.r.step)) {
-                case 0:
-                    fn(pf);
-                    break;
-                default:
-                    pf->m.error_tag = SYMBOL("unknown-primitive-exception");
-                    pf->m.error_arg = integer_to_object(ex);
-                case EXCEPT_ABORT:
-                    // TAG + ARG are NONLINEAR
-                    PUSH_P(COPY_FROM_GRAPH(pf->m.error_arg));
-                    PUSH_P(COPY_FROM_GRAPH(pf->m.error_tag));
-                    PUSH_K(pf->ip_abort);
-                }
-                pf->m.prim_entries--;
+
+            rs = object_to_lnext(pf->k);
+            if (unlikely(!rs)) goto halt;
+            _ ip = rs->car;
+            DROP_K();
+            
+            /* Unpack code sequence, push K. */
+            if ((s = object_to_seq(ip))) {
+                PUSH_K_NEXT(s->next);
+                PUSH_K_NEXT(s->now);
             }
-            /* Quoted object */
-            else if ((q = object_to_quote(ip))) {
-                _ ob;
-                if ((l = object_to_lin(q->object))) {
-                    /* Unpack + link linear objects */
-                    ob = _px_link(pf, l->object);
-                }
-                else {
-                    /* All other objects behave as constants to the
-                       linear memory manager. */
-                    ob = q->object;
-                }
-                PUSH_P(ob);
-            }
-            /* The empty program. */
-            else if (NOP == ip) {
-            }
-            /* Result of popping an empty continuation. */
-            else if (HALT == ip) {
-                goto halt;
-            }
-            /* Unknown non-seq. */
+            /* Interpret primitive code or data. */
             else {
-                PUSH_P(COPY_FROM_GRAPH(ip));
-                PUSH_P(SYMBOL("unknown-instruction"));
-                PUSH_K(pf->ip_abort);
+                /* Primitive */
+                if ((p = object_to_prim(ip, &pf->m))) {
+                    pf_prim fn = (pf_prim)p->fn;
+                    int ex;
+                    pf->m.r.prim = p;
+                    pf->m.prim_entries++;
+                    switch(ex = setjmp(pf->m.r.step)) {
+                    case 0:
+                        fn(pf);
+                        break;
+                    default:
+                        pf->m.error_tag = SYMBOL("unknown-primitive-exception");
+                        pf->m.error_arg = integer_to_object(ex);
+                    case EXCEPT_ABORT:
+                        // TAG + ARG are NONLINEAR
+                        PUSH_P(COPY_FROM_GRAPH(pf->m.error_arg));
+                        PUSH_P(COPY_FROM_GRAPH(pf->m.error_tag));
+                        PUSH_K_NEXT(pf->ip_abort);
+                    }
+                    pf->m.prim_entries--;
+                }
+                /* Quoted object */
+                else if ((q = object_to_quote(ip))) {
+                    _ ob;
+                    if ((l = object_to_lin(q->object))) {
+                        /* Unpack + link linear objects */
+                        ob = _px_link(pf, l->object);
+                    }
+                    else {
+                        /* All other objects behave as constants to the
+                           linear memory manager. */
+                        ob = q->object;
+                    }
+                    PUSH_P(ob);
+                }
+                /* The empty program. */
+                else if (NOP == ip) {
+                }
+                /* Result of popping an empty continuation. */
+                else if (HALT == ip) {
+                    goto halt;
+                }
+                /* Unknown non-seq. */
+                else {
+                    PUSH_P(COPY_FROM_GRAPH(ip));
+                    PUSH_P(SYMBOL("unknown-instruction"));
+                    PUSH_K_NEXT(pf->ip_abort);
+                }
             }
         }
     }
@@ -168,7 +180,7 @@ void pf_ps(pf *pf) {  // print stack
 void pf_pm(pf *pf) {  // print machine
     _ex_printf(EX, "P: "); POST_STACK(pf->p);
     _ex_printf(EX, "K: "); POST(pf->k);
-    _ex_printf(EX, "F: %d\n", object_to_integer(LENGTH(pf->free)));
+    _ex_printf(EX, "F: %d\n", object_to_integer(LENGTH(pf->freelist)));
 }
 void pf_pd(pf *pf) {  // print dict
     _ E = pf->dict;
@@ -368,25 +380,21 @@ void pf_run(pf *pf){
         _TOP = VOID; _DROP();
     }
     else {
-        PUSH_K(POP_TO_GRAPH);
+        PUSH_K_NEXT(POP_TO_GRAPH);
     }
 }
 void pf_dip(pf *pf) {
-    FROM_TO(p,k);
-    PUSH_K(pf->ip_undip);
-    _RUN();
+    PUSH_K_DATA(TOP);
+    _TOP = VOID;
+    _DROP();
 }
-void pf_undip(pf *pf) {
-    FROM_TO(k,p);
-}
-
 
 /* Delimited continuations. */
 void pf_prompt_tag(pf *pf) { 
 /* This primitive's continuation frame is used as a marker. */
 }
 void pf_reset(pf *pf) {
-    PUSH_K(pf->ip_prompt_tag);
+    PUSH_K_NEXT(pf->ip_prompt_tag);
     _RUN();
 }
 void pf_shift(pf *pf) {
@@ -428,10 +436,9 @@ void pf_bang_abort(pf *pf) {
 void pf_bye(pf *pf) {
     pf->p = NIL;
     pf->k = NIL;
-    pf->free = NIL;
+    pf->freelist = NIL;
     pf->dict = NIL;
     pf->output = NIL;
-    pf->ip_undip = HALT;
     pf->ip_abort = HALT;
     pf->ip_repl  = HALT;
     pf_gc(pf); // does not return
@@ -447,12 +454,11 @@ static void _px_mark_roots(pf *pf, gc_finalize fin) {
     printf(";; gc\n");
     MARK(p);
     MARK(k);
-    MARK(free);
+    MARK(freelist);
     MARK(output);
     // MARK(ip);
     MARK(ip_abort);
     MARK(ip_repl);
-    MARK(ip_undip);
     MARK(dict);
     if (fin) { 
         fin(GC); 
@@ -528,7 +534,7 @@ pf* _px_new(void) {
 
     // Machine state
     pf->p = NIL;
-    pf->free = NIL;
+    pf->freelist = NIL;
     pf->dict = NIL;
     pf->k = NIL;
     pf->ip_abort = HALT;
@@ -552,7 +558,6 @@ pf* _px_new(void) {
     pf->dict = ENV_DEF(pf->dict, SYMBOL("repl"), repl);
     pf->ip_repl  = repl;
     pf->ip_abort = SEQ(WORD("print-error"), WORD("abort-repl"));
-    pf->ip_undip = WORD("undip");
     pf->ip_prompt_tag = WORD("prompt-tag");
     // Highlevel bootstrap
     _px_interpret_list(pf, _ex_boot_load(EX, "boot.pf"));
@@ -563,13 +568,13 @@ pf* _px_new(void) {
    compiles it to code (this performs allocation from GC pool -- top
    eval is not linear), and executes this code until machine halt.  */
 void _px_interpret_list(pf *pf, _ nl_expr){
-    PUSH_K(COMPILE_PROGRAM(nl_expr));
+    PUSH_K_NEXT(COMPILE_PROGRAM(nl_expr));
     nl_expr = NIL;
     _px_run(pf);
 }
 /* Find and run.  This is linear if the referenced code is. */
 void _px_interpret_symbol(pf *pf, _ sym) {
-    PUSH_K(FIND(pf->dict, sym));
+    PUSH_K_NEXT(FIND(pf->dict, sym));
     _px_run(pf);
 }
 void _px_command(pf *pf, const char *str) {

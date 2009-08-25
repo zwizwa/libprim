@@ -3743,3 +3743,12 @@ Entry: Metacircular interpretation: Maxwell's equiations of software
 Date: Tue Aug 25 10:27:08 CEST 2009
 
 [1] http://arcfn.com/2008/07/maxwells-equations-of-software-examined.html
+
+
+Entry: Next
+Date: Tue Aug 25 10:37:26 CEST 2009
+
+Implement the 2-type continuation frames in C.  This requires two
+kinds of linear cells: data cells (list cells) and contiuation
+k-cells.
+

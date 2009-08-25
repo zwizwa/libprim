@@ -100,27 +100,33 @@ _ px_display(pf *pf, _ ob) {
 
  */
 
-/* Allocate a new linked list of pairs. */
-_ px_new_pair(pf *pf) {
-    return LCONS(VOID, NIL);
-}
 /* Allocate/reuse cell. */
 void _px_need_free(pf *pf) {
-    if (unlikely(NIL == pf->free)) pf->free = px_new_pair(pf);
+    if (unlikely(NIL == pf->freelist)) 
+        pf->freelist = LCONS(VOID,NIL);
 }
 _ px_linear_cons(pf *pf, _ car, _ cdr) {
     _px_need_free(pf);
-    _ rv = pf->free;
-    pf->free = _CDR(pf->free);
+    _ rv = pf->freelist;
+    pf->freelist = _CDR(pf->freelist);
     _CAR(rv) = car;
     _CDR(rv) = cdr;
     return rv;
 }
+
+_ px_linear_next(pf *pf, _ car, _ cdr) {
+    _ ob = px_linear_cons(pf, car, cdr);
+    vector *v = object_to_vector(ob);
+    vector_reset_flags(v, TAG_LNEXT);
+    return ob;
+}
+
+
 /* Unlink will RC manage objects, and move pairs to the freelist. */
 static _ _px_unlink_pop(pf *pf, _ lst) {
     _ ob = MOVE(_CAR(lst), VOID);
     _px_unlink(pf, ob);
-    _px_from_to(pf, &lst, &pf->free);
+    _px_to_free(pf, &lst);
     return lst;
 }
 static void _rc_unlink(rc *x) {
@@ -137,7 +143,8 @@ void _px_unlink(pf* pf, _ ob) {
         _rc_unlink(x);
     }
     /* Lists: recurse. */
-    else if (object_to_lpair(ob)) {
+    else if (object_to_lpair(ob) ||
+             object_to_lnext(ob)) {
         ob = _px_unlink_pop(pf, ob);
         goto again;
     }
@@ -153,6 +160,10 @@ _ _px_link(pf *pf, _ ob) {
     }
     else if ((p = object_to_lpair(ob))) {
         return LINEAR_CONS(_px_link(pf, p->car),
+                           _px_link(pf, p->cdr));
+    }
+    else if ((p = object_to_lnext(ob))) {
+        return LINEAR_NEXT(_px_link(pf, p->car),
                            _px_link(pf, p->cdr));
     }
     else return ob;
@@ -189,6 +200,11 @@ _ px_copy_to_graph(pf *pf, _ ob) {
     
         return CONS(COPY_TO_GRAPH(p->car),
                     COPY_TO_GRAPH(p->cdr));
+    }
+    /* FIXME: Seq code contination frames are currently not
+       representable outside the VM. */
+    else if ((p = object_to_lnext(ob))) {
+        return ERROR("lnext", ob);
     }
     else return ob;
 }

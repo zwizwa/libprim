@@ -25,6 +25,7 @@ void _px_unlink(pf* pf, _ ob);
 _ _px_link(pf *pf, _ ob);
 _ _px_top(pf *pf);
 
+// don't use this to manipulate the freelist directly.
 static inline void _px_from_to(pf *pf, _ *from, _ *to) {
     if (unlikely(NIL == *from)) px_error_underflow(pf);
     _ pair =  *from;
@@ -32,9 +33,13 @@ static inline void _px_from_to(pf *pf, _ *from, _ *to) {
     _CDR(pair) = *to;
     *to = pair;
 }
+static inline void _px_to_free(pf *pf, _ *from) {
+    _px_from_to(pf, from, &pf->freelist);
+    vector_reset_flags(object_to_vector(pf->freelist), TAG_LPAIR);
+}
 static inline void _px_drop(pf *pf, _ *stack) {
-    _px_from_to(pf, stack, &pf->free);  // this catches underflow errors
-    _ ob = MOVE(_CAR(pf->free), VOID);
+    _px_to_free(pf, stack);  // this catches underflow errors
+    _ ob = MOVE(_CAR(pf->freelist), VOID);
     _px_unlink(pf, ob);
 }
 static inline void _px_push(pf *pf, _ ob) {

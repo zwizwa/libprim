@@ -1,7 +1,7 @@
 ;; -*- scheme -*- 
 ;; Bootstrap using s-expression syntax.
 
-('((i . (compile run))) define
+( ;; '((i . (compile run))) define
  
  "libprim/PF" display cr
  repl)
