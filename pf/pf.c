@@ -372,7 +372,9 @@ void pf_compile(pf *pf)   { PUSH_P(COMPILE_PROGRAM(POP_TO_GRAPH)); }
 
 void pf_run(pf *pf){ 
     _ v = TOP;
-    if (object_to_lpair(v)) {
+    if (object_to_lpair(v) || 
+        object_to_lnext(v)) {
+
         /* This makes linear lists behave as programs.  Note that this
            pushes a partial continuation: it does not replace a full
            one! */
@@ -403,7 +405,7 @@ void pf_reset(pf *pf) {
 static inline pair *_px_kframe(pf *pf, _ ob) {
     pair *p = object_to_lpair(ob);
     if (!p) p = object_to_lnext(ob);
-    if (unlikely(!p)) { TYPE_ERROR(ob); }
+    if (unlikely(!p)) { ERROR("missing-prompt", VOID); }
     return p;
 }
 
@@ -412,7 +414,7 @@ void pf_shift(pf *pf) {
     _ *pk = &(_CAR(pf->p));
     pair *p = _px_kframe(pf, pf->k);
     /* Move cells from pk->k to k upto the prompt tag. */
-    while(p->car != pf->ip_prompt_tag) {
+    while(p && (p->car != pf->ip_prompt_tag)) {
         *pk = pf->k;
         pf->k = p->cdr;
         pk = &_CDR(*pk);

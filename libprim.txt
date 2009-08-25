@@ -3754,3 +3754,13 @@ k-cells.
 
 Got it..  let's see if `dip' works.
 
+OK.
+
+shift/reset now also work again.
+
+The implementation (using linear pairs for data and `next' frames for
+sequence continuations) is a bit messy.  Maybe there is something to
+say about doing it like this..  Too reflective?  Let's keep it like it
+is and see if there are any inconsistencies.
+
+

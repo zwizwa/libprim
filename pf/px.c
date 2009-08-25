@@ -204,7 +204,9 @@ _ px_copy_to_graph(pf *pf, _ ob) {
     /* FIXME: Seq code contination frames are currently not
        representable outside the VM. */
     else if ((p = object_to_lnext(ob))) {
-        return ERROR("lnext", ob);
+        _ex_printf(EX, "WARNING: lnext conversion\n");
+        return CONS(COPY_TO_GRAPH(p->car),
+                    COPY_TO_GRAPH(p->cdr));
     }
     else return ob;
 }
