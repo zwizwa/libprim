@@ -384,9 +384,11 @@ void pf_run(pf *pf){
     }
 }
 void pf_dip(pf *pf) {
+    _SWAP();
     PUSH_K_DATA(TOP);
     _TOP = VOID;
     _DROP();
+    _RUN();
 }
 
 /* Delimited continuations. */
@@ -397,18 +399,26 @@ void pf_reset(pf *pf) {
     PUSH_K_NEXT(pf->ip_prompt_tag);
     _RUN();
 }
+
+static inline pair *_px_kframe(pf *pf, _ ob) {
+    pair *p = object_to_lpair(ob);
+    if (!p) p = object_to_lnext(ob);
+    if (unlikely(!p)) { TYPE_ERROR(ob); }
+    return p;
+}
+
 void pf_shift(pf *pf) {
     PUSH_P(NIL);
     _ *pk = &(_CAR(pf->p));
-    pair *p = CAST(lpair, pf->k);
+    pair *p = _px_kframe(pf, pf->k);
     /* Move cells from pk->k to k upto the prompt tag. */
     while(p->car != pf->ip_prompt_tag) {
         *pk = pf->k;
         pf->k = p->cdr;
         pk = &_CDR(*pk);
-        p = CAST(lpair, pf->k);
+        *pk = NIL; // keep data consistency: next might throw error
+        p = _px_kframe(pf, pf->k);
     }
-    *pk = NIL;
 }
 
 /* Full continuations.  These aren't really so important with
