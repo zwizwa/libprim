@@ -3679,23 +3679,83 @@ language expressivity to gain meta language expressivity.
 
 
 
-
-Now, the confusing part: when I read the wikipedia definition[2], it
-seems to be the other way around:
-
- * an intensional definition gives the meaning of a term by specifying
-   all the properties required to come to that definition, that is,
-   the necessary and sufficient conditions for belonging to the set
-   being defined.
-
- * anextensional definition formulates a meaning by specifying its
-   extension, that is, every object that falls under the definition of
-   the concept or term in question.
-
-Huh?
-
-
 [1] http://www.latrobe.edu.au/philosophy/phimvt/joy/j07rrs.html
 [2] http://en.wikipedia.org/wiki/Intensional_definition
 [3] http://ccl.clozure.com/irc-logs/scheme/2008-10/scheme-2008.10.22.txt
+
+
+Entry: rewriting -> Factor list
+Date: Tue Aug 25 08:00:05 CEST 2009
+
+Hello list,
+
+I guess this is mostly for Daniel, but anyone else of course feel free 
+to chime in...
+
+I'm trying to get a better idea about rewriting systems for
+concatenative languages, particularly in the area of specification of
+peephole optimizations.  It's been on my mind for a while, but I've
+always side-stepped any non-deterministic computations.  I.e. in
+Staapl[1], the PIC18 code generator[2] is written using an eager
+pattern matching approach, essentiall re-interpreting already
+generated machine code as stack machine code that can then be
+partially evaluated together with the currently compiling primitive
+operation.  (Explained here[3] in some detail).
+
+I've always been suspicious that this formulation, while it works well
+in practice and has a certain elegance, is a special case of a more
+general, non-confluent rewriting system.  
+
+It seems to me that if there are any interesting optimizations to
+make, they are not going to be unique and depend on which path through
+the reduction rules is used to get to a particular irreducible
+expression.
+
+And then it stops.
+
+I have some intuition about reduction machines, as long as they
+compute a unique solution (lambda calculus w. strict eval (CEK
+machine) and lazy eval using graph reduction, ...) but I'm not sure
+how to view the other cases where you have a bunch of rewrite rules
+and you ask the compiler to pick a sequence of reduction rule
+applications that leads to the ``most optimal'' reduction under some
+kind of cost function (for PIC18 this would be the machine code
+length).
+
+I hope this makes some sense..
+Any ideas on this welcome.
+
+Cheers,
+Tom
+
+[1] http://zwizwa.be/staapl
+[2] http://zwizwa.be/darcs/staapl/staapl/pic18/pic18-unit.ss
+[3] http://zwizwa.be/archive/staapl.html
+
+
+Entry: Real-time GC
+Date: Tue Aug 25 08:34:16 CEST 2009
+
+PF uses linear core memory management and nonlinear code memory
+management.
+
+With linear memory management I mean that the machine's run-time uses
+_only_ a tree data structure.  SEQ encodes all the rest, and is the
+basic data structure of the nonlinear memory.  (Essentially, SEQ is
+only constructed at compile time: during run-time the code structure
+is constant.)
+
+The reason for this is that (in my understanding), "real" real-time 
+tracing garbage collection doesn't exist.  It exists for memory-only GC, 
+but in practice you also want to manage much more scarce hardware
+resources which in the light of a real-time GC _still_ require full
+non-bounded collection steps.
+
+If you replace a tracing GC with refcount management system, then you
+can have real-time GC, given that you realize GC cost is proportional
+to the _size_ of data structures you destroy.  In practice, this isn't
+a problem.  An embedded system usually has a loop with very
+predictable data usage.  The case where you destroy a single data
+structure containing a large amount of objects is rare.
+
 
