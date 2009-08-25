@@ -3656,10 +3656,6 @@ to go.
 Entry: JOY: Intensional quotation
 Date: Mon Aug 24 20:32:40 CEST 2009
 
-I need to cleanup some confusion wrt. terminology.  
-
-What I mean, and what I gather from the use of the word `intensional'
-in MetaOcaml publications and in work on Joy[1] is this:
 
 Both intensional and extensional quotations can be _constructucted_ by
 building larger objects that contain other quotations as subparts, but
@@ -3667,9 +3663,9 @@ only intensional quotations can be _deconstructed_ i.e. interpreted as
 a list.
 
 Because the use of extensional quotation requires two different types
-with different operators, Manfred concludes that ``On the whole, then,
-it does seem preferable to have quotation as an intensional
-constructor.''  
+with different operators, Manfred concludes[1] that ``On the whole,
+then, it does seem preferable to have quotation as an intensional
+constructor.''
 
 PF (and Scat in Staapl) do it differently to be able to compile
 quotations to a more efficient form.  MetaOcaml does it differently to
