@@ -3547,33 +3547,17 @@ simpler.
 Entry: A Joy machine
 Date: Mon Aug 24 12:21:55 CEST 2009
 
-To get a better idea of how PF differes from Joy, I'm trying to
-implement an interpreter in Ocaml[1].
+In [1] you find an intensional Joy machine with continuations
+implemented as intensional quotations constructed at run time as the
+machine performs name -> quotation dereference.
 
-What surprises me is that this needs reduction, while compiled PF
-doesn't need it.  This makes sense to some degree, but I don't find
-the vocabulary to express it..
+This is an example of how a reflective feedback loop (turning data
+into behaviour) can make a language interpreter really simple.
 
-I guess I'm surprised that in the PF VM, I didn't need a separate
-representation of redex: there is just primitive application and
-sequencing.  Maybe that's the reason: there is only one kind of
-continuation, while in the Joy VM, there are several, and thus need to
-be distinguished somehow.
-
-Intermediate form: redex + pstack + cont, where cont is a quotation
-(list).  Probably the redex isn't necessary, since the reduction of
-the next term in the program can be performed in-place.  This makes
-the machine simpler.
-
-Also, names in the dictionary map to quotations.
-
-
-
-
-
-
+The flip side is that reflection breaks static analysis.
 
 [1] http://zwizwa.be/darcs/libprim/pf/joy.ml
+
 
 
 Entry: SEQ -- why encode the byte code as a binary tree instead of nested lists?
@@ -3755,3 +3739,7 @@ predictable data usage.  The case where you destroy a single data
 structure containing a large amount of objects is rare.
 
 
+Entry: Metacircular interpretation: Maxwell's equiations of software
+Date: Tue Aug 25 10:27:08 CEST 2009
+
+[1] http://arcfn.com/2008/07/maxwells-equations-of-software-examined.html
