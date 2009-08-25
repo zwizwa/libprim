@@ -77,6 +77,7 @@ and definition =
 
 exception InvalidRunState of state ;;
 exception InvalidStackop of stackop * datum list;;
+exception Undefined of string ;;
 
 (* In this stack machine VM, evaluation of code boils down to
    recursively expanding the first element in a quotation until it is
