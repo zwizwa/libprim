@@ -584,13 +584,6 @@ _ px_bang_linear_compose(pf *pf, _ partial, _ full) {
 
 
 
-_ px_linear_code(pf *pf, _ ob) {
-    /* Idempotent. */
-    if (object_to_ldata(ob) ||
-        object_to_lnext(ob)) return ob;
-    if (object_to_seq(ob)) return LINEAR_NEXT(ob, NIL);
-    else return LINEAR_DATA(ob, NIL);
-}
 
 
 _ px_error_undefined(pf *pf, _ var) {

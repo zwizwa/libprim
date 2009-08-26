@@ -3907,13 +3907,19 @@ CONS cells are continuation frames of `dip' and code sequencing.
 Entry: PF: Linear code composition with `compose'
 Date: Wed Aug 26 15:47:04 CEST 2009
 
-The `>lcode' word _projects_ linear code, data and nonlinear code to
-linear code.
+The `>lcode' word _projects_ linear code and nonlinear code to linear
+code.
+
+The `abstract' word _wraps_ any atom as linear code.
 
 The `lcompose' word takes two linear code words and composes them.
 
 The `compose' word takes two elements on the stack, projects them to
 linear code using `>lcode', and composes them with `lcompose'.
+
+The `pa' word takes two elements on the stack, converts the first one
+using `abstract' and the second one using `>lcode', and composes the
+resulting linear code with `lcompose'.
 
 A partial continuation obtained using `shift' and `reset' is
 represented as linear code.  A full continuation obtained from

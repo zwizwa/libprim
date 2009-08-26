@@ -395,10 +395,24 @@ void pf_dip(pf *pf) {
     _RUN();
 }
 
-// Compose
-
+/* Project linear/nonlinear code -> linear code */
 void pf_to_lcode(pf *pf) {
-    _TOP = LINEAR_CODE(TOP);
+    _ ob = TOP;
+    if (object_to_prim(ob, EX) ||
+        object_to_quote(ob) ||
+        object_to_seq(ob)) { 
+        _TOP = LINEAR_NEXT(ob, NIL);
+        return;
+    }
+    else if (object_to_lnext(ob) ||
+             object_to_ldata(ob)) {
+        return;
+    }
+    TYPE_ERROR(ob);
+}
+/* Quote datum as linear code */
+void pf_abstract(pf *pf) {
+    _TOP = LINEAR_DATA(TOP, NIL);
 }
 
 void pf_lcompose(pf *pf) {
