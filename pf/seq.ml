@@ -77,7 +77,8 @@ let apply a  =
     
 (* Composite code interpreter step function.  Code sequences are
    interpreted by incremental flattening through binary tree
-   rotation. *)
+   rotation:  Seq(Seq(now,later),k) -> Seq(now,Seq(later,k)) 
+*)
 
 let step s =
   match s with
