@@ -3876,19 +3876,6 @@ Tom
 
 
 
-Entry: Portable Factor
-Date: Wed Aug 26 09:16:41 CEST 2009
-
-The concatenative syntax core with pluggable semantics I have for PLT
-Scheme.  (The syntax I use is Joy combined with an extra Scheme-like
-QUOTE form for escaping symbols and list quotations so it can be
-easily embedded in Scheme.  Semantics can be anything: all the
-syntactic elements can be bound to macros that translate them to the
-corresponding Scheme construct.  I have some preprocessors to support
-Forth/Factor-like surface syntax.)
-
-
-
 Entry: Abstract continuations
 Date: Wed Aug 26 11:12:17 CEST 2009
 
