@@ -113,11 +113,16 @@ _ px_linear_cons(pf *pf, _ car, _ cdr) {
     _CDR(rv) = cdr;
     return rv;
 }
-
 _ px_linear_next(pf *pf, _ car, _ cdr) {
     _ ob = px_linear_cons(pf, car, cdr);
     vector *v = object_to_vector(ob);
     vector_reset_flags(v, TAG_LNEXT);
+    return ob;
+}
+_ px_linear_data(pf *pf, _ car, _ cdr) {
+    _ ob = px_linear_cons(pf, car, cdr);
+    vector *v = object_to_vector(ob);
+    vector_reset_flags(v, TAG_LDATA);
     return ob;
 }
 
@@ -164,6 +169,10 @@ _ _px_link(pf *pf, _ ob) {
     }
     else if ((p = object_to_lnext(ob))) {
         return LINEAR_NEXT(_px_link(pf, p->car),
+                           _px_link(pf, p->cdr));
+    }
+    else if ((p = object_to_ldata(ob))) {
+        return LINEAR_DATA(_px_link(pf, p->car),
                            _px_link(pf, p->cdr));
     }
     else return ob;

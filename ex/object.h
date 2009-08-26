@@ -126,8 +126,9 @@ typedef struct {
     object cdr;
 } pair;
 
-typedef pair lpair;
-typedef pair lnext;
+typedef pair lpair;  // linear pair
+typedef pair lnext;  // PF's NEXT K-FRAME
+typedef pair ldata;  //  ..  DATA
 
 
 /* Conversion from tagged objects to one of the 4 C data types.  When
@@ -252,6 +253,7 @@ static inline void *object_to_struct(object ob, long tag) {
 DEF_STRUCT(pair,   TAG_PAIR)
 DEF_STRUCT(lpair,  TAG_LPAIR)
 DEF_STRUCT(lnext,  TAG_LNEXT)
+DEF_STRUCT(ldata,  TAG_LDATA)
 DEF_STRUCT(aref,   TAG_AREF)
 // DEF_STRUCT(box,  TAG_BOX)
 
