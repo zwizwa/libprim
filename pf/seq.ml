@@ -18,7 +18,7 @@ behaviour.
 `Run' is not a `prim', because it modifies the continuation directly,
 while a `prim' is limited in scope in that it maps a stack -> value.
 Note that the `binop' type isn't necessary, but it makes the
-interpreter look nicer.  The C version has only one primitive type. *)
+interpreter look nicer. *)
 type sub =
     Run | Nop | Abort | Done
   | Prim    of prim
@@ -30,9 +30,7 @@ and binop = Multiply | Minus | Equals
 (* -- Evaluation result *)
 and value = Error of string | OK of stack
 
-(* -- Programmer visible data is represented as a universal (dynamic)
-      type.  In practice this contains additional `leaf objects' with
-      an open/close management protocol, implemented in C. *)
+(* -- Programmer visible data is represented as a universal (dynamic) type. *)
 and datum = 
     False | True 
   | Number of int 
