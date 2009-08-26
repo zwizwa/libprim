@@ -397,13 +397,13 @@ void pf_dip(pf *pf) {
 
 // Compose
 
-void pf_to_code(pf *pf) {
+void pf_to_lcode(pf *pf) {
     _TOP = LINEAR_CODE(TOP);
 }
 
-void pf_compose(pf *pf) {
-    _ first = TOP;
-    _ next  = SECOND;
+void pf_lcompose(pf *pf) {
+    _ first = SECOND;
+    _ next  = TOP;
     _ composed = BANG_LINEAR_COMPOSE(first, next);
     _TOP = VOID; _DROP();
     _TOP = composed;
@@ -420,7 +420,7 @@ void pf_reset(pf *pf) {
 }
 
 static inline pair *_px_kframe(pf *pf, _ ob) {
-    pair *p = object_to_lpair(ob);
+    pair *p = object_to_ldata(ob);
     if (!p) p = object_to_lnext(ob);
     if (unlikely(!p)) { ERROR("missing-prompt", VOID); }
     return p;

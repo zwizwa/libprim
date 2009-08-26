@@ -1,8 +1,9 @@
 ;; -*- scheme -*- 
 ;; Bootstrap using s-expression syntax.
 
-( '((i   . (compile run))
-    (see . (find post))) define
+( '((i       . (compile run))
+    (compose . ((>lcode) dip >lcode lcompose))
+    (see     . (find post))) define
  
  "libprim/PF" display cr
  repl)

@@ -25,6 +25,25 @@ object _ex_write_vector(ex *ex, const char *type, vector *v) {
     port_printf(p, ")");
     return VOID;
 }
+
+/* FIXME: It's probably best to unify this with sequence printing,
+   where all the elements in the list are printed by name, and then
+   modify sequence printing to use the unquoting syntax.*/
+void _ex_prefix_k(ex *ex, _ ob) {
+    void *x = NULL;
+    long flags = object_get_vector_flags(ob);
+    if (TAG_LDATA == flags) x = "'";
+    else if (TAG_LNEXT == flags) x = ",";
+    if (x) _ex_printf(ex, x);
+}
+
+void *object_to_lk(_ ob) {
+    void *x = object_to_ldata(ob);
+    if (!x) x = object_to_lnext(ob);
+    return x;
+}
+typedef void* (*object_to)(_);
+
 // This has proper EX semantics, but you most probably want to override it.
 object _ex_write(ex *ex, object o) {
     port *p = ex->port(ex);
@@ -43,31 +62,41 @@ object _ex_write(ex *ex, object o) {
         return VOID;
     }
     if ((v = object_to_vector(o))) {
+        object_to is_obj;
         long flags = object_get_vector_flags(o);
         if (TAG_VECTOR == flags) { 
             return _ex_write_vector(ex, "", v);
         }
 
         // FIXME: handle one type consed to another!
-        if ((TAG_PAIR == flags) || 
+        if ((TAG_PAIR  == flags) || 
             (TAG_LPAIR == flags) ||
             (TAG_LDATA == flags) ||
             (TAG_LNEXT == flags)) {
             char *LP,*RP;
-            if ((TAG_PAIR == flags)) {LP="("; RP=")";}
-            else if ((TAG_LPAIR == flags)) {LP="["; RP="]";}
-            else {LP="<"; RP=">";}
-
+            if ((TAG_PAIR == flags)) {
+                LP="("; RP=")"; 
+                is_obj = (object_to)object_to_pair; 
+            }
+            else if ((TAG_LPAIR == flags)) {
+                LP="["; RP="]"; 
+                is_obj = (object_to)object_to_lpair; 
+            }
+            else {
+                LP="<"; RP=">"; 
+                is_obj = (object_to)object_to_lk; 
+            }
             port_printf(p, LP);
             for(;;) {
+                
+                _ex_prefix_k(ex, o);
                 ex->write(ex, _CAR(o));
                 o = _CDR(o);
                 if (NIL == o) {
                     port_printf(p, RP);
                     return VOID;
                 }
-                if (!(object_to_vector(o) &&
-                      (flags == object_get_vector_flags(o)))) {
+                if (!(is_obj(o))) {
                     port_printf(p, " . ");
                     ex->write(ex, o);
                     port_printf(p, RP);

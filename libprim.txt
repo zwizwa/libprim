@@ -3918,3 +3918,33 @@ Let's split up the problem, the above is way too confusing..
 
       2. allow for the composition of runnable things.
 
+
+
+Entry: PF: Linear code composition with `compose'
+Date: Wed Aug 26 15:47:04 CEST 2009
+
+The `compose' word takes two elements on the stack, converts them to
+linear code using `>lcode', and composes them with `lcompose'.
+
+The `>lcode' word takes linear code, data and nonlinear code to linear
+code.
+
+The `lcompose' word takes two linear code words and composes them.
+
+A partial or a full continuation obtained using `shift' is represented
+as linear code.  A full continuation obtained from `call/cc' is
+currently implemented as a partial continuation that ignores
+continuation marks inserted by `reset'.
+
+
+Summary:
+
+        Anything that represents code can be passed to `compose' to
+        yield a code quotation that can be passed to `run' and higher
+        order combinators.
+
+
+
+
+
+
