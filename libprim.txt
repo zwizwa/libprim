@@ -3763,4 +3763,133 @@ sequence continuations) is a bit messy.  Maybe there is something to
 say about doing it like this..  Too reflective?  Let's keep it like it
 is and see if there are any inconsistencies.
 
+Summary: it's now possible to `cons' a datum onto a partial
+continuation, which is implemented as a nested data/next frames, where
+the data frames are just the linear list object.
 
+This is still not correct:
+
+Essentially one wants a `bind' and a `compose' operation which
+combines a datum or a function with a function.
+
+
+
+Entry: What _is_ a continuation?
+Date: Tue Aug 25 17:33:50 CEST 2009
+
+That's the down-to-earth bit-twiddler's ``is''..
+
+A continuation is essentially an imperative program that sequences the
+remaining primitive machine operations to perform.  The side effect of
+this imperative program is the evaluation of the expression it
+represents.
+
+Obvious if you look at what CPS-conversion does: it translate a
+functional program written in terms of nested expressions, into an
+imperative program that incrementally builds and updates a data
+structure.
+
+
+Entry: PLT Redex
+Date: Tue Aug 25 17:46:05 CEST 2009
+
+Jao calls it syntax-rules on steroids[1].  Looks like the answer to
+the question about the peephole optimizer's rewriting behaviour has
+been right under my nose for quite a while.
+
+[1] http://programming-musings.org/2009/06/19/a-merry-gang/
+[2] http://redex.plt-scheme.org/
+
+
+Entry: Re: rewriting
+Date: Tue Aug 25 21:31:25 CEST 2009
+
+Thread + reply from Daniel:
+http://www.mail-archive.com/factor-talk@lists.sourceforge.net/msg03559.html
+
+> If the rewrite rules are monotonic, then there's an easy procedure
+> to optimize the program: list out all programs, calculate their
+> efficiency, and select one of the best ones
+
+I guess here `monitonic' means that there are no loops?  Something
+like `strictly decreasing'.
+
+> With something like an optimizer, I don't understand why things have
+> to be confluent. 
+
+This corresponds to my intuition also.
+
+> Maybe the algorithm to find the optimal series of peephole
+> optimizations will be a confluent subset of the general rewriting
+> system of all valid peephole optimizations; is this what you mean?
+
+What I meant was that the algorithm in Staapl is formulated
+differently (each word is a macro: a _fuction_ which takes an object
+code stack to an object code stack).  I don't immediately see how this
+can be reformulated as a more general rewrite system on code _syntax_,
+but I've got this hunch it's not so difficult.
+
+I'm also not sure if they are really 100% equivalent, since I'm
+throwing in some extra specification of the order of evaluation.  This
+makes it possible to play tricks like using objects that only exist at
+compile time without requiring any special notation for it: the eager
+algorithm guarantees that such objects are fully reduced before code
+is compiled (or raise an error).  What would be neat is to be able to
+keep this semantics, but use a more elegant way of formulating it as a
+syntactic operation.  (If this doesn't make sense I'd be happy to
+elaborate.)
+
+> On register-based architectures (like the PIC18, right?), doing
+> everything with a stack is inherently inefficient because of peeks
+> and replaces on the top of the stack.
+
+The 8-bit PIC chips are weird.  The 16-bit cores are more or less
+standard register/risc but on the 8-bitters everything needs to pass
+through a single working register.  This makes it almost cry for a
+stack language approach :)
+
+> I guess you do the equivalent of DCN by your peephole
+> optimizations. 
+
+DCN = deconcatenation?
+
+> The thing about Factor's compiler is, it does this in a more general
+> way. You should look at Slava's past blog posts, or read the code,
+> if you're interested in knowing more about it.
+
+Bout time I have a look at it then..  Is the compiler tied in closely
+to the rest of the system?  I'm wondering if I it would be difficult
+to embed it in PLT Scheme through the concatenative -> Scheme wrapper
+macros used in Staapl.
+
+So, your basic idea seems to be that yes, you want something that's
+not confluent, and no, there is no general algorithm: general
+rewriting is too unstructured, so a special purpose approach is
+required.
+
+Thanks so far for these answers!
+
+Cheers,
+Tom
+
+
+
+
+
+Entry: Portable Factor
+Date: Wed Aug 26 09:16:41 CEST 2009
+
+The concatenative syntax core with pluggable semantics I have for PLT
+Scheme.  (The syntax I use is Joy combined with an extra Scheme-like
+QUOTE form for escaping symbols and list quotations so it can be
+easily embedded in Scheme.  Semantics can be anything: all the
+syntactic elements can be bound to macros that translate them to the
+corresponding Scheme construct.  I have some preprocessors to support
+Forth/Factor-like surface syntax.)
+
+
+
+Entry: Abstract continuations
+Date: Wed Aug 26 11:12:17 CEST 2009
+
+Time to byte the bullet and make the code more abstract.

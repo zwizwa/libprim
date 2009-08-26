@@ -56,14 +56,56 @@ struct _vector {
 static inline unsigned long VECTOR_TAG(unsigned long x) {
     return x << GC_VECTOR_TAG_SHIFT;
 }
-#define TAG_VECTOR    VECTOR_TAG(0)   /* The flat vector. */
-#define TAG_PAIR      VECTOR_TAG(1)   /* The CONS cell. */
-#define TAG_AREF      VECTOR_TAG(2)   /* Reference with finalization. */
-#define TAG_LPAIR     VECTOR_TAG(3)   /* Linear data list pair. */
-#define TAG_LNEXT     VECTOR_TAG(4)   /* Linear code continuation frame. */
 
-// 3-7: reserved
-#define GC_VECTOR_USER_START 8
+/* To make things easier to manage, all vectors type tags for SC and
+   PF are defined centrally. */
+
+#define TAG_VECTOR    VECTOR_TAG(0)   /* The flat vector. */
+#define TAG_AREF      VECTOR_TAG(1)   /* Reference with finalization. */
+
+#define TAG_VALUE     VECTOR_TAG(2)
+#define TAG_REDEX     VECTOR_TAG(3)
+#define TAG_ERROR     VECTOR_TAG(4)
+#define TAG_LAMBDA    VECTOR_TAG(5)
+#define TAG_STATE     VECTOR_TAG(6)
+
+/* List polymorphy is handled using tag ranges.
+
+   List structures (read-only polymorphy): 8-15 
+   Linear list structures: 12-15 */
+
+#define TAG_PAIR      VECTOR_TAG(8)   /* The CONS cell. */
+
+#define TAG_LPAIR     VECTOR_TAG(12)  /* Linear data list pair. */
+#define TAG_LNEXT     VECTOR_TAG(13)  /* Linear code continuation frame. */
+#define TAG_LDATA     VECTOR_TAG(14)  /* Linear data continuation frame. */
+
+static inline long flags_is_poly_pair(long flag) {
+    return (flag & VECTOR_TAG(~7)) == VECTOR_TAG(8);
+}
+static inline long flags_is_linear_pair(long flag) {
+    return (flag & VECTOR_TAG(~3)) == VECTOR_TAG(12);
+}
+
+/* PF code tags. */
+#define TAG_LIN   VECTOR_TAG(16)
+#define TAG_BOX   VECTOR_TAG(17)
+#define TAG_QUOTE VECTOR_TAG(18)
+#define TAG_SEQ   VECTOR_TAG(19)
+
+
+/* Scheme continuation tags: 24-31 */
+#define TAG_K_IF      VECTOR_TAG(24)
+#define TAG_K_SET     VECTOR_TAG(25)
+#define TAG_K_APPLY   VECTOR_TAG(26)
+#define TAG_K_SEQ     VECTOR_TAG(27)
+#define TAG_K_MACRO   VECTOR_TAG(28)
+
+static inline long flags_is_k(long flag) {
+    return (flag & VECTOR_TAG(~7)) == VECTOR_TAG(24);
+}
+
+
 
 /* Atoms that need finalization must be wrapped to ensure that they
    occur only once in the heap: the finalize() method is called for

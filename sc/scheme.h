@@ -43,31 +43,6 @@ sc *scheme_new(void);
 */
 
 
-/* Vector tagging: all structure types are implemented in terms of
-   tagged vectors (GC_VECTOR).  Some tags are shared between different
-   interpreters.  The number of available tag bits is defined in
-   object.h */
-
-// vector tags for interpreter data types (9-15)
-#define V_TAG(x) VECTOR_TAG((x) + GC_VECTOR_USER_START)
-#define TAG_VALUE     V_TAG(0)
-#define TAG_REDEX     V_TAG(1)
-#define TAG_ERROR     V_TAG(2)
-#define TAG_LAMBDA    V_TAG(3)
-#define TAG_STATE     V_TAG(4)
-
-// continuations have the upper bit set (16-31)
-#define K_TAG(x) VECTOR_TAG((x) | (1 << (GC_VECTOR_TAG_BITS-1)))
-
-#define TAG_K_IF      K_TAG(0)
-#define TAG_K_SET     K_TAG(1)
-#define TAG_K_APPLY   K_TAG(2)
-#define TAG_K_SEQ     K_TAG(3)
-#define TAG_K_MACRO   K_TAG(4)
-
-static inline long flags_is_k(long flag) {
-    return flag & K_TAG(0);
-}
 
 
 

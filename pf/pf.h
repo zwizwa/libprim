@@ -39,8 +39,6 @@ typedef struct {
 
 typedef aref box;
 typedef aref lin;
-#define TAG_LIN   VECTOR_TAG(12)
-#define TAG_BOX   VECTOR_TAG(13)
 DEF_STRUCT(lin,   TAG_LIN)
 DEF_STRUCT(box,   TAG_BOX)
 
@@ -56,8 +54,6 @@ typedef struct {
     _ next;
 } seq;
 
-#define TAG_QUOTE VECTOR_TAG(14)
-#define TAG_SEQ   VECTOR_TAG(15)
 DEF_STRUCT(quote, TAG_QUOTE)
 DEF_STRUCT(seq,   TAG_SEQ)
 

@@ -286,7 +286,7 @@ void pf_print_error(pf *pf) {
 }
 void pf_abort_repl(pf *pf) {
     _px_unlink(pf, pf->k);
-    pf->k = LINEAR_CONS(pf->ip_repl, NIL);
+    pf->k = LINEAR_NEXT(pf->ip_repl, NIL);
 }
 
 
