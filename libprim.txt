@@ -3887,41 +3887,43 @@ TODO: make the polymorphy more highlevel on next change.
 Entry: Partial Application
 Date: Wed Aug 26 11:55:02 CEST 2009
 
-It makes sense to see partial application as 'cons' which means that
-it makes sense to represent partial continuations as improper lists to
-keep the morphism between code and partial continuations easier to
-see.
+The pf.ml machine viewed as a non-linear machine can have a `sub' for
+continuation.  To do this linearly one needs:
 
-See also: the pf.ml machine viewed as a non-linear machine can have a
-`sub' for continuation.
-
-There is one problem though: it's not possible to put a data atom in
-the tail position of a partial continuation.
-
-Let's split up the problem, the above is way too confusing..
-
-      1. allow for a linear way to wrap up a datum as something
-         runnable.
+      1. a way to wrap up a a linear datum as something runnable
 
       2. allow for the composition of runnable things.
+
+It turns out that `compose' is a much better base to build on than
+partial application, which is a special case of run-time data -> code
+conversion and runtime code composition.
+
+In the current form it needs an extra wrapper for nonlinear -> linear
+data, but after that, `compose' is just list concatenation where the
+CONS cells are continuation frames of `dip' and code sequencing.
 
 
 
 Entry: PF: Linear code composition with `compose'
 Date: Wed Aug 26 15:47:04 CEST 2009
 
-The `compose' word takes two elements on the stack, converts them to
-linear code using `>lcode', and composes them with `lcompose'.
-
-The `>lcode' word takes linear code, data and nonlinear code to linear
-code.
+The `>lcode' word _projects_ linear code, data and nonlinear code to
+linear code.
 
 The `lcompose' word takes two linear code words and composes them.
 
-A partial or a full continuation obtained using `shift' is represented
-as linear code.  A full continuation obtained from `call/cc' is
-currently implemented as a partial continuation that ignores
-continuation marks inserted by `reset'.
+The `compose' word takes two elements on the stack, projects them to
+linear code using `>lcode', and composes them with `lcompose'.
+
+A partial continuation obtained using `shift' and `reset' is
+represented as linear code.  A full continuation obtained from
+`call/cc' is currently implemented as a partial continuation that
+ignores continuation marks inserted by `reset'.  The `run' word and
+with it all combinators take both linear and nonlinear code.
+
+They do _not_ take data however.  In that light I'm still not
+convinced that `>lcode' should automatically convert data to code.
+There is probably need for an `>ldata' word too.
 
 
 Summary:
