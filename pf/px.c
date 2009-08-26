@@ -44,6 +44,12 @@ _ _px_top(pf *pf) {
     if (unlikely (NIL == pf->p)) px_error_underflow(pf);
     return _CAR(pf->p);
 }
+_ _px_second(pf *pf) {
+    if (unlikely (NIL == pf->p)) px_error_underflow(pf);
+    _ more = _CDR(pf->p);
+    if (unlikely (NIL == more)) px_error_underflow(pf);
+    return _CAR(more);
+}
 
 _ px_error_underflow(pf *pf) {
     return px_abort(pf, pf->s_underflow, VOID);
@@ -556,31 +562,35 @@ _ px_define(pf *pf, _ defs) {
     return VOID;
 }
 
-/* A (partial) continuation is an improper list of frames consed to a
-   code object.  For a full continuation, the code object == halt. 
 
-   Using the improper list structure makes is possible to keep the
-   analogy between Joy's quotations can can be consed to.
+/* Linear code serves as a substrate for any form of code constructed
+   linearly at run-time.  This includes continuations, partial
+   applications and code compositions / concatenations.
 
-   Improper list / binary tree structure allows partial continuations
-   and full continuations to to be represented in a similar way.  The
-   only difficulty is then in the concatenation that represents their
-   composition.
+   Currently linear code is represented by 2 tags: NEXT and DATA
+
 */
 
-_ px_bang_append_continuation(pf *pf, _ partial, _ full) {
+_ px_bang_linear_compose(pf *pf, _ partial, _ full) {
     _ *x = &partial;
     /* Wind to end. */
     while (object_to_ldata(*x) ||
            object_to_lnext(*x)) {
         x = &(_CDR(*x));
     }
-    _ ob = *x;
-    /* I don't see why yet, but it seems that ob needs to be code. */
-    *x = LINEAR_NEXT(ob, full);
+    *x = full;
     return partial;
 }
 
+
+
+_ px_linear_code(pf *pf, _ ob) {
+    /* Idempotent. */
+    if (object_to_ldata(ob) ||
+        object_to_lnext(ob)) return ob;
+    if (object_to_seq(ob)) return LINEAR_NEXT(ob, NIL);
+    else return LINEAR_DATA(ob, NIL);
+}
 
 
 _ px_error_undefined(pf *pf, _ var) {

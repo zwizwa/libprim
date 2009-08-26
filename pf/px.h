@@ -17,13 +17,15 @@ _ static inline _move(_ *ob, _ filler) {
 #define EXCH(a,b) _exch(&a, &b)
 #define MOVE(from,filler) _move(&from,filler)
 #define FROM_TO(a,b) _px_from_to(pf, &(pf->a), &(pf->b))
-#define TOP  _px_top(pf)
+#define TOP    _px_top(pf)
+#define SECOND _px_second(pf)
 #define _TOP _CAR(pf->p)  /* UNSAFE */
 
 void _px_need_free(pf *pf);
 void _px_unlink(pf* pf, _ ob);
 _ _px_link(pf *pf, _ ob);
 _ _px_top(pf *pf);
+_ _px_second(pf *pf);
 
 // don't use this to manipulate the freelist directly.
 static inline void _px_from_to(pf *pf, _ *from, _ *to) {

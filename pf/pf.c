@@ -380,7 +380,7 @@ void pf_run(pf *pf){
         /* This makes linear lists behave as programs.  Note that this
            pushes a partial continuation: it does not replace a full
            one! */
-        pf->k = BANG_APPEND_CONTINUATION(v, pf->k);
+        pf->k = BANG_LINEAR_COMPOSE(v, pf->k);
         _TOP = VOID; _DROP();
     }
     else {
@@ -395,10 +395,18 @@ void pf_dip(pf *pf) {
     _RUN();
 }
 
-// Partial Application
-void pf_pa(pf *pf) {
-    _CONS();
-    vector_set_flags(object_to_vector(_CAR(pf->p)), TAG_LDATA);
+// Compose
+
+void pf_to_code(pf *pf) {
+    _TOP = LINEAR_CODE(TOP);
+}
+
+void pf_compose(pf *pf) {
+    _ first = TOP;
+    _ next  = SECOND;
+    _ composed = BANG_LINEAR_COMPOSE(first, next);
+    _TOP = VOID; _DROP();
+    _TOP = composed;
 }
 
 
