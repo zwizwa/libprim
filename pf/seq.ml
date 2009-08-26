@@ -23,7 +23,7 @@ type sub =
     Run | Nop | Abort | Done
   | Prim    of prim
   | Quote   of datum
-  | Seq     of sub * sub (* NL *)
+  | Seq     of sub * sub
 and prim  = Dup | Drop | Choose | Binop of binop
 and binop = Multiply | Minus | Equals
 
