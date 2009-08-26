@@ -80,11 +80,15 @@ static inline unsigned long VECTOR_TAG(unsigned long x) {
 #define TAG_LNEXT     VECTOR_TAG(13)  /* Linear code continuation frame. */
 #define TAG_LDATA     VECTOR_TAG(14)  /* Linear data continuation frame. */
 
+// note, these need to be powers of 2!
+#define VECTOR_TAG_IN_RANGE(flag, start, nb) \
+    ((flag & VECTOR_TAG(~(nb-1))) == VECTOR_TAG(start))
+
 static inline long flags_is_poly_pair(long flag) {
-    return (flag & VECTOR_TAG(~7)) == VECTOR_TAG(8);
+    return VECTOR_TAG_IN_RANGE(flag, 8, 8);
 }
 static inline long flags_is_linear_pair(long flag) {
-    return (flag & VECTOR_TAG(~3)) == VECTOR_TAG(12);
+    return VECTOR_TAG_IN_RANGE(flag, 12, 4);
 }
 
 /* PF code tags. */
@@ -102,7 +106,7 @@ static inline long flags_is_linear_pair(long flag) {
 #define TAG_K_MACRO   VECTOR_TAG(28)
 
 static inline long flags_is_k(long flag) {
-    return (flag & VECTOR_TAG(~7)) == VECTOR_TAG(24);
+    return VECTOR_TAG_IN_RANGE(flag, 24, 8);
 }
 
 
