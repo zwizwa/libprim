@@ -556,6 +556,31 @@ _ px_define(pf *pf, _ defs) {
     return VOID;
 }
 
+/* A (partial) continuation is an improper list of frames consed to a
+   code object.  For a full continuation, the code object == halt. 
+
+   Using the improper list structure makes is possible to keep the
+   analogy between Joy's quotations can can be consed to.
+
+   Improper list / binary tree structure allows partial continuations
+   and full continuations to to be represented in a similar way.  The
+   only difficulty is then in the concatenation that represents their
+   composition.
+*/
+
+_ px_bang_append_continuation(pf *pf, _ partial, _ full) {
+    _ *x = &partial;
+    /* Wind to end. */
+    while (object_to_ldata(*x) ||
+           object_to_lnext(*x)) {
+        x = &(_CDR(*x));
+    }
+    _ ob = *x;
+    /* I don't see why yet, but it seems that ob needs to be code. */
+    *x = LINEAR_NEXT(ob, full);
+    return partial;
+}
+
 
 
 _ px_error_undefined(pf *pf, _ var) {

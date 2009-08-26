@@ -3893,3 +3893,28 @@ Entry: Abstract continuations
 Date: Wed Aug 26 11:12:17 CEST 2009
 
 Time to byte the bullet and make the code more abstract.
+TODO: make the polymorphy more highlevel on next change.
+
+
+
+Entry: Partial Application
+Date: Wed Aug 26 11:55:02 CEST 2009
+
+It makes sense to see partial application as 'cons' which means that
+it makes sense to represent partial continuations as improper lists to
+keep the morphism between code and partial continuations easier to
+see.
+
+See also: the pf.ml machine viewed as a non-linear machine can have a
+`sub' for continuation.
+
+There is one problem though: it's not possible to put a data atom in
+the tail position of a partial continuation.
+
+Let's split up the problem, the above is way too confusing..
+
+      1. allow for a linear way to wrap up a datum as something
+         runnable.
+
+      2. allow for the composition of runnable things.
+

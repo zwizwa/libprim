@@ -370,15 +370,17 @@ void pf_make_loop(pf *pf) { PUSH_P(MAKE_LOOP(POP_TO_GRAPH)); }
 void pf_define(pf *pf)    { px_define(pf, POP_TO_GRAPH); }
 void pf_compile(pf *pf)   { PUSH_P(COMPILE_PROGRAM(POP_TO_GRAPH)); }
 
+
+
 void pf_run(pf *pf){ 
     _ v = TOP;
-    if (object_to_lpair(v) || 
+    if (object_to_ldata(v) || 
         object_to_lnext(v)) {
 
         /* This makes linear lists behave as programs.  Note that this
            pushes a partial continuation: it does not replace a full
            one! */
-        pf->k = BANG_APPEND(v, pf->k);
+        pf->k = BANG_APPEND_CONTINUATION(v, pf->k);
         _TOP = VOID; _DROP();
     }
     else {
@@ -392,6 +394,13 @@ void pf_dip(pf *pf) {
     _DROP();
     _RUN();
 }
+
+// Partial Application
+void pf_pa(pf *pf) {
+    _CONS();
+    vector_set_flags(object_to_vector(_CAR(pf->p)), TAG_LDATA);
+}
+
 
 /* Delimited continuations. */
 void pf_prompt_tag(pf *pf) { 
@@ -414,7 +423,7 @@ void pf_shift(pf *pf) {
     _ *pk = &(_CAR(pf->p));
     pair *p = _px_kframe(pf, pf->k);
     /* Move cells from pk->k to k upto the prompt tag. */
-    while(p && (p->car != pf->ip_prompt_tag)) {
+    while(p->car != pf->ip_prompt_tag) {
         *pk = pf->k;
         pf->k = p->cdr;
         pk = &_CDR(*pk);

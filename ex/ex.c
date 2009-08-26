@@ -51,11 +51,12 @@ object _ex_write(ex *ex, object o) {
         // FIXME: handle one type consed to another!
         if ((TAG_PAIR == flags) || 
             (TAG_LPAIR == flags) ||
+            (TAG_LDATA == flags) ||
             (TAG_LNEXT == flags)) {
             char *LP,*RP;
             if ((TAG_PAIR == flags)) {LP="("; RP=")";}
             else if ((TAG_LPAIR == flags)) {LP="["; RP="]";}
-            else if ((TAG_LNEXT == flags)) {LP="<"; RP=">";}
+            else {LP="<"; RP=">";}
 
             port_printf(p, LP);
             for(;;) {
@@ -283,8 +284,10 @@ _ ex_bang_reverse_append(ex *ex, _ lst, _ tail) {
     if (NIL == lst) return tail;
     _ next, last = tail;
     while (NIL != lst) {
+        // FIXME: use poly predicate
         pair *p = object_to_lpair(lst); // polymorphic
         if (!p) p = object_to_lnext(lst);
+        if (!p) p = object_to_ldata(lst);
         if (!p) p = CAST(pair, lst);
         next = p->cdr;
         p->cdr = last;
