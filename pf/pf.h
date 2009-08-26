@@ -71,7 +71,7 @@ void _px_interpret_list(pf *pf, _ expr);
 
 
 #define PUSH_K_NEXT(x)  pf->k = LINEAR_NEXT((x), pf->k)
-#define PUSH_K_DATA(x)  pf->k = LINEAR_CONS((x), pf->k)
+#define PUSH_K_DATA(x)  pf->k = LINEAR_DATA((x), pf->k)
 #define DROP_K()   _px_drop(pf, &pf->k)
 
 #define PUSH_P(x)  _px_push(pf, (x))

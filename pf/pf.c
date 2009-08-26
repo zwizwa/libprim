@@ -53,7 +53,7 @@ void _px_run(pf *pf) {
         pair *rs;
 
         /* Quote linear datum (Implement the `dip' continuation.) */
-        rs = object_to_lpair(pf->k);
+        rs = object_to_ldata(pf->k);
         if (unlikely(rs)) {
             PUSH_P(rs->car);
             rs->car = VOID;

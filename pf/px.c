@@ -149,6 +149,7 @@ void _px_unlink(pf* pf, _ ob) {
     }
     /* Lists: recurse. */
     else if (object_to_lpair(ob) ||
+             object_to_ldata(ob) ||
              object_to_lnext(ob)) {
         ob = _px_unlink_pop(pf, ob);
         goto again;
@@ -212,8 +213,9 @@ _ px_copy_to_graph(pf *pf, _ ob) {
     }
     /* FIXME: Seq code contination frames are currently not
        representable outside the VM. */
-    else if ((p = object_to_lnext(ob))) {
-        _ex_printf(EX, "WARNING: lnext conversion\n");
+    else if ((p = object_to_lnext(ob)) ||
+             (p = object_to_ldata(ob))) {
+        _ex_printf(EX, "WARNING: lnext/ldata -> nonlinear pair conversion.\n");
         return CONS(COPY_TO_GRAPH(p->car),
                     COPY_TO_GRAPH(p->cdr));
     }
