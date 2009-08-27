@@ -3962,3 +3962,52 @@ It is `reset' that marks the continuation stack and `shift' that packs
 up the continuation.  So it looks like it is correct.  The only
 strange thing is that in a CPS language, the ``body of shift'' will
 come after `reset' !
+
+
+Entry: Full continuations
+Date: Thu Aug 27 14:32:29 CEST 2009
+
+From a discussion with Dominikus I come to conclude that it's
+important to distinguish different kinds of continuations:
+
+  * Full continuations, that capture the entire machine state: both
+    parameter and context stack.
+
+  * Context-only full/partial continuations, that capture marked
+    segments of the control stack.  (Note that marking the data stack
+    is ill-defined, as it may be popped ``beyond the mark'' before it
+    is captured.
+
+Can both be unified?
+
+Rephrasing one of the solutions Dominikus proposed, one could wrap the
+stack as a quotation, and concatenate it onto the remainder of the
+current program being evaluated, yielding a new program that
+encapsulates the full continuation.
+
+Let's implement this in PF and see where it takes us.
+
+
+  
+OK.  After doing this it looks like:
+
+ * You still want partial continuations in this context: in most cases
+   you're not interested in the toplevel drivers, just in the control
+   that's part of the program.
+
+ * The operation factors out into two steps: simply ``append'' the
+   stack to the resulting context-only continuation.  It doesn't need
+   a separate op.
+
+
+Entry: simpler primitives
+Date: Thu Aug 27 15:03:09 CEST 2009
+
+As mentioned before: there are too many things to think about
+implementing linear primitives (possible GC restart and mutation).
+This reduces my confidence that the code is correct in the presence of
+primitive error aborts or GC aborts.
+
+So, either I give up on the idea of GC restarts, or I factor the code
+such that these distinctions are no longer a problem.
+

@@ -395,17 +395,26 @@ void pf_dip(pf *pf) {
     _RUN();
 }
 
+static inline int is_nlcode(_ ob, ex* ex) {
+    return (object_to_prim(ob, ex) ||
+            object_to_quote(ob) ||
+            object_to_seq(ob));
+}
+static inline int is_lcode(_ ob, ex* ex) {
+    return (object_to_lnext(ob) ||
+            object_to_ldata(ob) ||
+            (NIL == ob));
+}
+
+
 /* Project linear/nonlinear code -> linear code */
 void pf_to_lcode(pf *pf) {
     _ ob = TOP;
-    if (object_to_prim(ob, EX) ||
-        object_to_quote(ob) ||
-        object_to_seq(ob)) { 
+    if (is_nlcode(ob, EX)) {
         _TOP = LINEAR_NEXT(ob, NIL);
         return;
     }
-    else if (object_to_lnext(ob) ||
-             object_to_ldata(ob)) {
+    else if (is_lcode(ob, EX)) {
         return;
     }
     TYPE_ERROR(ob);
@@ -454,14 +463,30 @@ void pf_shift(pf *pf) {
     }
 }
 
-/* Full continuations.  These aren't really so important with
-   delimited continuations implemented. */
+/* Full continuations.  These do not use marking and will capture the
+   entire state as linear code by transferring the parameter stack to
+   the continuation. */
 void pf_call_with_cc(pf *pf) {
     _ fn = TOP;
-    _ k = pf->k;
-    pf->k = LINEAR_CONS(fn, HALT);
-    _TOP = k;
+    _ new_k = LINEAR_NEXT(fn, NIL);
+    _TOP = pf->k;
+    pf->k = new_k;
 }
+
+void pf_lunstack(pf *pf) {
+    _ k = TOP;  
+    if (!(is_lcode(k, EX))) {
+        TYPE_ERROR(k);
+    }
+    _TOP = VOID; _DROP();
+    while (NIL != pf->p) {
+        k = LINEAR_DATA(_CAR(pf->p), k);
+        _CAR(pf->p) = VOID;
+        _DROP();
+    }
+    PUSH_P(k);
+}
+
 void pf_bang_cc(pf *pf) {
     _ v = TOP;
     _px_unlink(pf, pf->k);
