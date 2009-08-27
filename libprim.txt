@@ -3941,5 +3941,24 @@ Summary:
 
 
 
+Entry: Shift / reset
+Date: Wed Aug 26 23:19:22 CEST 2009
 
+In Scheme, `shift' binds the partial continuation to a value and
+then passes this to a body, shifting it in place of the removed
+frames.  Looks like `reset' and `shift' need to be exchanged!
 
+More tomorrow..
+
+(shift 1 2 3) reset
+> > ps
+<1> <,{'1 '2 '3}>
+> run
+> ps
+<3> 1 2 3
+> 
+
+It is `reset' that marks the continuation stack and `shift' that packs
+up the continuation.  So it looks like it is correct.  The only
+strange thing is that in a CPS language, the ``body of shift'' will
+come after `reset' !
