@@ -4031,25 +4031,26 @@ Date: Fri Aug 28 11:26:56 CEST 2009
 
 - check out the multipe state threading in dominikus' code
 
-Entry: Partial Continuations
+Entry: Partial Continuations in a Concatenative Language
 Date: Fri Aug 28 13:19:08 CEST 2009
 
-From the bit-twiddler's perspective, a partial continuation is not
-much more than a segment of the call stack represented as a function,
-where the full continuation is the whole call stack, represented as a
-``function that doesn't return''.
 
-The nuances come from how you specify the marking that enables you
-to isolate the a segment between the current point and the one marked,
-and how you execute code in the continuation that remains when this
-segment is removed.
+Look here[1] for links of the theoretical background.
 
-This[1] is an interesting description.  It describes the 4 control
-operations in terms of how the marking works.
+First, the current implementation of `reset' and `shift' are _wrong_
+-- actually doubly wrong:
 
-Let's have a look at how it's done in Factor[2][3].
+* the _captured_ by `shift' is delimited.
+* the _shifted expression_ is placed in a delimited context.
+
+I'm using an interface that doesn't even have a shifted expression.
+
+So let's fix this.
 
 
-[1] http://okmij.org/ftp/Computation/Continuations.html#generic-control
+
+
+
+[1] entry://../compsci/20090828-144955
 [2] http://www.bluishcoder.co.nz/2006/03/factor-partial-continuation-updates.html
 [3] http://docs.factorcode.org/content/article-partial-continuations.html

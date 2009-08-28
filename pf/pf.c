@@ -442,6 +442,11 @@ void pf_reset(pf *pf) {
     _RUN();
 }
 
+/* transfer-upto-prompt ( lin -- lin+ )
+
+   Transfer current marked continuation segment to the linear code
+   object, up to but not including the prompt. */
+
 static inline pair *_px_kframe(pf *pf, _ ob) {
     pair *p = object_to_ldata(ob);
     if (!p) p = object_to_lnext(ob);
@@ -449,19 +454,38 @@ static inline pair *_px_kframe(pf *pf, _ ob) {
     return p;
 }
 
-void pf_shift(pf *pf) {
-    PUSH_P(NIL);
+// FIXME: restarts
+void pf_transfer_upto_prompt(pf *pf) {
+    _ tail = TOP; 
+    if (!is_lcode(tail, EX)) TYPE_ERROR(tail);
+    /* Move cells from pk->k to k upto the prompt tag. */
     _ *pk = &(_CAR(pf->p));
     pair *p = _px_kframe(pf, pf->k);
-    /* Move cells from pk->k to k upto the prompt tag. */
     while(p->car != pf->ip_prompt_tag) {
         *pk = pf->k;
         pf->k = p->cdr;
         pk = &_CDR(*pk);
-        *pk = NIL; // keep data consistency: next might throw error
+        *pk = tail; // keep data consistency: next might throw error
         p = _px_kframe(pf, pf->k);
     }
 }
+
+// FIXME: GC restarts
+void pf_control(pf *pf) {
+    _ code = TOP;
+    _TOP = NIL;
+    _TRANSFER_UPTO_PROMPT();
+    PUSH_P(code);
+    _RUN();
+}
+void pf_shift(pf *pf) {
+    _ code = TOP;
+    _TOP = LINEAR_NEXT(pf->ip_prompt_tag, NIL);
+    _TRANSFER_UPTO_PROMPT();
+    PUSH_P(code);
+    _RUN();
+}
+
 
 /* Full continuations.  These do not use marking and will capture the
    entire state as linear code by transferring the parameter stack to
