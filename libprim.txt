@@ -3964,19 +3964,21 @@ strange thing is that in a CPS language, the ``body of shift'' will
 come after `reset' !
 
 
-Entry: Full continuations
+Entry: Concatenative languages and Full continuations
 Date: Thu Aug 27 14:32:29 CEST 2009
 
 From a discussion with Dominikus I come to conclude that it's
 important to distinguish different kinds of continuations:
 
-  * Full continuations, that capture the entire machine state: both
-    parameter and context stack.
+  * Full state continuations, that capture the entire machine state:
+    both parameter and context stack.
 
   * Context-only full/partial continuations, that capture marked
-    segments of the control stack.  (Note that marking the data stack
-    is ill-defined, as it may be popped ``beyond the mark'' before it
-    is captured.
+    segments of the control stack and view the whole data stack as the
+    value to be passed.  
+
+Note that marking the data stack is ill-defined, as it may be popped
+``beyond the mark'' before it is captured.
 
 Can both be unified?
 
@@ -3989,15 +3991,23 @@ Let's implement this in PF and see where it takes us.
 
 
   
-OK.  After doing this it looks like:
+OK.  After doing this it seems that
 
  * You still want partial continuations in this context: in most cases
    you're not interested in the toplevel drivers, just in the control
    that's part of the program.
 
- * The operation factors out into two steps: simply ``append'' the
-   stack to the resulting context-only continuation.  It doesn't need
-   a separate op.
+ * The operation factors out into two steps: ordinary continuation
+   operators that ignore the parameter stack, and a separate operation
+   that appends the stack as a quotation to the resulting
+   continuation.
+
+
+Thinking a bit further and keeping an eye on how it's implemented in
+Scheme, it seems that this generalizes to any kind of threaded state
+mechanism (i.e. FP-style matrices, Monads, Arrows, ...?)
+
+
 
 
 Entry: simpler primitives
@@ -4011,3 +4021,35 @@ primitive error aborts or GC aborts.
 So, either I give up on the idea of GC restarts, or I factor the code
 such that these distinctions are no longer a problem.
 
+
+
+Entry: TODO
+Date: Fri Aug 28 11:26:56 CEST 2009
+
+
+- define partial continuations better
+
+- check out the multipe state threading in dominikus' code
+
+Entry: Partial Continuations
+Date: Fri Aug 28 13:19:08 CEST 2009
+
+From the bit-twiddler's perspective, a partial continuation is not
+much more than a segment of the call stack represented as a function,
+where the full continuation is the whole call stack, represented as a
+``function that doesn't return''.
+
+The nuances come from how you specify the marking that enables you
+to isolate the a segment between the current point and the one marked,
+and how you execute code in the continuation that remains when this
+segment is removed.
+
+This[1] is an interesting description.  It describes the 4 control
+operations in terms of how the marking works.
+
+Let's have a look at how it's done in Factor[2][3].
+
+
+[1] http://okmij.org/ftp/Computation/Continuations.html#generic-control
+[2] http://www.bluishcoder.co.nz/2006/03/factor-partial-continuation-updates.html
+[3] http://docs.factorcode.org/content/article-partial-continuations.html
