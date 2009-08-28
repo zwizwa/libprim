@@ -1,13 +1,14 @@
 ;; -*- scheme -*- 
 ;; Bootstrap using s-expression syntax.
 
-( '((i       . (compile run))
-    (compose . ((>lcode) dip >lcode lcompose))
-    (pa      . ((abstract) dip >lcode lcompose))
-    (see     . (find post))
-    (unstack . (>lcode lunstack))
+( '((i        . (compile run))
+    (compose  . ((>lcode) dip >lcode lcompose))
+    (pa       . ((abstract) dip >lcode lcompose))
+    (see      . (find post))
+    (unstack! . (>lcode lunstack!))
+    (prompt   . (reset))
     
-    ) define
+    ) definitions
  
  "libprim/PF" display cr
  repl)

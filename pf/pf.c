@@ -366,10 +366,15 @@ _ _px_pop_to_graph(pf *pf) {
 }
 #define POP_TO_GRAPH _px_pop_to_graph(pf)
 
-void pf_make_loop(pf *pf) { PUSH_P(MAKE_LOOP(POP_TO_GRAPH)); }
-void pf_define(pf *pf)    { px_define(pf, POP_TO_GRAPH); }
-void pf_compile(pf *pf)   { PUSH_P(COMPILE_PROGRAM(POP_TO_GRAPH)); }
+void pf_make_loop(pf *pf)   { PUSH_P(MAKE_LOOP(POP_TO_GRAPH)); }
+void pf_definitions(pf *pf) { px_define(pf, POP_TO_GRAPH); }
+void pf_compile(pf *pf)     { PUSH_P(COMPILE_PROGRAM(POP_TO_GRAPH)); }
 
+void pf_define(pf *pf) {
+    _ var = TOP;
+    _ val = SECOND;
+    pf->dict = ENV_DEF(pf->dict, var, val);
+}
 
 
 void pf_run(pf *pf){ 
@@ -497,7 +502,7 @@ void pf_call_with_cc(pf *pf) {
     pf->k = new_k;
 }
 
-void pf_lunstack(pf *pf) {
+void pf_bang_lunstack(pf *pf) {
     _ k = TOP;  
     if (!(is_lcode(k, EX))) {
         TYPE_ERROR(k);

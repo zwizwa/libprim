@@ -4045,7 +4045,11 @@ First, the current implementation of `reset' and `shift' are _wrong_
 
 I'm using an interface that doesn't even have a shifted expression.
 
-So let's fix this.
+So let's fix this: the API is now:
+
+   shift / control ( quot -- )
+
+Where the quotation is called with the continuation on top of stack.
 
 
 
