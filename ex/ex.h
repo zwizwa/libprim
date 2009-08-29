@@ -42,6 +42,7 @@ struct _ex {
 
     /* Garbage collector. */
     struct _gc *gc;
+    struct _gc *gc_save;
     jmp_buf top;  // GC unwind
     long top_entries; // guard semaphore
     
@@ -148,6 +149,7 @@ _ _ex_boot_load(ex *ex,  const char *bootfile);
 
 #define VEC(x) (vector_to_object(((void*)(x))))
 
+#define IMPURE (EX->gc = NULL)
 
 #endif
 

@@ -4058,3 +4058,40 @@ Where the quotation is called with the continuation on top of stack.
 [1] entry://../compsci/20090828-144955
 [2] http://www.bluishcoder.co.nz/2006/03/factor-partial-continuation-updates.html
 [3] http://docs.factorcode.org/content/article-partial-continuations.html
+
+
+Entry: GC restarts: clear separation between PURE and LINEAR functions.
+Date: Fri Aug 28 21:01:50 CEST 2009
+
+To catch GC restarts in the definition of linera primitives, a simple
+trick can be used for testing: simply kill the reference to the GC
+right before a mutation is made.
+
+So, primitives are either purely functional and can have allocation,
+or are linear and cannot perform allocation but are allowed to perform
+in-place operations.
+
+Let's say that a primitive starts in pure mode, but whenver it mutates
+something, it switches to impure mode.
+
+In order to test all primitives, a freelist = NIL + GC step can be
+performed before the execution of each primitive to cover the case
+where a primitive needs extra storage.
+
+
+Practically:
+
+- The VM: replace all PUSH/DROP operations with a FROM_TO. Start with
+  making this type-tagged.  There is a real problem in the exception
+  handler: it might fail as there is no guarantee there's enough
+  memory.
+
+- Find a more highlevel way of doing this.  Preferably static.  Can't
+  this be solved as a type issue?  In C?
+
+- Am I solving a real problem, or is this just a consequence of the
+  way the GC is implemented?  The real problem is to make a
+  distinction between PURE and LINEAR, where the latter cannot perform
+  any allocations, and the former cannot perform any mutations.
+
+- Try it first in Scheme.

@@ -552,3 +552,16 @@ _ _ex_boot_load(ex *ex,  const char *bootfile) {
     port_free(bootport);
     return expr;
 }
+
+
+
+/* GC */
+
+_ ex_pure(ex *ex) {
+    ex->gc = ex->gc_save;
+    return VOID;
+}
+_ ex_linear(ex *ex) {
+    ex->gc = NULL;
+    return VOID;
+}

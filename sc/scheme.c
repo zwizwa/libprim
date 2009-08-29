@@ -396,7 +396,6 @@ _ _sc_step_value(sc *sc, _ v, _ k) {
                 _ state   = STATE(value, kx->k.parent); // drop frame
                 _ rv      = _sc_call(sc, prim_fn(p), n-1, rev_args);
                 object_to_value(value)->datum = rv;
-                    
                 return state;
             }
             /* Application of abstraction extends the fn_env environment. */
@@ -633,6 +632,7 @@ _ sc_eval_step(sc *sc, _ state) {
 
     switch(exception = setjmp(sc->m.r.step)) {
         case EXCEPT_TRY:
+            PURE();
             rv = _sc_step(sc, state);
             break;
         case EXCEPT_ABORT: 
@@ -778,6 +778,7 @@ _ _sc_top(sc *sc, _ expr){
         if (setjmp(sc->m.top)){
             sc->m.prim_entries = 0;  // full tower unwind
             sc->m.r.prim = NULL;
+            PURE();  // switch back to pure mode
         }
         for(;;) {
             _ state;
@@ -864,9 +865,10 @@ sc *_sc_new(void) {
     sc->m.prim_entries = 0;
 
     /* Garbage collector. */
-    sc->m.gc = gc_new(10000, sc, 
-                      (gc_mark_roots)_sc_mark_roots,
-                      (gc_overflow)_ex_overflow);
+    sc->m.gc = sc->m.gc_save
+        = gc_new(10000, sc, 
+                 (gc_mark_roots)_sc_mark_roots,
+                 (gc_overflow)_ex_overflow);
                     
     /* Atom classes. */
     sc->m.p = malloc(sizeof(*(sc->m.p)));
