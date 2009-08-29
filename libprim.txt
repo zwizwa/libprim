@@ -4180,3 +4180,15 @@ What about turning this around:
   2. Anything that's nonlinear needs to be guarded from GC restarts in
      a different way.
 
+
+
+Entry: Linear `compile'
+Date: Sat Aug 29 14:15:06 CEST 2009
+
+Now, because `compile' can't introduce any non-linearities, it could
+be made to produce a linear code representation.  Only when code
+enters the _dictionary_ need it become non-linear: since then it has
+become random-access and there are no more guarantees about how it is
+referenced.
+
+Let's split this up in `compile-datum' and `map'.
