@@ -322,6 +322,8 @@ void pf_reverse(pf *pf)   { _TOP = BANG_REVERSE(TOP); }
 void pf_add1(pf *pf)      { _TOP = ADD1(TOP); }
 void pf_find(pf *pf)      { _TOP = FIND(pf->dict, TOP); }
 
+void pf_add(pf *pf)       { _TOP = ADD(TOP, SECOND); _SWAP(); _DROP(); }
+
 void pf_display(pf *pf)   { px_display(pf, TOP); _DROP(); } 
 
 void pf_words(pf *pf) {
@@ -333,6 +335,7 @@ void pf_words(pf *pf) {
     }
     _CR();
 }
+
 
 void pf_interpret(pf *pf) {
     _ v = TOP;
@@ -445,6 +448,56 @@ void pf_dip(pf *pf) {
     _DROP();
     _RUN();
 }
+
+void pf_to_k_data(pf *pf) {
+    FROM_TO(p, k);
+    vector_reset_flags(object_to_vector(pf->k), TAG_LDATA);
+}
+void pf_to_k_next(pf *pf) {
+    FROM_TO(p, k);
+    vector_reset_flags(object_to_vector(pf->k), TAG_LNEXT);
+}
+
+/* MAP, written in CPS */
+void pf_map_next(pf *pf) {
+    pair *p0 = CAST(ldata, pf->k);    _ *out = &(p0->car);
+    pair *p1 = CAST(ldata, p0->cdr);  _ *in  = &(p1->car);
+    pair *p2 = CAST(ldata, p1->cdr);  _ code = p2->car;
+
+    _px_from_to(pf, &pf->p, out);  // collect result
+    if (NIL == (*in)) {
+        PUSH_P(*out); *out = VOID;
+        DROP_K();
+        DROP_K();
+        DROP_K();
+        _REVERSE();
+        return;
+    }
+    _px_from_to(pf, in, &pf->p);
+    PUSH_K_NEXT(pf->ip_map_next);
+    PUSH_K_NEXT(_px_link(pf, code));
+}
+// ( lst code -- ) 
+void pf_map(pf *pf) {
+    _ code = TOP; _TO_K_DATA();
+    _ lst  = TOP;
+    if (NIL == lst) {
+        DROP_K();
+        return;
+    }
+    _TO_K_DATA();
+    PUSH_K_DATA(NIL); // result
+        
+    _px_from_to(pf, &(_CADR(pf->k)), &pf->p);
+    PUSH_K_NEXT(pf->ip_map_next);
+    PUSH_K_NEXT(_px_link(pf, code));
+}
+
+void pf_domap(pf *pf) {
+    _ fn = TOP;
+}
+
+
 
 
 /* Project linear/nonlinear code -> linear code */
@@ -596,6 +649,7 @@ static void _px_mark_roots(pf *pf, gc_finalize fin) {
     MARK(freelist);
     MARK(output);
     MARK(ip_abort);
+    MARK(ip_map_next);
     MARK(ip_repl);
     MARK(ip_nop);
     MARK(dict);
@@ -710,6 +764,7 @@ pf* _px_new(void) {
     pf->ip_abort = SEQ(WORD("print-error"), WORD("abort-repl"));
     pf->ip_prompt_tag = WORD("prompt-tag");
     pf->ip_nop = WORD("nop");
+    pf->ip_map_next = WORD("map-next");
     // Highlevel bootstrap
     _px_interpret_list(pf, _ex_boot_load(EX, "boot.pf"));
     return pf;

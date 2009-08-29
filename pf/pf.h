@@ -15,12 +15,12 @@ typedef struct {
     _ output;
 
     /* Graph memory. */
-    // _ ip;
+    _ dict;
     _ ip_repl;
     _ ip_abort;
     _ ip_prompt_tag;
     _ ip_nop;
-    _ dict;
+    _ ip_map_next;
 
     /* Symbol cache. */
     _ s_underflow;

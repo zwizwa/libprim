@@ -8,6 +8,8 @@
     (unstack! . (>lcode lunstack!))
     (prompt   . (reset))
     (compile  . (>nl nl-compile))
+    (+        . (add))
+              
     
     ) definitions
  
