@@ -588,6 +588,13 @@ void pf_bye(pf *pf) {
 
 #define GC_DEBUG _ex_printf(EX, ";; %d\n", (int)GC->current_index)
 #define MARK(reg) pf->reg = gc_mark(GC, pf->reg)
+
+void pf_gc_stat(pf *pf) {
+    long used = pf->m.gc_save->current_index;
+    long free = pf->m.gc_save->slot_total - used;
+    _ex_printf(EX, ";; gc %d:%d\n", (int)used, (int)free);
+}
+
 static void _px_mark_roots(pf *pf, gc_finalize fin) {
     MARK(p);
     MARK(k);
@@ -599,9 +606,7 @@ static void _px_mark_roots(pf *pf, gc_finalize fin) {
     MARK(dict);
     if (fin) { 
         fin(GC); 
-        long used = GC->current_index;
-        long free = GC->slot_total - used;
-        _ex_printf(EX, ";; gc %d:%d\n", (int)used, (int)free);
+        _GC_STAT();
         _ex_restart(EX); 
     }
     else return;  // we're in gc_grow() -> return
@@ -640,6 +645,13 @@ _ _px_word(pf* pf, const char *str) {
 }
 
 #define WORD(str) _px_word(pf, str)
+
+void pf_gc_test(pf *pf) {
+    PURE();
+    _GC_STAT();
+    _px_alloc_cells(pf, 2000);
+    LINEAR();
+}
 
 void _px_load_lib(pf *pf);
 
