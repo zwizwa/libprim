@@ -21,7 +21,6 @@ _ static inline _move(_ *ob, _ filler) {
 #define SECOND _px_second(pf)
 #define _TOP _CAR(pf->p)  /* UNSAFE */
 
-void _px_need_free(pf *pf);
 void _px_unlink(pf* pf, _ ob);
 _ _px_link(pf *pf, _ ob);
 _ _px_top(pf *pf);
@@ -46,6 +45,19 @@ static inline void _px_drop(pf *pf, _ *stack) {
 }
 static inline void _px_push(pf *pf, _ ob) {
     pf->p = LINEAR_CONS(ob, pf->p);
+}
+
+static inline _ _px_alloc_cells(pf *pf, long nb) {
+    _ cells = NIL;
+    while (nb--) {
+        cells = LCONS(VOID, cells);
+    }
+    return cells;
+}
+static inline void _px_need_free(pf *pf) {
+    if (unlikely(NIL == pf->freelist))  {
+        pf->freelist = _px_alloc_cells(pf, 1);
+    }
 }
 
 

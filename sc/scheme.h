@@ -167,6 +167,9 @@ struct _scheme {
     /* Highlevel global state data is accessible from Scheme. */
     _ global;
 
+    /* Struct to hold errors. */
+    _ error;
+
     /* Lowlevel implementation data.  The object values below don't
        need to be marked because they are short-lived, or constant. */
 
@@ -178,12 +181,6 @@ struct _scheme {
     _ s_bang_set;
     _ s_letcc;
 
-    /* Lowlevel control flow */
-    // long step_entries; // semaphores
-
-    /* Temp storage: does not need to be marked. */
-    // _ error_tag;
-    // _ error_arg;
 };
 
 

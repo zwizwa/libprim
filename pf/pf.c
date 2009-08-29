@@ -40,15 +40,25 @@ void _px_run(pf *pf) {
     box *b;
     lin *l;
 
+    pf_prim fn = NULL;
+
     /* Toplevel exceptions. */
     EX->top_entries++;
     while (setjmp(pf->m.top)) {
+        /* Restarts can only happen in primitives.  The rest of the
+           interpreter is linear.  We re-push the IP because it has
+           been popped right before execution. */
+        PUSH_K_NEXT(const_to_object(pf->m.r.prim));
+
+        /* Reset state. */
         pf->m.r.prim = NULL;
         pf->m.prim_entries = 0;
     }
 
   loop:
-    /* Interpeter loop. */
+    /* Always run with GC in linear mode (= switched off).  Switch
+       to/from nonlinear mode inside primitives. */
+    LINEAR();
     for(;;) {
         pair *rs;
 
@@ -77,21 +87,21 @@ void _px_run(pf *pf) {
             else {
                 /* Primitive */
                 if ((p = object_to_prim(ip, &pf->m))) {
-                    pf_prim fn = (pf_prim)p->fn;
                     int ex;
+                    fn = (pf_prim)p->fn;
                     pf->m.r.prim = p;
                     pf->m.prim_entries++;
                     switch(ex = setjmp(pf->m.r.step)) {
                     case 0:
                         fn(pf);
+                        fn = NULL;
                         break;
                     default:
                         pf->m.error_tag = SYMBOL("unknown-primitive-exception");
                         pf->m.error_arg = integer_to_object(ex);
                     case EXCEPT_ABORT:
-                        // TAG + ARG are NONLINEAR
-                        PUSH_P(COPY_FROM_GRAPH(pf->m.error_arg));
-                        PUSH_P(COPY_FROM_GRAPH(pf->m.error_tag));
+                        PUSH_P(LINEARIZE_EXCEPTION(pf->m.error_arg));
+                        PUSH_P(LINEARIZE_EXCEPTION(pf->m.error_tag));
                         PUSH_K_NEXT(pf->ip_abort);
                     }
                     pf->m.prim_entries--;
@@ -119,7 +129,12 @@ void _px_run(pf *pf) {
                 }
                 /* Unknown non-seq. */
                 else {
-                    PUSH_P(COPY_FROM_GRAPH(ip));
+                    /* FIXME: This should handle the case where ip
+                       contains a linear atom, which is already a
+                       violation of memory order, but will lead to
+                       crashes later.  Maybe add some linearity
+                       asserts... */
+                    PUSH_P(ip);
                     PUSH_P(SYMBOL("unknown-instruction"));
                     PUSH_K_NEXT(pf->ip_abort);
                 }
@@ -163,14 +178,10 @@ void pf_exchange(pf *pf) {
     _DROP();
     EXCH(x->object, _TOP);
 }
+// this uses linear cons from EX->make_pair
 void pf_read(pf *pf) {
-    /* FIXME: make sure read has a low probability to restart, which
-     * would mess up its state. */
-    // pf_gc(pf); 
-    
     port p;
     p.stream = stdin;
-    /* FIXME: read needs to produce linear data */
     PUSH_P(_ex_read(EX, &p));
 }
 
@@ -289,10 +300,13 @@ void pf_abort_repl(pf *pf) {
     pf->k = LINEAR_NEXT(pf->ip_repl, NIL);
 }
 
+void pf_nop(pf *pf) {}
 
 /* Since we have a non-rentrant interpreter with mutable state, this
    is a bit less problematic than the EX/SC case. */
 void pf_gc(pf *pf) {
+    PURE();
+    pf->m.r.prim = object_to_prim(pf->ip_nop, EX);  // don't restart pf_gc() !
     gc_collect(GC); // does not return
 }
 
@@ -366,14 +380,40 @@ _ _px_pop_to_graph(pf *pf) {
 }
 #define POP_TO_GRAPH _px_pop_to_graph(pf)
 
-void pf_make_loop(pf *pf)   { PUSH_P(MAKE_LOOP(POP_TO_GRAPH)); }
-void pf_definitions(pf *pf) { px_define(pf, POP_TO_GRAPH); }
-void pf_compile(pf *pf)     { PUSH_P(COMPILE_PROGRAM(POP_TO_GRAPH)); }
+/* FIXME: properly switch mode! */
+void pf_make_loop(pf *pf) { 
+    PURE();
+    PUSH_P(MAKE_LOOP(POP_TO_GRAPH)); 
+    LINEAR();
+}
+
+void pf_compile(pf *pf) { 
+    PURE();
+    PUSH_P(COMPILE_PROGRAM(POP_TO_GRAPH)); 
+    LINEAR();
+}
+
+void pf_definitions(pf *pf) { 
+    PURE();
+    px_define(pf, POP_TO_GRAPH); 
+    LINEAR();
+}
 
 void pf_define(pf *pf) {
+    PURE();
     _ var = TOP;
     _ val = SECOND;
     pf->dict = ENV_DEF(pf->dict, var, val);
+    LINEAR();
+}
+
+void pf_to_graph(pf *pf) {
+    _ ob = TOP;
+    PURE();
+    _ nl = COPY_TO_GRAPH(ob);
+    LINEAR();
+    _DROP();
+    PUSH_P(nl);
 }
 
 
@@ -538,7 +578,8 @@ void pf_bye(pf *pf) {
     pf->output = NIL;
     pf->ip_abort = HALT;
     pf->ip_repl  = HALT;
-    pf_gc(pf); // does not return
+    pf->ip_nop   = HALT;
+    gc_collect(GC); // does not return
 }
 
 
@@ -548,14 +589,13 @@ void pf_bye(pf *pf) {
 #define GC_DEBUG _ex_printf(EX, ";; %d\n", (int)GC->current_index)
 #define MARK(reg) pf->reg = gc_mark(GC, pf->reg)
 static void _px_mark_roots(pf *pf, gc_finalize fin) {
-    printf(";; gc\n");
     MARK(p);
     MARK(k);
     MARK(freelist);
     MARK(output);
-    // MARK(ip);
     MARK(ip_abort);
     MARK(ip_repl);
+    MARK(ip_nop);
     MARK(dict);
     if (fin) { 
         fin(GC); 
@@ -633,10 +673,11 @@ pf* _px_new(void) {
 
     // Machine state
     pf->p = NIL;
-    pf->freelist = NIL;
+    pf->freelist = _px_alloc_cells(pf, 100);
     pf->dict = NIL;
     pf->k = NIL;
     pf->ip_abort = HALT;
+    pf->ip_nop = HALT;
 
     // Exceptions
     pf->m.top_entries = 0;
@@ -658,6 +699,7 @@ pf* _px_new(void) {
     pf->ip_repl  = repl;
     pf->ip_abort = SEQ(WORD("print-error"), WORD("abort-repl"));
     pf->ip_prompt_tag = WORD("prompt-tag");
+    pf->ip_nop = WORD("nop");
     // Highlevel bootstrap
     _px_interpret_list(pf, _ex_boot_load(EX, "boot.pf"));
     return pf;

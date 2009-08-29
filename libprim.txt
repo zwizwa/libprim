@@ -4153,4 +4153,30 @@ unexpected allocations in LINEAR mode.  Currently this seems to only
 happen when errors are already quite severe.
 
 Then, the only remaining problem is to make sure no _inconsistencies_
-are introduced due to primitive errors.
+are introduced due to primitive errors by keeping linear data linked
+to the VM instances at all times.
+
+
+
+Entry: Fully linear PF machine
+Date: Sat Aug 29 11:11:18 CEST 2009
+
+Hmm... Maybe the trick is really to have a single linear <-> nonlinear
+conversion primitive, and never perform any conversions in other
+primitives.
+
+Another problem: in _px_run() the `ip' can't be a C variable for the
+same reason that other structures can't be present only on the C
+stack: primitives might abort in which case the current `ip' is lost.
+
+What about turning this around: 
+
+  1. PF primitives can never fail due to GC restarts as they _always_
+     run in LINEAR mode.  They will abort on an empty freelist, but this
+     case can be handled separately and be made more gentle in the
+     prototyping case (where you want to give up real-time behaviour
+     for extra allocation).
+
+  2. Anything that's nonlinear needs to be guarded from GC restarts in
+     a different way.
+

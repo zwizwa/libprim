@@ -19,6 +19,7 @@ typedef struct {
     _ ip_repl;
     _ ip_abort;
     _ ip_prompt_tag;
+    _ ip_nop;
     _ dict;
 
     /* Symbol cache. */

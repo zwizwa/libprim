@@ -629,17 +629,31 @@ _ sc_eval_step(sc *sc, _ state) {
     sc->m.r.prim = NULL; // means error comes from step() itself
     sc->m.prim_entries++;
 
+    /* Allocate the error struct before the step() is entered to
+       prevent GC restarts of imperative primitives. */ 
+    if (FALSE == sc->error) {
+        sc->error = sc_make_error(sc, VOID, VOID, VOID, VOID);
+    }
+
     switch(exception = setjmp(sc->m.r.step)) {
         case EXCEPT_TRY:
             PURE();
             rv = _sc_step(sc, state);
             break;
         case EXCEPT_ABORT: 
-            rv = sc_make_error(sc, sc->m.error_tag, sc->m.error_arg, 
-                               state, const_to_object(sc->m.r.prim));
+        {
+            error *e = object_to_error(sc->error);
+            if (unlikely(NULL == e)) { TRAP(); }
+            e->tag = sc->m.error_tag;
+            e->arg = sc->m.error_arg;
+            e->state = state;
+            e->prim = const_to_object(sc->m.r.prim);
             sc->m.error_arg = NIL;
             sc->m.error_tag = NIL;
+            rv = sc->error;
+            sc->error = FALSE;
             break;
+        }
         default:
             break;
     }
@@ -825,6 +839,7 @@ static void _sc_mark_roots(sc *sc, gc_finalize fin) {
     // printf("gc_mark()\n");
     // sc_post(sc, sc->state);
     sc->global = gc_mark(sc->m.gc, sc->global);
+    sc->error  = gc_mark(sc->m.gc, sc->error);
 
     if (fin) {
         /* We're given a finalizer continuation to aid us in aborting
@@ -894,6 +909,7 @@ sc *_sc_new(void) {
                                 NIL,  // state
                                 NIL,  // abort
                                 out); // debug port
+    sc->error = FALSE;
 
     /* Cached identifiers */
     sc->s_lambda   = SYMBOL("lambda");

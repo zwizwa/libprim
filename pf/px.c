@@ -107,10 +107,7 @@ _ px_display(pf *pf, _ ob) {
  */
 
 /* Allocate/reuse cell. */
-void _px_need_free(pf *pf) {
-    if (unlikely(NIL == pf->freelist)) 
-        pf->freelist = LCONS(VOID,NIL);
-}
+
 _ px_linear_cons(pf *pf, _ car, _ cdr) {
     _px_need_free(pf);
     _ rv = pf->freelist;
@@ -588,4 +585,27 @@ _ px_bang_linear_compose(pf *pf, _ partial, _ full) {
 
 _ px_error_undefined(pf *pf, _ var) {
     return ERROR("undefined", var);
+}
+
+
+
+/* Converting data that is passed through the exception handlers to
+   linear form needs some care.
+
+   The following constraints are necessary:
+
+   - All _linear_ data needs to be reachable from the machine state
+     _at all times_.  C stack can only contain access pointers into
+     this data structure.
+
+   - Therefore, all _linear_ data that is referenced through the
+     exception mechanism needs to be _linked_ because it is already
+     residing somehwere else.
+
+   - Nonlinear data that passes through the exception mechanism can
+     safely be treated as a constant.
+
+*/
+_ px_linearize_exception(pf *pf, _ ob) {
+    return _px_link(pf, ob);
 }
