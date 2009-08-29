@@ -49,7 +49,7 @@ static inline void _px_push(pf *pf, _ ob) {
 
 static inline _ _px_alloc_cells(pf *pf, long nb) {
     _ cells = NIL;
-    _ex_printf(EX, "alloc %d cells\n", (int)nb);
+    // _ex_printf(EX, "alloc %d cells\n", (int)nb);
     while (nb--) {
         cells = LCONS(VOID, cells);
     }

@@ -7,6 +7,7 @@
     (see      . (find post))
     (unstack! . (>lcode lunstack!))
     (prompt   . (reset))
+    (compile  . (>nl nl-compile))
     
     ) definitions
  

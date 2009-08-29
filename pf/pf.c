@@ -357,7 +357,8 @@ void pf_interpret(pf *pf) {
             return;
         }
         /* Compile quotation (nonlinearly). */
-        _COMPILE();
+        _TO_NL();
+        _NL_COMPILE();
         return;
     }
     /* Datum: leave intact. */
@@ -370,33 +371,25 @@ void pf_interpret(pf *pf) {
    converted to nonlinear form first.
 */
 
-_ _px_pop_to_graph(pf *pf) {
-    _ ob = TOP;
-    if (object_to_lpair(ob) || object_to_rc(ob, EX)) {
-        ob = COPY_TO_GRAPH(ob);
-    }
-    _DROP();
-    return ob;
-}
-#define POP_TO_GRAPH _px_pop_to_graph(pf)
 
 /* FIXME: properly switch mode! */
 void pf_make_loop(pf *pf) { 
     PURE();
-    PUSH_P(MAKE_LOOP(POP_TO_GRAPH)); 
+    _TOP = MAKE_LOOP(TOP);
     LINEAR();
 }
 
-void pf_compile(pf *pf) { 
+void pf_nl_compile(pf *pf) { 
     PURE();
-    PUSH_P(COMPILE_PROGRAM(POP_TO_GRAPH)); 
+    _TOP = COMPILE_PROGRAM(TOP);
     LINEAR();
 }
 
-void pf_definitions(pf *pf) { 
+void pf_nl_definitions(pf *pf) { 
     PURE();
-    px_define(pf, POP_TO_GRAPH); 
+    px_define(pf, TOP); 
     LINEAR();
+    _DROP();
 }
 
 void pf_define(pf *pf) {
@@ -407,7 +400,7 @@ void pf_define(pf *pf) {
     LINEAR();
 }
 
-void pf_to_graph(pf *pf) {
+void pf_to_nl(pf *pf) {
     _ ob = TOP;
     PURE();
     _ nl = COPY_TO_GRAPH(ob);
@@ -416,29 +409,6 @@ void pf_to_graph(pf *pf) {
     PUSH_P(nl);
 }
 
-
-void pf_run(pf *pf){ 
-    _ v = TOP;
-    if (object_to_ldata(v) || 
-        object_to_lnext(v)) {
-
-        /* This makes linear lists behave as programs.  Note that this
-           pushes a partial continuation: it does not replace a full
-           one! */
-        pf->k = BANG_LINEAR_COMPOSE(v, pf->k);
-        _TOP = VOID; _DROP();
-    }
-    else {
-        PUSH_K_NEXT(POP_TO_GRAPH);
-    }
-}
-void pf_dip(pf *pf) {
-    _SWAP();
-    PUSH_K_DATA(TOP);
-    _TOP = VOID;
-    _DROP();
-    _RUN();
-}
 
 static inline int is_nlcode(_ ob, ex* ex) {
     return (object_to_prim(ob, ex) ||
@@ -449,6 +419,31 @@ static inline int is_lcode(_ ob, ex* ex) {
     return (object_to_lnext(ob) ||
             object_to_ldata(ob) ||
             (NIL == ob));
+}
+
+
+void pf_run(pf *pf){ 
+    _ v = TOP;
+    if (is_lcode(v, EX)) {
+
+        /* This makes linear lists behave as programs.  Note that this
+           pushes a partial continuation: it does not replace a full
+           one! */
+        pf->k = BANG_LINEAR_COMPOSE(v, pf->k);
+        _TOP = VOID; _DROP();
+    }
+    else if (is_nlcode(v, EX)) {
+        PUSH_K_NEXT(v);
+        _DROP();
+    }
+    else TYPE_ERROR(v);
+}
+void pf_dip(pf *pf) {
+    _SWAP();
+    PUSH_K_DATA(TOP);
+    _TOP = VOID;
+    _DROP();
+    _RUN();
 }
 
 
@@ -706,6 +701,9 @@ pf* _px_new(void) {
                 SEQ(WORD("read"), 
                     WORD("interpret"))));
     _ repl = MAKE_LOOP(rep);
+
+    _ definitions = SEQ(WORD(">nl"), WORD("nl-definitions"));
+    pf->dict = ENV_DEF(pf->dict, SYMBOL("definitions"), definitions);
     pf->dict = ENV_DEF(pf->dict, SYMBOL("rep"), rep);
     pf->dict = ENV_DEF(pf->dict, SYMBOL("repl"), repl);
     pf->ip_repl  = repl;
@@ -721,7 +719,8 @@ pf* _px_new(void) {
 void _px_interpret_list(pf *pf, _ l_expr){
     PUSH_P(l_expr);
     l_expr = NIL;
-    _COMPILE();
+    _TO_NL();
+    _NL_COMPILE();
     _RUN();
     _px_run(pf);
 }
