@@ -493,6 +493,37 @@ void pf_map(pf *pf) {
     PUSH_K_NEXT(_px_link(pf, code));
 }
 
+
+void pf_each_next(pf *pf) {
+    pair *p1 = CAST(ldata, pf->k);    _ *in  = &(p1->car);
+    pair *p2 = CAST(ldata, p1->cdr);  _ code = p2->car;
+
+    if (NIL == (*in)) {
+        DROP_K();
+        DROP_K();
+        return;
+    }
+    _px_from_to(pf, in, &pf->p);
+    PUSH_K_NEXT(pf->ip_each_next);
+    PUSH_K_NEXT(_px_link(pf, code));
+}
+
+void pf_each(pf *pf) {
+    _ code = TOP; _TO_K_DATA();
+    _ lst  = TOP;
+    if (NIL == lst) {
+        DROP_K();
+        _DROP();
+        return;
+    }
+    _TO_K_DATA();
+        
+    _px_from_to(pf, &(_CAR(pf->k)), &pf->p);
+    PUSH_K_NEXT(pf->ip_each_next);
+    PUSH_K_NEXT(_px_link(pf, code));
+}
+
+
 void pf_domap(pf *pf) {
     _ fn = TOP;
 }
@@ -627,6 +658,8 @@ void pf_bye(pf *pf) {
     pf->ip_abort = HALT;
     pf->ip_repl  = HALT;
     pf->ip_nop   = HALT;
+    pf->ip_map_next = HALT;
+    pf->ip_each_next = HALT;
     gc_collect(GC); // does not return
 }
 
@@ -650,6 +683,7 @@ static void _px_mark_roots(pf *pf, gc_finalize fin) {
     MARK(output);
     MARK(ip_abort);
     MARK(ip_map_next);
+    MARK(ip_each_next);
     MARK(ip_repl);
     MARK(ip_nop);
     MARK(dict);
@@ -765,6 +799,7 @@ pf* _px_new(void) {
     pf->ip_prompt_tag = WORD("prompt-tag");
     pf->ip_nop = WORD("nop");
     pf->ip_map_next = WORD("map-next");
+    pf->ip_each_next = WORD("each-next");
     // Highlevel bootstrap
     _px_interpret_list(pf, _ex_boot_load(EX, "boot.pf"));
     return pf;

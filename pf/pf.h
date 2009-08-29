@@ -21,6 +21,7 @@ typedef struct {
     _ ip_prompt_tag;
     _ ip_nop;
     _ ip_map_next;
+    _ ip_each_next;
 
     /* Symbol cache. */
     _ s_underflow;
