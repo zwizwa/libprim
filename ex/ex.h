@@ -37,6 +37,7 @@ typedef struct _ex ex;
 typedef object (*ex_m_write)(ex *ex, object ob);
 typedef port*  (*_ex_m_port)(ex *ex);
 typedef object (*_ex_m_make_string)(ex *ex, const char *str);
+typedef object (*ex_m_make_pair)(ex *ex, object car, object cdr); // reader
 struct _ex {
     void *type;
 
@@ -61,6 +62,7 @@ struct _ex {
     ex_m_write write;
     _ex_m_port port;
     _ex_m_make_string make_string;
+    ex_m_make_pair make_pair;
 
 };
 
@@ -149,7 +151,20 @@ _ _ex_boot_load(ex *ex,  const char *bootfile);
 
 #define VEC(x) (vector_to_object(((void*)(x))))
 
-#define IMPURE (EX->gc = NULL)
+
+/* GC */
+
+static inline _ ex_pure(ex *ex) {
+    ex->gc = ex->gc_save;
+    return VOID;
+}
+static inline _ ex_linear(ex *ex) {
+    ex->gc = NULL;
+    return VOID;
+}
+
+#define PURE() ex_pure(EX)
+#define LINEAR() ex_linear(EX)
 
 #endif
 

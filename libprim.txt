@@ -4095,3 +4095,62 @@ Practically:
   any allocations, and the former cannot perform any mutations.
 
 - Try it first in Scheme.
+
+
+Ok.  In Scheme it doesn't seem to be such a problem.
+
+Now, in PF, can't we make LINEAR the default?  The problem is then:
+how to specify nonlinear words?
+
+Let's say it's allowed to switch to PURE mode at the entry point of a
+primitive.
+
+There's something fishy going on with exceptions in Scheme too:
+exceptions should NOT perform allocations.  The _sc_step() might have
+switched to linear mode, so the sc_make_error might trigger GC.
+
+    switch(exception = setjmp(sc->m.r.step)) {
+        case EXCEPT_TRY:
+            PURE();
+            rv = _sc_step(sc, state);
+            break;
+        case EXCEPT_ABORT: 
+            rv = sc_make_error(sc, sc->m.error_tag, sc->m.error_arg, 
+                               state, const_to_object(sc->m.r.prim));
+            sc->m.error_arg = NIL;
+            sc->m.error_tag = NIL;
+            break;
+        default:
+            break;
+    }
+
+Maybe primitive exceptions should be linear?
+
+There are a lot of nuances here..  It needs to be simplified.
+
+
+Entry: Primitive exceptions should be linear
+Date: Sat Aug 29 09:39:12 CEST 2009
+
+The main reason for this is that you really want the C model to be
+independent of the GC.  Exceptions extend into C.
+
+The _real_ problem is that in PF, there are occasions where you want
+to perform a linear allocation, but you're not sure this is going to
+succeed.  What about calling this a system failure?  I.e. always make
+sure there are enough free cells.  In an embedded system it most
+definitely is an unrecoverable failure.
+
+The problem is that in current ``prototyping PF'' the linear cells are
+allocated lazily.  Maybe a good solution would be to keep an extra
+free buffer with a couple of cells N to guarantee at least N
+allocations to succeed in the LINEAR regime where the GC is switched
+off.  Then when the machine can take a GC restart, replenish this
+buffer.
+
+So, let's leave it as it is.  Fix the problem when there are
+unexpected allocations in LINEAR mode.  Currently this seems to only
+happen when errors are already quite severe.
+
+Then, the only remaining problem is to make sure no _inconsistencies_
+are introduced due to primitive errors.

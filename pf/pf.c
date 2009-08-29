@@ -171,7 +171,7 @@ void pf_read(pf *pf) {
     port p;
     p.stream = stdin;
     /* FIXME: read needs to produce linear data */
-    PUSH_P(COPY_FROM_GRAPH(_ex_read(EX, &p)));
+    PUSH_P(_ex_read(EX, &p));
 }
 
 void pf_ps(pf *pf) {  // print stack
@@ -607,10 +607,11 @@ pf* _px_new(void) {
     pf *pf = malloc(sizeof(*pf));
 
     // Garbage collector.
-    GC = gc_new(10000, pf, 
-                (gc_mark_roots)_px_mark_roots,
-                (gc_overflow)_ex_overflow);
-
+    pf->m.gc = pf->m.gc_save =
+        gc_new(10000, pf, 
+               (gc_mark_roots)_px_mark_roots,
+               (gc_overflow)_ex_overflow);
+    
     // Leaf types.
     pf->m.p = malloc(sizeof(*(pf->m.p)));
     TYPES->ck_type = ck_class_new();
@@ -619,10 +620,11 @@ pf* _px_new(void) {
     TYPES->prim_type = (void*)0xF001; 
     TYPES->rc_type = (void*)0xF002; 
 
-    // Write delegate
+    // Read/Write delegate
     pf->m.write = (ex_m_write)px_write;
     pf->m.port  = (_ex_m_port)_px_port;
     pf->m.make_string = (_ex_m_make_string)_px_make_string;
+    pf->m.make_pair = (ex_m_make_pair)px_linear_cons;
 
     // Symbol cache
     pf->s_underflow = SYMBOL("underflow");
@@ -661,12 +663,12 @@ pf* _px_new(void) {
     return pf;
 }
 
-/* Top level evaluator.  This takes a (read-only) s-expression,
-   compiles it to code (this performs allocation from GC pool -- top
-   eval is not linear), and executes this code until machine halt.  */
-void _px_interpret_list(pf *pf, _ nl_expr){
-    PUSH_K_NEXT(COMPILE_PROGRAM(nl_expr));
-    nl_expr = NIL;
+/* Top level evaluators. */
+void _px_interpret_list(pf *pf, _ l_expr){
+    PUSH_P(l_expr);
+    l_expr = NIL;
+    _COMPILE();
+    _RUN();
     _px_run(pf);
 }
 /* Find and run.  This is linear if the referenced code is. */

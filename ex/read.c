@@ -8,9 +8,11 @@ static ex *thread_local_ex = NULL;
 static _ ob = NIL;
 static port *p = NULL;
 #undef EX
+#undef CONS
 #define EX thread_local_ex
 #define YYSTYPE object
 // #define YY_DEBUG
+#define CONS(car,cdr) EX->make_pair(EX, car, cdr)
 #define NUMBER integer_to_object
 #define JUNK(str) CONS(SYMBOL("junk"), STRING(str))
 #define QUOTE(ob) CONS(SYMBOL("quote"), CONS(ob, NIL))

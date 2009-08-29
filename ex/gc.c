@@ -170,6 +170,7 @@ vector *gc_alloc(gc *gc, long size) {
         fprintf(stderr, "ERROR: GC: Allocation in LINEAR mode.\n");
         kill(getpid(), SIGTRAP);
     }
+    // fprintf(stderr, ".");
     long slots = size + 1;
     if (unlikely(gc_full(gc, slots))) {
         _gc_when_full(gc, slots);

@@ -141,9 +141,6 @@ _ sc_bang_def_global(sc* sc, _ slot, _ var, _ val) {
     _ env = sc_global(sc, slot);
     if (!(s=object_to_symbol(var, &sc->m))) TYPE_ERROR(var);
     // _ex_printf(EX, "DEF %s: ",s->name); sc_post(sc, val);
-//    if (FALSE == ENV_SET(env, var, val)) {
-//        sc_bang_set_global(sc, slot, CONS(CONS(var,val), env));
-//    }
     sc_bang_set_global(sc, slot, ENV_DEF(env, var, val));
     return VOID;
 }
@@ -236,6 +233,7 @@ _ sc_open_mode_file(sc *sc, _ path, _ mode) {
 
 // Manually call finalizer, creating a defunct object.
 _ sc_bang_finalize(sc *sc, _ ob) {
+    LINEAR();
     aref *r = CAST(aref, ob);
     fin finalize = *(object_to_fin(r->fin));
     finalize(r->object, sc);
@@ -884,6 +882,7 @@ sc *_sc_new(void) {
     sc->m.port = (_ex_m_port)_sc_port;
     sc->m.write = (ex_m_write)sc_write;
     sc->m.make_string = (_ex_m_make_string)_sc_make_string;
+    sc->m.make_pair = ex_cons;
 
     /* Data roots. */
     _ out = _sc_make_port(sc, stderr, "stderr");
