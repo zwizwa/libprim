@@ -141,9 +141,10 @@ _ sc_bang_def_global(sc* sc, _ slot, _ var, _ val) {
     _ env = sc_global(sc, slot);
     if (!(s=object_to_symbol(var, &sc->m))) TYPE_ERROR(var);
     // _ex_printf(EX, "DEF %s: ",s->name); sc_post(sc, val);
-    if (FALSE == ENV_SET(env, var, val)) {
-        sc_bang_set_global(sc, slot, CONS(CONS(var,val), env));
-    }
+//    if (FALSE == ENV_SET(env, var, val)) {
+//        sc_bang_set_global(sc, slot, CONS(CONS(var,val), env));
+//    }
+    sc_bang_set_global(sc, slot, ENV_DEF(env, var, val));
     return VOID;
 }
 _ sc_bang_def_toplevel(sc* sc, _ var, _ val) {
@@ -778,14 +779,14 @@ _ _sc_top(sc *sc, _ expr){
         if (setjmp(sc->m.top)){
             sc->m.prim_entries = 0;  // full tower unwind
             sc->m.r.prim = NULL;
-            PURE();  // switch back to pure mode
         }
         for(;;) {
             _ state;
             /* Run */
             do {
-                state = sc_global(sc, sc_slot_state);         // get
-                state = sc_eval_step(sc, state);              // update (functional)
+                PURE();
+                state = sc_global(sc, sc_slot_state);      // get
+                state = sc_eval_step(sc, state);           // update (functional)
                 sc_bang_set_global(sc, sc_slot_state, state); // set
             }
             while (FALSE == sc_is_error(sc, state));
@@ -798,6 +799,7 @@ _ _sc_top(sc *sc, _ expr){
             }
             
             /* Abort */
+            PURE();
             sc_bang_set_global(sc, sc_slot_state,
                                STATE(VALUE(state), 
                                      sc_global(sc, sc_slot_abort_k)));
@@ -812,6 +814,7 @@ static prim_def ex_prims[] = ex_table_init;
 static void _sc_def_prims(sc *sc, prim_def *prims) {
     prim_def *prim;
     for (prim = prims; prim->name; prim++) {
+        PURE(); // Assume no restarts during boot!
         DEF(prim->name, prim->fn, prim->nargs);
     }
 }
@@ -906,12 +909,14 @@ sc *_sc_new(void) {
     _sc_def_prims(sc, scheme_prims);
 
     /* Toplevel abort continuation */
+    PURE();
     _ done = CONS(FIND(TOPLEVEL(),SYMBOL("print-error")),NIL);
     _ abort_k = sc_make_k_apply(sc, MT, done, NIL);
 
     sc_bang_abort_k(sc, abort_k);
 
     /* Highlevel bootstrap. */
+    PURE();
     _sc_top(sc, _ex_boot_load(EX, "boot.scm"));
     return sc;
 }

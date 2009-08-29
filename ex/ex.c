@@ -312,6 +312,7 @@ _ ex_reverse(ex *ex, _ lst) {
 _ ex_bang_reverse_append(ex *ex, _ lst, _ tail) {
     if (NIL == lst) return tail;
     _ next, last = tail;
+    LINEAR();
     while (NIL != lst) {
         // FIXME: use poly predicate
         pair *p = object_to_lpair(lst); // polymorphic
@@ -435,6 +436,7 @@ _ ex_vector_ref(ex *ex, _ vec, _ n) {
     return *vector_index(ex, vec, n);
 }
 _ ex_bang_vector_set(ex *ex, _ vec, _ n, _ val) {
+    LINEAR();
     *vector_index(ex, vec, n) = val;
     return VOID;
 }
@@ -450,6 +452,7 @@ _ ex_env_def(ex *ex, _ E, _ var, _ value) {
         return CONS(CONS(var,value),E);
     }
     else {
+        LINEAR();
         _CDR(slot) = value;
         return E;
     }
