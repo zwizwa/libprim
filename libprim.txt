@@ -1730,7 +1730,8 @@ prefixes.  I.e. generalization of:
 Now that the infrastructure is there, let's move the primitives lazily
 depending on need in both languages.
 
-Entry: Static scope.  Date: Sat Aug 15 15:41:17 CEST 2009
+Entry: Static scope.
+Date: Sat Aug 15 15:41:17 CEST 2009
 
 What's interesting for the current PF code graph implementation, is
 that it is actually statically scoped.  All variables are bound at
