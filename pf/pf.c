@@ -56,14 +56,16 @@ void _px_run(pf *pf) {
     }
 
   loop:
-    /* Always run with GC in linear mode (= switched off).  Switch
-       to/from nonlinear mode inside primitives. */
-    LINEAR();
     for(;;) {
-        pair *rs;
+        
+        /* Run each step in linear mode (GC allocation switched off).
+           Switch to/from nonlinear mode inside primitives, and make
+           sure that PURE, LINEAR order invariants are respected
+           there. */
+        LINEAR();
 
         /* Quote linear datum (Implement the `dip' continuation.) */
-        rs = object_to_ldata(pf->k);
+        pair *rs = object_to_ldata(pf->k);
         if (unlikely(rs)) {
             PUSH_P(rs->car);
             rs->car = VOID;
@@ -366,7 +368,9 @@ void pf_interpret(pf *pf) {
             PUSH_P(datum);
             return;
         }
-        /* Compile quotation (nonlinearly). */
+        /* Compile quotation (nonlinearly). 
+           FIXME: this could be linear.
+         */
         _TO_NL();
         _NL_COMPILE();
         return;

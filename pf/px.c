@@ -297,8 +297,8 @@ _ px_write_name_or_quotation(pf *pf, _ ob) {
     return _ex_printf(EX, "_");
 }
 
-const char *CL = "{";
-const char *CR = "}";
+const char *CL = "[";
+const char *CR = "]";
 
 _ px_write(pf *pf, _ ob) {
     void *x;

@@ -79,7 +79,7 @@ object _ex_write(ex *ex, object o) {
                 is_obj = (object_to)object_to_pair; 
             }
             else if ((TAG_LPAIR == flags)) {
-                LP="["; RP="]"; 
+                LP="{"; RP="}"; 
                 is_obj = (object_to)object_to_lpair; 
             }
             else {
