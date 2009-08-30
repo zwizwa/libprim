@@ -3775,20 +3775,25 @@ combines a datum or a function with a function.
 
 
 
-Entry: What _is_ a continuation?
+Entry: What is a continuation?
 Date: Tue Aug 25 17:33:50 CEST 2009
 
 That's the down-to-earth bit-twiddler's ``is''..
 
-A continuation is essentially an imperative program that sequences the
-remaining primitive machine operations to perform.  The side effect of
-this imperative program is the evaluation of the expression it
+A continuation is essentially (a representation of) an imperative
+program that sequences the remaining primitive machine operations to
+perform to complete the current program/evaluation.  The side effect
+of this imperative program is the evaluation of the expression it
 represents.
 
 Obvious if you look at what CPS-conversion does: it translate a
 functional program written in terms of nested expressions, into an
 imperative program that incrementally builds and updates a data
 structure.
+
+Now, this becomes really obvious in a concatenative (point-free)
+language, which already is in CPS form.  The continuation is
+essentially a program in the same form as any other program.
 
 
 Entry: PLT Redex
@@ -4213,6 +4218,65 @@ reserved for a tagless representation..
 Something for later.
 
 [1] http://en.wikipedia.org/wiki/CDR_coding
+
+
+
+Entry: PF: clear staging
+Date: Sun Aug 30 11:09:35 CEST 2009
+
+Everything in the code points to and optimal organization where linear
+/ inplace programming and pure functional programming are clearly
+separated.  Keeping both in the same VM might be useful for sharing a
+memory model, and is _very_ useful as a user interface, but it
+complicates matters.
+
+The lessen to learn: this _is_ a staged approach, so it can be
+implemented in a way where the object language / machine is completely
+independent from all reflection, and where code and other
+graph-structured objects are constant.
+
+The good news is that this is a very good fit for Staapl.
+
+What needs to be done is to find a way to express this in a typed
+setting.  It is my hunch that the PF VM _itself_ might be better
+expressed in a typed language, where linearity constraints can be
+managed statically.
+
+Essentially, a linear concatenative language is a _notation_ that
+allows one to forgo linearity annotations, which seem to be necessary
+in a applicative language with unstructured variable references.
+
+
+Entry: A fully linear concatenative VM needs interpretation
+Date: Sun Aug 30 11:50:31 CEST 2009
+
+What I find really remarkable is that it is possible to make a pure
+functional concatenative language fully linear.  You don't need _any_
+graph structure, including its virtual machine!
+
+However.  Full linearity of the machine requires some form of
+interpretation (laziness).  When code is executed, name references
+need to be expanded to their definitions.
+
+This `lookup' cannot be performed in a separate compilation stage
+(i.e. to eliminate its associated run-time cost) while maintaining
+linearity of the VM.  Such a stage would directly link variable
+references with variable definitions and require a non-linear (graph)
+data structure:
+
+   * Names can be used multiple times (i.e. procedure re-use) which
+     requires a directed acyclic graph.
+
+   * Name-based recursion can introduce loops in the representation.
+
+In this light, the idea behind the PF machine is that you operate in
+two regimes: one which remains linear, but keeps code and VM as
+opaque, constant structures, and one which is nonlinear to implement
+issues related to the VM (in the simplest case just code compilation).
+
+The main idea is that: ``Names are part of the meta-language''[1].
+
+[1] entry://../staapl-blog/20080813-125604
 
 
 

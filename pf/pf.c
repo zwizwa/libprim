@@ -309,6 +309,13 @@ void pf_gc(pf *pf) {
     pf->m.r.prim = object_to_prim(pf->ip_nop, EX);  // don't restart pf_gc() !
     gc_collect(GC); // does not return
 }
+void pf_gc_test(pf *pf) {
+    PURE();
+    _GC_STAT();
+    _px_alloc_cells(pf, 2000);
+    LINEAR();
+}
+
 
 /* Primitives in terms of expressions.  Note that an upper case name
    like _XXX() is short for a stack word pf_xxx(pf *).  */
@@ -411,6 +418,9 @@ void pf_to_nl(pf *pf) {
     _DROP();
     PUSH_P(nl);
 }
+
+
+
 
 
 static inline int is_nlcode(_ ob, ex* ex) {
@@ -728,13 +738,6 @@ _ _px_word(pf* pf, const char *str) {
 }
 
 #define WORD(str) _px_word(pf, str)
-
-void pf_gc_test(pf *pf) {
-    PURE();
-    _GC_STAT();
-    _px_alloc_cells(pf, 2000);
-    LINEAR();
-}
 
 void _px_load_lib(pf *pf);
 
