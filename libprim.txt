@@ -4193,3 +4193,26 @@ become random-access and there are no more guarantees about how it is
 referenced.
 
 Let's split this up in `compile-datum' and `map'.
+
+
+Entry: Combining CDR-coding with vectors
+Date: Sat Aug 29 19:24:12 CEST 2009
+
+Instead of using vectors with tags in the name field, it might be
+simpler to optimize the representation for the encoding of CDR-linked
+lists.
+
+This is to be able to give in to some performance issues:  speed is
+not important for PF, but memory size might be.  Currently, CONS cells
+are really expensive, requiring 3 pointer slots per cell.
+
+However, since the rest of the implementation relies heavily on type
+tags, maybe this isn't going to work well?  It might be better
+reserved for a tagless representation..
+
+Something for later.
+
+[1] http://en.wikipedia.org/wiki/CDR_coding
+
+
+
