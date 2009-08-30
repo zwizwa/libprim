@@ -4130,9 +4130,27 @@ switched to linear mode, so the sc_make_error might trigger GC.
             break;
     }
 
-Maybe primitive exceptions should be linear?
+(fixed: sc_make_error is now called before _sc_step, to preallocate
+such that the error allocation itself can't trigger GC restart).
 
-There are a lot of nuances here..  It needs to be simplified.
+Maybe primitive exceptions should be linear?  There are a lot of
+nuances here..  It needs to be simplified.
+
+EDIT: I'm still using the earlier paradigm of ``pure before linear''.
+In the C code this requires respecting some invariants in an
+error-prone dentralized way, but the principle itself holds and seems
+to have some higher significance: 
+
+   You can use pure funcitional operations as long as you don't change
+   the world state.  I.e. it's either PURE or LINEAR.  And you're
+   allowed to switch from pure to linear, but not the other way
+   around.
+
+Practically, this makes memory management easier in the presence of
+brutally low-level C-code.  Also, it's quite simple to enforce
+linearity: simply do not pass a reference to the allocator!  It's more
+difficult to enforce purity however.  In C this can't be enforced (or
+maybe it can.. using some `const' declarations..)
 
 
 Entry: Primitive exceptions should be linear
@@ -4280,3 +4298,17 @@ The main idea is that: ``Names are part of the meta-language''[1].
 
 
 
+Entry: Using C's `const' to distinguish between PURE and LINEAR
+Date: Sun Aug 30 17:13:21 CEST 2009
+
+LINEAR is easy to do dynamicall: simply don't provide a reference to
+the allocator.  Pure is more difficult, but might be done statically
+using C's `const' for return values of constructors.
+
+
+Entry: Factor-like syntax
+Date: Sun Aug 30 18:27:22 CEST 2009
+
+Removed gratuituous incompatibilities with Factor: the parser now
+accepts '{' and '}' for based list literals, and the pretty-printer
+uses '[' and ']' to display decompiled code.
