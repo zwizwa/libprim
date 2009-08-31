@@ -3,7 +3,7 @@ Read    = - n:Next                       { ob = n; }
 Next    = Datum | EOF | Junk
 
 Datum   = Quote | UQuote | QQuote
-        | Const | List | QList
+        | Const | List | SList # | Qlist
         | Number | Symbol | String
 
 List    = LP Tail
@@ -11,10 +11,16 @@ Tail    = a:Datum Dot d:Datum RP         { $$= CONS(a,d) }
         | RP                             { $$= NIL }
         | d:Datum t:Tail                 { $$= CONS(d,t) }
 
-QList   = QLP t:QTail                    { $$= QUOTE(t) }
-QTail   = a:Datum Dot d:Datum QRP        { $$= CONS(a,d) }
-        | QRP                            { $$= NIL }
-        | d:Datum t:QTail                { $$= CONS(d,t) }
+SList   = SLP t:STail                    { $$= SQUARE(t) }
+STail   = a:Datum Dot d:Datum SRP        { $$= CONS(a,d) }
+        | SRP                            { $$= NIL }
+        | d:Datum t:STail                { $$= CONS(d,t) }
+
+## This doesn't nest properly
+# QList   = QLP t:QTail                    { $$= QUOTE(t) }
+# QTail   = a:Datum Dot d:Datum QRP        { $$= CONS(a,d) }
+#         | QRP                            { $$= NIL }
+#         | d:Datum t:QTail                { $$= CONS(d,t) }
 
 
 Quote   = - ['] - d:Datum                { $$= QUOTE(d) }
@@ -25,8 +31,10 @@ Const   = True | False
 
 LP      = - '('
 RP      = - ')'
-QLP     = - '{'
-QRP     = - '}'
+# QLP     = - '{'
+# QRP     = - '}'
+SLP     = - '['
+SRP     = - ']'
 Dot     = Space - '.' Space
 True    = - '#t'                         { $$= TRUE }
 False   = - '#f'                         { $$= FALSE }
@@ -38,7 +46,7 @@ String  = - ["] < ( !["] . )* > ["]      { $$= STRING(yytext) }
 
 Letter   = [A-Za-z]
 Digit    = [0-9]
-Reserved = [(){}"'`,;]
+Reserved = [()"'`,;\[\]]
 Special  = !(Reserved | Space | Letter | Digit) .
 NonDigit = Letter | Special
 Char     = Digit | NonDigit

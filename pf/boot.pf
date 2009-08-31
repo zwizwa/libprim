@@ -9,7 +9,9 @@
     (prompt   . (reset))
     (compile  . (>nl nl-compile))
     (+        . (add))
-              
+
+
+    (list->generator . ((() shift) pa (each) compose reset))
     
     ) definitions
  

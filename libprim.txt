@@ -4312,3 +4312,22 @@ Date: Sun Aug 30 18:27:22 CEST 2009
 Removed gratuituous incompatibilities with Factor: the parser now
 accepts '{' and '}' for based list literals, and the pretty-printer
 uses '[' and ']' to display decompiled code.
+
+FIXME: this is broken: {{123}} -> '('(123))
+
+
+
+Entry: Using Partial Continuations
+Date: Mon Aug 31 09:34:24 CEST 2009
+
+Let's try the classical inversion of control problem: convert a
+traversal function into a cursor.
+
+First example: convert a list into a generator:
+
+(list->generator . (() shift) pa (map) compose reset)
+
+There seems to be a bug in `map' and `each' when using linear code.
+Ok: linear code gets a DROP_K() before it is accessed again.  Change
+the interpreter so this doesn't happen.
+

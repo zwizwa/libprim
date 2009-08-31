@@ -351,9 +351,6 @@ _ px_write(pf *pf, _ ob) {
         px_write_name_or_quotation(pf, ob);
         return _ex_printf(EX, CR);
     }
-    else if (NOP == ob) {
-        return _ex_printf(EX, "#nop");
-    }
     else if (HALT == ob) {
         return _ex_printf(EX, "#halt");
     }
@@ -433,13 +430,13 @@ _ px_quote_source_datum(pf *pf, _ datum) {
 _ px_compile_program_env(pf *pf, _ E_top, _ E_local, _ src) {
     _ rv;
     _ *cursor = &rv;
-    if (NIL == src) return NOP;
+    if (NIL == src) return pf->ip_nop;
     /* Compile with proper tail calls. */
     for(;;) {
         _ compiled, datum = CAR(src);
         /* Quoted empty program. */
         if (NIL == datum) {
-            compiled = QUOTE(NOP);
+            compiled = QUOTE(pf->ip_nop);
         }
         else if (TRUE == IS_LIST(datum)) {
             /* Special Form. */

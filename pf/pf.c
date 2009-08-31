@@ -78,10 +78,10 @@ void _px_run(pf *pf) {
             rs = object_to_lnext(pf->k);
             if (unlikely(!rs)) goto halt;
             _ ip = rs->car;
-            DROP_K();
             
             /* Unpack code sequence, push K. */
             if ((s = object_to_seq(ip))) {
+                DROP_K(); // (*)
                 PUSH_K_NEXT(s->next);
                 PUSH_K_NEXT(s->now);
             }
@@ -89,6 +89,7 @@ void _px_run(pf *pf) {
             else {
                 /* Primitive */
                 if ((p = object_to_prim(ip, &pf->m))) {
+                    DROP_K(); // (*)
                     int ex;
                     fn = (pf_prim)p->fn;
                     pf->m.r.prim = p;
@@ -110,6 +111,7 @@ void _px_run(pf *pf) {
                 }
                 /* Quoted object */
                 else if ((q = object_to_quote(ip))) {
+                    DROP_K(); // (*)
                     _ ob;
                     if ((l = object_to_lin(q->object))) {
                         /* Unpack + link linear objects */
@@ -122,21 +124,18 @@ void _px_run(pf *pf) {
                     }
                     PUSH_P(ob);
                 }
-                /* The empty program. */
-                else if (NOP == ip) {
-                }
                 /* Result of popping an empty continuation. */
                 else if (HALT == ip) {
+                    DROP_K();  // (*)
                     goto halt;
                 }
                 /* Unknown non-seq. */
                 else {
-                    /* FIXME: This should handle the case where ip
-                       contains a linear atom, which is already a
-                       violation of memory order, but will lead to
-                       crashes later.  Maybe add some linearity
-                       asserts... */
-                    PUSH_P(ip);
+                    /* Because a type different from the cases above
+                       _can_ be linear, we postponed the DROP_K()
+                       until after ip was determined to be nonliner:
+                       see the (*) marks above.  */
+                    FROM_TO(k, p);
                     PUSH_P(SYMBOL("unknown-instruction"));
                     PUSH_K_NEXT(pf->ip_abort);
                 }

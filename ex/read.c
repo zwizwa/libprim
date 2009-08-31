@@ -12,6 +12,7 @@ static port *p = NULL;
 #define EX thread_local_ex
 #define YYSTYPE object
 // #define YY_DEBUG
+#define SQUARE(x) x
 #define CONS(car,cdr) EX->make_pair(EX, car, cdr)
 #define NUMBER integer_to_object
 #define JUNK(str) CONS(SYMBOL("junk"), STRING(str))
