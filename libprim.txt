@@ -4323,11 +4323,39 @@ Date: Mon Aug 31 09:34:24 CEST 2009
 Let's try the classical inversion of control problem: convert a
 traversal function into a cursor.
 
-First example: convert a list into a generator:
+First example: convert a list into a stream by inverting `each'.
 
-(list->generator . (() shift) pa (map) compose reset)
 
 There seems to be a bug in `map' and `each' when using linear code.
 Ok: linear code gets a DROP_K() before it is accessed again.  Change
 the interpreter so this doesn't happen.
+
+    (list->stream . ((((cons) shift) each '()) reset))
+
+A `stream' is a pair of a value and a quotation or '().  
+
+
+> '(1 2 3) list->stream
+> > ps
+<1> {1 . <,[each-next] '{2 3} '[[cons] shift] ,['()] ,[prompt-tag]>}
+> uncons
+> ps
+<2> 1 <,[each-next] '{2 3} '[[cons] shift] ,['()] ,[prompt-tag]>
+> run ps
+> <2> 1 {2 . <,[each-next] '{3} '[[cons] shift] ,['()] ,[prompt-tag]>}
+> uncons run ps
+> > <3> 1 2 {3 . <,[each-next] '() '[[cons] shift] ,['()] ,[prompt-tag]>}
+> uncons run ps
+> > <4> 1 2 3 ()
+
+
+This also makes it pretty clear that a partial continuation shouldn't
+take the data stack, otherwise `list->stream' wouldn't work
+correctly.  I.e. in the following you really want everything
+underneath the literal list to be left intact.
+
+> 123 123 123 '(1 2 3) list->stream
+> > > > > ps
+<4> 123 123 123 {1 . <,[each-next] '{2 3} '[[cons] shift] ,['()] ,[prompt-tag]>}
+
 

@@ -11,10 +11,9 @@
     (+        . (add))
 
 
-    ;; The interface here is a bit weird.  A stream is a pair, but the
-    ;; cdr needs an explicit force.
-    (stream-force . (run))
-    (list->stream . ((((cons) shift) each '()) reset))
+    ;; A gen (generator / stream) is either nil, or a pair of a value
+    ;; and a quotation that produces another stream.
+    (list->gen . ((((cons) shift) each '()) reset))
     
     ) definitions
  
