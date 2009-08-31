@@ -4325,11 +4325,6 @@ traversal function into a cursor.
 
 First example: convert a list into a stream by inverting `each'.
 
-
-There seems to be a bug in `map' and `each' when using linear code.
-Ok: linear code gets a DROP_K() before it is accessed again.  Change
-the interpreter so this doesn't happen.
-
     (list->stream . ((((cons) shift) each '()) reset))
 
 A `stream' is a pair of a value and a quotation or '().  

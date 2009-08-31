@@ -11,9 +11,10 @@
     (+        . (add))
 
 
-    ;; A gen (generator / stream) is either nil, or a pair of a value
-    ;; and a quotation that produces another stream.
-    (list->gen . ((((cons) shift) each '()) reset))
+    ;; A stream is either nil, or a pair of a value and a quotation
+    ;; that produces another stream.  It seems to make little sense to
+    ;; use memoization in a linear language..
+    (list->stream . ((((cons) shift) each '()) reset))
     
     ) definitions
  
