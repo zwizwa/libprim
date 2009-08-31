@@ -11,7 +11,10 @@
     (+        . (add))
 
 
-    (list->generator . ((() shift) pa (each) compose reset))
+    ;; The interface here is a bit weird.  A stream is a pair, but the
+    ;; cdr needs an explicit force.
+    (stream-force . (run))
+    (list->stream . ((((cons) shift) each '()) reset))
     
     ) definitions
  

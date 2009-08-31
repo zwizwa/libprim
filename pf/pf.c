@@ -471,7 +471,7 @@ void pf_to_k_next(pf *pf) {
     vector_reset_flags(object_to_vector(pf->k), TAG_LNEXT);
 }
 
-/* MAP, written in CPS */
+/* MAP + EACH, written in CPS */
 void pf_map_next(pf *pf) {
     pair *p0 = CAST(ldata, pf->k);    _ *out = &(p0->car);
     pair *p1 = CAST(ldata, p0->cdr);  _ *in  = &(p1->car);
@@ -488,7 +488,8 @@ void pf_map_next(pf *pf) {
     }
     _px_from_to(pf, in, &pf->p);
     PUSH_K_NEXT(pf->ip_map_next);
-    PUSH_K_NEXT(_px_link(pf, code));
+    PUSH_P(_px_link(pf, code));
+    _RUN();
 }
 // ( lst code -- ) 
 void pf_map(pf *pf) {
@@ -503,7 +504,8 @@ void pf_map(pf *pf) {
         
     _px_from_to(pf, &(_CADR(pf->k)), &pf->p);
     PUSH_K_NEXT(pf->ip_map_next);
-    PUSH_K_NEXT(_px_link(pf, code));
+    PUSH_P(_px_link(pf, code));
+    _RUN();
 }
 
 
@@ -518,7 +520,8 @@ void pf_each_next(pf *pf) {
     }
     _px_from_to(pf, in, &pf->p);
     PUSH_K_NEXT(pf->ip_each_next);
-    PUSH_K_NEXT(_px_link(pf, code));
+    PUSH_P(_px_link(pf, code));
+    _RUN();
 }
 
 void pf_each(pf *pf) {
@@ -533,7 +536,8 @@ void pf_each(pf *pf) {
         
     _px_from_to(pf, &(_CAR(pf->k)), &pf->p);
     PUSH_K_NEXT(pf->ip_each_next);
-    PUSH_K_NEXT(_px_link(pf, code));
+    PUSH_P(_px_link(pf, code));
+    _RUN();
 }
 
 
@@ -774,7 +778,7 @@ pf* _px_new(void) {
 
     // Machine state
     pf->p = NIL;
-    pf->freelist = _px_alloc_cells(pf, 100);
+    pf->freelist = _px_alloc_cells(pf, 1000);
     pf->dict = NIL;
     pf->k = NIL;
     pf->ip_abort = HALT;
