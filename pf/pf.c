@@ -638,7 +638,7 @@ void pf_call_with_cc(pf *pf) {
     pf->k = new_k;
 }
 
-void pf_bang_lunstack(pf *pf) {
+void pf_bang_lunrun_and_compose(pf *pf) {
     _ k = TOP;  
     if (!(is_lcode(k, EX))) {
         TYPE_ERROR(k);
