@@ -4357,3 +4357,36 @@ underneath the literal list to be left intact.
 
 
 
+Entry: Why do we need 2 stacks?
+Date: Wed Sep  2 14:08:44 CEST 2009
+
+In the evaluation of the Joy language, this can be seen as a
+distinction between value reductions and program expansions.  Using a
+`|' to denote the separation between the value stack and the
+continuation stack, with facing tops.  A example of value reduction is
+given as:
+
+| 2 5 + 3 *
+2 | 5 + 3 *
+2 5 | + 3 *
+7 | 3 *
+7 3 | *
+21 |
+
+A reduction including the expansion of a program
+
+  square == [dup *] 
+
+looks like
+
+| 12 square dup
+12 | square dup
+12 | dup * dup
+12 12 | * dup
+144 | dup
+144 144 |
+
+So, the 2 stacks are necessary for two different mechanisms: value
+combination and program expansion (procedure calls).  The `i'
+combinator moves quotation into the program reduction stack.
+
