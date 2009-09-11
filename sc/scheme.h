@@ -86,8 +86,12 @@ typedef struct {
     _ datum;
 } value;
 
-/* All continuation frames have a parent frame, and a continuation
-   mark dictionary. */
+/* All continuation frames have a parent frame, and a mark dictionary.
+   The marks can be used to implement partial continuations, dynamic
+   binding, ... as in
+
+   http://people.cs.uchicago.edu/~robby/pubs/papers/icfp2007-fyff.pdf
+ */
 typedef struct {
     vector v;
     _ parent;
