@@ -4355,3 +4355,13 @@ underneath the literal list to be left intact.
 
 
 
+Entry: Onward
+Date: Sun Sep 20 14:59:20 CEST 2009
+
+Looks like the overall design is done.  In the mean time Dave Herman
+fixed the show-stopping bug in c.plt, and I've started integrating it
+in Staapl.  The plan is now to gradually move the libprim
+implementation in C to a higher level description, so it can be
+compiled to C or another substrate (i.e. a stack machine).  This would
+also enable the linearity constraints to be machine-checked.
+
