@@ -1,46 +1,29 @@
 A ``primitive oriented'' scripting language core.
 
-Is it possible to write a C application with an ``invisible''
-scripting language?  I.e. use a (dynamically typed) language during
-prototype development and debugging, but ``optimize it out''
-completely in the deployed application?
+This is an exploratory project, roughly based on the following goals
+and priciples:
 
-This project should be understood in a context of embedded control and
-signal processing programming problems.
+   * Create an ``invisible'' scripting language that integrates well
+     with a C/C++ based project, and can be ``optimized out'' when
+     necessary, yielding a static C/C++ app.
 
-I've been using the C + scripting approach for a while, and the
-conclusion I make is that I spend too much time on the ``impedance
-match'' between the C side and the scripting language.  Is it possible
-to find a way to write C primitives such that they are easily
-(automatically) incorporated in the scripting side?
+   * Focus on two memory/control models for the scripting language:
+     Scheme and Packet Forth - a language based on a linear, dual
+     stack memory model.
 
-If the answer is yes (and I think it is), then it is probably best to
-build the _whole_ scripting language on such C primitives.
-
-This project is roughly based on the following ideas:
-
-   * C primitives can take the semantics of _lightweight tasks_.
-     Along side other benefits of concurrency-oriented programming,
-     the property of interest is the ability to decouple the C side
-     from the scripting language's _memory_ and _control_ models.
+   * Look at C primitives as lightweight tasks.  Along side other
+     benefits of concurrency-oriented programming, the property of
+     interest is the ability to decouple the C side from the scripting
+     language's _memory_ and _control_ models.
 
    * Concurrency-oriented programming allows intermediate composite
-     data types to be replaced with serial channels and protocols.
-     (``Pre-emptive Deforestation'').
+     data types to be replaced with serial channels and protocols
+     (replace data aggregation with control flow structures).
 
    * Simple memory model: C primitives use only atoms which are either
      C primitive values (integers, floats, structure types), or
-     abstract objects (pointers) with clearly indicated ownership.
+     abstract objects (pointers) with explicit ownership.
 
-This would allow to build a library of primitive operations and
-datatypes that can be linked with any kind of scripting language
-during prototyping or debugging.  I'm thinking of Scheme and PF (a
-linear stack language).
-
-The idea is that by isolating the primitives from the memory and
-control models of the debugging code, in a final application all
-``scripting glue'' can be optimized away and replaced with a minimal
-scheduler and memory manager, possibly both static.
 
 
 
@@ -4301,10 +4284,9 @@ The main idea is that: ``Names are part of the meta-language''[1].
 Entry: Using C's `const' to distinguish between PURE and LINEAR
 Date: Sun Aug 30 17:13:21 CEST 2009
 
-LINEAR is easy to do dynamicall: simply don't provide a reference to
-the allocator.  Pure is more difficult, but might be done statically
-using C's `const' for return values of constructors.
-
+LINEAR is easy to enforce dynamically: simply don't provide a
+reference to the allocator.  Pure is more difficult, but might be done
+statically using C's `const' for return values of constructors.
 
 Entry: Factor-like syntax
 Date: Sun Aug 30 18:27:22 CEST 2009
@@ -4365,3 +4347,37 @@ implementation in C to a higher level description, so it can be
 compiled to C or another substrate (i.e. a stack machine).  This would
 also enable the linearity constraints to be machine-checked.
 
+EDIT: the goal here should be to keep the current functionality
+working at all times, and migrate it to a different implementation.
+
+
+Entry: Summary
+Date: Tue Oct  6 17:18:15 CEST 2009
+
+What do we have now:
+
+  * EX: a very simple GC supports an expression evaluation language
+    that is used to implement the Scheme and PF machines.
+
+  * Scheme: a very simple reflective Scheme interpreter.
+
+  * PF: a VM for a linear memory concatenative language.
+
+  * Some scaffolding code to generate wrappers.
+
+
+What do we want:
+
+  * Wrapper generation for a library of leaf objects.
+
+  * Fully functional PF language.
+
+  * Simpler way to implement PF primitives.
+
+
+Entry: Images
+Date: Tue Oct  6 17:25:41 CEST 2009
+
+Goal: get the video in, XV out working in PF.
+
+Strategy: use the old PF code, after factoring it into plain C OO code.

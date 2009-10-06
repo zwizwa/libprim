@@ -48,7 +48,13 @@ void _px_run(pf *pf) {
         /* Restarts can only happen in primitives.  The rest of the
            interpreter is linear.  We re-push the IP because it has
            been popped right before execution. */
-        PUSH_K_NEXT(const_to_object(pf->m.r.prim));
+        if (pf->m.r.prim) {
+            PUSH_K_NEXT(const_to_object(pf->m.r.prim));
+        }
+        else {
+            /* Exit condition. */
+            return;
+        }
 
         /* Reset state. */
         pf->m.r.prim = NULL;
@@ -58,10 +64,13 @@ void _px_run(pf *pf) {
   loop:
     for(;;) {
         
-        /* Run each step in linear mode (GC allocation switched off).
-           Switch to/from nonlinear mode inside primitives, and make
-           sure that PURE, LINEAR order invariants are respected
-           there. */
+        /* By default, run each step in LINEAR mode (GC allocation
+           switched off).
+
+           A primitive is allowed to switch to PURE mode as long as
+           there are no side effects performed between this LINEAR()
+           call and the PURE() invocation in the primitive.
+        */
         LINEAR();
 
         /* Quote linear datum (Implement the `dip' continuation.) */
@@ -302,6 +311,8 @@ void pf_abort_repl(pf *pf) {
 }
 
 void pf_nop(pf *pf) {}
+
+/* About the usage of PURE() */
 
 /* Since we have a non-rentrant interpreter with mutable state, this
    is a bit less problematic than the EX/SC case. */
@@ -665,8 +676,9 @@ void pf_bang_abort(pf *pf) {
     _TOP = VOID; _DROP();
 }
 
-/* Make sure all the finalizers get called. */
+/* Exit + make sure all the finalizers get called. */
 void pf_bye(pf *pf) {
+    PURE();
     pf->p = NIL;
     pf->k = NIL;
     pf->freelist = NIL;
@@ -677,6 +689,7 @@ void pf_bye(pf *pf) {
     pf->ip_nop   = HALT;
     pf->ip_map_next = HALT;
     pf->ip_each_next = HALT;
+    pf->m.r.prim = NULL; // after GC: exit VM instead of prim restart
     gc_collect(GC); // does not return
 }
 
