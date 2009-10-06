@@ -678,7 +678,7 @@ void pf_bang_abort(pf *pf) {
 
 /* Exit + make sure all the finalizers get called. */
 void pf_bye(pf *pf) {
-    PURE();
+    PURE(); // switch on GC
     pf->p = NIL;
     pf->k = NIL;
     pf->freelist = NIL;

@@ -4380,4 +4380,38 @@ Date: Tue Oct  6 17:25:41 CEST 2009
 
 Goal: get the video in, XV out working in PF.
 
-Strategy: use the old PF code, after factoring it into plain C OO code.
+Strategy: use the old PF code, after factoring it into plain C OO
+code.  Currently, the code in X11 seems already factored so should be
+usable as-is.
+
+Next: create a wrapper generator.  For scheme, it's usually simplest
+to keep the parameter layout.  For PF however, object references are
+usually best placed on top-of-stack, with all the other arguments in
+reverse order.  
+
+Something like this:    
+
+          message(object, arg1, arg2) ->  arg1 arg2 object message
+
+
+
+Let's try Scheme first, then use that as a base to write the RPN wrappers.
+
+Step one: parse the file with c.plt
+Took cplt.ss from staapl (includes simple printer).
+
+Hmm..  This isn't going very well.  Maybe the hint I should take from
+this is that my header files aren't abstract enough: they depend on a
+lot of typedefs from deep within the system.  The C objects should
+really abstract most if not all of this..
+
+So, what's next?  Setting a clean header standard?  I guess this is
+doable: allow for public and private versions, with public ones
+exposing only functions.  Alternatively, working around the
+limitations of c.plt might be simpler.
+
+Filed bug report.
+
+Note: there is a syntax for creating ASTs:
+http://planet.plt-scheme.org/package-source/dherman/c.plt/3/2/planet-docs/c/pc.html
+
