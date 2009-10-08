@@ -19,6 +19,14 @@
  *
  */
 
+#ifndef _xv_h_
+#define _xv_h_
+
+#ifndef PRIVATE
+#include "xwindow.h"
+struct _xv;
+typedef struct _xv xv_t;
+#else
 
 // x stuff
 #include <X11/Xlib.h>
@@ -27,20 +35,7 @@
 #include <X11/extensions/XShm.h>
 #include <X11/extensions/Xv.h>
 #include <X11/extensions/Xvlib.h>
-
-
-// shared mem
-
-
-
-
 #include "xwindow.h"
-
-// image formats for communication with the X Server
-#define FOURCC_YV12 0x32315659  /* YV12   YUV420P */
-#define FOURCC_YUV2 0x32595559  /* YUV2   YUV422 */
-#define FOURCC_I420 0x30323449  /* I420   Intel Indeo 4 */
-
 
 /* xv class */
 typedef struct _xv
@@ -64,6 +59,17 @@ typedef struct _xv
 } xv_t;
 
 
+#endif
+
+
+
+
+// image formats for communication with the X Server
+#define FOURCC_YV12 0x32315659  /* YV12   YUV420P */
+#define FOURCC_YUV2 0x32595559  /* YUV2   YUV422 */
+#define FOURCC_I420 0x30323449  /* I420   Intel Indeo 4 */
+
+
 /* cons */
 void xv_init(xv_t *x);
 xv_t *xv_new(void);
@@ -85,3 +91,5 @@ void *xv_image_data(xv_t *xvid, xwindow_t *xwin,
 
 /* display the XvImage */
 void xv_image_display(xv_t *xvid, xwindow_t *xwin);
+
+#endif

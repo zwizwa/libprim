@@ -21,6 +21,14 @@
 
 #ifndef __xwindow_h__
 #define __xwindow_h__
+
+struct _xdisplay;
+struct _xwindow;
+#ifndef PRIVATE
+typedef struct _xdisplay xdisplay_t;
+typedef struct _xwindow xwindow_t;
+#else
+
 // x stuff
 #include <X11/Xlib.h>
 #include <X11/Xatom.h> 
@@ -41,20 +49,6 @@ typedef struct _xdisplay
     int dragbutton;            // current drag button
 
 } xdisplay_t;
-
-
-/* cons */
-xdisplay_t *xdisplay_new(char *dpy_string);
-
-/* des */
-void xdisplay_free(xdisplay_t *d);
-
-struct _xwindow;
-
-void xdisplay_register_window(xdisplay_t *d, struct _xwindow *w);
-void xdisplay_unregister_window(xdisplay_t *d, struct _xwindow *w);
-
-void xdisplay_route_events(xdisplay_t *d);
 
 /* x window class */
 typedef struct _xwindow
@@ -83,6 +77,25 @@ typedef struct _xwindow
     float cursor;
 
 } xwindow_t;
+
+/* handle event */
+void xwindow_queue_event(xwindow_t *xwin, XEvent *e);
+
+
+
+#endif
+
+/* cons */
+xdisplay_t *xdisplay_new(char *dpy_string);
+
+/* des */
+void xdisplay_free(xdisplay_t *d);
+
+
+void xdisplay_register_window(xdisplay_t *d,  xwindow_t *w);
+void xdisplay_unregister_window(xdisplay_t *d, xwindow_t *w);
+
+void xdisplay_route_events(xdisplay_t *d);
 
 /* cons */
 void xwindow_init(xwindow_t *b);
@@ -122,9 +135,6 @@ void xwindow_close(xwindow_t *b);
 
 /* set title */
 void xwindow_title(xwindow_t *xwin, char *title);
-
-/* handle event */
-void xwindow_queue_event(xwindow_t *xwin, XEvent *e);
 
 /* clear event queue */
 void xwindow_drop_events(xwindow_t *x);

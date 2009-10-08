@@ -4415,3 +4415,11 @@ Filed bug report.
 Note: there is a syntax for creating ASTs:
 http://planet.plt-scheme.org/package-source/dherman/c.plt/3/2/planet-docs/c/pc.html
 
+
+Entry: C parsing
+Date: Wed Oct  7 09:09:29 CEST 2009
+
+Ok, let's make it work with modified .h files for now.  No, the bug is
+too much of a block.  The simplified headers won't parse either.  I'm
+letting this go until the block is fixed.
+
