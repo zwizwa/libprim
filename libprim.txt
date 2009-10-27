@@ -4423,3 +4423,23 @@ Ok, let's make it work with modified .h files for now.  No, the bug is
 too much of a block.  The simplified headers won't parse either.  I'm
 letting this go until the block is fixed.
 
+
+Entry: PLT Scheme
+Date: Wed Oct 14 09:28:21 CEST 2009
+
+The current design of a combined Scheme / PF machine seems useful.
+However, if there is no constraint on the _size_ of the scripting
+system, it might be wiser to bolt a PF-like linear machine onto PLT
+Scheme, in a way that is usable with other Scheme implementations.
+
+Making the definition of PF more formal might be done in this way too:
+providing a substrate in PLT Scheme which can compile to C and the
+minimalistic Scheme/GC in librim.
+
+
+Entry: Gstreamer
+Date: Thu Oct 22 12:46:55 CEST 2009
+
+Recent events have made me think it's probably best to bridge PF and
+gstreamer.  However, it might be interesting to do this as a 3-way
+coupling between plt-scheme, PF vm and the gstreamer framework.
