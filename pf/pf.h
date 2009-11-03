@@ -1,7 +1,7 @@
 #ifndef _PF_H_
 #define _PF_H_
 
-#include "ex.h"
+#include <ex/ex.h>
 
 /* STATE */
 

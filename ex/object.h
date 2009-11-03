@@ -1,7 +1,7 @@
 #ifndef _OBJECT_H_
 #define _OBJECT_H_
 
-#include "port.h"   /* For writing. */
+#include <leaf/port.h>  /* For writing. */
 
 /* Objects with type tags.  Used in nonlinear and linear GC.  These
    can reference integer, opaque leaf objects (and finalizers) or

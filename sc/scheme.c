@@ -875,7 +875,7 @@ void _sc_def_prim(sc *sc, const char *str, void *fn, long nargs) {
 
 
 
-sc *_sc_new(base_types *types) {
+sc *_sc_new(base_types *types, const char *bootfile) {
     sc *sc = malloc(sizeof(*sc));
     sc->m.top_entries = 0;
     sc->m.prim_entries = 0;
@@ -933,7 +933,8 @@ sc *_sc_new(base_types *types) {
 
     /* Highlevel bootstrap. */
     PURE();
-    _sc_top(sc, _ex_boot_load(EX, "boot.scm"));
+    if (!bootfile) bootfile = "boot.scm";
+    _sc_top(sc, _ex_boot_load(EX, bootfile));
     return sc;
 }
 

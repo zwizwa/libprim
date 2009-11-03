@@ -9,10 +9,11 @@ DEBUG_CFLAGS=-Wall -g
 
 # CC = gcc -m32
 
-all: opt/a
 
-opt.a: $(OBJ)
-	ar rcs opt.a $(OBJ)
+libprim_media.a: $(OBJ)
+	ar rcs libprim_media.a $(OBJ)
+
+CPPFLAGS += `pkg-config libavformat --cflags`
 
 include ../Makefile.rules
-CPPFLAGS += -I../leaf
+

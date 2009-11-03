@@ -4558,3 +4558,23 @@ Todo:
       libprim_media.a
 
 
+Libraries are not a problem.  Header files are, because of
+generation..  Separating in private / public will be a mess.
+
+Ok, fixed it
+
+
+Entry: Automatic wrapper generation
+Date: Tue Nov  3 18:44:40 CET 2009
+
+The idea is now the following: from a .h file containing a simple C
+wrapper written in terms of known C objects, generate all the glue
+code to register the functions with the VM.
+
+For SC and PF, this amounts to packing/unpacking strings, ints,
+... depending on the memory model used.
+
+Essentially: the wrapper binds the pure C objects to a PF/SC memory
+model.
+
+

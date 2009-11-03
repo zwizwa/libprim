@@ -6,17 +6,17 @@
    primitive functions. */
 
 /* Lowelevel opaque primtive (leaf) objects. */
-#include "symbol.h"
-#include "task.h"   // ck : abstraction for C stack
-#include "port.h"
-#include "bytes.h"
-#include "pair.h"
-#include "prim.h"
-#include "rc.h"
+#include <leaf/symbol.h>
+#include <leaf/task.h>   // ck : abstraction for C stack
+#include <leaf/port.h>
+#include <leaf/bytes.h>
+#include <ex/pair.h>
+#include <leaf/prim.h>
+#include <leaf/rc.h>
 
 /* Highlevel transparent object rep and GC */
-#include "object.h"
-#include "gc.h"
+#include <ex/object.h>
+#include <ex/gc.h>
 
 typedef struct {
     symbol_class *symbol_type;

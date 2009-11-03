@@ -1,4 +1,4 @@
-CPPFLAGS += -I../leaf/ -I../ex/ -DTASK_DEBUG=0
+CPPFLAGS += -I../ -DTASK_DEBUG=0
 # Note that GCC needs "-x c" if you don't use a ".c" extension.
 CFLAGS += -x c
 COMPILE = $(CC) $(CPPFLAGS) $(CFLAGS) $(OPTI_CFLAGS) $(DEBUG_CFLAGS) 

@@ -2,8 +2,8 @@
 #define _SCHEME_H_
 
 #include <setjmp.h>
-#include "ex.h"
-#include "../ex/ex.h_ex_prims"
+#include <ex/ex.h>
+#include <ex/ex.h_ex_prims>
 
 typedef struct _scheme sc;
 
@@ -272,7 +272,7 @@ _ _sc_printf(sc *sc, char *fmt, ...);
 
 
 /* INIT */
-sc *_sc_new(base_types *types);
+sc *_sc_new(base_types *types, const char *bootfile);
 
 
 #endif
