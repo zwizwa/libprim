@@ -4443,3 +4443,49 @@ Date: Thu Oct 22 12:46:55 CEST 2009
 Recent events have made me think it's probably best to bridge PF and
 gstreamer.  However, it might be interesting to do this as a 3-way
 coupling between plt-scheme, PF vm and the gstreamer framework.
+
+
+Entry: Next: usability + test case
+Date: Tue Nov  3 10:28:39 CET 2009
+
+Need to evolve the design towards an (undisclosed) application.
+Things to fix:
+
+  * automatic wrapper generation
+
+This might be the most interesting thing to start at.
+
+  * unify the Scheme and PF cores into a single VM.
+
+
+Entry: FFmpeg
+Date: Tue Nov  3 10:36:12 CET 2009
+
+Need FFmpeg encoder bridge + image format.
+
+image:   256 level greyscale.
+encoder: mpeg4, no audio
+
+How to generate the glue code?  -> manually for now
+(probably need both manual and generated glue code)
+
+  Q: Is it worth it to use the C api?  Is that amount of control
+     necessary?  Maybe a pipe bridge is easier?
+
+  Q: What documentation to use?  Its difficult to find a good
+     introduction for the C encoder api.
+
+This seems to be the right spot[1].  Start with the file
+libavcodec/apiexample.c[2].
+
+The example file uses the following objects:
+
+    AVCodec *codec;     // codec object
+    AVCodecContext *c;  // configuration data for codec
+    AVFrame *picture;
+
+
+
+
+[1] http://ffmpeg.org/developer.html
+[2] http://www.irisa.fr/texmex/people/dufouil/ffmpegdoxy/apiexample_8c.html
