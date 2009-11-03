@@ -15,14 +15,14 @@ DEBUG_CFLAGS=-Wall -g
 
 GEN = ex.h_ex_prims sexp.h_leg
 
-all: $(GEN) ex.a
+all: $(GEN) libprim_ex.a
 
 TEST = test
 TEST_OBJ = test.o ex.a ../leaf/leaf.a
 
 # Note: root deps need to be last!
-ex.a: $(OBJ) 
-	ar rcs ex.a $(OBJ)
+libprim_ex.a: $(OBJ) 
+	ar rcs libprim_ex.a $(OBJ)
 
 
 include ../Makefile.rules

@@ -22,7 +22,11 @@ codec *codec_new(codec_class *type, const char *name) {
     x->codec = c;
     return x;
 }
-codec_class codec_c = {free};  // no short-lived delegates
+codec_class *codec_class_new(void) {
+    codec_class *x = malloc(sizeof(*x)); 
+    x->free = free; 
+    return x; 
+}
 
 
 /* CODEC CONTEXT */
@@ -46,7 +50,11 @@ codec_context *codec_context_new(codec_context_class *type){
 
     return x;
 }
-codec_context_class codec_context_c = {codec_context_free};
+codec_context_class *codec_context_class_new(void) {
+    codec_context_class *x = malloc(sizeof(*x)); 
+    x->free = codec_context_free;
+    return x; 
+}
 
 
 /* FRAME */
@@ -81,7 +89,11 @@ static void frame_free(frame *f) {
     free(f->buf);
     free(f);
 }
-frame_class frame_c = {frame_free};
+frame_class *frame_class_new(void) {
+    frame_class *x = malloc(sizeof(*x)); 
+    x->free = frame_free;
+    return x; 
+}
 
 void test_frame(frame *fram, codec_context *ctx, int i) {
 
@@ -114,72 +126,3 @@ void encode_video(codec_context *ctx,
 }
 
 
-void video_encode_example(const char *filename)
-{
-    codec *cod;
-    codec_context *ctx= NULL;
-    int out_size;
-    int i;
-    FILE *f;
-    frame *fram;
-
-    av_register_all();
-
-    cod = codec_new(&codec_c, "mpeg1video");
-    ctx = codec_context_new(&codec_context_c);
-
-    fram = frame_new(&frame_c, ctx);
-
-    int outbuf_size = 100000;
-    uint8_t *outbuf = (uint8_t*)malloc(outbuf_size); 
-
-    /* open it */
-    if (avcodec_open(ctx->context, cod->codec) < 0) {
-        fprintf(stderr, "could not open codec\n");
-        exit(1);
-    }
-
-    f = fopen(filename, "wb");
-    if (!f) {
-        fprintf(stderr, "could not open %s\n", filename);
-        exit(1);
-    }
-
-
-    /* encode 1 second of video */
-    for(i=0;i<25;i++) {
-        fflush(stdout);
-
-        test_frame(fram, ctx, i);
-
-        /* encode the image */
-        out_size = avcodec_encode_video(ctx->context, outbuf, outbuf_size, fram->frame);
-        printf("encoding frame %3d (size=%5d)\n", i, out_size);
-        fwrite(outbuf, 1, out_size, f);
-    }
-
-    /* get the delayed frames */
-    for(; out_size; i++) {
-        fflush(stdout);
-
-        out_size = avcodec_encode_video(ctx->context, outbuf, outbuf_size, NULL);
-        printf("write frame %3d (size=%5d)\n", i, out_size);
-        fwrite(outbuf, 1, out_size, f);
-    }
-
-    /* add sequence end code to have a real mpeg file */
-    outbuf[0] = 0x00;
-    outbuf[1] = 0x00;
-    outbuf[2] = 0x01;
-    outbuf[3] = 0xb7;
-    fwrite(outbuf, 1, 4, f);
-    fclose(f);
-    free(outbuf);
-
-    /* cleanup */
-    ctx->type->free(ctx);
-    cod->type->free(cod);
-    fram->type->free(fram);
-
-    printf("\n");
-}

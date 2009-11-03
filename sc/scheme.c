@@ -875,7 +875,7 @@ void _sc_def_prim(sc *sc, const char *str, void *fn, long nargs) {
 
 
 
-sc *_sc_new(void) {
+sc *_sc_new(base_types *types) {
     sc *sc = malloc(sizeof(*sc));
     sc->m.top_entries = 0;
     sc->m.prim_entries = 0;
@@ -887,7 +887,8 @@ sc *_sc_new(void) {
                  (gc_overflow)_ex_overflow);
                     
     /* Atom classes. */
-    sc->m.p = malloc(sizeof(*(sc->m.p)));
+    if (!types) types = malloc(sizeof(*(sc->m.p)));
+    sc->m.p = types;
     TYPES->ck_type = ck_class_new();
     TYPES->symbol_type = symbol_class_new(1000);
     TYPES->prim_type = (void*)0xF001; // dummy class

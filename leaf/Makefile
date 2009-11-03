@@ -8,9 +8,9 @@ DEBUG_CFLAGS=-Wall -g
 
 # CC = gcc -m32
 
-all: leaf.a
+all: libprim_leaf.a
 
-leaf.a: $(OBJ)
-	ar rcs leaf.a $(OBJ)
+libprim_leaf.a: $(OBJ)
+	ar rcs libprim_leaf.a $(OBJ)
 
 include ../Makefile.rules

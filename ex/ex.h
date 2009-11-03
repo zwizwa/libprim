@@ -7,7 +7,7 @@
 
 /* Lowelevel opaque primtive (leaf) objects. */
 #include "symbol.h"
-#include "task.h"
+#include "task.h"   // ck : abstraction for C stack
 #include "port.h"
 #include "bytes.h"
 #include "pair.h"

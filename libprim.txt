@@ -4494,7 +4494,67 @@ Problem: how to bridge wrapped buffers and C-level buffers?  I.e. the
 low-level C objects need to be able to interface with leaf/bytes.h. 
 
 The simplest solution seems to be to never let the C code allocate
-anything (except for data embedded in locally defined objects).
+anything (except for data embedded in locally defined objects).  
 
 [1] http://ffmpeg.org/developer.html
 [2] http://www.irisa.fr/texmex/people/dufouil/ffmpegdoxy/apiexample_8c.html
+
+
+Entry: building a custom Scheme interpreter
+Date: Tue Nov  3 16:16:06 CET 2009
+
+How to build an interpreter with extensions?
+
+Currently leaf objects are initialized in sc/scheme.c : _sc_new()
+
+    /* Atom classes. */
+    sc->m.p = malloc(sizeof(*(sc->m.p)));
+    TYPES->ck_type = ck_class_new();
+    TYPES->symbol_type = symbol_class_new(1000);
+    TYPES->prim_type = (void*)0xF001; // dummy class
+    TYPES->port_type = port_class_new();
+
+In ex/ex.h : base_types (the classes) are accessed by the core
+implementation through the sc->m.p member.
+
+The problem that needs to be solved: a scheme factory method
+`make-foo' needs to access the foo class object through the sc* scheme
+VM pointer.
+
+Question: do these classes really need to be tied to the VM?  The
+problem is this: they need to be stored somewhere.  It's possible to
+store them as a global variable : some C libraries do this anyway.
+
+Essentially: 
+ - do different VMs _need_ different class instances?
+ - do we want to _allow_ this?
+ - classes could be shared
+
+Two conflicting requirements: it's better not to use any global
+process data, but some form of sharing will be present when libraries
+are used that do this.  Let's build the FFmpeg wrapper with global
+classes.
+
+
+Solution: _sc_init() takes a parameter = a struct containing classes
+that will be stored in the sc->m.p member.  These can then be used by
+procedures to access vm-global resources, where the implementation can
+then decide to make them image-global (i.e. FFmpeg's init)
+
+
+
+Entry: installed libprim scheme
+Date: Tue Nov  3 17:26:21 CET 2009
+
+Todo: 
+
+ - make the header files compatible with system-includes.  I.e. use a
+   single base (ex/... sc/...)
+
+ - bundle libraries:
+
+      libprim_ex.a
+      libprim_sc.a
+      libprim_media.a
+
+

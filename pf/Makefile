@@ -1,6 +1,6 @@
 APP=pf
 SRC=pf.c px.c
-DEP_OBJ=../leaf/leaf.a ../ex/ex.a
+DEP_OBJ=../leaf/libprim_leaf.a ../ex/libprim_ex.a
 
 OBJ=$(SRC:.c=.o)
 DEBUG_CFLAGS=-Wall -g -Wno-unused

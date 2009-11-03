@@ -6,7 +6,8 @@
 #include "../ex/ex.h_ex_prims"
 
 typedef struct _scheme sc;
-sc *scheme_new(void);
+
+
 
 /* The interpreter is written as a step() function manipulating a
    state data structure.  It is based on the CEKS machine from
@@ -225,7 +226,6 @@ static inline void *prim_fn(prim *p)  { return p->fn; }
 
 /* Setup */
 object _sc_top(sc *sc, object expr);
-sc    *_sc_new(void);
 
 /* Interpreter exceptions. */
 //#define SC_EX_TRY     0
@@ -269,6 +269,10 @@ _ _sc_printf(sc *sc, char *fmt, ...);
 // Scheme constants start at 0x100
 #define MT    CONSTANT(0x100)
 
+
+
+/* INIT */
+sc *_sc_new(base_types *types);
 
 
 #endif

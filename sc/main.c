@@ -3,7 +3,6 @@
 #include "scheme.h"
 
 int main(int argc, char **argv) {
-    sc *sc = _sc_new();
+    sc *sc = _sc_new(NULL);
     return 0;
 }
-
