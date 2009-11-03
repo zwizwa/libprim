@@ -27,5 +27,9 @@ strip:
 	@find -name '*.o' -exec rm  '{}' ';'
 
 
+PREFIX=~/sw
 
-
+install: all
+	install -d $(PREFIX)/include/prim
+	install -m 644 */*.h $(PREFIX)/include/prim/
+	install -m 755 */libprim_*.a $(PREFIX)/lib/
