@@ -14,14 +14,25 @@ bytes_class *bytes_class_new(void) {
 bytes *bytes_new(bytes_class *type, size_t size) {
     bytes *x = malloc(sizeof(*x));
     x->type = type;
+    x->size    = size;
     x->bufsize = size;
     x->bytes = malloc(size);
     return x;
 }
+
+
+
+char *cstring_from_bytes(bytes *b) {
+    if ((b->size + 1) < b->bufsize) return NULL;
+    if (b->bytes[b->size] != 0) return NULL;
+    return b->bytes;
+}
+
 bytes* bytes_from_cstring(bytes_class *type, const char *str){
     size_t len = strlen(str);
     bytes *b = bytes_new(type, 1+len);
     strcpy(b->bytes, str);
+    b->size = len;
     return b;
 }
 

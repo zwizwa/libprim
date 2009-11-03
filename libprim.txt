@@ -4484,8 +4484,17 @@ The example file uses the following objects:
     AVCodecContext *c;  // configuration data for codec
     AVFrame *picture;
 
+General structure is simple: picture data is converted to raw packet
+based on current codec context.
 
+Next: representing encoded data blobs is maybe best done using the
+native string objects.
 
+Problem: how to bridge wrapped buffers and C-level buffers?  I.e. the
+low-level C objects need to be able to interface with leaf/bytes.h. 
+
+The simplest solution seems to be to never let the C code allocate
+anything (except for data embedded in locally defined objects).
 
 [1] http://ffmpeg.org/developer.html
 [2] http://www.irisa.fr/texmex/people/dufouil/ffmpegdoxy/apiexample_8c.html

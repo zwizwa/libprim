@@ -15,4 +15,4 @@ opt.a: $(OBJ)
 	ar rcs opt.a $(OBJ)
 
 include ../Makefile.rules
-
+CPPFLAGS += -I../leaf

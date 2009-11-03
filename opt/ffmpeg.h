@@ -4,6 +4,8 @@
 #include <libavcodec/avcodec.h>
 #include <libavformat/avformat.h>
 
+#include "../leaf/bytes.h"
+
 /*  Bridge internal image representation with FFmpeg encoder.
 
     FFmpeg is represented by its standard objects: frame, codec and
@@ -17,20 +19,11 @@ typedef struct _frame frame;
 
 typedef void (*free_m)(void *p);
 typedef void (*codec_context_free_m)(codec_context *c);
+typedef void (*frame_free_m)(frame *c);
 
-
-typedef struct {
-    free_m free;
-} codec_class;
-
-typedef struct {
-    codec_context_free_m free;
-} codec_context_class;
-
-typedef struct {
-    free_m free;
-} frame_class;
-
+typedef struct { free_m free; } codec_class;
+typedef struct { codec_context_free_m free; } codec_context_class;
+typedef struct { frame_free_m free; } frame_class;
 
 struct _codec {
     codec_class *type;
@@ -43,10 +36,9 @@ struct _codec_context {
 struct _frame {
     frame_class *type;
     AVFrame *frame;
+    void *buf;
 };
 
-
-codec* codec_new(codec_class *type, const char *name);
 
 
 #endif
