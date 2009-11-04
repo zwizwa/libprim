@@ -4758,3 +4758,27 @@ int avcodec_encode_audio(AVCodecContext *avctx,
                          int buf_size,
                          const short *samples);
 
+
+Entry: Muxing
+Date: Wed Nov  4 16:35:54 CET 2009
+
+av_interleaved_write_frame AVPacket -> AVFormatContext
+
+an AVFormatContext has a number of AVStream
+
+
+Whether to write audio or video is based on the pts (time stamp)
+
+
+        /* write interleaved audio and video frames */
+        if (!video_st || (video_st && audio_st && audio_pts < video_pts)) {
+            write_audio_frame(oc, audio_st);
+        } else {
+            write_video_frame(oc, video_st);
+        }
+
+
+[1] http://cekirdek.pardus.org.tr/~ismail/ffmpeg-docs/structAVPacket.html
+[2] http://cekirdek.pardus.org.tr/~ismail/ffmpeg-docs/structAVStream.html
+[3] http://cekirdek.pardus.org.tr/~ismail/ffmpeg-docs/structAVFormatContext.html
+
