@@ -789,7 +789,7 @@ _ sc_exit(sc *sc) {
 
 _ sc_make_bytes(sc *sc, _ ob) {
     int size = CAST_INTEGER(ob);
-    if (size <= 0) return ERROR("invalid-argument", ob);
+    if (size <= 0) return INVALID(ob);
     return _sc_make_bytes(sc, size);
 }
 

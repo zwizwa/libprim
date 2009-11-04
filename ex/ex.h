@@ -96,6 +96,7 @@ _ _is_vector_type(_ o, long flags);
 
 #define TYPE_ERROR RAISE_TYPE_ERROR
 #define ERROR(msg, o) ex_raise_error(EX, SYMBOL(msg), o)
+#define INVALID(o) ERROR("invalid", o)
 /* Pointer casts (just like predicates) are derived from the
    object_to_pointer function, _except_ for integers: there we use the
    predicate. */

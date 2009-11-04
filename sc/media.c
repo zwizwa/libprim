@@ -77,6 +77,13 @@ _ sc_make_vframe(sc *sc, _ ob) {
     return _sc_make_aref(sc, &(vframe_c->free), f);
 }
 
+_ sc_make_aframe(sc *sc, _ ob) {
+    codec_context *c = CAST(codec_context, ob);
+    aframe *f = aframe_new(aframe_c, c);
+    if (!f) return INVALID(ob);
+    return _sc_make_aref(sc, &(aframe_c->free), f);
+}
+
 _ sc_bang_frame_test(sc *sc, _ ob_frame, _ ob_ctx, _ ob_int) {
     int i = CAST_INTEGER(ob_int);
     vframe *f = CAST(vframe, ob_frame);
@@ -107,5 +114,11 @@ _ sc_codec_to_string(sc *sc, _ ob) {
 _ sc_codec_context_encode_video(sc *sc, _ ctx, _ frm, _ buf) {
     vframe *f = (frm == FALSE) ? NULL : CAST(vframe, frm); // delayed frames
     codec_context_encode_video(CAST(codec_context, ctx), f, CAST(bytes, buf));
+    return VOID;
+}
+
+_ sc_codec_context_encode_audio(sc *sc, _ ctx, _ frm, _ buf) {
+    aframe *f = (frm == FALSE) ? NULL : CAST(aframe, frm); // delayed frames
+    codec_context_encode_audio(CAST(codec_context, ctx), f, CAST(bytes, buf));
     return VOID;
 }

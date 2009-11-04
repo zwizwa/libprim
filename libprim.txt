@@ -4723,6 +4723,7 @@ Date: Wed Nov  4 13:41:43 CET 2009
 - let*
 - macros: check if it's actually correct (evaluation order)
 - system
+- readline
 
 Can parameters be bypassed?  I'm already using implicit output ports
 all over the code.  Currently just using direct (lexical) write

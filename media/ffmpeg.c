@@ -91,7 +91,18 @@ static void vframe_free(vframe *f) {
     free(f->buf);
     free(f);
 }
+
+aframe *aframe_new(aframe_class *type, codec_context *ctx) {
+    aframe *x = malloc(sizeof(*x));
+    int size = 2 * ctx->context->frame_size * ctx->context->channels;
+    if (!size) return NULL;
+    x->type = type;
+    x->samples = malloc(size);
+    return x;
+}
+
 static void aframe_free(aframe *f) {
+    free(f->samples);
     free(f);
 }
 vframe_class *vframe_class_new(void) {
@@ -150,13 +161,12 @@ void codec_context_encode_video(codec_context *ctx,
                                    f ? f->frame : NULL);
 }
 
-#if 0
 void codec_context_encode_audio(codec_context *ctx, 
-                                vframe *f, 
+                                aframe *f, 
                                 bytes *b) {
     b->size = avcodec_encode_audio(ctx->context, 
                                    (uint8_t *)b->bytes, 
                                    b->bufsize, 
-                                   f ? f->frame : NULL);
+                                   f ? f->samples : NULL);
 }
-#endif
+

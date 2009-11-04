@@ -63,8 +63,7 @@ void frame_test(vframe *fram, codec_context *ctx, int i);
 int codec_context_open(codec_context *ctx, codec *codec);
 int codec_context_close(codec_context *ctx);
 
-void codec_context_encode_video(codec_context *ctx, 
-                                vframe *f, 
-                                bytes *b);
+void codec_context_encode_video(codec_context *ctx, vframe *f, bytes *b);
+void codec_context_encode_audio(codec_context *ctx, aframe *f, bytes *b);
 
 #endif
