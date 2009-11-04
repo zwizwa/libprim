@@ -290,12 +290,11 @@ _ ex_sub1(ex *ex, _ o) {
     long i = CAST_INTEGER(o);
     return integer_to_object(i - 1);
 }
-_ ex_add(ex *ex, _ a, _ b) {
-    long ia = CAST_INTEGER(a);
-    long ib = CAST_INTEGER(b);
-    return integer_to_object(ia + ib);
-}
+#define BINOP(op, a, b) integer_to_object(CAST_INTEGER(a) op CAST_INTEGER(b))
 
+_ ex_add(ex *ex, _ a, _ b) { return BINOP(+, a, b); }
+_ ex_sub(ex *ex, _ a, _ b) { return BINOP(-, a, b); }
+_ ex_mul(ex *ex, _ a, _ b) { return BINOP(*, a, b); }
 
 /* Lists and vectors. */
 _ ex_make_vector(ex *ex, _ slots, _ init) {

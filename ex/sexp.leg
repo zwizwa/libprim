@@ -4,7 +4,7 @@ Next    = Datum | EOF | Junk
 
 Datum   = Quote | UQuote | QQuote
         | Const | List | SList # | Qlist
-        | Number | Symbol | String
+        | NNumber | Number | Symbol | String
 
 List    = LP Tail
 Tail    = a:Datum Dot d:Datum RP         { $$= CONS(a,d) }
@@ -39,6 +39,7 @@ Dot     = Space - '.' Space
 True    = - '#t'                         { $$= TRUE }
 False   = - '#f'                         { $$= FALSE }
 
+NNumber = - < '-' Digit+ > !NonDigit     { $$= NUMBER(atoi(yytext)) }
 Number	= - < Digit+ > !NonDigit         { $$= NUMBER(atoi(yytext)) }
 Symbol  = - < Char+ >  	                 { $$= SYMBOL(yytext) }
 String  = - ["] < ( !["] . )* > ["]      { $$= STRING(yytext) }

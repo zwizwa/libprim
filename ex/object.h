@@ -159,7 +159,8 @@ static inline void *object_to_const(object ob) {
     else return NULL;
 }
 static inline long object_to_integer(object o) { 
-    return (o >> GC_TAG_SHIFT);
+    long i = (long)o;
+    return (i >> GC_TAG_SHIFT);
 }
 
 /* Vector size field has room for additional tag bits. */

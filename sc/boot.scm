@@ -153,6 +153,9 @@
 (define assoc (make-assoc equal?))
 (define assq (make-assoc eq?))
 
+(define + add)
+(define - sub)
+(define * mul)
 
 (define (repl-no-guard)
   (let loop ()
