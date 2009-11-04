@@ -4722,6 +4722,7 @@ Date: Wed Nov  4 13:41:43 CET 2009
 - manual parser (for strings + smaller code size: look online)
 - let*
 - macros: check if it's actually correct (evaluation order)
+- system
 
 Can parameters be bypassed?  I'm already using implicit output ports
 all over the code.  Currently just using direct (lexical) write
@@ -4733,4 +4734,26 @@ Date: Wed Nov  4 13:59:19 CET 2009
 
 - first frame might be zero size
 - setting frame input to NULL produces delayed frames.
+
+
+Entry: ffmpeg external codecs
+Date: Wed Nov  4 15:05:12 CET 2009
+
+does ffmpeg have an mp3 encoder?
+no : use lame
+
+ac3, aac, vorbis are built-in
+
+apparently all configuration data is stored in the AVContext struct.
+the ffmpeg code is quite error prone..  a bit of abstraction around it
+won't hurt.
+
+next: write encoded audio to buffer. there is no data structure for
+audio - just a flat array of short int.
+
+
+int avcodec_encode_audio(AVCodecContext *avctx,
+                         uint8_t *buf,
+                         int buf_size,
+                         const short *samples);
 

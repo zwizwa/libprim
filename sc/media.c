@@ -13,7 +13,8 @@
 
 static codec_class *codec_c;
 static codec_context_class *codec_context_c;
-static frame_class *frame_c;
+static vframe_class *vframe_c;
+static aframe_class *aframe_c;
 
 /* Instead of storing the class object in the ex struct (see
    DEF_AREF_TYPE and ex's base_types member), it's also possible to
@@ -26,7 +27,8 @@ static frame_class *frame_c;
 
 DEF_GLOBAL_AREF_TYPE(codec)
 DEF_GLOBAL_AREF_TYPE(codec_context)
-DEF_GLOBAL_AREF_TYPE(frame)
+DEF_GLOBAL_AREF_TYPE(vframe)
+DEF_GLOBAL_AREF_TYPE(aframe)
 
 static prim_def media_prims[] = media_table_init;
 
@@ -34,7 +36,8 @@ void _sc_media_init(sc *sc) {
     av_register_all();
     codec_c = codec_class_new();
     codec_context_c = codec_context_class_new();
-    frame_c = frame_class_new();
+    vframe_c = vframe_class_new();
+    aframe_c = aframe_class_new();
     _sc_def_prims(sc, media_prims);
 }
 
@@ -51,24 +54,32 @@ _ sc_make_codec_context(sc *sc) {
 
 _ sc_codec_context_info(sc *sc, _ ob) {
     codec_context *c = CAST(codec_context, ob);
-    _ex_printf(EX, "dim:  %d x %d\n", c->context->width, c->context->height);
+    _ex_printf(EX, "video:\n");
+    _ex_printf(EX, " dim:  %d x %d\n", c->context->width, c->context->height);
     if (c->context->time_base.num == 1) 
-        _ex_printf(EX, "fps:  %d\n", c->context->time_base.den);
+        _ex_printf(EX, " fps:  %d\n", c->context->time_base.den);
     else
-        _ex_printf(EX, "fps:  %d/%d\n", c->context->time_base.den, c->context->time_base.num);
-    _ex_printf(EX, "rate: %d kbps\n", c->context->bit_rate / 1000);
+        _ex_printf(EX, " fps:  %d/%d\n", 
+                   c->context->time_base.den, 
+                   c->context->time_base.num);
+    _ex_printf(EX, " rate: %d kbps\n", c->context->bit_rate / 1000);
+
+    _ex_printf(EX, "audio:\n");
+    _ex_printf(EX, " sr:   %d Hz\n", c->context->sample_rate);
+    _ex_printf(EX, " chan: %d\n", c->context->channels);
+    _ex_printf(EX, " blk:  %d\n", c->context->frame_size);
     return VOID;
 }
 
-_ sc_make_frame(sc *sc, _ ob) {
+_ sc_make_vframe(sc *sc, _ ob) {
     codec_context *c = CAST(codec_context, ob);
-    frame *f = frame_new(frame_c, c);
-    return _sc_make_aref(sc, &(frame_c->free), f);
+    vframe *f = vframe_new(vframe_c, c);
+    return _sc_make_aref(sc, &(vframe_c->free), f);
 }
 
 _ sc_bang_frame_test(sc *sc, _ ob_frame, _ ob_ctx, _ ob_int) {
     int i = CAST_INTEGER(ob_int);
-    frame *f = CAST(frame, ob_frame);
+    vframe *f = CAST(vframe, ob_frame);
     codec_context *c = CAST(codec_context, ob_ctx);
     frame_test(f, c, i);
     return VOID;
@@ -94,7 +105,7 @@ _ sc_codec_to_string(sc *sc, _ ob) {
 }
 
 _ sc_codec_context_encode_video(sc *sc, _ ctx, _ frm, _ buf) {
-    frame *f = (frm == FALSE) ? NULL : CAST(frame, frm); // delayed frames
+    vframe *f = (frm == FALSE) ? NULL : CAST(vframe, frm); // delayed frames
     codec_context_encode_video(CAST(codec_context, ctx), f, CAST(bytes, buf));
     return VOID;
 }

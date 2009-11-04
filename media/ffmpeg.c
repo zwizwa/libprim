@@ -36,13 +36,23 @@ codec_context *codec_context_new(codec_context_class *type){
     x->context = avcodec_alloc_context();
 
     /* FIXME: parameterize */
-    x->context->bit_rate = 400000;
-    x->context->width = 352;
-    x->context->height = 288;
-    x->context->time_base= (AVRational){1,25};
-    x->context->gop_size = 10; /* emit one intra frame every ten frames */
-    x->context->max_b_frames=1;
-    x->context->pix_fmt = PIX_FMT_YUV420P;
+
+    /* video */
+    if (1) {
+        x->context->bit_rate = 400000;
+        x->context->width = 352;
+        x->context->height = 288;
+        x->context->time_base= (AVRational){1,25};
+        x->context->gop_size = 10; /* emit one intra frame every ten frames */
+        x->context->max_b_frames=1;
+        x->context->pix_fmt = PIX_FMT_YUV420P;
+    }
+
+    /* audio */
+    if (1) {
+        x->context->sample_rate = 44100;
+        x->context->channels = 2;
+    }
 
     return x;
 }
@@ -54,14 +64,14 @@ codec_context_class *codec_context_class_new(void) {
 
 
 /* FRAME */
-frame *frame_new(frame_class *type, codec_context *ctx) {
+vframe *vframe_new(vframe_class *type, codec_context *ctx) {
     if (ctx->context->pix_fmt != PIX_FMT_YUV420P) return NULL;
     int size = ctx->context->width * ctx->context->height;
 
     // printf("size %d\n", size);
 
     int buf_size = (size * 3) / 2;
-    frame *x = malloc(sizeof(*x));
+    vframe *x = malloc(sizeof(*x));
     x->type = type;
     x->buf = malloc(buf_size);
     x->frame = avcodec_alloc_frame();
@@ -76,18 +86,27 @@ frame *frame_new(frame_class *type, codec_context *ctx) {
 
     return x;
 }
-static void frame_free(frame *f) {
+static void vframe_free(vframe *f) {
     av_free(f->frame);
     free(f->buf);
     free(f);
 }
-frame_class *frame_class_new(void) {
-    frame_class *x = malloc(sizeof(*x)); 
-    x->free = frame_free;
+static void aframe_free(aframe *f) {
+    free(f);
+}
+vframe_class *vframe_class_new(void) {
+    vframe_class *x = malloc(sizeof(*x)); 
+    x->free = vframe_free;
     return x; 
 }
 
-void frame_test(frame *fram, codec_context *ctx, int i) {
+aframe_class *aframe_class_new(void) {
+    aframe_class *x = malloc(sizeof(*x)); 
+    x->free = aframe_free;
+    return x; 
+}
+
+void frame_test(vframe *fram, codec_context *ctx, int i) {
 
     int x,y;
     /* prepare a dummy image */
@@ -107,6 +126,11 @@ void frame_test(frame *fram, codec_context *ctx, int i) {
     }
 }
 
+
+/* Aframe */
+
+
+
 // void codec_open(codec_context *ctx, 
 
 int codec_context_open(codec_context *ctx, codec *cod) {
@@ -118,7 +142,7 @@ int codec_context_close(codec_context *ctx) {
 }
 
 void codec_context_encode_video(codec_context *ctx, 
-                                frame *f, 
+                                vframe *f, 
                                 bytes *b) {
     b->size = avcodec_encode_video(ctx->context, 
                                    (uint8_t *)b->bytes, 
@@ -126,3 +150,13 @@ void codec_context_encode_video(codec_context *ctx,
                                    f ? f->frame : NULL);
 }
 
+#if 0
+void codec_context_encode_audio(codec_context *ctx, 
+                                vframe *f, 
+                                bytes *b) {
+    b->size = avcodec_encode_audio(ctx->context, 
+                                   (uint8_t *)b->bytes, 
+                                   b->bufsize, 
+                                   f ? f->frame : NULL);
+}
+#endif
