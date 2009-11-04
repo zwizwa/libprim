@@ -166,6 +166,16 @@ _ sc_display(sc *sc, _ o) {
     fwrite(b->bytes, 1, strlen(b->bytes), _sc_port(sc)->stream);
     return VOID;
 }
+
+_ sc_write_bytes(sc *sc, _ ob_port, _ ob_bytes) {
+    port *p = CAST(port, ob_port);
+    bytes *b = CAST(bytes, ob_bytes);
+    if (b->size != fwrite(b->bytes, 1, b->size, p->stream)) {
+        return ERROR("fwrite", ob_bytes);
+    }
+    return VOID;
+}
+
 _ sc_newline(sc *sc) { return sc_display(sc, _sc_make_string(sc, "\n")); }
 
 _ sc_write(sc *sc,  _ o) {

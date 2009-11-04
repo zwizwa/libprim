@@ -4721,6 +4721,8 @@ Date: Wed Nov  4 13:41:43 CET 2009
 - current-input-port / current-output-port
 - manual parser (for strings + smaller code size: look online)
 
+Can parameters be bypassed?  I'm already using implicit output ports
+all over the code.
 
 
 Entry: ffmpeg delayed frames
@@ -4728,3 +4730,4 @@ Date: Wed Nov  4 13:59:19 CET 2009
 
 - first frame might be zero size
 - setting frame input to NULL produces delayed frames.
+
