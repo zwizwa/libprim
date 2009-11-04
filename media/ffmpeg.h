@@ -49,4 +49,7 @@ codec *codec_new(codec_class *type, const char *name);
 codec_context *codec_context_new(codec_context_class *type);
 frame *frame_new(frame_class *type, codec_context *ctx);
 
+void frame_test(frame *fram, codec_context *ctx, int i);
+
+
 #endif

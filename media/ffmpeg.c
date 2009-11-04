@@ -58,7 +58,7 @@ frame *frame_new(frame_class *type, codec_context *ctx) {
     if (ctx->context->pix_fmt != PIX_FMT_YUV420P) return NULL;
     int size = ctx->context->width * ctx->context->height;
 
-    printf("size %d\n", size);
+    // printf("size %d\n", size);
 
     int buf_size = (size * 3) / 2;
     frame *x = malloc(sizeof(*x));
@@ -87,7 +87,7 @@ frame_class *frame_class_new(void) {
     return x; 
 }
 
-void test_frame(frame *fram, codec_context *ctx, int i) {
+void frame_test(frame *fram, codec_context *ctx, int i) {
 
     int x,y;
     /* prepare a dummy image */

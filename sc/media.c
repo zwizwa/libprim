@@ -39,8 +39,7 @@ void _sc_media_init(sc *sc) {
 }
 
 _ sc_make_codec(sc* sc, _ spec) {
-    char *name = object_to_cstring(spec, &sc->m);
-    if (!name) return TYPE_ERROR(spec);
+    char *name = CAST(cstring, spec);
     codec *c = codec_new(codec_c, name);
     if (!c) return ERROR("codec-not-found", spec);
     return _sc_make_aref(sc, &(codec_c->free), name);
@@ -51,13 +50,26 @@ _ sc_make_codec_context(sc *sc) {
 }
 
 _ sc_codec_context_info(sc *sc, _ ob) {
-    codec_context *c = object_to_codec_context(ob, &sc->m);
-    if (!c) return TYPE_ERROR(ob);
+    codec_context *c = CAST(codec_context, ob);
     _ex_printf(EX, "dim:  %d x %d\n", c->context->width, c->context->height);
     if (c->context->time_base.num == 1) 
         _ex_printf(EX, "fps:  %d\n", c->context->time_base.den);
     else
         _ex_printf(EX, "fps:  %d/%d\n", c->context->time_base.den, c->context->time_base.num);
     _ex_printf(EX, "rate: %d kbps\n", c->context->bit_rate / 1000);
+    return VOID;
+}
+
+_ sc_make_frame(sc *sc, _ ob) {
+    codec_context *c = CAST(codec_context, ob);
+    frame *f = frame_new(frame_c, c);
+    return _sc_make_aref(sc, &(frame_c->free), f);
+}
+
+_ sc_bang_test_frame(sc *sc, _ ob_frame, _ ob_ctx, _ ob_int) {
+    int i = CAST_INTEGER(ob_int);
+    frame *f = CAST(frame, ob_frame);
+    codec_context *c = CAST(codec_context, ob_ctx);
+    frame_test(f, c, i);
     return VOID;
 }

@@ -213,6 +213,7 @@ DEF_AREF_TYPE(ck)
 DEF_AREF_TYPE(port)
 DEF_AREF_TYPE(bytes)
 
+typedef char cstring;  // for CAST()
 static inline char *object_to_cstring(_ ob, ex *m) {
     bytes *b = object_to_bytes(ob, m);
     if (!b) return NULL;
@@ -273,6 +274,7 @@ _ _sc_printf(sc *sc, char *fmt, ...);
 
 // Scheme constants start at 0x100
 #define MT    CONSTANT(0x100)
+
 
 
 
