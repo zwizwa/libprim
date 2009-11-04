@@ -112,6 +112,9 @@ _ _sc_make_string(sc *sc, const char *str) {
     return _sc_make_aref(sc, &(TYPES->bytes_type->free),
                          bytes_from_cstring(TYPES->bytes_type, str));
 }
+_ _sc_make_bytes(sc *sc, int size) {
+    return _sc_make_aref(sc,  &(TYPES->bytes_type->free), bytes_new(TYPES->bytes_type, size));
+}
 
 _ sc_make_mt(sc *sc)    { return MT; }
 
@@ -763,6 +766,12 @@ _ sc_bang_abort_k(sc *sc, _ k) {
 }
 _ sc_exit(sc *sc) {
     exit(0);
+}
+
+_ sc_make_bytes(sc *sc, _ ob) {
+    int size = CAST_INTEGER(ob);
+    if (size <= 0) return ERROR("invalid-argument", ob);
+    return _sc_make_bytes(sc, size);
 }
 
 /* --- SETUP & GC --- */

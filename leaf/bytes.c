@@ -44,17 +44,20 @@ static void _write_hex(FILE *f, int val, int digits) {
         digits--;
     }
 }
+
+/* This prints full-length byte buffers, not C strings. */
 void bytes_write_string(bytes *b, FILE *f) {
     size_t i = 0;
     int c;
+
     fputc('"',f);
-    while((c = b->bytes[i])) {
+    for(i = 0; i<b->size; i++) {
+        c = b->bytes[i];
         if (c == '"')  { fputc('\\',f); fputc('"',f); }
         else if (c == '\n') { fputc('\\', f); fputc('n',f); }
         else if (c == '\\') { fputc('\\', f); fputc('\\',f); }
         else if ((c >= 32) && (c < 127)) fputc(c, f);
         else {fputc('\\',f); fputc('x',f); _write_hex(f, c, 2);}
-        i++;
     }
     fputc('"',f);
 }

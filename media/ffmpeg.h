@@ -51,5 +51,8 @@ frame *frame_new(frame_class *type, codec_context *ctx);
 
 void frame_test(frame *fram, codec_context *ctx, int i);
 
+int codec_context_open(codec_context *ctx, codec *codec);
+int codec_context_close(codec_context *ctx);
+
 
 #endif

@@ -42,7 +42,7 @@ _ sc_make_codec(sc* sc, _ spec) {
     char *name = CAST(cstring, spec);
     codec *c = codec_new(codec_c, name);
     if (!c) return ERROR("codec-not-found", spec);
-    return _sc_make_aref(sc, &(codec_c->free), name);
+    return _sc_make_aref(sc, &(codec_c->free), codec_new(codec_c, name));
 }
 
 _ sc_make_codec_context(sc *sc) {
@@ -66,10 +66,29 @@ _ sc_make_frame(sc *sc, _ ob) {
     return _sc_make_aref(sc, &(frame_c->free), f);
 }
 
-_ sc_bang_test_frame(sc *sc, _ ob_frame, _ ob_ctx, _ ob_int) {
+_ sc_bang_frame_test(sc *sc, _ ob_frame, _ ob_ctx, _ ob_int) {
     int i = CAST_INTEGER(ob_int);
     frame *f = CAST(frame, ob_frame);
     codec_context *c = CAST(codec_context, ob_ctx);
     frame_test(f, c, i);
     return VOID;
+}
+
+/* As/dissociate codec context to codec. */
+_ sc_codec_context_open(sc *sc, _ ctx, _ cod) {
+    if (codec_context_open(CAST(codec_context, ctx), CAST(codec, cod)) < 0) {
+        ERROR("invalid-context", cod);
+    }
+    return VOID;
+}
+_ sc_codec_context_close(sc *sc, _ ctx) {
+    if (codec_context_close(CAST(codec_context, ctx)) < 0) {
+        return ERROR("invalid-context", ctx);
+    }
+    return VOID;
+}
+
+_ sc_codec_to_string(sc *sc, _ ob) {
+    codec *c = CAST(codec, ob);
+    return _sc_make_string(sc, c->codec->name);
 }

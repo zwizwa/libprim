@@ -15,7 +15,7 @@ DEBUG_CFLAGS=-Wall -g -Wno-unused
 # OPTI_CFLAGS=-Os
 # CC = gcc -m32
 
-SC_LIB_OBJ = scheme.o
+SC_LIB_OBJ = scheme.o media.o
 SC_APP_OBJ = $(SC_LIB_OBJ) main.o $(DEP_OBJ)
 
 

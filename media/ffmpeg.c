@@ -107,14 +107,21 @@ void frame_test(frame *fram, codec_context *ctx, int i) {
     }
 }
 
+// void codec_open(codec_context *ctx, 
 
-void encode_video(codec_context *ctx, 
-                  frame *f, 
-                  bytes *b) {
+int codec_context_open(codec_context *ctx, codec *cod) {
+    return avcodec_open(ctx->context, cod->codec);
+}
+int codec_context_close(codec_context *ctx) {
+    if (!ctx->context->codec) return -1;
+    return avcodec_close(ctx->context);
+}
+
+void codec_context_encode_video(codec_context *ctx, 
+                                frame *f, 
+                                bytes *b) {
     b->size = avcodec_encode_video(ctx->context, 
                                    (uint8_t *)b->bytes, 
                                    b->bufsize, 
                                    f->frame);
 }
-
-
