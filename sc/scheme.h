@@ -278,6 +278,7 @@ _ _sc_printf(sc *sc, char *fmt, ...);
 
 /* INIT */
 sc *_sc_new(base_types *types, const char *bootfile);
+void _sc_def_prims(sc *sc, prim_def *prims);
 
 
 #endif

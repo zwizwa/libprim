@@ -672,6 +672,7 @@ _ sc_gc(sc* sc) {
     _ k = sc_k_parent(sc, s->continuation); // drop `gc' k_apply frame
     sc_bang_set_global(sc, sc_slot_state, 
                        STATE(VALUE(VOID), k)); // update state manually
+    PURE(); // switch GC on again
     gc_collect(sc->m.gc);                        // collect will restart at sc->state
     return NIL; // not reached
 }
@@ -821,7 +822,7 @@ _ _sc_top(sc *sc, _ expr){
 static prim_def scheme_prims[] = scheme_table_init;
 static prim_def ex_prims[] = ex_table_init;
 
-static void _sc_def_prims(sc *sc, prim_def *prims) {
+void _sc_def_prims(sc *sc, prim_def *prims) {
     prim_def *prim;
     for (prim = prims; prim->name; prim++) {
         PURE(); // Assume no restarts during boot!
@@ -871,7 +872,7 @@ void _sc_def_prim(sc *sc, const char *str, void *fn, long nargs) {
 }
 
 
-
+void _sc_media_init(sc *sc);
 
 sc *_sc_new(base_types *types, const char *bootfile) {
     sc *sc = malloc(sizeof(*sc));
@@ -921,6 +922,9 @@ sc *_sc_new(base_types *types, const char *bootfile) {
     /* Primitive defs */
     _sc_def_prims(sc, ex_prims);
     _sc_def_prims(sc, scheme_prims);
+
+    _sc_media_init(sc);
+        
 
     /* Toplevel abort continuation */
     PURE();

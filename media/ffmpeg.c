@@ -12,11 +12,7 @@
 /* CODEC */
 codec *codec_new(codec_class *type, const char *name) {
     AVCodec *c = avcodec_find_encoder_by_name(name);
-    if (!c) { 
-        fprintf(stderr, "codec `%s' not found\n", name);
-        exit(1); // primitives need exceptions!
-        return NULL; 
-    }
+    if (!c) return NULL;
     codec *x = malloc(sizeof(*x));
     x->type = type;
     x->codec = c;
@@ -59,11 +55,7 @@ codec_context_class *codec_context_class_new(void) {
 
 /* FRAME */
 frame *frame_new(frame_class *type, codec_context *ctx) {
-    if (ctx->context->pix_fmt != PIX_FMT_YUV420P) {
-        fprintf(stderr, "expected PIX_FMT_YUV420P\n");
-        exit(1); // primitives need exceptions!
-        return NULL; 
-    }
+    if (ctx->context->pix_fmt != PIX_FMT_YUV420P) return NULL;
     int size = ctx->context->width * ctx->context->height;
 
     printf("size %d\n", size);

@@ -42,3 +42,8 @@ install: all
 	install -m 644 media/*.h* $(PREFIX)/include/prim/media/
 
 	install -m 755 */libprim_*.a $(PREFIX)/lib/
+
+uninstall:
+	rm -rf $(PREFIX)/include/prim
+	rm -rf $(PREFIX)/lib/libprim_*.a
+
