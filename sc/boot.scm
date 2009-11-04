@@ -130,6 +130,29 @@
 (define (open-output-file filename)
   (open-mode-file filename "w"))
 
+;; misc r4rs
+(define (append a b) (if (null? a) b (cons (car a) (append (cdr a) b))))
+(define (list-tail lst k) (if (zero? k) lst (list-tail (cdr lst) (sub1 k))))
+(define (list-ref lst k)  (if (zero? k) (car lst) (list-ref (cdr lst) (sub1 k))))
+
+(define (make-mem eq?)
+  (lambda (obj lst)
+    (let next ((lst lst))
+      (if (null? lst) #f
+          (if (eq? (car lst) obj) lst
+              (next (cdr lst)))))))
+(define member (make-mem equal?))
+(define memq (make-mem eq?))
+
+(define (make-assoc eq?)
+  (lambda (obj lst)
+    (let next ((lst lst))
+      (if (null? lst) #f
+          (if (eq? (caar lst) obj) (car lst)
+              (next (cdr lst)))))))
+(define assoc (make-assoc equal?))
+(define assq (make-assoc eq?))
+
 
 (define (repl-no-guard)
   (let loop ()

@@ -243,12 +243,17 @@ _ _ex_map2_prim(ex *ex, ex_2 fn, _ l_in1, _ l_in2) {
 #define EX ex
 
 /* Booleans are GC_CONST */
-_ ex_is_bool(ex *ex, _ o) {
+_ ex_is_boolean(ex *ex, _ o) {
     void *x;
     if ((x = object_to_const(o)) &&
         (0 == (((long)x) & (~TRUE)))) { return TRUE; }
     return FALSE;
 }
+_ ex_not(ex *ex, _ o) {
+    if (FALSE == o) return TRUE;
+    else return FALSE;
+}
+
 /* The empty list is the NULL pointer */
 _ ex_is_null(ex *ex, _ o) {
     if (NIL == o) return TRUE; else return FALSE;
@@ -389,6 +394,12 @@ _ ex_lcar(ex *ex, _ o)  { pair *p = CAST(lpair, o); return p->car; }
 _ ex_lcdr(ex *ex, _ o)  { pair *p = CAST(lpair, o); return p->cdr; }
 
 
+_ ex_bang_set_car(ex *ex, _ op, _ o) {
+    pair *p = CAST(pair, op); p->car = o; return VOID;
+}
+_ ex_bang_set_cdr(ex *ex, _ op, _ o) {
+    pair *p = CAST(pair, op); p->cdr = o; return VOID;
+}
 
 _ ex_find_slot(ex *ex, _ E, _ var) {
     if (TRUE == ex_is_null(ex, E)) return FALSE;
@@ -421,10 +432,48 @@ _ ex_is_eq(ex *ex, _ a, _ b) {
     if (a == b) return TRUE;
     return FALSE;
 }
+
+// FIXME: http://people.csail.mit.edu/jaffer/r4rs_8.html#SEC44
+// somewhat arbitrary
+_ ex_is_eqv(ex *ex, _ a, _ b) {
+    if (a == b) return TRUE;
+    return FALSE;
+}
+// FIXME
+// recursive comparison of pairs, vectors and strings
+_ ex_is_equal(ex *ex, _ a, _ b) {
+  again:
+    if (a == b) return TRUE;
+    if ((TRUE == IS_PAIR(a)) && (TRUE == IS_PAIR(b))) {
+        if (FALSE == IS_EQUAL(CAR(a), CAR(b))) return FALSE;
+        a = CDR(a);
+        b = CDR(b);
+        goto again;
+    }
+// FIXME: string wrapping sucks: needs to be done in EX.
+#if 0
+    bytes *ba, *bb;
+    if ((ba = object_to_bytes(a, ex)) && (bb = object_to_bytes(b, ex))) {
+        int i;
+        if (ba->size != bb->size) return FALSE;
+        for (i=0; i<ba->size; i++) {
+            if (ba->bytes[i] != bb->bytes[i]) return FALSE
+        }
+        return TRUE;
+    }
+#endif
+    // FIXME: vectors
+    return FALSE;
+}
+
 _ ex_is_list(ex *ex, _ o) {
+    _ head = o;
+  again:
     if(TRUE==IS_NULL(o)) return TRUE;
     if(FALSE==IS_PAIR(o)) return FALSE;
-    return ex_is_list(ex, CDR(o));
+    o = CDR(o);
+    if (o == head) return FALSE; // infinite list
+    goto again;
 }
 static _ *vector_index(ex *ex, _ vec, _ n) {
     vector *v = CAST(vector, vec);
