@@ -8,7 +8,6 @@ DEBUG_CFLAGS=-Wall -g
 # CC = gcc -m32
 
 %.h_ex_prims: %.c ex_prims.ss ../prim-tools.ss
-	pwd
 	mzscheme ex_prims.ss $< >$@
 %.h_leg: %.leg
 	leg <$< >$@

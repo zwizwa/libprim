@@ -4,6 +4,11 @@ SRC=scheme.c main.c
 # lib.c
 DEP_OBJ=../leaf/libprim_leaf.a ../ex/libprim_ex.a
 
+# media?
+DEP_OBJ+=../media/libprim_media.a
+LIBS+=`pkg-config libavformat --libs`
+
+
 OBJ=$(SRC:.c=.o)
 DEBUG_CFLAGS=-Wall -g -Wno-unused
 # OPTI_CFLAGS=-Os
@@ -26,6 +31,6 @@ libprim_sc.a: $(SC_LIB_OBJ)
 %.h_sc_prims: %.c sc_prims.ss ../prim-tools.ss
 	mzscheme sc_prims.ss $< >$@
 
-GEN = scheme.h_sc_prims boot.h_load test.h_load
+GEN = scheme.h_sc_prims boot.h_load test.h_load media.h_sc_prims
 
 include ../Makefile.rules

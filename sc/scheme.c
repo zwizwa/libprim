@@ -29,8 +29,6 @@
 */
 
 
-
-
 /* Predicates for primitive objects are derived from their
    object_to_pointer cast: if it returns NULL, the type isn't
    correct. */

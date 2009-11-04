@@ -1,9 +1,9 @@
 all: 
 	make -C leaf
+	make -C media
 	make -C ex
 	make -C sc
 	make -C pf
-	make -C media
 
 clean:
 	rm -f *~

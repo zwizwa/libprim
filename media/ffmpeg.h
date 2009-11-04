@@ -4,7 +4,7 @@
 #include <libavcodec/avcodec.h>
 #include <libavformat/avformat.h>
 
-#include "../leaf/bytes.h"
+#include <leaf/bytes.h>
 
 /*  Bridge internal image representation with FFmpeg encoder.
 

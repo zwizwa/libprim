@@ -4593,20 +4593,101 @@ So, what am I going to do with this?
 To be able to use it in commercial projects, I'm probably going to
 switch the licence to LGPL or BSD.  The idea is that a simple .c
 tarball (without dependency on mzscheme) can be used to build the .a
-libs which can then be linked into an app.
+libs which can then be linked into an app.  DONE
 
 The problem is that I'm still not positive about how to tackle the
-wrapper generation.  The model should be something like dataflow
-functions in Oz.  The idea being that the C code doesn't perform any
-data allocation, but that function output is handled by in-place
-updating the collection of basic objects.
+wrapper generation.  This essentially bridges the C data model to the
+EX data model, possibly wrapped differently for SC/PF.  This is still
+too complex.  The architecture needs to be formalized.
+
+The C function model should be something like dataflow functions in
+Oz.  The idea being that the C code doesn't perform any data
+allocation, but that function output is handled by in-place updating
+the collection of basic objects.
 
 I.e. SSA, but on an object-level.
 
 
 
-Entry: The small plan
+Entry: The media lib
 Date: Wed Nov  4 06:38:18 CET 2009
+
+Collection of .c/.h files.
+media.c : wrappers for scripting languages.
+
+To generate the wrapper code it would be best to make sure that the .h
+files are "clean" : no system libs, no delegate library libs.
+
+This can be moved out of the critical path though.  Keeping the
+general idea in mind, the ex functions can be coded manually.
+
+The problem with class registration remains though.  Classes are
+accessed as part of a struct, so they cannot be dynamic.
+
+
+Entry: More formal architecture
+Date: Wed Nov  4 07:19:19 CET 2009
+
+C - side: objects, constructors, destructors and in-place functions.
+
+The C functions can be bridged to EX function by wrapping C objects in
+a GC managed struct.  This should be automated.
+
+How can this automation be made as simple as possible?
+
+
+Entry: Swig
+Date: Wed Nov  4 07:28:54 CET 2009
+
+Let's have a closer look at Swig[1].  It might be wise to make all
+interfaces compatible with standard scripting languages through Swig.
+
+The problem with Swig is that it generates large code.  It can really
+be done a lot simpler..
+
+[1] http://www.swig.org/Doc1.1/HTML/Contents.html
+
+
+Entry: Are classes/types global?
+Date: Wed Nov  4 07:49:31 CET 2009
+
+I guess the answer is yes.  C objects contain pointers to C classes,
+but the classes themselves do not really need to be tied to the VM
+instance.
+
+The real question is: what is a VM instance?
+
+Let's reformulate: each VM has its own memory manager (GC).  This
+means that managed data cannot be exchanged between VMs.
+
+Really, a VM is kind of a global variable.
+
+Why is there a need to reference the base_types struct?  Let's look at
+the macros that use it:
+
+#define DEF_ATOM(name)                                                \
+    static inline name *object_to_##name(object ob, ex *m) {          \
+        return (name*)object_struct(ob,m->p->name##_type); }
+
+This essentially maps `name' to a pointer to its associated class/type
+object for use in the `object_struct' function, which is the main
+function that determines if an object matches a type, and returns a
+pointer or NULL.
+
+There is no real reason why m->p->name_FOOTYPE shouldn't be
+globalvar_FOOTYPE, apart from global variable references being more
+expensive.
+
+So..  How to make the scheme interpreter extensible?  Can these core
+implementation issues be hidden from user extensions?  The whole point
+is to be able to simply wrap some C/C++ code..
+
+Let's stick with:
+
+  - interface: class_new() methods in the C code, to allow for most
+    general approach.
+
+  - policy: (static) global variables for class objects in extensions
 
 
 

@@ -9,6 +9,8 @@ DEBUG_CFLAGS=-Wall -g
 
 # CC = gcc -m32
 
+%.h_media_prims: %.c media_prims.ss ../prim-tools.ss
+	mzscheme media_prims.ss $< >$@
 
 libprim_media.a: $(OBJ)
 	ar rcs libprim_media.a $(OBJ)

@@ -213,6 +213,11 @@ DEF_AREF_TYPE(ck)
 DEF_AREF_TYPE(port)
 DEF_AREF_TYPE(bytes)
 
+static inline char *object_to_cstring(_ ob, ex *m) {
+    bytes *b = object_to_bytes(ob, m);
+    if (!b) return NULL;
+    return cstring_from_bytes(b);
+}
 
 
 
