@@ -127,6 +127,10 @@
   (list 'if (cadr form) (void)
         (cons 'begin (cddr form))))
 
+(define (open-output-file filename)
+  (open-mode-file filename "w"))
+
+
 (define (repl-no-guard)
   (let loop ()
     (display "> ")

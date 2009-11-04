@@ -4720,9 +4720,12 @@ Date: Wed Nov  4 13:41:43 CET 2009
 - parameters
 - current-input-port / current-output-port
 - manual parser (for strings + smaller code size: look online)
+- let*
+- macros: check if it's actually correct (evaluation order)
 
 Can parameters be bypassed?  I'm already using implicit output ports
-all over the code.
+all over the code.  Currently just using direct (lexical) write
+routines: parameters aren't really necessary.
 
 
 Entry: ffmpeg delayed frames
