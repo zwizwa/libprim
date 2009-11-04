@@ -4692,3 +4692,39 @@ Let's stick with:
 
 
 
+Entry: Wrappers
+Date: Wed Nov  4 13:06:42 CET 2009
+
+Looking at media.c, what occurs here is:
+
+  - CAST
+  - ERROR
+  - C object calls
+
+CAST + object calls can be automated.  
+
+For PF and SC, object wrapping might be different.  Can this be solved
+at link time?  The real interface is object_to_xxx which is currently
+an inline function.  If this is transformed into linkable symbols, the
+binary code can be reused + plugins become feasible.
+
+How to automate ERROR wrapper generation?  Somewhere the decision
+needs to be made about how to handle errors.  Either C code returns
+error values, or a setjump-based approach can be used.
+
+
+
+Entry: Missing functionality
+Date: Wed Nov  4 13:41:43 CET 2009
+
+- parameters
+- current-input-port / current-output-port
+- manual parser (for strings + smaller code size: look online)
+
+
+
+Entry: ffmpeg delayed frames
+Date: Wed Nov  4 13:59:19 CET 2009
+
+- first frame might be zero size
+- setting frame input to NULL produces delayed frames.

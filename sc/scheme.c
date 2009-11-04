@@ -157,6 +157,10 @@ port *_sc_port(sc *sc) {
     return object_to_port(sc_global(sc, sc_slot_debug_port), EX);
 }
 
+_ sc_bytes_dump(sc *sc, _ ob) {
+    bytes_dump(CAST(bytes, ob), _sc_port(sc)->stream);
+    return VOID;
+}
 _ sc_display(sc *sc, _ o) {
     bytes *b = CAST(bytes, o);
     fwrite(b->bytes, 1, strlen(b->bytes), _sc_port(sc)->stream);
@@ -220,6 +224,11 @@ _ sc_string_to_symbol(sc *sc, _ sym) {
     bytes *b = CAST(bytes, sym);
     return _ex_make_symbol(EX, b->bytes);
 }
+
+_ sc_bytes_length(sc *sc, _ ob) {
+    return integer_to_object(CAST(bytes, ob)->size);
+}
+
 _ _sc_make_port(sc *sc, FILE *f, const char *name) {
     return _sc_make_aref(sc, &(TYPES->port_type->free), 
                          port_new(TYPES->port_type, f, name));

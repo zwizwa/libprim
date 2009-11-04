@@ -92,3 +92,9 @@ _ sc_codec_to_string(sc *sc, _ ob) {
     codec *c = CAST(codec, ob);
     return _sc_make_string(sc, c->codec->name);
 }
+
+_ sc_codec_context_encode_video(sc *sc, _ ctx, _ frm, _ buf) {
+    frame *f = (frm == FALSE) ? NULL : CAST(frame, frm); // delayed frames
+    codec_context_encode_video(CAST(codec_context, ctx), f, CAST(bytes, buf));
+    return VOID;
+}

@@ -31,5 +31,6 @@ void bytes_write_string(bytes *b, FILE *f);
    through this function.  */
 
 char *cstring_from_bytes(bytes *b);
+void bytes_dump(bytes *b, FILE *f);
 
 #endif

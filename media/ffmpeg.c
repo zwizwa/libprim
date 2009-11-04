@@ -123,5 +123,6 @@ void codec_context_encode_video(codec_context *ctx,
     b->size = avcodec_encode_video(ctx->context, 
                                    (uint8_t *)b->bytes, 
                                    b->bufsize, 
-                                   f->frame);
+                                   f ? f->frame : NULL);
 }
+

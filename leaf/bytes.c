@@ -38,7 +38,7 @@ bytes* bytes_from_cstring(bytes_class *type, const char *str){
 
 static const char hexdigit[] = "0123456789ABCDEF";
 static void _write_hex(FILE *f, int val, int digits) {
-    while (digits >= 0) {
+    while (digits > 0) {
         fputc(hexdigit[val & 0xF], f);
         val = (val >> 4);
         digits--;
@@ -60,4 +60,25 @@ void bytes_write_string(bytes *b, FILE *f) {
         else {fputc('\\',f); fputc('x',f); _write_hex(f, c, 2);}
     }
     fputc('"',f);
+}
+
+void bytes_dump(bytes *b, FILE *f) {
+    int i,j;
+    for(j = 0; j < b->size; j += 16) {
+        for (i = 0; i < 16; i++) {
+            if ((i + j) >= b->size) { fputc(' ', f); fputc(' ', f); }
+            else _write_hex(f, b->bytes[i+j], 2);
+            fputc(' ', f);
+        }
+        fputc(' ', f);
+        for (i = 0; i < 16; i++) {
+            if ((i + j) >= b->size) { fputc(' ', f); }
+            else {
+                int c = b->bytes[i+j];
+                if ((c >= 32) && (c < 127)) fputc(c, f);
+                else fputc('.', f);
+            }
+        }
+        fputc('\n', f);
+    }
 }
