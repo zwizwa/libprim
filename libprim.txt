@@ -1,7 +1,11 @@
 A ``primitive oriented'' scripting language core.
 
-This is an exploratory project, roughly based on the following goals
-and priciples:
+Libprim is a collection of primitive objects and operations written in
+C, mostly intended for writing embedded audio/video applications.
+
+In addition it contains an approach to assemble these objects as
+primitives of a dynamic scripting core (VM).  This is an exploratory
+project, roughly based on the following goals and priciples:
 
    * Create an ``invisible'' scripting language that integrates well
      with a C/C++ based project, and can be ``optimized out'' when
@@ -4574,7 +4578,36 @@ code to register the functions with the VM.
 For SC and PF, this amounts to packing/unpacking strings, ints,
 ... depending on the memory model used.
 
-Essentially: the wrapper binds the pure C objects to a PF/SC memory
-model.
+Essentially: the wrapper binds the pure C objects to a PF/SC memory +
+control (exception) model.
+
+The task should be simple: examine the .c / .h code and generate
+anything that looks like a pattern.
+
+
+Entry: The big plan
+Date: Tue Nov  3 21:33:02 CET 2009
+
+So, what am I going to do with this?
+
+To be able to use it in commercial projects, I'm probably going to
+switch the licence to LGPL or BSD.  The idea is that a simple .c
+tarball (without dependency on mzscheme) can be used to build the .a
+libs which can then be linked into an app.
+
+The problem is that I'm still not positive about how to tackle the
+wrapper generation.  The model should be something like dataflow
+functions in Oz.  The idea being that the C code doesn't perform any
+data allocation, but that function output is handled by in-place
+updating the collection of basic objects.
+
+I.e. SSA, but on an object-level.
+
+
+
+Entry: The small plan
+Date: Wed Nov  4 06:38:18 CET 2009
+
+
 
 
