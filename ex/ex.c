@@ -291,10 +291,16 @@ _ ex_sub1(ex *ex, _ o) {
     return integer_to_object(i - 1);
 }
 #define BINOP(op, a, b) integer_to_object(CAST_INTEGER(a) op CAST_INTEGER(b))
+#define BINREL(op, a, b) (CAST_INTEGER(a) op CAST_INTEGER(b)) ? TRUE : FALSE
 
 _ ex_add(ex *ex, _ a, _ b) { return BINOP(+, a, b); }
 _ ex_sub(ex *ex, _ a, _ b) { return BINOP(-, a, b); }
 _ ex_mul(ex *ex, _ a, _ b) { return BINOP(*, a, b); }
+
+_ ex_eq(ex *ex, _ a, _ b)  { return BINREL(==, a, b); }
+_ ex_gt(ex *ex, _ a, _ b)  { return BINREL(>, a, b); }
+_ ex_lt(ex *ex, _ a, _ b)  { return BINREL(<, a, b); }
+
 
 /* Lists and vectors. */
 _ ex_make_vector(ex *ex, _ slots, _ init) {

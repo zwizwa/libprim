@@ -153,9 +153,34 @@
 (define assoc (make-assoc equal?))
 (define assq (make-assoc eq?))
 
-(define + add)
-(define - sub)
-(define * mul)
+(define (make-accu op init)
+  (lambda lst
+    (let next ((acc init)
+               (lst lst))
+      (if (null? lst) acc
+          (next (op acc (car lst)) (cdr lst))))))
+
+(define + (make-accu add 0))
+(define * (make-accu mul 1))
+(define - (make-accu sub 0))
+
+(define = eq)
+(define > gt)
+(define < lt)
+(define (>= a b) (not (< a b)))
+(define (<= a b) (not (> a b)))
+
+(define (make-min-max rel)
+  (lambda lst
+    (let next ((lst (cdr lst))
+               (el (car lst)))
+      (if (null? lst) el
+          (next (cdr lst)
+                (if (rel el (car lst)) el (car lst)))))))
+
+(define max (make-min-max >))
+(define min (make-min-max <))
+
 
 (define (repl-no-guard)
   (let loop ()
