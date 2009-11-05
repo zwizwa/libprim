@@ -45,11 +45,11 @@ _ sc_make_codec(sc* sc, _ spec) {
     char *name = CAST(cstring, spec);
     codec *c = codec_new(codec_c, name);
     if (!c) return ERROR("codec-not-found", spec);
-    return _sc_make_aref(sc, &(codec_c->free), codec_new(codec_c, name));
+    return _sc_make_aref(sc, (leaf_object*)codec_new(codec_c, name));
 }
 
 _ sc_make_codec_context(sc *sc) {
-    return _sc_make_aref(sc, &(codec_context_c->free), codec_context_new(codec_context_c));
+    return _sc_make_aref(sc, (leaf_object *)codec_context_new(codec_context_c));
 }
 
 _ sc_codec_context_info(sc *sc, _ ob) {
@@ -74,14 +74,14 @@ _ sc_codec_context_info(sc *sc, _ ob) {
 _ sc_make_vframe(sc *sc, _ ob) {
     codec_context *c = CAST(codec_context, ob);
     vframe *f = vframe_new(vframe_c, c);
-    return _sc_make_aref(sc, &(vframe_c->free), f);
+    return _sc_make_aref(sc, (leaf_object *)f);
 }
 
 _ sc_make_aframe(sc *sc, _ ob) {
     codec_context *c = CAST(codec_context, ob);
     aframe *f = aframe_new(aframe_c, c);
     if (!f) return INVALID(ob);
-    return _sc_make_aref(sc, &(aframe_c->free), f);
+    return _sc_make_aref(sc, (leaf_object*)f);
 }
 
 _ sc_bang_frame_test(sc *sc, _ ob_frame, _ ob_ctx, _ ob_int) {

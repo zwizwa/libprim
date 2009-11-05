@@ -12,6 +12,7 @@ struct _symbol {
 };
 
 struct _symbol_class {
+    // leaf_class leaf; // FIXME: not used: this is a constant object (symbols are not GCd in EX)
     int nb_syms;
     int total;
     symbol **syms;

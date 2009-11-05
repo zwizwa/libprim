@@ -20,7 +20,7 @@ codec *codec_new(codec_class *type, const char *name) {
 }
 codec_class *codec_class_new(void) {
     codec_class *x = malloc(sizeof(*x)); 
-    x->free = free; 
+    x->super.free = (leaf_free)free; 
     return x; 
 }
 
@@ -58,7 +58,7 @@ codec_context *codec_context_new(codec_context_class *type){
 }
 codec_context_class *codec_context_class_new(void) {
     codec_context_class *x = malloc(sizeof(*x)); 
-    x->free = codec_context_free;
+    x->super.free = (leaf_free)codec_context_free;
     return x; 
 }
 
@@ -107,13 +107,13 @@ static void aframe_free(aframe *f) {
 }
 vframe_class *vframe_class_new(void) {
     vframe_class *x = malloc(sizeof(*x)); 
-    x->free = vframe_free;
+    x->super.free = (leaf_free)vframe_free;
     return x; 
 }
 
 aframe_class *aframe_class_new(void) {
     aframe_class *x = malloc(sizeof(*x)); 
-    x->free = aframe_free;
+    x->super.free = (leaf_free)aframe_free;
     return x; 
 }
 

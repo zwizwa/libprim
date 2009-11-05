@@ -2,6 +2,7 @@
 #define _SCHEME_H_
 
 #include <setjmp.h>
+#include <leaf/class.h>
 #include <ex/ex.h>
 #include <ex/ex.h_ex_prims>
 
@@ -268,7 +269,7 @@ void _sc_def_prim(sc *sc, const char *str, void *fn, long nargs);
 #define DEF(str,fn,nargs) _sc_def_prim (sc,str,fn,nargs)
 
 
-_ _sc_make_aref(sc *sc, void *fin, void *ptr);
+_ _sc_make_aref(sc *sc, leaf_object *);
 _ _sc_make_symbol(sc *sc, const char *str);
 _ _sc_make_string(sc *sc, const char *str);
 

@@ -105,16 +105,23 @@ _ sc_make_k_seq(sc *sc, _ P, _ T)            {STRUCT(TAG_K_SEQ,    3, P,NIL,T);}
 _ sc_make_k_macro(sc *sc, _ P, _ E, _ M)     {STRUCT(TAG_K_MACRO,  4, P,NIL,E,M);}
 
 
-_ _sc_make_aref(sc *sc, void *fin, void *ptr) {
-    return sc_make_aref(sc, fin_to_object(fin), const_to_object(ptr));
+/* Wrap a leaf object in an aref struct.  The destructor is gathered
+   from the leaf_class.  Note that GC finalizers are pointers to
+   function pointers (this is because function pointers themselves
+   might not be aligned. */
+
+
+
+
+_ _sc_make_aref(sc *sc, leaf_object *ob) {
+    return sc_make_aref(sc, fin_to_object((fin*)(&ob->methods->free)), const_to_object(ob));
 }
 
 _ _sc_make_string(sc *sc, const char *str) {
-    return _sc_make_aref(sc, &(TYPES->bytes_type->free),
-                         bytes_from_cstring(TYPES->bytes_type, str));
+    return _sc_make_aref(sc, (leaf_object*)bytes_from_cstring(TYPES->bytes_type, str));
 }
 _ _sc_make_bytes(sc *sc, int size) {
-    return _sc_make_aref(sc,  &(TYPES->bytes_type->free), bytes_new(TYPES->bytes_type, size));
+    return _sc_make_aref(sc,  (leaf_object*)bytes_new(TYPES->bytes_type, size));
 }
 
 _ sc_make_mt(sc *sc)    { return MT; }
@@ -244,8 +251,7 @@ _ sc_bytes_length(sc *sc, _ ob) {
 }
 
 _ _sc_make_port(sc *sc, FILE *f, const char *name) {
-    return _sc_make_aref(sc, &(TYPES->port_type->free), 
-                         port_new(TYPES->port_type, f, name));
+    return _sc_make_aref(sc, (leaf_object *)port_new(TYPES->port_type, f, name));
 }
 _ sc_open_mode_file(sc *sc, _ path, _ mode) {
     bytes *b_path = CAST(bytes, path);

@@ -55,24 +55,20 @@ _ px_error_underflow(pf *pf) {
     return px_abort(pf, pf->s_underflow, VOID);
 }
 
-_ _px_make_rc(pf *pf, void *free, void *ctx) {
+_ _px_make_rc(pf *pf, leaf_object *ob) {
     rc *rc = malloc(sizeof(*rc));
     rc->type = TYPES->rc_type;
-    rc->free = free;
-    rc->ctx = ctx;
+    rc->free = (rc_free)ob->methods->free;
+    rc->ctx = ob;
     rc->rc = 1;
     return const_to_object(rc);
 }
 
 _ _px_make_port(pf *pf, FILE *f, const char *name) {
-    return _px_make_rc(pf, 
-                       &(TYPES->port_type->free),
-                       port_new(TYPES->port_type, stdout, name));
+    return _px_make_rc(pf, (leaf_object*)port_new(TYPES->port_type, stdout, name));
 }
 _ _px_make_string(pf *pf, const char *name) {
-    return _px_make_rc(pf, 
-                       &(TYPES->bytes_type->free),
-                       bytes_from_cstring(TYPES->bytes_type, name));
+    return _px_make_rc(pf, (leaf_object*)bytes_from_cstring(TYPES->bytes_type, name));
 }
 _ _px_make_symbol(pf *pf, const char *str){
     return const_to_object(symbol_from_string(TYPES->symbol_type, str));

@@ -3,12 +3,13 @@
 
 #include <stdio.h>
 #include <stdarg.h>
+#include <leaf/class.h>
 
 typedef struct _port port;
 typedef void (*port_free_m)(port *p);
 
 typedef struct {
-    port_free_m free;
+    leaf_class super; // standard methods
 } port_class;
 
 struct _port {

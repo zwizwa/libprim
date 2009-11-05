@@ -2,12 +2,13 @@
 #define _BYTES_H_
 
 #include <stdio.h>
+#include <leaf/class.h>
 
 typedef struct _bytes bytes;
 typedef void (*bytes_free)(bytes *p);
 
 typedef struct {
-    bytes_free free;
+    leaf_class super;
 } bytes_class;
 
 struct _bytes {

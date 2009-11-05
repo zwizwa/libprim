@@ -34,8 +34,8 @@ void port_free(port *x) {
     free(x);
 }
 port_class *port_class_new(void) {
-    port_class *x = malloc(sizeof(*x));
-    x->free = port_free;
+    port_class *x = calloc(1, sizeof(*x));
+    x->super.free = (leaf_free)port_free;
     return x;
 }
 port *port_new(port_class *type, FILE *f, const char *name) {

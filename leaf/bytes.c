@@ -8,7 +8,7 @@ static void _bytes_free(bytes *x) {
 }
 bytes_class *bytes_class_new(void) {
     bytes_class *x = malloc(sizeof(*x));
-    x->free = _bytes_free;
+    x->super.free = (leaf_free)_bytes_free;
     return x;
 }
 bytes *bytes_new(bytes_class *type, size_t size) {
