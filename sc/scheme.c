@@ -152,7 +152,7 @@ _ sc_bang_def_global(sc* sc, _ slot, _ var, _ val) {
     symbol *s;
     _ env = sc_global(sc, slot);
     if (!(s=object_to_symbol(var, &sc->m))) TYPE_ERROR(var);
-    // _ex_printf(EX, "DEF %s: ",s->name); sc_post(sc, val);
+    // _ex_printf(EX, "DEF %s: \n",s->name); // sc_write(EX, val);
     sc_bang_set_global(sc, slot, ENV_DEF(env, var, val));
     return VOID;
 }
@@ -826,6 +826,19 @@ _ sc_make_bytes(sc *sc, _ ob) {
 
 /* --- SETUP & GC --- */
 
+
+static void _sc_check_gc_size(sc *sc) {
+    /* Check mem size. */
+    gc *gc = EX->gc_save;
+    long used = gc->current_index;
+    long free = gc->slot_total - used;
+    if (free < 100) {
+        _ex_printf(EX, "growing GC\n");
+        gc_alloc(gc, 100); // grow.
+    }
+}
+
+
 /* Toplevel eval.  This function captures the GC restart.
 
      - This function is NOT re-entrant.  The primitive
@@ -837,6 +850,7 @@ _ sc_make_bytes(sc *sc, _ ob) {
        function will invalidate previously allocated data (it will
        have moved).
 */
+
 
 _ _sc_top(sc *sc, _ expr){
     if (sc->m.top_entries) {
@@ -850,6 +864,7 @@ _ _sc_top(sc *sc, _ expr){
             sc->m.prim_entries = 0;  // full tower unwind
             sc->m.r.prim = NULL;
         }
+        // _sc_check_gc_size(sc);
         for(;;) {
             _ state;
             /* Run */
@@ -940,7 +955,7 @@ sc *_sc_new(base_types *types, const char *bootfile) {
 
     /* Garbage collector. */
     sc->m.gc = sc->m.gc_save
-        = gc_new(10000, sc, 
+        = gc_new(5000, sc, 
                  (gc_mark_roots)_sc_mark_roots,
                  (gc_overflow)_ex_overflow);
                     
@@ -1014,7 +1029,7 @@ _ sc_read_stdin(sc *sc) {
     return _ex_read(EX, &p);
 }
 
-_ sc_read(sc *sc, _ o) {
+_ sc_read_no_gc(sc *sc, _ o) {
     port *p = CAST(port, o);
     return _ex_read(EX, p);
 }

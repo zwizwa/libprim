@@ -4835,3 +4835,20 @@ of any scripting language core details.
 
 OK works.
 
+
+Entry: Parser
+Date: Thu Nov  5 17:03:46 CET 2009
+
+the leg parser gives problems.  essentially, I don't understand it.
+time to switch to a different one.  maybe gut the one from tinyscheme?
+
+
+Entry: GC restarts and reading
+Date: Thu Nov  5 17:34:05 CET 2009
+
+Reading is stateful: it can't trigger a restart.  This is best solved
+by calling the collector before read.
+
+Growing the heap:  restart loops need to be detected.
+
+

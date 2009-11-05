@@ -21,6 +21,7 @@ struct _bytes {
 bytes* bytes_new(bytes_class *type, size_t size);
 bytes_class* bytes_class_new(void);
 bytes* bytes_from_cstring(bytes_class *type, const char *str);
+bytes* bytes_from_qcstring(bytes_class *type, const char *str);
 
 void bytes_write_string(bytes *b, FILE *f);
 

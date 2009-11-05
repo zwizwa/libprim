@@ -189,8 +189,14 @@
     (let next ()
       (let ((expr (read port)))
         (unless (eof-object? expr)
+          ;; (write expr) (newline)
+          ;; (when (list? expr) (when (eq? (car expr) 'define) (write (cadr expr)) (newline)))
           (eval expr)
           (next))))))
+
+;; parser might trigger GC, so we call it manually before reading.
+;; FIXME: at least make this detectable!!
+(define (read port) (gc) (read-no-gc port))
 
 (define (repl-no-guard)
   (let loop ()
@@ -209,6 +215,9 @@
                 (abort-k! k)
                 (repl-no-guard))))
     (loop)))
-      
+
+;; (display "libprim/SC\n")
 ;; (repl)
+
 )
+

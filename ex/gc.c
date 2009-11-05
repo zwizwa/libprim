@@ -184,7 +184,7 @@ static void _gc_call_finalizers(gc *gc) {
 static void _gc_finalize(gc *gc) {
     _gc_call_finalizers(gc);
     /* If we need to grow, send a message to the client. */
-    long nb_extra = gc->want - (gc->slot_total - gc->current_index);
+    long nb_extra = gc->margin + gc->want - (gc->slot_total - gc->current_index);
     if (nb_extra > 0) gc->overflow(gc->client_ctx, nb_extra);
 }
 static void _gc_swap(gc *gc) {
@@ -244,5 +244,12 @@ gc *gc_new(long total, void *ctx, gc_mark_roots mark,
     x->mark_roots     = mark;
     x->overflow       = overflow;
     x->client_ctx     = ctx;
+
+
+    /* Never leave less then this number of cells available after an
+       alloction that triggers a collection.  This is to avoid restart
+       loops.  The number needs to be larger than the maximal amount
+       of cells necessary to complete a single interpretation step. */
+    x->margin         = 100;
     return x;
 }

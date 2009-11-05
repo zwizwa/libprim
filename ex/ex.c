@@ -606,7 +606,12 @@ _ _ex_boot_load(ex *ex,  const char *bootfile) {
         fprintf(stderr, "Can't load boot file: %s\n", bootfile);
         return ex_raise_error(ex, SYMBOL("boot"), VOID);
     }
-    _ expr = _ex_read(ex, bootport);
+    _ expr      = _ex_read(ex, bootport);
+    _ junk_expr = _ex_read(ex, bootport);
+    if (EOF_OBJECT != junk_expr) {
+        fprintf(stderr, "Junk in boot file:\n");
+        _ex_write(ex, junk_expr);
+    }
     port_free(bootport);
     return expr;
 }

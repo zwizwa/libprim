@@ -60,6 +60,7 @@ struct _gc {
     long    old_index;
     long    slot_total;
     long    want;             // last data request
+    long    margin;           // grow trigger margin
     gc_mark_roots mark_roots; // (1)
     gc_overflow   overflow;
     void *client_ctx;
