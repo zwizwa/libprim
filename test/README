@@ -1,0 +1,4 @@
+this directory contains test scripts that will be run from the
+pconfigure script to check if all required dependencies are in place
+and functional.
+
