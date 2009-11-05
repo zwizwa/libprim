@@ -4832,3 +4832,6 @@ object type.
 
 The problem is that the method implementation need to be independent
 of any scripting language core details.
+
+OK works.
+

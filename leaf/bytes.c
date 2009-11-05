@@ -36,6 +36,37 @@ bytes* bytes_from_cstring(bytes_class *type, const char *str){
     return b;
 }
 
+// dequote backslashes
+static inline int fromhexdigit(int c, char digit) {
+    int d;
+    if ((digit >= '0') && (digit <= '9')) d = digit - '0';
+    else if ((digit >= 'A') && (digit <= 'F')) d = 10 + digit - 'A';
+    else if ((digit >= 'a') && (digit <= 'f')) d = 10 + digit - 'a';
+    return (c << 4) + (d & 15);
+}
+bytes* bytes_from_qcstring(bytes_class *type, const char *str){
+    bytes *b = bytes_from_cstring(type, str);
+    int dst, src;
+    for (src=0,dst=0; src < b->size; src++,dst++) {
+        int c;
+        if ((c = b->bytes[src]) == '\\') {
+            c = b->bytes[++src];
+            if ('x' == c) { 
+                c = 0;
+                c = fromhexdigit(c, b->bytes[++src]);
+                c = fromhexdigit(c, b->bytes[++src]);
+            }
+            else if ('n' == c) { c = '\n'; }
+            else if ('r' == c) { c = '\r'; }
+            else if ('t' == c) { c = '\t'; }
+        }
+        b->bytes[dst] = c;
+    }
+    b->size = dst;
+    b->bytes[dst] = 0;
+    return b;
+}
+
 static const char hexdigit[] = "0123456789ABCDEF";
 static void _write_hex(FILE *f, int val, int digits) {
     while (digits > 0) {

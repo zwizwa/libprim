@@ -42,8 +42,10 @@ False   = - '#f'                         { $$= FALSE }
 NNumber = - < '-' Digit+ > !NonDigit     { $$= NUMBER(atoi(yytext)) }
 Number	= - < Digit+ > !NonDigit         { $$= NUMBER(atoi(yytext)) }
 Symbol  = - < Char+ >  	                 { $$= SYMBOL(yytext) }
-String  = - ["] < ( !["] . )* > ["]      { $$= STRING(yytext) }
+String  = - ["] < ( !["] SChar )* > ["]  { $$= QSTRING(yytext) }
 
+BS      = [\\]
+SChar   = ( BS 'x' . . | BS . | . )
 
 Letter   = [A-Za-z]
 Digit    = [0-9]

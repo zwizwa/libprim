@@ -62,6 +62,7 @@ struct _ex {
     ex_m_write write;
     _ex_m_port port;
     _ex_m_make_string make_string;
+    _ex_m_make_string make_qstring;
     ex_m_make_pair make_pair;
 
 };
@@ -112,6 +113,7 @@ long _ex_unwrap_integer(ex *ex, object o);
 _ _ex_make_symbol(ex *ex, const char *str);
 #define SYMBOL(str)   _ex_make_symbol(EX, str)
 #define STRING(str)   (EX->make_string(EX, str))
+#define QSTRING(str)  (EX->make_qstring(EX, str)) // with quotes
 
 _ _ex_restart(ex *ex);
 

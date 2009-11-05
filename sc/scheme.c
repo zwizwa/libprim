@@ -120,6 +120,9 @@ _ _sc_make_aref(sc *sc, leaf_object *ob) {
 _ _sc_make_string(sc *sc, const char *str) {
     return _sc_make_aref(sc, (leaf_object*)bytes_from_cstring(TYPES->bytes_type, str));
 }
+_ _sc_make_qstring(sc *sc, const char *str) {
+    return _sc_make_aref(sc, (leaf_object*)bytes_from_qcstring(TYPES->bytes_type, str));
+}
 _ _sc_make_bytes(sc *sc, int size) {
     return _sc_make_aref(sc,  (leaf_object*)bytes_new(TYPES->bytes_type, size));
 }
@@ -178,7 +181,7 @@ _ sc_display(sc *sc, _ o) {
     return VOID;
 }
 
-_ sc_write_bytes(sc *sc, _ ob_port, _ ob_bytes) {
+_ sc_write_bytes(sc *sc, _ ob_bytes, _ ob_port) {
     port *p = CAST(port, ob_port);
     bytes *b = CAST(bytes, ob_bytes);
     if (b->size != fwrite(b->bytes, 1, b->size, p->stream)) {
@@ -286,6 +289,13 @@ _ sc_bang_finalize(sc *sc, _ ob) {
 _ sc_close_port(sc *sc, _ ob) {
     port *p = CAST(port, ob);
     return sc_bang_finalize(sc, ob);
+}
+
+
+_ sc_system(sc *sc, _ ob) {
+    char *cmd = object_to_cstring(ob, &sc->m);
+    int rv = system(cmd);
+    return integer_to_object(rv);
 }
 
 
@@ -946,6 +956,7 @@ sc *_sc_new(base_types *types, const char *bootfile) {
     sc->m.port = (_ex_m_port)_sc_port;
     sc->m.write = (ex_m_write)sc_write;
     sc->m.make_string = (_ex_m_make_string)_sc_make_string;
+    sc->m.make_qstring = (_ex_m_make_string)_sc_make_qstring;
     sc->m.make_pair = ex_cons;
 
     /* Data roots. */
