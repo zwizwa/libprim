@@ -1,13 +1,19 @@
-The libprim project's Scheme and PF interpreters.
+libprim (c) 2009 Tom Schouten
 
-Note: this is still full of scaffolding.
+This code is licensed under the terms of the Lesser GNU Public Licence
+(LGPL).  See the file COPYING for details.
+
+Documentation will follow in the near future.  Current focus is on
+stabilizing the project's Scheme and PF interpreters,  which are
+intended to be embedded in an application as a static library.
+
 No ./configure script yet
 
 Building
 --------
 
 Type "make" at the top level directory.
-This produces sc/scheme and sc/pf.
+This produces sc/sc and pf/pf.
 
 Both applications need to run in their own directory to find their boot scripts.
 
@@ -23,4 +29,5 @@ http://plt-scheme.org
 `leg' for the s-expression parser 
 http://piumarta.com/software/peg/
 
-
+`ffmpeg' for the media library.  Use a recent SVN snapshot.  Revision
+20455 works (2009/11/5).
