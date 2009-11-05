@@ -202,13 +202,13 @@
             (post (eval expr))
             (loop))))))
 (define (repl)
-  (display "libprim/SC")
-  (newline)
+  ;; (display "libprim/SC") (newline)
   (let loop ()
     (print-error
      (letcc k (begin
                 (abort-k! k)
                 (repl-no-guard))))
     (loop)))
-         
-(repl))
+      
+;; (repl)
+)

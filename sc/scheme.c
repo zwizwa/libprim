@@ -973,7 +973,9 @@ sc *_sc_new(base_types *types, const char *bootfile) {
     PURE();
     if (!bootfile) bootfile = getenv("PRIM_BOOT");
     if (!bootfile) bootfile = PRIM_HOME "/boot.scm";
+    // _ex_printf(EX, "SC: booting from %s\n", bootfile);
     _sc_top(sc, _ex_boot_load(EX, bootfile));
+    PURE();
     return sc;
 }
 

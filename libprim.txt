@@ -4817,3 +4817,18 @@ After "make install" the binary library should be able to find its
 boot code.  It's probably simplest to use pkg-config to do this.
 
 
+Entry: libprim classes
+Date: Thu Nov  5 13:50:26 CET 2009
+
+Change needed: all classes need the same members, so the scripting
+core can treat all objects properly.
+
+0. free
+1. write
+
+Essentially, the class struct contains the methods, while the object
+struct contains a pointer to the class struct which identifies the
+object type.
+
+The problem is that the method implementation need to be independent
+of any scripting language core details.
