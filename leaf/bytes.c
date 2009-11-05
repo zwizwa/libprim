@@ -69,10 +69,8 @@ bytes* bytes_from_qcstring(bytes_class *type, const char *str){
 
 static const char hexdigit[] = "0123456789ABCDEF";
 static void _write_hex(FILE *f, int val, int digits) {
-    while (digits > 0) {
-        fputc(hexdigit[val & 0xF], f);
-        val = (val >> 4);
-        digits--;
+    while (digits-- > 0) {
+        fputc(hexdigit[(val >> (digits * 4)) & 0xF], f);
     }
 }
 
