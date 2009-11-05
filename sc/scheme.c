@@ -191,12 +191,23 @@ _ sc_newline(sc *sc) { return sc_display(sc, _sc_make_string(sc, "\n")); }
 
 _ sc_write(sc *sc,  _ o) {
     void *x;
+    aref* a;
 
     /* FIXME: Bytes and strings are currently the same. */
     if ((x = object_to_port(o, EX)) ||
         (x = object_to_bytes(o, EX))) {
         return _ex_write(EX, const_to_object(x));
     }
+
+    /* If an aref object's class has a lowlevel write method defined, call it. */
+    if ((a = object_to_aref(o))) {
+        leaf_object *x = object_to_const(a->object);
+        if (x->methods->write) {
+            x->methods->write(x, _sc_port(sc)->stream);
+            return VOID;
+        }
+    }
+
     vector *v = object_to_vector(o);
     if (TRUE == sc_is_state(sc, o))   return _ex_write_vector(EX, "state", v);
     if (TRUE == sc_is_lambda(sc, o))  return _ex_write_vector(EX, "lambda", v);

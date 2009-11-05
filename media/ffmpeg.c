@@ -1,6 +1,6 @@
 #include "ffmpeg.h"
 #include "../leaf/bytes.h"
-
+#include <stdio.h>
 // from libavcodec/api-example.c
 // http://www.irisa.fr/texmex/people/dufouil/ffmpegdoxy/apiexample_8c.html
 
@@ -10,6 +10,10 @@
 /** CLASSES **/
 
 /* CODEC */
+static void codec_write(codec *c, FILE *f) {
+    fprintf(f, "#<codec:%s>", c->codec->name);
+}
+
 codec *codec_new(codec_class *type, const char *name) {
     AVCodec *c = avcodec_find_encoder_by_name(name);
     if (!c) return NULL;
@@ -21,6 +25,7 @@ codec *codec_new(codec_class *type, const char *name) {
 codec_class *codec_class_new(void) {
     codec_class *x = malloc(sizeof(*x)); 
     x->super.free = (leaf_free)free; 
+    x->super.write = (leaf_write)codec_write;
     return x; 
 }
 
@@ -56,14 +61,24 @@ codec_context *codec_context_new(codec_context_class *type){
 
     return x;
 }
+
+static void codec_context_write(codec_context *c, FILE *f) {
+    fprintf(f, "#<codec_context:%p>", c);
+}
+
 codec_context_class *codec_context_class_new(void) {
     codec_context_class *x = malloc(sizeof(*x)); 
     x->super.free = (leaf_free)codec_context_free;
+    x->super.write = (leaf_write)codec_context_write;
     return x; 
 }
 
 
 /* FRAME */
+static void vframe_write(vframe *x, FILE *f) {
+    fprintf(f, "#<vframe:%p>", x);
+}
+
 vframe *vframe_new(vframe_class *type, codec_context *ctx) {
     if (ctx->context->pix_fmt != PIX_FMT_YUV420P) return NULL;
     int size = ctx->context->width * ctx->context->height;
@@ -92,6 +107,10 @@ static void vframe_free(vframe *f) {
     free(f);
 }
 
+static void aframe_write(aframe *x, FILE *f) {
+    fprintf(f, "#<aframe:%p>", x);
+}
+
 aframe *aframe_new(aframe_class *type, codec_context *ctx) {
     aframe *x = malloc(sizeof(*x));
     int size = 2 * ctx->context->frame_size * ctx->context->channels;
@@ -108,12 +127,14 @@ static void aframe_free(aframe *f) {
 vframe_class *vframe_class_new(void) {
     vframe_class *x = malloc(sizeof(*x)); 
     x->super.free = (leaf_free)vframe_free;
+    x->super.write = (leaf_write)vframe_write;
     return x; 
 }
 
 aframe_class *aframe_class_new(void) {
     aframe_class *x = malloc(sizeof(*x)); 
     x->super.free = (leaf_free)aframe_free;
+    x->super.write = (leaf_write)aframe_write;
     return x; 
 }
 
