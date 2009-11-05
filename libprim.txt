@@ -4783,3 +4783,9 @@ Whether to write audio or video is based on the pts (time stamp)
 [3] http://cekirdek.pardus.org.tr/~ismail/ffmpeg-docs/structAVFormatContext.html
 
 
+Entry: load
+Date: Thu Nov  5 08:13:29 CET 2009
+
+It's working: implemented in scheme, but the parser won't give eof: it
+hangs.
+

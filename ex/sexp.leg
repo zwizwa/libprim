@@ -1,6 +1,6 @@
 Read    = - n:Next                       { ob = n; }
 
-Next    = Datum | EOF | Junk
+Next    = EOF | Datum | Junk
 
 Datum   = Quote | UQuote | QQuote
         | Const | List | SList # | Qlist

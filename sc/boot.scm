@@ -120,6 +120,8 @@
         (list 'write ''=>)
         (list 'dbg (cdr form))))
 
+(define (void . _) (make-void))
+
 (define-macro (when form)
   (list 'if (cadr form)
         (cons 'begin (cddr form))))
@@ -186,8 +188,9 @@
   (let ((port (open-input-file filename)))
     (let next ()
       (let ((expr (read port)))
-        (eval expr)
-        (next)))))
+        (unless (eof-object? expr)
+          (eval expr)
+          (next))))))
 
 (define (repl-no-guard)
   (let loop ()
