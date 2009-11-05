@@ -4851,4 +4851,5 @@ by calling the collector before read.
 
 Growing the heap:  restart loops need to be detected.
 
+fixed with gc->margin check after collection.
 
