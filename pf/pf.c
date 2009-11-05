@@ -775,6 +775,7 @@ pf* _px_new(void) {
     TYPES->ck_type = ck_class_new();
     TYPES->symbol_type = symbol_class_new(1000);
     TYPES->port_type = port_class_new();
+    TYPES->bytes_type = bytes_class_new();
     TYPES->prim_type = (void*)0xF001; 
     TYPES->rc_type = (void*)0xF002; 
 
@@ -782,6 +783,7 @@ pf* _px_new(void) {
     pf->m.write = (ex_m_write)px_write;
     pf->m.port  = (_ex_m_port)_px_port;
     pf->m.make_string = (_ex_m_make_string)_px_make_string;
+    pf->m.make_qstring = (_ex_m_make_string)_px_make_qstring;
     pf->m.make_pair = (ex_m_make_pair)px_linear_cons;
 
     // Symbol cache

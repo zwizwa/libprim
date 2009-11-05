@@ -84,5 +84,6 @@ DEF_RC_TYPE(bytes)
 port *_px_port(pf *pf);
 _ _px_make_port(pf *pf, FILE *f, const char *name);
 _ _px_make_string(pf *pf, const char *name);
+_ _px_make_qstring(pf *pf, const char *name);
 
 #endif
