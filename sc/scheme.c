@@ -154,8 +154,11 @@ _ sc_bang_def_toplevel_macro(sc* sc, _ var, _ val) {
 
 // FIXME: should be parameter
 port *_sc_port(sc *sc) {
-    return object_to_port(sc_global(sc, sc_slot_debug_port), EX);
+    return object_to_port(CURRENT_ERROR_PORT(), EX);
 }
+_ sc_current_error_port(sc *sc)  { return sc_global(sc, sc_slot_error_port); }
+_ sc_current_input_port(sc *sc)  { return sc_global(sc, sc_slot_input_port); }
+_ sc_current_output_port(sc *sc) { return sc_global(sc, sc_slot_output_port); }
 
 _ sc_bytes_dump(sc *sc, _ ob) {
     bytes_dump(CAST(bytes, ob), _sc_port(sc)->stream);
@@ -928,15 +931,19 @@ sc *_sc_new(base_types *types, const char *bootfile) {
     sc->m.make_pair = ex_cons;
 
     /* Data roots. */
-    _ out = _sc_make_port(sc, stderr, "stderr");
+    _ in  = _sc_make_port(sc, stdin,  "stdin");
+    _ out = _sc_make_port(sc, stdout, "stdout");
+    _ err = _sc_make_port(sc, stderr, "stderr");
     sc->global = gc_make_tagged(sc->m.gc, 
                                 TAG_VECTOR,
-                                5,
+                                7,
                                 NIL,  // toplevel
                                 NIL,  // macro
                                 NIL,  // state
                                 NIL,  // abort
-                                out); // debug port
+                                in,
+                                out,
+                                err);
     sc->error = FALSE;
 
     /* Cached identifiers */
@@ -969,8 +976,13 @@ sc *_sc_new(base_types *types, const char *bootfile) {
 }
 
 // FIXME
-_ sc_read(sc *sc) {
+_ sc_read_stdin(sc *sc) {
     port p;
     p.stream = stdin;
     return _ex_read(EX, &p);
+}
+
+_ sc_read(sc *sc, _ o) {
+    port *p = CAST(port, o);
+    return _ex_read(EX, p);
 }

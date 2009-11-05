@@ -156,7 +156,9 @@ DEF_STRUCT(k_macro, TAG_K_MACRO)
 #define sc_slot_toplevel_macro  integer_to_object(1)
 #define sc_slot_state           integer_to_object(2)
 #define sc_slot_abort_k         integer_to_object(3)
-#define sc_slot_debug_port      integer_to_object(4)
+#define sc_slot_input_port      integer_to_object(4)
+#define sc_slot_output_port     integer_to_object(5)
+#define sc_slot_error_port      integer_to_object(6)
 
 
 

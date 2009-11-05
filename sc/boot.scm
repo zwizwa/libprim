@@ -127,8 +127,8 @@
   (list 'if (cadr form) (void)
         (cons 'begin (cddr form))))
 
-(define (open-output-file filename)
-  (open-mode-file filename "w"))
+(define (open-output-file filename) (open-mode-file filename "w"))
+(define (open-input-file filename) (open-mode-file filename "r"))
 
 ;; misc r4rs
 (define (append a b) (if (null? a) b (cons (car a) (append (cdr a) b))))
@@ -182,10 +182,17 @@
 (define min (make-min-max <))
 
 
+(define (load filename)
+  (let ((port (open-input-file filename)))
+    (let next ()
+      (let ((expr (read port)))
+        (eval expr)
+        (next)))))
+
 (define (repl-no-guard)
   (let loop ()
     (display "> ")
-    (let ((expr (read)))
+    (let ((expr (read (current-input-port))))
       (if (eof-object? expr)
           (exit)
           (begin
@@ -201,5 +208,4 @@
                 (repl-no-guard))))
     (loop)))
          
-
 (repl))
