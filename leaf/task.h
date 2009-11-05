@@ -18,7 +18,7 @@ struct _ck_class {
     ck_jump jump;
     ck_convert to_task;
     ck_convert from_task;
-    void *base;  // this needs to be the same for all tasks!
+    void *base;  /* this needs to be the same for all tasks! */
 
     /* Temp storage for value transport and control transfer. */
     void *channel;
@@ -35,10 +35,10 @@ struct _ck {
 
 ck_class* ck_class_new(void);
 
-// C side
+/* C side */
 void *ck_yield(ck_class *m, void *value);
 
-// Host side
+/* Host side */
 void ck_invoke(ck_class *m, ck_start fn, ck **ck, void **value);
 
 

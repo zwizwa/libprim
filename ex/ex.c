@@ -180,7 +180,8 @@ _ _ex_make_symbol(ex *ex, const char *str) {
 }
 
 void* _ex_unwrap_pointer(ex *ex, void *unwrap, object o){
-    void *x = ((object_to_pointer)unwrap)(o, ex);
+    object_to_pointer fn = (object_to_pointer)unwrap;
+    void *x = fn(o, ex);
     if (unlikely(!x)) ex_raise_type_error(ex, o);
     return x;
 }

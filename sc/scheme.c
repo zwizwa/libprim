@@ -5,6 +5,7 @@
 #include <string.h>
 
 #include "scheme.h"
+#include "../config.h"
 
 // generated
 #include "scheme.h_sc_prims"
@@ -970,7 +971,8 @@ sc *_sc_new(base_types *types, const char *bootfile) {
 
     /* Highlevel bootstrap. */
     PURE();
-    if (!bootfile) bootfile = "boot.scm";
+    if (!bootfile) bootfile = getenv("PRIM_BOOT");
+    if (!bootfile) bootfile = PRIM_HOME "/boot.scm";
     _sc_top(sc, _ex_boot_load(EX, bootfile));
     return sc;
 }

@@ -4787,5 +4787,33 @@ Entry: load
 Date: Thu Nov  5 08:13:29 CET 2009
 
 It's working: implemented in scheme, but the parser won't give eof: it
-hangs.
+hangs.  Fixed: it actually worked, just needed to add eof-object? check.
+
+
+Entry: C90
+Date: Thu Nov  5 10:29:01 CET 2009
+
+Making sure it works using C90.  How to ask GCC to check that?
+
+gcc -ansi -pedantic
+
+Problems:
+    - task (as expected..) :
+
+task.c:63: warning: ISO C90 forbids variable-size array ‘reserve’
+task.c:63: warning: ISO C90 forbids mixed declarations and code
+
+    - va_copy (C99)
+
+Conclusion: apart from some annoying limitations and the task.c
+abstraction there seems to be little trouble in making it compliant to
+C99.  C90 is more difficult though.  Postponed until it's required.
+
+
+Entry: finding home
+Date: Thu Nov  5 11:13:53 CET 2009
+
+After "make install" the binary library should be able to find its
+boot code.  It's probably simplest to use pkg-config to do this.
+
 

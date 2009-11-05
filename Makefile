@@ -31,6 +31,12 @@ strip:
 PREFIX=~/sw
 
 install: all
+	install -d $(PREFIX)/lib/pkgconfig
+	install -m 644 libprim.pc $(PREFIX)/lib/pkgconfig
+
+	install -d $(PREFIX)/share/prim/
+	install -m 644 sc/*.scm $(PREFIX)/share/prim/
+
 	install -d $(PREFIX)/include/prim/ex
 	install -d $(PREFIX)/include/prim/leaf
 	install -d $(PREFIX)/include/prim/sc
@@ -44,6 +50,10 @@ install: all
 	install -m 755 */libprim_*.a $(PREFIX)/lib/
 
 uninstall:
+	rm -rf $(PREFIX)/share/prim
 	rm -rf $(PREFIX)/include/prim
 	rm -rf $(PREFIX)/lib/libprim_*.a
 
+
+base-deps.test:
+	@echo "FIXME: add configure time tests"

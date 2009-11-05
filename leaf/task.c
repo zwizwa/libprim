@@ -25,7 +25,7 @@
    task needs to use only the C stack for storage, or it needs to
    cleanup after itself _and_ be run until exit by the host. */
 static void default_free(ck *x) {
-    printf("task_free(%p)\n", x);
+    printf("task_free(%p)\n", (void*)x);
     free(x->segment);
     free(x);
 }
@@ -41,7 +41,7 @@ ck_class *ck_class_new(void) {
     x->jump      = default_jump;
     x->to_task   = default_dont_convert;
     x->from_task = default_dont_convert;
-    x->base      = NULL; // filled in on first invoke
+    x->base      = NULL; /* filled in on first invoke */
     return x;
 }
 ck *ck_new(ck_class *ck_class) {
@@ -52,14 +52,16 @@ ck *ck_new(ck_class *ck_class) {
 
 /* HOST SIDE */
 static void resume(ck *_ck, void *base) {
-    thread_static ck *ck; ck = _ck;// variable not on C stack.
+    void *sp = NULL;
+    thread_static ck *ck; ck = _ck; /* variable not on C stack. */
 
     /* Copy stack */
-    void *sp = ck->type->base - ck->size;
+    sp = (void*) ((char*)ck->type->base - ck->size);
 
     /* Reserve stack space so function call/return keeps working after
        a part of the stack is overwritten. */
     void *reserve[ck->size / sizeof(void *)];
+    
 
     memcpy(sp, ck->segment, ck->size);
     /* Here 'reserve' is used as a dummy value to make sure it's not
@@ -70,8 +72,8 @@ void ck_invoke(ck_class *m, ck_start fn, ck **ck, void **value) {
     void *base;
     if (!setjmp(m->prompt)) {
         base = &base;
-        if (!m->base) m->base = base; // init @ first run
-        if (base != m->base) { // subsequent need same base
+        if (!m->base) m->base = base; /* init @ first run */
+        if (base != m->base) { /* subsequent need same base */
             fprintf(stderr, "ERROR: resume(): wrong base pointer.");
             exit(1);
         }
@@ -93,13 +95,13 @@ static void suspend(ck_class *m) {
 
         /* Copy C stack segment */
         void *top = &ck;
-        ck->size = m->base - top;  // grows downward
+        ck->size = ((char*)m->base - (char*)top);  /* grows downward */
         ck->segment = malloc(ck->size);
         memcpy(ck->segment, top, ck->size);
 
         /* Abort to sequencer. */
         m->jump(m);
-        exit(1); // not reached
+        exit(1); /* not reached */
     }
 }
 void* ck_yield(ck_class *m, void *value) {

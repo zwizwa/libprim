@@ -4,6 +4,12 @@ CPPFLAGS += -I../ -DTASK_DEBUG=0
 CFLAGS += -x c
 COMPILE = $(CC) $(CPPFLAGS) $(CFLAGS) $(OPTI_CFLAGS) $(DEBUG_CFLAGS) 
 
+
+# This is for testing compliance; don't set this in archived code.
+
+# CC = gcc -ansi -pedantic  	# this is quite restrictive and doesnt work yet
+# CC = gcc -std=c99 -pedantic	# seems to compile with some warnings
+
 # Make deps from .c file.  This needs the .h_* files before it can
 # parse, so we make those deps explicit.
 
