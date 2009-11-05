@@ -1,11 +1,14 @@
 libprim (c) 2009 Tom Schouten
 
-This code is licensed under the terms of the Lesser GNU Public Licence
-(LGPL).  See the file COPYING for details.
+This code is licensed under the terms of the GNU Lesser General Public
+Licence (LGPL).  See the file COPYING for details.
 
-Documentation will follow in the near future.  Current focus is on
-stabilizing the project's Scheme and PF interpreters,  which are
-intended to be embedded in an application as a static library.
+Documentation will follow in the near future.  The dev log is
+published online at:  http://zwizwa.be/-/libprim
+
+Current focus is on stabilizing the project's Scheme and PF
+interpreters, which are intended to be embedded in an application as a
+static library.
 
 No ./configure script yet
 
@@ -29,5 +32,4 @@ http://plt-scheme.org
 `leg' for the s-expression parser 
 http://piumarta.com/software/peg/
 
-`ffmpeg' for the media library.  Use a recent SVN snapshot.  Revision
-20455 works (2009/11/5).
+`ffmpeg' for the media library.  Last tested: svn rev 20455 (2009/11/5).
