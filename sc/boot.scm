@@ -79,7 +79,8 @@
 (define-macro (or form)
   (let clause ((args (cdr form)))
     (if (null? (cdr args)) (car args)
-        (list 'if (car args) (car args)
+        (list 'if (car args)
+              (car args)
               (clause (cdr args))))))
   
 (define-macro (and form)
