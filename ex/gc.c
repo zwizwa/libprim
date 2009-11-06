@@ -184,8 +184,10 @@ static void _gc_call_finalizers(gc *gc) {
 static void _gc_finalize(gc *gc) {
     _gc_call_finalizers(gc);
     /* If we need to grow, send a message to the client. */
-    long nb_extra = gc->margin + gc->want - (gc->slot_total - gc->current_index);
-    if (nb_extra > 0) gc->overflow(gc->client_ctx, nb_extra);
+    long free =  (gc->slot_total - gc->current_index);
+    long margin = gc->margin + gc->current_index/2;  // keep free space +- same size as used
+    long spare = free - (margin + gc->want);
+    if (spare < 0) gc->overflow(gc->client_ctx, -spare);
 }
 static void _gc_swap(gc *gc) {
     vector *current   = gc->current;
