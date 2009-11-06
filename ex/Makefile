@@ -24,4 +24,5 @@ libprim_ex.a: $(OBJ)
 	ar rcs libprim_ex.a $(OBJ)
 
 
+include ../Makefile.defs
 include ../Makefile.rules

@@ -19,4 +19,5 @@ all: pf $(DEP_OBJ)
 
 GEN = pf.h_pf_prims px.h_px_prims boot.h_load
 
+include ../Makefile.defs
 include ../Makefile.rules

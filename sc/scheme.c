@@ -905,7 +905,7 @@ void _sc_def_prims(sc *sc, prim_def *prims) {
 }
 
 
-#define GC_DEBUG if (0)
+#define GC_DEBUG if (1)
 
 static void _sc_mark_roots(sc *sc, gc_finalize fin) {
     // ex_trap(EX);
@@ -1002,7 +1002,7 @@ sc *_sc_new(base_types *types, const char *bootfile) {
     _sc_def_prims(sc, ex_prims);
     _sc_def_prims(sc, scheme_prims);
 
-    _sc_media_init(sc);
+    // _sc_media_init(sc);
         
 
     /* Toplevel abort continuation */

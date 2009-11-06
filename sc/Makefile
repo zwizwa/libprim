@@ -1,21 +1,20 @@
 
 APP=sc
-SRC=scheme.c main.c media.c
+SRC=scheme.c main.c
 # lib.c
 DEP_OBJ=../leaf/libprim_leaf.a ../ex/libprim_ex.a
 
 # media?
-DEP_OBJ+=../media/libprim_media.a
-LIBS+=`pkg-config libavformat --libs`
-
-CPPFLAGS += `pkg-config libavformat --cflags`
+# LIBS+=`pkg-config libavformat --libs`
+# DEP_OBJ+=../media/libprim_media.a
+# CPPFLAGS += `pkg-config libavformat --cflags`
 
 OBJ=$(SRC:.c=.o)
 DEBUG_CFLAGS=-Wall -g -Wno-unused
 # OPTI_CFLAGS=-Os
 # CC = gcc -m32
 
-SC_LIB_OBJ = scheme.o media.o
+SC_LIB_OBJ = scheme.o
 SC_APP_OBJ = $(SC_LIB_OBJ) main.o $(DEP_OBJ)
 
 
@@ -34,4 +33,6 @@ libprim_sc.a: $(SC_LIB_OBJ)
 
 GEN = scheme.h_sc_prims boot.h_load test.h_load media.h_sc_prims
 
+include ../Makefile.defs
 include ../Makefile.rules
+

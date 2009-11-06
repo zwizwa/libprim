@@ -39,4 +39,9 @@ struct _leaf_object {
 };
 
 
+static inline void free_leaf(leaf_object *x) {
+    x->methods->free(x);
+}
+
+
 #endif

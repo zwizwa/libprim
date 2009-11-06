@@ -38,7 +38,7 @@ bytes* bytes_from_cstring(bytes_class *type, const char *str){
 
 // dequote backslashes
 static inline int fromhexdigit(int c, char digit) {
-    int d;
+    int d = 0;
     if ((digit >= '0') && (digit <= '9')) d = digit - '0';
     else if ((digit >= 'A') && (digit <= 'F')) d = 10 + digit - 'A';
     else if ((digit >= 'a') && (digit <= 'f')) d = 10 + digit - 'a';

@@ -4872,3 +4872,22 @@ Code parses, but some functionality is missing:
  values, receive, check-arg
 
 [1] http://srfi.schemers.org/srfi-1/srfi-1.html
+
+
+Entry: dynamic linking
+Date: Fri Nov  6 11:16:27 CET 2009
+
+All object_to_xxx and xxx_to_object calls should be accessible by the
+linker.  This consists a major interface between the C lowlevel
+objects/classes and the wrapped representation in the scripting layers
+PF/SC/...
+
+
+Entry: parsing
+Date: Fri Nov  6 16:04:36 CET 2009
+
+Using peg/leg anyway..  The problems to solve:
+
+  - realloc problem
+
+  - GC access since it's a side-effecting operation.

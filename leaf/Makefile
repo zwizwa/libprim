@@ -13,4 +13,5 @@ all: libprim_leaf.a
 libprim_leaf.a: $(OBJ)
 	ar rcs libprim_leaf.a $(OBJ)
 
+include ../Makefile.defs
 include ../Makefile.rules
