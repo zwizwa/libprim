@@ -4717,12 +4717,12 @@ error values, or a setjump-based approach can be used.
 Entry: Missing functionality
 Date: Wed Nov  4 13:41:43 CET 2009
 
+- current-input-port / current-output-port OK
+- system OK
+- string parser OK
 - parameters
-- current-input-port / current-output-port
-- manual parser (for strings + smaller code size: look online)
 - let*
 - macros: check if it's actually correct (evaluation order)
-- system
 - readline
 
 Can parameters be bypassed?  I'm already using implicit output ports
@@ -4852,4 +4852,5 @@ by calling the collector before read.
 Growing the heap:  restart loops need to be detected.
 
 fixed with gc->margin check after collection.
+
 
