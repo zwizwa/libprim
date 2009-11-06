@@ -4851,6 +4851,24 @@ by calling the collector before read.
 
 Growing the heap:  restart loops need to be detected.
 
-fixed with gc->margin check after collection.
+fixed with gc->margin check after collection.  Currently set at 100
+cells.  (Heuristic: 11 is not enough for SC and triggers a restart
+loop).
 
 
+Entry: SRFI-1
+Date: Fri Nov  6 07:51:05 CET 2009
+
+I took the reference implementation from [1], but had to remove some
+initial comments: the parser choked on realloc().
+
+Problems keep turning up.  While it's quite elegant to express it as a
+leg grammar, it's probably best to start thinking about writing one
+from scratch that I actually understand and that plays nice with the
+GC + supports suspension.  Weekend job.
+
+Code parses, but some functionality is missing:
+
+ values, receive, check-arg
+
+[1] http://srfi.schemers.org/srfi-1/srfi-1.html

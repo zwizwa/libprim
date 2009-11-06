@@ -73,6 +73,21 @@
 (define-macro define (make-definer 'def-toplevel!))
 (define-macro define-macro (make-definer 'def-toplevel-macro!))
 
+;; (or a b)  -> (if a a b)   
+;; (and a b) -> (if a b a)
+
+(define-macro (or form)
+  (let clause ((args (cdr form)))
+    (if (null? (cdr args)) (car args)
+        (list 'if (car args) (car args)
+              (clause (cdr args))))))
+  
+(define-macro (and form)
+  (let clause ((args (cdr form)))
+    (if (null? (cdr args)) (car args)
+        (list 'if (car args) 
+              (clause (cdr args))
+              (car args)))))
 
 ;; (define-macro (let form)
 ;;   (let ((name (cadr form)))
@@ -183,6 +198,17 @@
 (define max (make-min-max >))
 (define min (make-min-max <))
 
+(define (procedure? fn) (or (prim? fn) (lambda? fn)))
+
+;; for Shivers SRFI-1
+(define (check-arg pred val caller)
+  (let lp ((val val))
+    (if (pred val) val (lp (error "Bad argument" val pred caller)))))
+
+
+;; parser might trigger GC, so we call it manually before reading.
+;; FIXME: at least make this detectable!!
+(define (read port) (gc) (read-no-gc port))
 
 (define (load filename)
   (let ((port (open-input-file filename)))
@@ -190,13 +216,11 @@
       (let ((expr (read port)))
         (unless (eof-object? expr)
           ;; (write expr) (newline)
-          ;; (when (list? expr) (when (eq? (car expr) 'define) (write (cadr expr)) (newline)))
+          ;; (when (list? expr)
+          ;;   (when (eq? (car expr) 'define)
+          ;;      (write (cadr expr)) (newline)))
           (eval expr)
           (next))))))
-
-;; parser might trigger GC, so we call it manually before reading.
-;; FIXME: at least make this detectable!!
-(define (read port) (gc) (read-no-gc port))
 
 (define (repl-no-guard)
   (let loop ()
@@ -215,6 +239,10 @@
                 (abort-k! k)
                 (repl-no-guard))))
     (loop)))
+
+
+
+
 
 ;; (display "libprim/SC\n")
 ;; (repl)
