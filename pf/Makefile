@@ -17,7 +17,8 @@ all: pf $(DEP_OBJ)
 %.h_load: %.pf ../load.ss
 	mzscheme ../load.ss $< >$@
 
-GEN = pf.h_pf_prims px.h_px_prims boot.h_load
+GEN = pf.h_pf_prims px.h_px_prims
+# boot.h_load
 
 include ../Makefile.defs
 include ../Makefile.rules
