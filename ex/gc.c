@@ -228,15 +228,17 @@ int gc_grow(gc *gc, long add_slots) {
     long bytes = total * sizeof(object);
     
     if (!(gc->old = realloc(gc->old, bytes))) return 0;
+    memset(gc->old, 0, bytes);
     _gc_collect_no_abort(gc);
     if (!(gc->old = realloc(gc->old, bytes))) return 0;
+    memset(gc->old, 0, bytes);
     gc->slot_total = total;
     return 1;
 }
 
 gc *gc_new(long total, void *ctx, gc_mark_roots mark, 
            gc_overflow  overflow) {
-    gc* x = (gc*)malloc(sizeof(gc));
+    gc* x = (gc*)calloc(1, sizeof(gc));
     x->slot_total     = total;
     x->current        = (vector*)calloc(total, sizeof(object));
     x->old            = (vector*)calloc(total, sizeof(object));

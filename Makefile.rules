@@ -8,6 +8,7 @@ CFLAGS += -x c
 COMPILE = $(CC) $(CPPFLAGS) $(CFLAGS) $(OPTI_CFLAGS) $(DEBUG_CFLAGS) 
 
 APP_LDFLAGS += -static
+# APP_DEBUG_LDFLAGS += -lefence -lpthread
 
 # This is for testing compliance; don't set this in archived code.
 
@@ -29,7 +30,7 @@ APP_LDFLAGS += -static
 	$(COMPILE) -o $@ -c $<
 
 $(APP): $(OBJ) $(DEP_OBJ)
-	$(CC) -o $(APP) $(OBJ) $(DEP_OBJ) $(LIBS) $(APP_LDFLAGS)
+	$(CC) -o $(APP) $(APP_DEBUG_LDFLAGS) $(OBJ) $(DEP_OBJ) $(LIBS) $(APP_LDFLAGS)
 
 $(TEST): $(TEST_OBJ)
 	$(CC) -o test $(TEST_OBJ)
