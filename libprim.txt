@@ -5015,6 +5015,14 @@ The conclusion seems to be that really, parsing isn't the problem.
 The hairy one is tokenizing, and representing a tokenized stream so it
 can be trivially reconstructed.
 
+Another thing: tokenizing produces a stream of things.  What things?
+There needs to be a distinction between code/constructors and
+data/primitives.
+
+Ascii rep constraints:
+  - no '"' and '\' characters so it fits in C strings
+  - 3 modes: prefix numbers: last digit contains quotation bit
+
 
 Entry: Representing tokenized streams
 Date: Sat Nov  7 11:30:02 CET 2009
@@ -5048,8 +5056,47 @@ represented as
   RPN:  1 2 3 NIL CONS CONS CONS
   PN:   CONS 1 CONS 2 CONS 3 NIL
 
+Note that for cons lists RPN isn't so great.  One could use XCONS to
+build lists in reverse.
+
+  RPN   NIL 3 XCONS 2 XCONS 1 XCONS
+
+There is one important point: RPN isn't terminated, while for PN it's
+always clear whether we've read all the data or not.  I.e. RPN needs
+EOF.
+
   * arity-tagged constructors
 
 Arity tagged constructors are important to be able to represent the
 stream as a tree without meta-information about the constructor tags.
+
+Is this actually useful?  It doesn't seem so...  Any kind of
+less-structured format can always be embedded in cons-cell based
+lists, and is maybe better represented as such.
+
+So, for libprim:
+
+  - prefixed tokens
+  - 3 tags: 
+      0x20 non-trailing-digit
+      0x30 trailing-code (numerical digits)
+      0x40 trailing-data (bytes)
+  - polish (rpn = not delimited)
+
+
+Entry: s-expression parser
+Date: Sat Nov  7 15:25:27 CET 2009
+
+Now, for the s-expression parser on top of the tokenizer.  Is it
+possible to convert between the two formats without parsing, or is an
+intermediate tree rep necessary?
+
+It looks like this needs a tree rep to keep track of the paren
+matching.  Alternatively, it could be tokenized to LP DOT RP and
+parsed from that.
+
+List    = LP Tail
+Tail    = a:Datum Dot d:Datum RP         { $$= CONS(a,d) }
+        | RP                             { $$= NIL }
+        | d:Datum t:Tail                 { $$= CONS(d,t) }
 

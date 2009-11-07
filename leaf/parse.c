@@ -1,9 +1,9 @@
 #include <stdlib.h>
 #include <stdio.h>
 
-/* Parser for simplified tokenized ADT tree encoding.  All
-   constructors are parametric.  The primitive data type is a byte
-   string, represented by the tag 'B'.
+/* Parser for serialized ADT tree encoding.  The primitive data type
+   is a byte string.  All other data types are expressed using named
+   constructors.  There is no restriction on size and contents.
 */
 
 typedef struct _parser parser;
@@ -16,21 +16,28 @@ struct _parser {
 // #define ERROR(msg) {p->error(p, msg); exit(1);}
 #define ERROR(...) {fprintf(stderr, __VA_ARGS__); exit(1);}
 
-int number(parser *p) {
+/* Return size of next token. 
+   size >= 0   raw byte string (empty tokens allowed)
+   size <  0   command token (min size = 1)
+*/
+   
+int marker(parser *p) {
     int c, tag, nibble, size;
     size = 0;
-    if (EOF == (c = fgetc(p->stream))) return -1; // proper EOF
   next_nibble:
+    if (EOF == (c = fgetc(p->stream))) {
+        /* The idea of this format is to use prefix encoding to make
+           the recognizer simpler.  Therefore EOF is always an
+           error. */
+        ERROR("EOF");
+    }
     nibble = c & 0x0F;
     tag    = c & 0xF0;
     size   = (size << 4) + nibble;
     switch(tag) {
-    case 0x30: 
-        return size;
-    case 0x20:
-        if (EOF == (c = fgetc(p->stream)))
-            ERROR("EOF during number read");
-        goto next_nibble;
+    case 0x40: return size;
+    case 0x30: return -size;  // token
+    case 0x20: goto next_nibble;
     default:   
         ERROR("invalid number tag");
     }
@@ -46,10 +53,20 @@ char *bytes(parser *p, int size) {
 
 void parse(parser *p) {
     int n;
-    while((n = number(p)) >= 0) {
-        char *b = bytes(p, n);
-        printf("%s\n", b);
-        free(b);
+    char *b;
+    for(;;) {
+        n = marker(p);
+        b = NULL;
+
+        if (n < 0) {
+            b = bytes(p, -n); 
+            printf("%s\n", b);
+        }
+        else if (n > 0) {
+            b = bytes(p, n); 
+            printf("\"%s\"\n", b);
+        }
+        if (b) free(b); 
     }
 }
 
@@ -62,3 +79,9 @@ int main(void) {
     parse(&p);
     return 0;
 }
+
+
+
+/* Printer */
+
+//void 
