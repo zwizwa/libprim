@@ -4891,3 +4891,103 @@ Using peg/leg anyway..  The problems to solve:
   - realloc problem
 
   - GC access since it's a side-effecting operation.
+
+
+Entry: manual parsing?
+Date: Sat Nov  7 07:26:48 CET 2009
+
+Lisp syntax is LL(1) -> deterministic recursive descent.
+
+Manually?  problems:
+  - data buffering (growable arrays)
+  - serialization 
+
+First: how to serialize a parse?  Essentially, I need a linear
+representation of CONS cell based s-expressions.
+
+(1 2 3)   -> ( 1 . ( 2 . ( 3 . () ) ) )
+((1 2) 3) -> ( ( 1 . ( 2 . () ) ) . ( 3 . () ) )
+
+CONS NUMBER 1 CONS NUMBER 2 CONS NUMBER 3 NIL
+CONS CONS NUMBER 1 CONS NUMBER 2 NIL CONS NUMBER 3 NIL
+
+here CONS and NUMBER are functions that consume a fixed amount of next
+items which are always functions to be executed.
+
+Essentially, the s-expressions need to be translated to a prefix
+stream.  This can be standardized.  There is only one primitive data
+item: a fixed size byte array with size prefix.  The rest are
+ADT constructors.  The constructors themselves could be encoded as
+prefixed byte strings. 
+
+So, in order to do this, the only thing that's needed is an encoding
+of natural numbers in byte strings to represent size tags.
+
+CONS NUMBER 1 CONS NUMBER 2 CONS NUMBER 3 NIL
+-> 1C1N11C1N21C1N31X
+
+where "C" = cons
+      "N" = number
+      "X" = nil
+
+Also, to make the format completely general, the constructor sizes
+need to be specified too.  So we have:
+
+<c-name-length> <name> <c-nb-arguments> ...
+
+So, the only problem is self-delimiting natural numbers.  Constraints:
+    - small numbers are fast to decode.
+    - mostly ASCII when the names themselves are ASCII
+
+
+CONS NUMBER 1 CONS NUMBER 2 CONS NUMBER 3 NIL
+-> 1C21N11...
+
+
+Simplest way to have self-delimited byte sequences is to mark the last
+digit.  This way small sizes are captured in single bytes.
+
+Using base-16 is inefficient, but it's easiest to decode on small
+targets.  This way letters can be used, with capitals denoting the
+last symbol.  An advantage is that this introduces redundancy that can
+be used to guess the file format.
+
+abcd
+efgh
+ijkl
+mnop
+
+eHello
+
+Better is this: use the range 0x30 "0123456789:;<=>?" for the final
+symbols and 0x40 @ABC... for the prefixed.  This way the small strings
+have decimal digits.
+
+1C21N1B40x10
+
+Even better: use the range 0x20 for prefixes: this distinguishes them
+from names.
+
+1B4fooo
+
+
+Entry: Architecture summary
+Date: Sat Nov  7 09:36:10 CET 2009
+
+LEAF:  primitive C objects
+EX:    C-based expression languages using GCd objects (wrapping leaf objects)
+PF/SC: execution model, using EX primitive operations + data model.
+
+caveats:
+
+  - SC is slow: heap-allocated tree walking interpreter with
+    search-based symbol binding.  The upside is that the structure is
+    simple: a textbook CEKS machine.
+
+  - EX requires distinction between two modes: 
+
+    * PURE: construction without mutation = GC enabled -> primitives
+            might restart on collection
+
+    * LINEAR: mutation without construction = GC disabled.
+
