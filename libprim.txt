@@ -4991,3 +4991,65 @@ caveats:
 
     * LINEAR: mutation without construction = GC disabled.
 
+
+
+Entry: tokenized tree parser -> postfix stream
+Date: Sat Nov  7 11:09:10 CET 2009
+
+Got the numbers working.
+
+Now, instead of using a prefix format.  What about using a postfix
+one, where bytes are pushed and constructors executed afterwards?  An
+extra bit could encode whether the byte string is quoted, or whether
+it is an operation.
+
+This way the parser doesn't need procedure recursion, but can use an
+explicit (more efficient?) reduction stack.
+
+However, to make the format partially parsable, arity still needs to
+be specified.
+
+So, it looks like the tradeof is to use bottom up or top down formats.
+
+The conclusion seems to be that really, parsing isn't the problem.
+The hairy one is tokenizing, and representing a tokenized stream so it
+can be trivially reconstructed.
+
+
+Entry: Representing tokenized streams
+Date: Sat Nov  7 11:30:02 CET 2009
+
+Let's sum up the design decisions:
+
+  * representing tokenized streams: prefixed or delimited
+
+Prefix tokens are simpler for implementing token streams, as they
+allow memory allocation in the _recognizer_ to happen before the
+payload data is touched.  However, to do this completely general, some
+form of delimited parsing needs to be used to represent the _size_
+itself (if one doesn't want to introduce arbitrary size limits by
+choosing fixed representations as in Quicktime/MPEG).  However, this
+is not a problem: in practice a recogniser can set a limit (i.e. 64
+bit sizes since it's limited anyway) while the format is in no way
+limited.
+
+  * quotation vs. construction
+
+Since the base type is made of byte chunks, an extra tag is necessary
+to indicate whether a list of bytes is a payload or a constructor
+name.
+
+  * bottom-up (postfix) or top-down (prefix)
+
+This reflects the structure of the parser.  The same token stream
+format can be used for both parsers.  I.e. the list (1 2 3) is
+represented as
+
+  RPN:  1 2 3 NIL CONS CONS CONS
+  PN:   CONS 1 CONS 2 CONS 3 NIL
+
+  * arity-tagged constructors
+
+Arity tagged constructors are important to be able to represent the
+stream as a tree without meta-information about the constructor tags.
+
