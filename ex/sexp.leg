@@ -2,9 +2,13 @@ Read    = - n:Next                       { ob = n; }
 
 Next    = EOF | Datum | Junk
 
-Datum   = Quote | UQuote | QQuote
-        | Const | List | SList # | Qlist
+Datum   = QChar | Quote | UQuote | QQuote
+        | Vector | Const | List | SList # | Qlist
         | NNumber | Number | Symbol | String
+
+QChar   = - '#\\' < c:Char >             { $$= CHAR(yytext) }
+
+Vector  = - '#' l:List                   { $$= l }
 
 List    = LP Tail
 Tail    = a:Datum Dot d:Datum RP         { $$= CONS(a,d) }

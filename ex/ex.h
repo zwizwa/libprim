@@ -77,7 +77,7 @@ DEF_ATOM(symbol)
 
 typedef void* (*object_to_pointer)(object, ex*);
 
-/* Printing is based on the assumption that GC_CONST is either a
+/* Printing is based on the assumption that GC_CONS is either a
    genuine constant (upper bits = 0) or points to an object which can
    be identified by its first field.  Primitive leaf types are
    recognized through the class list in mem. */
@@ -114,6 +114,7 @@ _ _ex_make_symbol(ex *ex, const char *str);
 #define SYMBOL(str)   _ex_make_symbol(EX, str)
 #define STRING(str)   (EX->make_string(EX, str))
 #define QSTRING(str)  (EX->make_qstring(EX, str)) // with quotes
+#define CHAR(str)     integer_to_object(str[0])
 
 _ _ex_restart(ex *ex);
 

@@ -20,6 +20,8 @@ static port *p = NULL;
 #define UNQUOTE(ob) CONS(SYMBOL("unquote"), CONS(ob, NIL))
 #define QUASIQUOTE(ob) CONS(SYMBOL("quasiquote"), CONS(ob, NIL))
 
+// #define CHAR(c) STRING(c)
+
 #define YY_INPUT(buf, result, max_size)                          \
     {                                                            \
         int yyc= port_getc(p);                                   \

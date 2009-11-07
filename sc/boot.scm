@@ -207,6 +207,16 @@
     (if (pred val) val (lp (error "Bad argument" val pred caller)))))
 
 
+;; R4RS
+(define char? integer?)
+(define number? integer?)
+(define string? bytes?)
+(define (for-each . args) (void (apply map args)))
+(define make-string make-bytes)  ;; FIXME
+  
+
+
+
 ;; parser might trigger GC, so we call it manually before reading.
 ;; FIXME: at least make this detectable!!
 (define (read port) (gc) (read-no-gc port))
