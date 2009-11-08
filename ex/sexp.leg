@@ -6,7 +6,9 @@ Datum   = QChar | Quote | UQuote | QQuote
         | Vector | Const | List | SList # | Qlist
         | NNumber | Number | Symbol | String
 
-QChar   = - '#\\' < c:Char >             { $$= CHAR(yytext) }
+QChar    = - '#\\' < n:CharName >         { $$= n }
+CharName = < Char Char+ >                 { $$= NAMED_CHAR(yytext) } 
+         | < . >                          { $$= CHAR(yytext) }
 
 Vector  = - '#' l:List                   { $$= l }
 

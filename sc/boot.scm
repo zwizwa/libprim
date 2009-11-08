@@ -212,7 +212,11 @@
 (define number? integer?)
 (define string? bytes?)
 (define (for-each . args) (void (apply map args)))
-(define make-string make-bytes)  ;; FIXME
+
+(define (make-string n . fill)
+  (let ((b (make-bytes n)))
+    (bytes-init b (if (null? fill) 0 (car fill))) b))
+    
   
 
 

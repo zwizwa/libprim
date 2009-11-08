@@ -1,6 +1,8 @@
 #ifndef _MEM_H_
 #define _MEM_H_
 
+#include <ctype.h>
+
 /* Basic memory model for the Scheme and PF scripting languages.  This
    includes GCd vectors, and opaque primitive leaf types and
    primitive functions. */
@@ -115,6 +117,17 @@ _ _ex_make_symbol(ex *ex, const char *str);
 #define STRING(str)   (EX->make_string(EX, str))
 #define QSTRING(str)  (EX->make_qstring(EX, str)) // with quotes
 #define CHAR(str)     integer_to_object(str[0])
+#define NAMED_CHAR(str) integer_to_object(named_char(str))
+
+static inline int named_char (const char *name) {
+    char x[strlen(name)+1];
+    int i;
+    for(i=0; name[i]; i++) x[i] = tolower(name[i]);
+    x[i] = 0;
+    if (!strcmp(x, "space")) return ' ';
+    if (!strcmp(x, "newline")) return '\n';
+    return 0;
+}
 
 _ _ex_restart(ex *ex);
 

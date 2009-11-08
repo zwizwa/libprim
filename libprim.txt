@@ -5100,3 +5100,24 @@ Tail    = a:Datum Dot d:Datum RP         { $$= CONS(a,d) }
         | RP                             { $$= NIL }
         | d:Datum t:Tail                 { $$= CONS(d,t) }
 
+
+
+Entry: macros
+Date: Sun Nov  8 10:27:16 CET 2009
+
+The question is: should macros be expanded when a procedure body is
+created, or when it is applied?
+
+1. Does this change semantics?  In a way that's important for the
+standard?
+
+Yes: if macro definitions change after creation of body code both
+regimes behave differently.
+
+2. Does it affect (memory) performance?
+
+Without optimizations, expanded expressions are probably more
+expensive to store than original code.  However, it has probably a
+huge effect on run-time performance.
+
+So... It looks like some form of compilation is in order.

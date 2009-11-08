@@ -823,6 +823,12 @@ _ sc_make_bytes(sc *sc, _ ob) {
     if (size <= 0) return INVALID(ob);
     return _sc_make_bytes(sc, size);
 }
+_ sc_bytes_init(sc *sc, _ ob_bytes, _ ob_int) {
+    bytes *b = CAST(bytes, ob_bytes);
+    int fill = CAST_INTEGER(ob_int);
+    memset(b->bytes, fill, b->size);
+    return VOID;
+}
 
 /* --- SETUP & GC --- */
 
