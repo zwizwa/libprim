@@ -1,9 +1,9 @@
 ;; Bootstrap
 
-;; The s-expr will be allocated outside the VM and passed to the
-;; interpretation step as a single form.  This means there is no GC
-;; during construction as long as it fits in the initial cell store:
-;; see _sc_init() in scheme.c
+;; A single s-expression will be allocated outside the VM and passed
+;; to the interpretation step.  This means there is no GC during
+;; construction as long as it fits in the initial cell store: see
+;; _sc_init() in scheme.c
 (begin
 
 ;; Macro expander + support.
@@ -17,32 +17,33 @@
     (if (null? lst) lst
         (cons (fn (car lst))
               (map1 fn (cdr lst))))))
-(def-toplevel! 'macro-expand
+(def-toplevel! 'expand
   (lambda (expr)
     (if (pair? expr)
         ((lambda (tag)
            (if (eq? tag 'quote) expr
-           (if (eq? tag 'lambda) (cons 'lambda (cons (cadr expr) (map1 macro-expand (cddr expr))))
+           (if (eq? tag 'lambda) (cons 'lambda (cons (cadr expr) (map1 expand (cddr expr))))
                ((lambda (rec)
                   (if rec
-                      (macro-expand ((cdr rec) expr))
-                      (map1 macro-expand expr)))
+                      (expand ((cdr rec) expr))
+                      (map1 expand expr)))
                 (assq (car expr) (toplevel-macro))))))
          (car expr))
         expr)))
 ;; Implemented in terms of primitive continuation transformers (ktx).
 (def-toplevel! 'eval
-  (lambda (expr) (letcc k ((eval-ktx k (macro-expand expr))))))
+  (lambda (expr) (letcc k ((eval-ktx k (expand expr))))))
 
-(def-toplevel! 'eval-begin
+;; Evaluate expressions in sequence.  This makes sure macros take
+;; effect immediately after definition.
+(def-toplevel! 'eval-list
   (lambda (expr)
     (if (null? expr) (void)
-        (begin (eval (car expr)) (eval-begin (cdr expr))))))
+        (begin (eval (car expr)) (eval-list (cdr expr))))))
 
 ;; The rest is evaluated in sequence with `eval' defined above, which
 ;; also performs macro expansion.
-(eval-begin '(
-
+(eval-list '(
 
 (def-toplevel! 'list (lambda args args))
 
