@@ -3,6 +3,30 @@
 ;; The s-expr will be allocated outside the VM, so a single form makes
 ;; sure there's no GC during construction, as long as it fits.
 (begin
+
+;; Macro expander + support.
+(def-toplevel! 'assq
+  (lambda (obj lst)
+    (if (null? lst) #f
+        (if (eq? (caar lst) obj) (car lst)
+            (assq obj (cdr lst))))))
+(def-toplevel! 'map1
+  (lambda (fn lst)
+    (if (null? lst) lst
+        (cons (fn (car lst))
+              (map1 fn (cdr lst))))))
+(def-toplevel! 'macro-expand
+  (lambda (expr)
+    (if (not (pair? expr)) expr
+        ((lambda (rec)
+           (if (not rec)
+               (cons (car expr) (map1 macro-expand (cdr expr)))
+               (macro-expand ((cdr rec) expr))))
+         (assq (car expr) (toplevel-macro))))))
+
+
+(macro-expand '(+ 123))
+
   
 (def-toplevel! 'list (lambda args args))
 (def-toplevel-macro!
@@ -17,11 +41,7 @@
     (list 'def-toplevel-macro!
           (list 'quote (cadr form))
           (caddr form))))
-(define map1
-  (lambda (fn lst)
-    (if (null? lst) lst
-        (cons (fn (car lst))
-              (map1 fn (cdr lst))))))
+
 (define mapn
   (lambda (fn lsts)
     (if (null? (car lsts)) ;; assume all same length
@@ -169,7 +189,7 @@
           (if (eq? (caar lst) obj) (car lst)
               (next (cdr lst)))))))
 (define assoc (make-assoc equal?))
-(define assq (make-assoc eq?))
+; (define assq (make-assoc eq?))
 
 (define (make-accu op init)
   (lambda lst
@@ -201,10 +221,14 @@
 
 (define (procedure? fn) (or (prim? fn) (lambda? fn)))
 
+
+
 ;; for Shivers SRFI-1
 (define (check-arg pred val caller)
   (let lp ((val val))
     (if (pred val) val (lp (error "Bad argument" val pred caller)))))
+
+
 
 
 ;; R4RS

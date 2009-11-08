@@ -1,1 +1,1 @@
-PRIM_BOOT_SCM=boot.scm ./sc
+PRIM_BOOT_SCM=boot.scm gdb ./sc
