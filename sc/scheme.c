@@ -404,12 +404,14 @@ _ _sc_step_value(sc *sc, _ v, _ k) {
         if (NIL == top->cdr) return STATE(top->car, kx->k.parent);
         return STATE(top->car, sc_make_k_seq(sc, kx->k.parent, top->cdr));
     }
+#if 0
     if (TRUE == sc_is_k_macro(sc, k)) {
         /* The _ returned by the macro is wrapped as an AST wich
            triggers its further reduction. */
         k_macro *kx = object_to_k_macro(k);
         return STATE(REDEX(value,kx->env,kx->menv), kx->k.parent);
     }
+#endif
     if (TRUE == sc_is_k_apply(sc, k)) {
         /* If there are remaining closures to evaluate, push the value
            to the update value list and pop the next closure. */
@@ -627,6 +629,7 @@ static _ _sc_step(sc *sc, _ o_state) {
             _ cl  = REDEX(CADR(term_args),env,menv);
             return STATE(cl, k);
         }
+#if 0
         _ macro;
         if (FALSE != (macro = ex_find(EX, sc_toplevel_macro(sc), term_f))) {
             /* Macro continuation is based on a completed
@@ -641,6 +644,7 @@ static _ _sc_step(sc *sc, _ o_state) {
                  NIL);             // todo list
             return STATE(VALUE(term), k_a);
         }
+#endif
         /* Fallthrough: symbol must be bound to applicable values. */
     }
 
@@ -961,7 +965,7 @@ sc *_sc_new(base_types *types, const char *bootfile) {
 
     /* Garbage collector. */
     sc->m.gc = sc->m.gc_save
-        = gc_new(5000, sc, 
+        = gc_new(10000, sc, 
                  (gc_mark_roots)_sc_mark_roots,
                  (gc_overflow)_ex_overflow);
                     

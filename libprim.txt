@@ -5121,3 +5121,14 @@ expensive to store than original code.  However, it has probably a
 huge effect on run-time performance.
 
 So... It looks like some form of compilation is in order.
+
+
+Entry: macro expansion
+Date: Sun Nov  8 11:22:33 CET 2009
+
+The bootstrap now starts with the definition of a `macro-expand'
+function that traverses an expression and recursively expands it.  The
+question is now where to plug it in.  The inner interpreter should no
+longer recognize macros.
+
+Let's try to see what happens if that functionality is simply removed.

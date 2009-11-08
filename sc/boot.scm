@@ -1,7 +1,9 @@
 ;; Bootstrap
 
-;; The s-expr will be allocated outside the VM, so a single form makes
-;; sure there's no GC during construction, as long as it fits.
+;; The s-expr will be allocated outside the VM and passed to the
+;; interpretation step as a single form.  This means there is no GC
+;; during construction as long as it fits in the initial cell store:
+;; see _sc_init() in scheme.c
 (begin
 
 ;; Macro expander + support.
@@ -17,18 +19,33 @@
               (map1 fn (cdr lst))))))
 (def-toplevel! 'macro-expand
   (lambda (expr)
-    (if (not (pair? expr)) expr
-        ((lambda (rec)
-           (if (not rec)
-               (cons (car expr) (map1 macro-expand (cdr expr)))
-               (macro-expand ((cdr rec) expr))))
-         (assq (car expr) (toplevel-macro))))))
+    (if (pair? expr)
+        ((lambda (tag)
+           (if (eq? tag 'quote) expr
+           (if (eq? tag 'lambda) (cons 'lambda (cons (cadr expr) (map1 macro-expand (cddr expr))))
+               ((lambda (rec)
+                  (if rec
+                      (macro-expand ((cdr rec) expr))
+                      (map1 macro-expand expr)))
+                (assq (car expr) (toplevel-macro))))))
+         (car expr))
+        expr)))
+;; Implemented in terms of primitive continuation transformers (ktx).
+(def-toplevel! 'eval
+  (lambda (expr) (letcc k ((eval-ktx k (macro-expand expr))))))
+
+(def-toplevel! 'eval-begin
+  (lambda (expr)
+    (if (null? expr) (void)
+        (begin (eval (car expr)) (eval-begin (cdr expr))))))
+
+;; The rest is evaluated in sequence with `eval' defined above, which
+;; also performs macro expansion.
+(eval-begin '(
 
 
-(macro-expand '(+ 123))
-
-  
 (def-toplevel! 'list (lambda args args))
+
 (def-toplevel-macro!
   'define
   (lambda (form)
@@ -42,6 +59,9 @@
           (list 'quote (cadr form))
           (caddr form))))
 
+(define apply (lambda (fn args) (letcc k ((apply-ktx k fn args)))))
+
+
 (define mapn
   (lambda (fn lsts)
     (if (null? (car lsts)) ;; assume all same length
@@ -51,11 +71,7 @@
 (define map
   (lambda (fn . lsts)
     (mapn fn lsts)))
-        
 
-;; Implemented in terms of primitive continuation transformers (ktx).
-(define apply (lambda (fn args) (letcc k ((apply-ktx k fn args)))))
-(define eval  (lambda (expr) (letcc k ((eval-ktx k expr)))))
 
 (define list* (lambda (a . rest)
                 (if (null? rest) a
@@ -73,7 +89,7 @@
     (let ((bindings (cadr form)))
       (let ((names (map1 car bindings))
             (values (map1 cadr bindings)))
-        (list* 'let (map1 (lambda (n) (list n 0)) names)
+        (list* 'let (map1 (lambda (n) (list n #f)) names)
                (cons 'begin (map (lambda (n v) (list 'set! n v)) names values))
                (cddr form))))))
 
@@ -93,6 +109,31 @@
 (define-macro define (make-definer 'def-toplevel!))
 (define-macro define-macro (make-definer 'def-toplevel-macro!))
 
+(define (words) (map1 car (toplevel)))
+(define (macro) (map1 car (toplevel-macro)))
+
+(define (with-letform-transpose bindings_body fn)
+  (fn (map1 car (car bindings_body))
+      (map1 cadr (car bindings_body))
+      (cdr bindings_body)))
+
+;; Redefine let with named let.
+(define-macro (let form)
+  (if (symbol? (cadr form))
+      ;; named let
+      (with-letform-transpose
+       (cddr form)
+       (lambda (names values body)
+         (let ((name (cadr form)))
+           (list 'letrec
+                 (list (list name (list* 'lambda names body)))
+                 (cons name values)))))
+      ;; normal let
+      (with-letform-transpose
+       (cdr form)
+       (lambda (names values body)
+         (list* (list* 'lambda names body) values)))))
+
 ;; (or a b)  -> (if a a b)   
 ;; (and a b) -> (if a b a)
 
@@ -110,37 +151,7 @@
               (clause (cdr args))
               (car args)))))
 
-;; (define-macro (let form)
-;;   (let ((name (cadr form)))
-;;     (if (symbol? name)
-;;         ;; named let
-;;         ()
-;;         (let-tx form))))
 
-
-(define (words) (map1 car (toplevel)))
-(define (macro) (map1 car (toplevel-macro)))
-
-(define (with-letform-transpose bindings_body fn)
-  (fn (map1 car (car bindings_body))
-      (map1 cadr (car bindings_body))
-      (cdr bindings_body)))
-
-(define-macro (let form)
-  (if (symbol? (cadr form))
-      ;; named let
-      (with-letform-transpose
-       (cddr form)
-       (lambda (names values body)
-         (let ((name (cadr form)))
-           (list 'letrec
-                 (list (list name (list* 'lambda names body)))
-                 (cons name values)))))
-      ;; normal let
-      (with-letform-transpose
-       (cdr form)
-       (lambda (names values body)
-         (list* (list* 'lambda names body) values)))))
 
 (define (dbg x) (post x) x)
 (define-macro (cond form)
@@ -286,5 +297,5 @@
 ;; (display "libprim/SC\n")
 ;; (repl)
 
-)
+)))
 
