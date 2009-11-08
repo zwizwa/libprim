@@ -54,7 +54,6 @@ _ sc_is_k_if(sc *sc, _ o)    { return _is_vector_type(o, TAG_K_IF); }
 _ sc_is_k_apply(sc *sc, _ o) { return _is_vector_type(o, TAG_K_APPLY); }
 _ sc_is_k_seq(sc *sc, _ o)   { return _is_vector_type(o, TAG_K_SEQ); }
 _ sc_is_k_set(sc *sc, _ o)   { return _is_vector_type(o, TAG_K_SET); }
-_ sc_is_k_macro(sc *sc, _ o) { return _is_vector_type(o, TAG_K_MACRO); }
 
 _ sc_is_k(sc *sc, _ o) {
     vector *v;
@@ -102,7 +101,6 @@ _ sc_make_k_apply(sc *sc, _ P, _ D, _ T)     {STRUCT(TAG_K_APPLY,  4, P,NIL,D,T)
 _ sc_make_k_if(sc *sc, _ P, _ Y, _ N)        {STRUCT(TAG_K_IF,     4, P,NIL,Y,N);}
 _ sc_make_k_set(sc *sc, _ P, _ V, _ E, _ Et) {STRUCT(TAG_K_SET,    5, P,NIL,V,E,Et);}
 _ sc_make_k_seq(sc *sc, _ P, _ T)            {STRUCT(TAG_K_SEQ,    3, P,NIL,T);}
-_ sc_make_k_macro(sc *sc, _ P, _ E, _ M)     {STRUCT(TAG_K_MACRO,  4, P,NIL,E,M);}
 
 
 /* Wrap a leaf object in an aref struct.  The destructor is gathered
@@ -223,7 +221,6 @@ _ sc_write(sc *sc,  _ o) {
     if (TRUE == sc_is_k_if(sc, o))    return _ex_write_vector(EX, "k_if", v);
     if (TRUE == sc_is_k_seq(sc, o))   return _ex_write_vector(EX, "k_seq", v);
     if (TRUE == sc_is_k_set(sc, o))   return _ex_write_vector(EX, "k_set", v);
-    if (TRUE == sc_is_k_macro(sc, o)) return _ex_write_vector(EX, "k_macro", v);
     if (MT   == o) { _ex_printf(EX, "#k_mt"); return VOID; }
 
     return _ex_write(EX, o);
@@ -363,7 +360,6 @@ _ _sc_step_value(sc *sc, _ v, _ k) {
        
        - empty continuation -> halt
        - argument evaluation -> eval next, or apply
-       - macro expansion result -> interpret the new term.
        - predicate position of an 'if' -> pick yes or no
        - value position of 'set!' -> mutate environment
        - ...
@@ -404,14 +400,6 @@ _ _sc_step_value(sc *sc, _ v, _ k) {
         if (NIL == top->cdr) return STATE(top->car, kx->k.parent);
         return STATE(top->car, sc_make_k_seq(sc, kx->k.parent, top->cdr));
     }
-#if 0
-    if (TRUE == sc_is_k_macro(sc, k)) {
-        /* The _ returned by the macro is wrapped as an AST wich
-           triggers its further reduction. */
-        k_macro *kx = object_to_k_macro(k);
-        return STATE(REDEX(value,kx->env,kx->menv), kx->k.parent);
-    }
-#endif
     if (TRUE == sc_is_k_apply(sc, k)) {
         /* If there are remaining closures to evaluate, push the value
            to the update value list and pop the next closure. */
@@ -629,22 +617,6 @@ static _ _sc_step(sc *sc, _ o_state) {
             _ cl  = REDEX(CADR(term_args),env,menv);
             return STATE(cl, k);
         }
-#if 0
-        _ macro;
-        if (FALSE != (macro = ex_find(EX, sc_toplevel_macro(sc), term_f))) {
-            /* Macro continuation is based on a completed
-               k_apply frame that will trigger the fn
-               application, linked to a k_macro frame that
-               will steer the result back to the AST
-               reducer. */
-            _ k_m = sc_make_k_macro(sc, k, env, menv);
-            _ k_a = sc_make_k_apply
-                (sc, k_m,
-                 CONS(macro, NIL), // done list
-                 NIL);             // todo list
-            return STATE(VALUE(term), k_a);
-        }
-#endif
         /* Fallthrough: symbol must be bound to applicable values. */
     }
 

@@ -18,6 +18,7 @@ static port *p = NULL;
 #define JUNK(str) CONS(SYMBOL("junk"), STRING(str))
 #define QUOTE(ob) CONS(SYMBOL("quote"), CONS(ob, NIL))
 #define UNQUOTE(ob) CONS(SYMBOL("unquote"), CONS(ob, NIL))
+#define UNQUOTE_SPLICING(ob) CONS(SYMBOL("unquote-splicing"), CONS(ob, NIL))
 #define QUASIQUOTE(ob) CONS(SYMBOL("quasiquote"), CONS(ob, NIL))
 
 // #define CHAR(c) STRING(c)

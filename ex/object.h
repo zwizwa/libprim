@@ -103,7 +103,6 @@ static inline long flags_is_linear_pair(long flag) {
 #define TAG_K_SET     VECTOR_TAG(25)
 #define TAG_K_APPLY   VECTOR_TAG(26)
 #define TAG_K_SEQ     VECTOR_TAG(27)
-#define TAG_K_MACRO   VECTOR_TAG(28)
 
 static inline long flags_is_k(long flag) {
     return VECTOR_TAG_IN_RANGE(flag, 24, 8);

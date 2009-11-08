@@ -129,13 +129,6 @@ typedef struct {
     _ todo;  
 } k_seq;
 
-/* Value is transformed into a redex using the env. */
-typedef struct {
-    k_frame k;
-    _ env;
-    _ menv;
-} k_macro;
-
 
 // conversion from vector object -> C type
 DEF_STRUCT(state,  TAG_STATE)
@@ -148,7 +141,6 @@ DEF_STRUCT(k_apply, TAG_K_APPLY)
 DEF_STRUCT(k_if,    TAG_K_IF)
 DEF_STRUCT(k_set,   TAG_K_SET)
 DEF_STRUCT(k_seq,   TAG_K_SEQ)
-DEF_STRUCT(k_macro, TAG_K_MACRO)
 
 
 

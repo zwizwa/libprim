@@ -66,7 +66,7 @@
 (define mapn
   (lambda (fn lsts)
     (if (null? (car lsts)) ;; assume all same length
-        ()
+        '()
         (cons (apply fn (map1-prim car lsts))
               (mapn fn (map1-prim cdr lsts))))))
 (define map
@@ -110,8 +110,8 @@
 (define-macro define (make-definer 'def-toplevel!))
 (define-macro define-macro (make-definer 'def-toplevel-macro!))
 
-(define (words) (map1 car (toplevel)))
-(define (macro) (map1 car (toplevel-macro)))
+(define (procedures) (map1 car (toplevel)))
+(define (macros) (map1 car (toplevel-macro)))
 
 (define (with-letform-transpose bindings_body fn)
   (fn (map1 car (car bindings_body))
@@ -240,6 +240,12 @@
   (let lp ((val val))
     (if (pred val) val (lp (error "Bad argument" val pred caller)))))
 
+
+
+;(define-macro (quasiquote x)
+;  (let rec ((x x))
+;    (if (pair? x)
+;        (if (eq? 'unquote (car x)) 
 
 
 

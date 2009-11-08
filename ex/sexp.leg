@@ -2,7 +2,7 @@ Read    = - n:Next                       { ob = n; }
 
 Next    = EOF | Datum | Junk
 
-Datum   = QChar | Quote | UQuote | QQuote
+Datum   = QChar | Quote | UQuoteS | UQuote | QQuote
         | Vector | Const | List | SList # | Qlist
         | NNumber | Number | Symbol | String
 
@@ -30,6 +30,7 @@ STail   = a:Datum Dot d:Datum SRP        { $$= CONS(a,d) }
 
 
 Quote   = - ['] - d:Datum                { $$= QUOTE(d) }
+UQuoteS = - ',@' - d:Datum               { $$= UNQUOTE_SPLICING(d) }
 UQuote  = - [,] - d:Datum                { $$= UNQUOTE(d) }
 QQuote  = - [`] - d:Datum                { $$= QUASIQUOTE(d) }
 
