@@ -1,1 +1,2 @@
-PRIM_BOOT_SCM=boot.scm gdb ./sc
+SC=`dirname $0`
+PRIM_BOOT_SCM=$SC/boot.scm gdb $SC/sc

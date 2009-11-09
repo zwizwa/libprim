@@ -1004,7 +1004,7 @@ sc *_sc_new(int argc, char **argv) {
     /* Highlevel bootstrap. */
     PURE();
     char *bootfile = NULL;
-    if (argv > 1)  bootfile = argv[1];
+    if (argc > 1)  bootfile = argv[1];
     if (!bootfile) bootfile = getenv("PRIM_BOOT_SCM");
     if (!bootfile) bootfile = PRIM_HOME "/boot.scm";
     // _ex_printf(EX, "SC: booting from %s\n", bootfile);
