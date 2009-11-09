@@ -185,7 +185,7 @@ static void _gc_finalize(gc *gc) {
     _gc_call_finalizers(gc);
     /* If we need to grow, send a message to the client. */
     long free =  (gc->slot_total - gc->current_index);
-    long margin = gc->margin + gc->current_index/2;  // keep free space +- same size as used
+    long margin = gc->margin + gc->current_index;  // keep free space +- same size as used
     long spare = free - (margin + gc->want);
     if (spare < 0) gc->overflow(gc->client_ctx, -spare);
 }
