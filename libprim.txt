@@ -4892,6 +4892,10 @@ Using peg/leg anyway..  The problems to solve:
 
   - GC access since it's a side-effecting operation.
 
+Also look at this[1], a (Haskell-style) parser combinator for C.
+
+[1] http://www.cs.chalmers.se/~koen/ParserComboC/parser-combo-c.html
+
 
 Entry: manual parsing?
 Date: Sat Nov  7 07:26:48 CET 2009
@@ -5101,7 +5105,6 @@ Tail    = a:Datum Dot d:Datum RP         { $$= CONS(a,d) }
         | d:Datum t:Tail                 { $$= CONS(d,t) }
 
 
-
 Entry: macros
 Date: Sun Nov  8 10:27:16 CET 2009
 
@@ -5132,3 +5135,4 @@ question is now where to plug it in.  The inner interpreter should no
 longer recognize macros.
 
 Let's try to see what happens if that functionality is simply removed.
+
