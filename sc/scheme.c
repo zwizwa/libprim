@@ -932,7 +932,9 @@ void _sc_def_prim(sc *sc, const char *str, void *fn, long nargs) {
 
 void _sc_media_init(sc *sc);
 
-sc *_sc_new(base_types *types, const char *bootfile) {
+
+
+sc *_sc_new(int argc, char **argv) {
     sc *sc = malloc(sizeof(*sc));
     sc->m.top_entries = 0;
     sc->m.prim_entries = 0;
@@ -944,6 +946,7 @@ sc *_sc_new(base_types *types, const char *bootfile) {
                  (gc_overflow)_ex_overflow);
                     
     /* Atom classes. */
+    base_types *types = NULL; // FIXME: configurable subclass?
     if (!types) types = malloc(sizeof(*(sc->m.p)));
     sc->m.p = types;
     TYPES->ck_type = ck_class_new();
@@ -1000,6 +1003,8 @@ sc *_sc_new(base_types *types, const char *bootfile) {
 
     /* Highlevel bootstrap. */
     PURE();
+    char *bootfile = NULL;
+    if (argv > 1)  bootfile = argv[1];
     if (!bootfile) bootfile = getenv("PRIM_BOOT_SCM");
     if (!bootfile) bootfile = PRIM_HOME "/boot.scm";
     // _ex_printf(EX, "SC: booting from %s\n", bootfile);

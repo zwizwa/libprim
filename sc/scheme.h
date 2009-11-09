@@ -275,7 +275,7 @@ port *_sc_port(sc *sc);
 
 
 /* INIT */
-sc *_sc_new(base_types *types, const char *bootfile);
+sc *_sc_new(int argc, char **argv);
 void _sc_def_prims(sc *sc, prim_def *prims);
 
 
