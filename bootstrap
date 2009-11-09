@@ -1,1 +1,2 @@
-chmod +x configure
+chmod +x configure bin/*
+
