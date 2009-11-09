@@ -697,7 +697,6 @@ void pf_bye(pf *pf) {
 
 /* GC+SETUP */
 
-#define GC_DEBUG _ex_printf(EX, ";; %d\n", (int)GC->current_index)
 #define MARK(reg) pf->reg = gc_mark(GC, pf->reg)
 
 void pf_gc_stat(pf *pf) {

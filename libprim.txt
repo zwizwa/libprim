@@ -5136,3 +5136,14 @@ longer recognize macros.
 
 Let's try to see what happens if that functionality is simply removed.
 
+
+Entry: profiling
+Date: Mon Nov  9 10:13:42 CET 2009
+
+Check why it's so slow.  Probably this is a name lookup issue.  It's
+especially clear now that boot performs macro expansion.  Figure out a
+way to cache that or implement environments differently.  If I recall
+from Forth, dict lookup whas the biggest bottleneck.
+
+
+

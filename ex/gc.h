@@ -84,6 +84,7 @@ struct _gc {
    Even gc_vector() already messes things up. */
 
 
+#define GC_DEBUG if (0)
 
 gc *gc_new(long total, void *ctx, gc_mark_roots mark, 
            gc_overflow  overflow);

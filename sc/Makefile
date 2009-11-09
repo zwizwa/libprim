@@ -19,9 +19,13 @@ SC_APP_OBJ = $(SC_LIB_OBJ) main.o $(DEP_OBJ)
 
 
 all: $(APP) libprim_sc.a
+#libprim_sc_media.a
 
 libprim_sc.a: $(SC_LIB_OBJ)
 	ar rcs libprim_sc.a $(SC_LIB_OBJ)
+
+# libprim_sc_media.a: media.o
+#	ar rcs libprim_media.a media.o
 
 
 

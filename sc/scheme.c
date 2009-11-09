@@ -887,7 +887,6 @@ void _sc_def_prims(sc *sc, prim_def *prims) {
 }
 
 
-#define GC_DEBUG if (0)
 
 static void _sc_mark_roots(sc *sc, gc_finalize fin) {
     // ex_trap(EX);

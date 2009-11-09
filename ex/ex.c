@@ -204,7 +204,7 @@ void _ex_overflow(ex *ex, long extra) {
        allocation doesn't fit.  We need to grow.  Take at least the
        requested size + grow by a fraction of the total heap. */
     long request = extra + (ex->gc->slot_total/4);
-    _ex_printf(ex, ";; gc-overflow %ld:%ld\n", extra, request);
+    GC_DEBUG { _ex_printf(ex, ";; gc-overflow %ld:%ld\n", extra, request); }
     gc_grow(ex->gc, request);
     _ex_restart(ex);
 }   
