@@ -12,11 +12,6 @@ clean:
 gen:
 	for dir in $(DIRS); do make -C $$dir gen; done
 
-dist:
-	make -C . clean
-	make -C . gen
-	VER=`bin/version` ; cd .. ; tar zcf libprim-$$VER.tar.gz  libprim
-
 # check code size
 strip64:
 	make -C . clean
