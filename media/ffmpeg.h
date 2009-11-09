@@ -61,4 +61,6 @@ int codec_context_close(codec_context *ctx);
 void codec_context_encode_video(codec_context *ctx, vframe *f, bytes *b);
 void codec_context_encode_audio(codec_context *ctx, aframe *f, bytes *b);
 
+void codec_context_info(codec_context *c, FILE *f);
+
 #endif

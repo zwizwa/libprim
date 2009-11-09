@@ -5,9 +5,10 @@ SRC=scheme.c main.c
 DEP_OBJ=../leaf/libprim_leaf.a ../ex/libprim_ex.a
 
 # media?
-# LIBS+=`pkg-config libavformat --libs`
-# DEP_OBJ+=../media/libprim_media.a
-# CPPFLAGS += `pkg-config libavformat --cflags`
+SRC += media.c
+LIBS+=`pkg-config libavformat --libs`
+DEP_OBJ+=../media/libprim_media.a
+CPPFLAGS += `pkg-config libavformat --cflags`
 
 OBJ=$(SRC:.c=.o)
 DEBUG_CFLAGS=-Wall -g -Wno-unused

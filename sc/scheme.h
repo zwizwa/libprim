@@ -271,6 +271,7 @@ _ _sc_printf(sc *sc, char *fmt, ...);
 #define MT    CONSTANT(0x100)
 
 
+port *_sc_port(sc *sc);
 
 
 /* INIT */

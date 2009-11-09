@@ -41,6 +41,9 @@ void _sc_media_init(sc *sc) {
     _sc_def_prims(sc, media_prims);
 }
 
+/* Wrappers: these should be generated, as they simply bridge the LEAF
+   objects to their wrappers for SC + bridge stdout and errors. */
+
 _ sc_make_codec(sc* sc, _ spec) {
     char *name = CAST(cstring, spec);
     codec *c = codec_new(codec_c, name);
@@ -52,22 +55,10 @@ _ sc_make_codec_context(sc *sc) {
     return _sc_make_aref(sc, (leaf_object *)codec_context_new(codec_context_c));
 }
 
+
 _ sc_codec_context_info(sc *sc, _ ob) {
     codec_context *c = CAST(codec_context, ob);
-    _ex_printf(EX, "video:\n");
-    _ex_printf(EX, " dim:  %d x %d\n", c->context->width, c->context->height);
-    if (c->context->time_base.num == 1) 
-        _ex_printf(EX, " fps:  %d\n", c->context->time_base.den);
-    else
-        _ex_printf(EX, " fps:  %d/%d\n", 
-                   c->context->time_base.den, 
-                   c->context->time_base.num);
-    _ex_printf(EX, " rate: %d kbps\n", c->context->bit_rate / 1000);
-
-    _ex_printf(EX, "audio:\n");
-    _ex_printf(EX, " sr:   %d Hz\n", c->context->sample_rate);
-    _ex_printf(EX, " chan: %d\n", c->context->channels);
-    _ex_printf(EX, " blk:  %d\n", c->context->frame_size);
+    codec_context_info(c, _sc_port(sc)->stream);
     return VOID;
 }
 

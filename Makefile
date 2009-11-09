@@ -1,7 +1,7 @@
 
 all: 
 	make -C leaf
-#	make -C media
+	make -C media
 	make -C ex
 	make -C sc
 	make -C pf

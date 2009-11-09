@@ -5145,5 +5145,25 @@ especially clear now that boot performs macro expansion.  Figure out a
 way to cache that or implement environments differently.  If I recall
 from Forth, dict lookup whas the biggest bottleneck.
 
+Check Dybvig's thesis[1].
+
+[1] http://www.cs.indiana.edu/~dyb/pubs/3imp.pdf
 
 
+Entry: libprim dependency structure
+Date: Mon Nov  9 15:12:13 CET 2009
+
+
+        LEAF   <--  MEDIA  <--.
+          ^                   |
+          |                   |        (C)
+. . . . . | . . . . . . . . . | . . . . . . 
+          |                   |        (EX)
+   PF --> EX  <-- SC  <-- SC_MEDIA    
+
+
+Above the dotted line is C code without memory management (except
+malloc for DAG-structured leaf objects).  Below is built on the EX/GC
+memory model, with PF and SC implementing VM control structure.
+
+   
