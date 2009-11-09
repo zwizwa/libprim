@@ -1,18 +1,21 @@
 
+DIRS = leaf media ex sc pf
+
 all: 
-	make -C leaf
-	make -C media
-	make -C ex
-	make -C sc
-	make -C pf
+	for dir in $(DIRS); do make -C $$dir; done
 
 clean:
 	rm -f *~
-	make -C leaf clean
-	make -C media clean
-	make -C ex clean
-	make -C sc clean
-	make -C pf clean
+	for dir in $(DIRS); do make -C $$dir clean; done
+
+# Generate C code.  The resulting tree can be built without mzscheme installed.
+gen:
+	for dir in $(DIRS); do make -C $$dir gen; done
+
+dist:
+	make -C . clean
+	make -C . gen
+	VER=`bin/version` ; cd .. ; tar zcf libprim-$$VER.tar.gz  libprim
 
 # check code size
 strip64:

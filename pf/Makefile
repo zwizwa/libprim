@@ -11,11 +11,11 @@ all: pf $(DEP_OBJ)
 
 # generated files
 %.h_pf_prims: %.c pf_prims.ss ../prim-tools.ss
-	mzscheme pf_prims.ss $< >$@
+	$(MZSCHEME) pf_prims.ss $< >$@
 %.h_px_prims: %.c px_prims.ss ../prim-tools.ss
-	mzscheme px_prims.ss $< >$@
+	$(MZSCHEME) px_prims.ss $< >$@
 %.h_load: %.pf ../load.ss
-	mzscheme ../load.ss $< >$@
+	$(MZSCHEME) ../load.ss $< >$@
 
 GEN = pf.h_pf_prims px.h_px_prims
 # boot.h_load

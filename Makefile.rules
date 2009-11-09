@@ -38,6 +38,13 @@ $(TEST): $(TEST_OBJ)
 run_test: $(TEST)
 	./$(TEST)
 
+# Target to generate header files.  It is actually the deps for .d
+# that generate them, so here we just remove the .d files to get a
+# clean tree.
+
+.PHONY: gen
+gen: $(GEN)
+	rm *.d
 
 
 .PHONY: clean

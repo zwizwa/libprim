@@ -5166,4 +5166,10 @@ Above the dotted line is C code without memory management (except
 malloc for DAG-structured leaf objects).  Below is built on the EX/GC
 memory model, with PF and SC implementing VM control structure.
 
+
+Entry: source distro w/o mzcsheme dep
+Date: Mon Nov  9 16:33:18 CET 2009
+
+Build the generated files + tar up.
+
    

@@ -1,6 +1,6 @@
 %.h_: %.h
 	cat ../../gnuc.h $< | cpp | grep -v '^#' >$@
-	mzscheme ../../cplt.ss < $@
+	$(MZSCHEME) ../../cplt.ss < $@
 
 clean:
 	rm -f *~ *.h_

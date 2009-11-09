@@ -168,6 +168,8 @@ makefile "CFLAGS += -fPIC" ;
 makefile "CEXT = c";  # default is c. for cc see build/plugins/ftgl/Makefile
 makefile "COMPILE = $CC";
 
+makefile "MZSCHEME = mzscheme"; # FIXME: check this!
+
 if ($var{jobs} > 1){
     makefile "MAKE += -j$var{jobs}"; # run multiple jobs
 }
