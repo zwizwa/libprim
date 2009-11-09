@@ -29,8 +29,13 @@ static port *p = NULL;
         result= (EOF == yyc) ? 0 : (*(buf)= yyc, 1);             \
     }
 
-#include "sexp.h_leg"
 
+static inline void* _realloc(void *mem, size_t size) {
+    fprintf(stderr, "realloc %p %d\n", mem, (int)size);
+    return realloc(mem, size);
+}
+
+#include "sexp.h_leg"
 
 _ _ex_read(ex *ex, port *input_port) {
     p = input_port;
