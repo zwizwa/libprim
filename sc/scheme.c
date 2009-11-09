@@ -986,7 +986,9 @@ sc *_sc_new(base_types *types, const char *bootfile) {
     _sc_def_prims(sc, ex_prims);
     _sc_def_prims(sc, scheme_prims);
     
+#ifdef SC_MEDIA
     _sc_media_init(sc);
+#endif
         
 
     /* Toplevel abort continuation */
