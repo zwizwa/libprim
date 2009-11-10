@@ -43,6 +43,7 @@ token *make_token(const char *tag, bytes *b) {
     return NULL;
 }
 
+
 token *scanner_get_symbol(scanner *x, bytes *b) {
     int c;
     for(;;) {
@@ -60,8 +61,8 @@ token *scanner_get_token(scanner *x) {
     switch(c) {
     case '(':  return make_token("LP", NULL);
     case ')':  return make_token("RP", NULL);
-    case '#':  return tok_get_hash(x);
-    case '"':  return tok_get_string(x);
+    case '#':  return scanner_get_hash(x);
+    case '"':  return scanner_get_string(x);
     case '.': 
         head[0] = '.';
         head[1] = c = scanner_getc(x);
