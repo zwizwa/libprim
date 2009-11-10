@@ -5226,5 +5226,5 @@ Is there a way to use sprintf as a one-pass algo?
 
 So, need to fix two things:
   - output to string
-  - faster boot
+  - faster boot  (added expand.scm -> broken)
 
