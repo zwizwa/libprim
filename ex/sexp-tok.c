@@ -56,7 +56,7 @@ int char_in(int c, const char *str) {
 }
 
 int scanner_isterm(scanner *x, int c) {
-    if (char_in(c, "()\',`#") || isspace(c)) {
+    if (char_in(c, "()\',`#;\"") || isspace(c)) {
         port_ungetc(x->p, c); return 1;
     }
     return 0;

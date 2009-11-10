@@ -5233,3 +5233,5 @@ Entry: boot speed
 Date: Tue Nov 10 15:40:34 CET 2009
 
 The problem seems to be the parser.  So, time to get rid of it.
+
+Lexer seems +- ok.
