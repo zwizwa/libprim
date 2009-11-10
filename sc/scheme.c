@@ -170,19 +170,19 @@ _ sc_current_input_port(sc *sc)  { return sc_global(sc, sc_slot_input_port); }
 _ sc_current_output_port(sc *sc) { return sc_global(sc, sc_slot_output_port); }
 
 _ sc_bytes_dump(sc *sc, _ ob) {
-    bytes_dump(CAST(bytes, ob), _sc_port(sc)->stream);
+    bytes_dump(CAST(bytes, ob), _sc_port(sc));
     return VOID;
 }
 _ sc_display(sc *sc, _ o) {
     bytes *b = CAST(bytes, o);
-    fwrite(b->bytes, 1, strlen(b->bytes), _sc_port(sc)->stream);
+    port_write(_sc_port(sc), b->bytes, strlen(b->bytes));
     return VOID;
 }
 
 _ sc_write_bytes(sc *sc, _ ob_bytes, _ ob_port) {
     port *p = CAST(port, ob_port);
     bytes *b = CAST(bytes, ob_bytes);
-    if (b->size != fwrite(b->bytes, 1, b->size, p->stream)) {
+    if (b->size != port_write(p, b->bytes, b->size)) {
         return ERROR("fwrite", ob_bytes);
     }
     return VOID;
@@ -204,7 +204,7 @@ _ sc_write(sc *sc,  _ o) {
     if ((a = object_to_aref(o))) {
         leaf_object *x = object_to_const(a->object);
         if (x->methods->write) {
-            x->methods->write(x, _sc_port(sc)->stream);
+            x->methods->write(x, _sc_port(sc));
             return VOID;
         }
     }
@@ -1001,13 +1001,6 @@ sc *_sc_new(base_types *types, const char *bootfile) {
     _sc_top(sc, _ex_boot_load(EX, bootfile));
     PURE();
     return sc;
-}
-
-// FIXME
-_ sc_read_stdin(sc *sc) {
-    port p;
-    p.stream = stdin;
-    return _ex_read(EX, &p);
 }
 
 _ sc_read_no_gc(sc *sc, _ o) {

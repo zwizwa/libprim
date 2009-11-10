@@ -58,7 +58,7 @@ _ sc_make_codec_context(sc *sc) {
 
 _ sc_codec_context_info(sc *sc, _ ob) {
     codec_context *c = CAST(codec_context, ob);
-    codec_context_info(c, _sc_port(sc)->stream);
+    codec_context_info(c, _sc_port(sc));
     return VOID;
 }
 

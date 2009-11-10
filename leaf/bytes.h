@@ -3,13 +3,14 @@
 
 #include <stdio.h>
 #include <leaf/class.h>
+#include <leaf/port.h>
 
-typedef struct _bytes bytes;
 typedef void (*bytes_free)(bytes *p);
 
 typedef struct {
     leaf_class super;
 } bytes_class;
+
 
 struct _bytes {
     bytes_class *type;
@@ -23,7 +24,7 @@ bytes_class* bytes_class_new(void);
 bytes* bytes_from_cstring(bytes_class *type, const char *str);
 bytes* bytes_from_qcstring(bytes_class *type, const char *str);
 
-void bytes_write_string(bytes *b, FILE *f);
+void bytes_write_string(bytes *b, port *p);
 
 /* C strings need one extra byte to contain the zero terminator.  This
    is not included in the buffer's `size' field. 
@@ -33,6 +34,6 @@ void bytes_write_string(bytes *b, FILE *f);
    through this function.  */
 
 char *cstring_from_bytes(bytes *b);
-void bytes_dump(bytes *b, FILE *f);
+void bytes_dump(bytes *b, port *p);
 
 #endif

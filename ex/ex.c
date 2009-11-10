@@ -135,7 +135,7 @@ object _ex_write(ex *ex, object o) {
     }
     if ((x = object_struct(o, ex->p->bytes_type))) {
         bytes *b = (bytes *)x;
-        bytes_write_string(b, p->stream);
+        bytes_write_string(b, p);
         return VOID;
     }
     if ((x = object_struct(o, ex->p->rc_type))) {
@@ -602,7 +602,7 @@ _ _ex_boot_load(ex *ex,  const char *bootfile) {
     port *bootport = port_new(ex->p->port_type,
                               fopen(bootfile, "r"),
                               bootfile);
-    if (!bootport->stream) {
+    if (!bootport) {
         fprintf(stderr, "Can't load boot file: %s\n", bootfile);
         return ex_raise_error(ex, SYMBOL("boot"), VOID);
     }

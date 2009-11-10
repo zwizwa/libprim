@@ -191,18 +191,18 @@ void codec_context_encode_audio(codec_context *ctx,
                                    f ? f->samples : NULL);
 }
 
-void codec_context_info(codec_context *c, FILE *f) {
-    fprintf(f, "video:\n");
-    fprintf(f, " dim:  %d x %d\n", c->context->width, c->context->height);
+void codec_context_info(codec_context *c, port *p) {
+    port_printf(p, "video:\n");
+    port_printf(p, " dim:  %d x %d\n", c->context->width, c->context->height);
     if (c->context->time_base.num == 1) 
-        fprintf(f, " fps:  %d\n", c->context->time_base.den);
+        port_printf(p, " fps:  %d\n", c->context->time_base.den);
     else
-        fprintf(f, " fps:  %d/%d\n", 
+        port_printf(p, " fps:  %d/%d\n", 
                 c->context->time_base.den, 
                 c->context->time_base.num);
-    fprintf(f, " rate: %d kbps\n", c->context->bit_rate / 1000);
-    fprintf(f, "audio:\n");
-    fprintf(f, " sr:   %d Hz\n", c->context->sample_rate);
-    fprintf(f, " chan: %d\n", c->context->channels);
-    fprintf(f, " blk:  %d\n", c->context->frame_size);    
+    port_printf(p, " rate: %d kbps\n", c->context->bit_rate / 1000);
+    port_printf(p, "audio:\n");
+    port_printf(p, " sr:   %d Hz\n", c->context->sample_rate);
+    port_printf(p, " chan: %d\n", c->context->channels);
+    port_printf(p, " blk:  %d\n", c->context->frame_size);    
 }

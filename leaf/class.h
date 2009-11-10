@@ -21,11 +21,16 @@ you wrap them according to this interface.
 
 #include <stdio.h>
 
+/* Because of cross-deps between the objects, some are declared here. */
+typedef struct _port port;
+typedef struct _bytes bytes;
+
+
 typedef struct _leaf_class leaf_class;
 typedef struct _leaf_object leaf_object;
 
 typedef void (*leaf_free)(leaf_object *);
-typedef void (*leaf_write)(leaf_object *, FILE *);
+typedef void (*leaf_write)(leaf_object *, port *);
 
 // a class is a collection of methods
 struct _leaf_class {

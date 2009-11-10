@@ -190,9 +190,9 @@ void pf_exchange(pf *pf) {
 }
 // this uses linear cons from EX->make_pair
 void pf_read(pf *pf) {
-    port p;
-    p.stream = stdin;
-    PUSH_P(_ex_read(EX, &p));
+    static port *p = NULL;
+    if (!p) p = port_new(TYPES->port_type, stdin, "<stdin>");
+    PUSH_P(_ex_read(EX, p));
 }
 
 void pf_ps(pf *pf) {  // print stack

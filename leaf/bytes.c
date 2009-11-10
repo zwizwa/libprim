@@ -68,46 +68,46 @@ bytes* bytes_from_qcstring(bytes_class *type, const char *str){
 }
 
 static const char hexdigit[] = "0123456789ABCDEF";
-static void _write_hex(FILE *f, int val, int digits) {
+static void _write_hex(port *p, int val, int digits) {
     while (digits-- > 0) {
-        fputc(hexdigit[(val >> (digits * 4)) & 0xF], f);
+        port_putc(p, hexdigit[(val >> (digits * 4)) & 0xF]);
     }
 }
 
 /* This prints full-length byte buffers, not C strings. */
-void bytes_write_string(bytes *b, FILE *f) {
+void bytes_write_string(bytes *b, port *p) {
     size_t i = 0;
     int c;
 
-    fputc('"',f);
+    port_putc(p, '"');
     for(i = 0; i<b->size; i++) {
         c = b->bytes[i];
-        if (c == '"')  { fputc('\\',f); fputc('"',f); }
-        else if (c == '\n') { fputc('\\', f); fputc('n',f); }
-        else if (c == '\\') { fputc('\\', f); fputc('\\',f); }
-        else if ((c >= 32) && (c < 127)) fputc(c, f);
-        else {fputc('\\',f); fputc('x',f); _write_hex(f, c, 2);}
+        if (c == '"')  { port_putc(p, '\\'); port_putc(p, '"'); }
+        else if (c == '\n') { port_putc(p, '\\'); port_putc(p, 'n'); }
+        else if (c == '\\') { port_putc(p, '\\'); port_putc(p, '\\'); }
+        else if ((c >= 32) && (c < 127)) port_putc(p, c);
+        else {port_putc(p, '\\'); port_putc(p, 'x'); _write_hex(p, c, 2);}
     }
-    fputc('"',f);
+    port_putc(p, '"');
 }
 
-void bytes_dump(bytes *b, FILE *f) {
+void bytes_dump(bytes *b, port *p) {
     int i,j;
     for(j = 0; j < b->size; j += 16) {
         for (i = 0; i < 16; i++) {
-            if ((i + j) >= b->size) { fputc(' ', f); fputc(' ', f); }
-            else _write_hex(f, b->bytes[i+j], 2);
-            fputc(' ', f);
+            if ((i + j) >= b->size) { port_putc(p, ' '); port_putc(p, ' '); }
+            else _write_hex(p, b->bytes[i+j], 2);
+            port_putc(p, ' ');
         }
-        fputc(' ', f);
+        port_putc(p, ' ');
         for (i = 0; i < 16; i++) {
-            if ((i + j) >= b->size) { fputc(' ', f); }
+            if ((i + j) >= b->size) { port_putc(p, ' '); }
             else {
                 int c = b->bytes[i+j];
-                if ((c >= 32) && (c < 127)) fputc(c, f);
-                else fputc('.', f);
+                if ((c >= 32) && (c < 127)) port_putc(p, c);
+                else port_putc(p, '.');
             }
         }
-        fputc('\n', f);
+        port_putc(p, '\n');
     }
 }

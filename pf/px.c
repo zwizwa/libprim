@@ -79,7 +79,7 @@ _ _px_make_symbol(pf *pf, const char *str){
 
 _ px_display(pf *pf, _ ob) { 
     bytes *b = CAST(bytes, ob);
-    fwrite(b->bytes, 1, strlen(b->bytes), _px_port(pf)->stream);
+    port_write(_px_port(pf), b->bytes, strlen(b->bytes));
     return VOID;
 }
 
