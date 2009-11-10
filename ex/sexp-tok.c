@@ -46,18 +46,19 @@ token *make_token(const char *tag, bytes *b) {
     return NULL;
 }
 
-int scanner_isterm(scanner *x, int c) {
-    int rv = 0;
-    switch(c) {
-    case '(': 
-    case ')':
-        rv = 1; break;
-    default:
-        if (isspace(c)) rv = 1;
-        break;
+int char_in(int c, const char *str) {
+    for(;;){
+        if (!str[0]) return 0;
+        if (c == str[0]) return 1;
+        str++;
     }
-    if (rv) port_ungetc(x->p, c);
-    return rv;
+}
+
+int scanner_isterm(scanner *x, int c) {
+    if (char_in(c, "()\',`") || isspace(c)) {
+        port_ungetc(x->p, c); return 1;
+    }
+    return 0;
 }
 
 token *scanner_get_atom(scanner *x, bytes *b, const char *tag) {
