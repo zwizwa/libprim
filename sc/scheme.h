@@ -65,7 +65,6 @@ typedef struct {
     _ rest;
     _ term;
     _ env;
-    _ menv;
 } lambda;
 
 typedef struct {
@@ -80,7 +79,6 @@ typedef struct {
     vector v;
     _ term;
     _ env;
-    _ menv;
 } redex;
 
 typedef struct {
@@ -237,7 +235,7 @@ object _sc_top(sc *sc, object expr);
 
 /* Macros valid in sc context. */
 #define STATE(c,k)   sc_make_state(sc,c,k)
-#define REDEX(t,e,m) sc_make_redex(sc,t,e,m)
+#define REDEX(t,e)   sc_make_redex(sc,t,e)
 #define VALUE(d)     sc_make_value(sc,d)
 
 #define NUMBER(n)     integer_to_object(n)
