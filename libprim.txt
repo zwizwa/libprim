@@ -5173,3 +5173,21 @@ Date: Mon Nov  9 16:33:18 CET 2009
 Build the generated files + tar up.
 
    
+Entry: string ports
+Date: Tue Nov 10 08:23:21 CET 2009
+
+This morning I've added an indirection to the port class that makes it
+possible.  Next: create ports with an embedded bytes string.
+
+
+Entry: class pointers as global variables
+Date: Tue Nov 10 08:24:29 CET 2009
+
+I guess there's nothing wrong with that.  The only reason the VM
+structs need the class pointers is to dispatch on type of leaf object.
+The fact that these are referenced somewhere else from a global
+context (i.e. leaf objets can be created outside of the VMs) doesn't
+matter.
+
+This will probably make a lot of code simpler.  Especially writing
+extensions.

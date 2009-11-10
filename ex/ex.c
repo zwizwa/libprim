@@ -599,9 +599,9 @@ _ ex_raise_nargs_error(ex *ex, _ arg_o) {
 
 /* Use lowelevel port access to be independent of object wrapping. */
 _ _ex_boot_load(ex *ex,  const char *bootfile) {
-    port *bootport = port_new(ex->p->port_type,
-                              fopen(bootfile, "r"),
-                              bootfile);
+    port *bootport = port_file_new(ex->p->port_type,
+                                   fopen(bootfile, "r"),
+                                   bootfile);
     if (!bootport) {
         fprintf(stderr, "Can't load boot file: %s\n", bootfile);
         return ex_raise_error(ex, SYMBOL("boot"), VOID);

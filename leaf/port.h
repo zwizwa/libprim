@@ -23,11 +23,14 @@ struct _port {
     char *name;
     union {
         FILE* file;
-        bytes *bytes;
+        struct {
+            bytes *bytes;
+            int read_index;
+        } b;
     } stream;
     /* Operations are defined in the instance struct, not the class
        struct.  User can't distinguish between different port
-       types. */
+       types.  FIXME: use a behaviour object. */
     port_vprintf_m vprintf;
     port_getc_m  get;
     port_putc_m  put;
@@ -44,6 +47,7 @@ void port_close(port *x);
 void port_free(port *x);
 int port_printf(port *p, const char *fmt, ...);
 port_class* port_class_new(void);
-port *port_new(port_class *type, FILE *f, const char *name);
+port *port_file_new(port_class *type, FILE *f, const char *name);
+port *port_bytes_new(port_class *type, bytes *b);
 
 #endif

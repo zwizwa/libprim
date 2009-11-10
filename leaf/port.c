@@ -1,6 +1,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include "port.h"
+#include <leaf/bytes.h>
 
 /* FILE ports */
 int port_file_vprintf(port *p, const char *fmt, va_list ap) {
@@ -36,6 +37,43 @@ void port_file_init(port *p) {
 }
 
 /* Bytes ports */
+int port_bytes_vprintf(port *p, const char *fmt, va_list ap) {
+    va_list aq;
+    int len;
+    va_copy(aq, ap);
+    len = vsprintf(NULL, fmt, aq);
+    void *data = bytes_allot(p->stream.b.bytes, len);
+    va_end(aq);
+    return vsprintf(data, fmt, ap);
+}
+int port_bytes_getc(port *p) {
+    int i;
+    if ((i = p->stream.b.read_index) >= p->stream.b.bytes->size) return EOF;
+    int c = p->stream.b.bytes->bytes[i];
+    p->stream.b.read_index++;
+    return c;
+}
+int port_bytes_putc(port *p, int c) {
+    char *data = bytes_allot(p->stream.b.bytes, 1);
+    data[0] = c;
+    return c;
+}
+int port_bytes_write(port *p, void *buf, size_t len) {
+    void *data = bytes_allot(p->stream.b.bytes, len);
+    return fwrite(buf, 1, len, data);
+}
+void port_bytes_close(port *p) {
+    if (p->stream.b.bytes) free_leaf((leaf_object*)(p->stream.b.bytes));
+    p->stream.b.bytes = NULL;
+}
+void port_bytes_init(port *p) {
+    //p->vprintf = port_bytes_vprintf;
+    p->get     = port_bytes_getc;
+    //p->put     = port_bytes_putc;
+    //p->write   = port_bytes_write;
+    //p->close   = port_bytes_close;
+}
+
 
 
 /* Virtual */
@@ -79,9 +117,9 @@ port_class *port_class_new(void) {
     x->super.free = (leaf_free)port_free;
     return x;
 }
-port *port_new(port_class *type, FILE *f, const char *name) {
+port *port_file_new(port_class *type, FILE *f, const char *name) {
     if (!f) return NULL;
-    port *x = malloc(sizeof(*x));
+    port *x = calloc(1, sizeof(*x));
     port_file_init(x);
     x->type = type;
     x->stream.file = f;
@@ -92,4 +130,14 @@ port *port_new(port_class *type, FILE *f, const char *name) {
     }
     return x;
 }
-
+port *port_bytes_new(port_class *type, bytes *b) {
+    if (!b) return NULL;
+    port *x = calloc(1, sizeof(*x));
+    port_bytes_init(x);
+    x->type = type;
+    x->stream.b.bytes = b;
+    x->stream.b.read_index = 0;
+    x->name = malloc(9);
+    strcpy(x->name, "<string>");
+    return x;
+}

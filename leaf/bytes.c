@@ -111,3 +111,20 @@ void bytes_dump(bytes *b, port *p) {
         port_putc(p, '\n');
     }
 }
+
+
+void bytes_realloc(bytes *b, size_t size) {
+    if (!(b->bytes = realloc(b->bytes, size))) {
+        b->size = b->bufsize = 0;
+    }
+}
+void *bytes_allot(bytes *b, size_t extra) {
+    int len = extra + b->size;
+    if ((1 + len) > b->bufsize) {
+        bytes_realloc(b, (1 + len));
+    }
+    void *start = b->bytes + b->size;
+    b->size += extra;
+    b->bytes[b->size] = 0; // zero-terminate
+    return start;
+}

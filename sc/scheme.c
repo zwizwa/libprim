@@ -261,15 +261,18 @@ _ sc_bytes_length(sc *sc, _ ob) {
     return integer_to_object(CAST(bytes, ob)->size);
 }
 
-_ _sc_make_port(sc *sc, FILE *f, const char *name) {
-    return _sc_make_aref(sc, (leaf_object *)port_new(TYPES->port_type, f, name));
+_ _sc_make_file_port(sc *sc, FILE *f, const char *name) {
+    return _sc_make_aref(sc, (leaf_object *)port_file_new(TYPES->port_type, f, name));
+}
+_ _sc_make_bytes_port(sc *sc, bytes *b) {
+    return _sc_make_aref(sc, (leaf_object *)port_bytes_new(TYPES->port_type, b));
 }
 _ sc_open_mode_file(sc *sc, _ path, _ mode) {
     bytes *b_path = CAST(bytes, path);
     bytes *b_mode = CAST(bytes, mode);
     FILE *f = fopen(b_path->bytes, b_mode->bytes);
     if (!f) ERROR("fopen", path);
-    return _sc_make_port(sc, f, b_path->bytes);
+    return _sc_make_file_port(sc, f, b_path->bytes);
 }
 
 // Manually call finalizer, creating a defunct object.
@@ -956,9 +959,9 @@ sc *_sc_new(base_types *types, const char *bootfile) {
     sc->m.make_pair = ex_cons;
 
     /* Data roots. */
-    _ in  = _sc_make_port(sc, stdin,  "stdin");
-    _ out = _sc_make_port(sc, stdout, "stdout");
-    _ err = _sc_make_port(sc, stderr, "stderr");
+    _ in  = _sc_make_file_port(sc, stdin,  "stdin");
+    _ out = _sc_make_file_port(sc, stdout, "stdout");
+    _ err = _sc_make_file_port(sc, stderr, "stderr");
     sc->global = gc_make_tagged(sc->m.gc, 
                                 TAG_VECTOR,
                                 7,
