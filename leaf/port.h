@@ -10,6 +10,7 @@
 typedef void (*port_free_m)(port *p);
 typedef int (*port_vprintf_m)(port *p, const char *fmt, va_list ap);
 typedef int (*port_getc_m)(port *p);
+typedef int (*port_ungetc_m)(port *p, int c);
 typedef int (*port_putc_m)(port *p, int c);
 typedef int (*port_write_m)(port *p, void *buf, size_t len);
 typedef void (*port_close_m)(port *x);
@@ -32,7 +33,8 @@ struct _port {
        struct.  User can't distinguish between different port
        types.  FIXME: use a behaviour object. */
     port_vprintf_m vprintf;
-    port_getc_m  get;
+    port_getc_m   get;
+    port_ungetc_m unget;
     port_putc_m  put;
     port_write_m write;
     port_close_m close;
@@ -40,6 +42,7 @@ struct _port {
 
 int port_vprintf(port *p, const char *fmt, va_list ap);
 int port_getc(port *p);
+int port_ungetc(port *p, int c);
 int port_putc(port *p, int c);
 int port_write(port *p, void *buf, size_t len);
 void port_close(port *x);

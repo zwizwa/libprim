@@ -21,6 +21,9 @@ int port_file_getc(port *p) {
 int port_file_putc(port *p, int c) {
     return fputc(c, p->stream.file);
 }
+int port_file_ungetc(port *p, int c) {
+    return ungetc(c, p->stream.file);
+}
 int port_file_write(port *p, void *buf, size_t len) {
     return fwrite(buf, 1, len, p->stream.file);
 }
@@ -31,6 +34,7 @@ void port_file_close(port *x) {
 void port_file_init(port *p) {
     p->vprintf = port_file_vprintf;
     p->get     = port_file_getc;
+    p->unget   = port_file_ungetc;
     p->put     = port_file_putc;
     p->write   = port_file_write;
     p->close   = port_file_close;
@@ -53,6 +57,13 @@ int port_bytes_getc(port *p) {
     p->stream.b.read_index++;
     return c;
 }
+int port_bytes_ungetc(port *p, int c) {
+    if (p->stream.b.bytes->size > 0) {
+        p->stream.b.bytes->bytes[--p->stream.b.bytes->size] = c;
+        return c;
+    }
+    else return EOF;
+}
 int port_bytes_putc(port *p, int c) {
     char *data = bytes_allot(p->stream.b.bytes, 1);
     data[0] = c;
@@ -70,6 +81,7 @@ void port_bytes_close(port *p) {
 void port_bytes_init(port *p) {
     p->vprintf = port_bytes_vprintf;
     p->get     = port_bytes_getc;
+    p->unget   = port_bytes_ungetc;
     p->put     = port_bytes_putc;
     p->write   = port_bytes_write;
     p->close   = port_bytes_close;
