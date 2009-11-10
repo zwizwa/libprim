@@ -65,7 +65,10 @@ int scanner_isterm(scanner *x, int c) {
 token *scanner_save(scanner *x, char c) {
     *bytes_allot(x->b, 1) = c;
 }
-
+void scanner_reset(scanner *x) {
+    x->b->size = 0;
+    x->b->bytes[0] = 0;
+}
 
 token *scanner_get_atom(scanner *x, const char *tag) {
     int c;
@@ -81,16 +84,33 @@ token *make_0token(const char *name) {
 
 token *scanner_get_hash(scanner *x) {
     int c = scanner_getc(x);
-    x->b->size = 0;
+    scanner_reset(x);
     switch(c) {
     case '\\':
         return scanner_get_atom(x, "char");
     }
 }
+token *scanner_get_string(scanner *x) {
+    int c;
+    scanner_reset(x);
+    for(;;) {
+        c = scanner_getc(x);
+        if (c == '"') return make_token("string", x->b);
+        if (c == '\\') {
+            c = scanner_getc(x);
+            switch(c) {
+            case 'n': c = '\n'; break;
+            case 't': c = '\n'; break;
+            default: break;
+            }
+        }
+        scanner_save(x, c);
+    }
+}
 
 token *scanner_get_token(scanner *x) {
     int c;
-    x->b->size = 0;
+    scanner_reset(x);
     scanner_save(x, c = scanner_skip_getc(x));
 
     switch(c) {
@@ -100,7 +120,7 @@ token *scanner_get_token(scanner *x) {
     case '(':  return make_0token("LP");
     case ')':  return make_0token("RP");
     case '#':  return scanner_get_hash(x);
-        // case '"':  return scanner_get_string(x);
+    case '"':  return scanner_get_string(x);
     case '.': 
         scanner_save(x, c = scanner_getc(x));
         if (isspace(c)) return make_token("DOT", NULL);
