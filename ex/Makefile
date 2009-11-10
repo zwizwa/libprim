@@ -26,3 +26,7 @@ libprim_ex.a: $(OBJ)
 
 include ../Makefile.defs
 include ../Makefile.rules
+
+
+tok:
+	gcc -I/home/beschout/libprim sexp-tok.c ../leaf/bytes.o ../leaf/port.o

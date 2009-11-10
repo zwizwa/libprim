@@ -42,7 +42,7 @@ void bytes_dump(bytes *b, port *p);
 
 
 /* Allocate a buffer segment + return pointer. */
-void *bytes_allot(bytes *b, size_t size);
+char *bytes_allot(bytes *b, size_t size);
 
 
 #endif

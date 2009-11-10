@@ -103,6 +103,9 @@ int port_vprintf(port *p, const char *fmt, va_list ap) {
 int port_getc(port *p) {
     return p->get(p);
 }
+int port_ungetc(port *p, int c) {
+    return p->unget(p, c);
+}
 int port_putc(port *p, int c) {
     return p->put(p, c);
 }

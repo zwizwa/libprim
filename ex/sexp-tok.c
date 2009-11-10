@@ -2,12 +2,15 @@
 #include <leaf/port.h>
 #include <leaf/bytes.h>
 
+#include <stdlib.h>
+
 /* Scheme-style s-expression tokenizer. */
-typedef void (*eof_m)(port *p);
-typedef struct {
+typedef struct _scanner scanner;
+typedef void (*eof_m)(scanner *x);
+struct _scanner {
     port *p;
     eof_m cont_eof;
-} scanner;
+};
 
 typedef void token;
 
@@ -39,7 +42,7 @@ int scanner_skip_getc(scanner *x) {
 
 
 token *make_token(const char *tag, bytes *b) {
-    printf("(%s %s)\n", tag, b->bytes);
+    printf("(%s %s)\n", tag, b ? b->bytes : NULL);
     return NULL;
 }
 
@@ -50,14 +53,14 @@ int scanner_isterm(scanner *x, int c) {
     case ')':
         rv = 1; break;
     default:
-        if (isspace(d)) rv = 1;
+        if (isspace(c)) rv = 1;
         break;
     }
     if (rv) port_ungetc(x->p, c);
     return rv;
 }
 
-token *scanner_get_atom(scanner *x, bytes *b, tag) {
+token *scanner_get_atom(scanner *x, bytes *b, const char *tag) {
     int c;
     for(;;) {
         c = scanner_getc(x);
@@ -65,32 +68,50 @@ token *scanner_get_atom(scanner *x, bytes *b, tag) {
         *bytes_allot(b, 1) = c;
     }
 }
+token *make_0token(const char *name) { 
+    return make_token(name, NULL); 
+}
+
 token *scanner_get_token(scanner *x) {
     int c = scanner_skip_getc(x);
     bytes *b =  NULL;
     char head[] = {0,0,0};
 
     switch(c) {
-    case '\'': return make_token("quote");
-    case '`':  return make_token("quasi-unquote");
-    case ',':  return make_token("unquote"); // FIXME: unquote-spicing
-    case '(':  return make_token("LP", NULL);
-    case ')':  return make_token("RP", NULL);
-    case '#':  return scanner_get_hash(x);
-    case '"':  return scanner_get_string(x);
+    case '\'': return make_0token("quote");
+    case '`':  return make_0token("quasi-unquote");
+    case ',':  return make_0token("unquote"); // FIXME: unquote-spicing
+    case '(':  return make_0token("LP");
+    case ')':  return make_0token("RP");
+        // case '#':  return scanner_get_hash(x);
+        // case '"':  return scanner_get_string(x);
     case '.': 
         head[0] = '.';
         head[1] = c = scanner_getc(x);
         if (isspace(c)) return make_token("DOT", NULL);
         else {
-            b = bytes_from_cstring(head);
+            b = bytes_from_cstring(NULL, head);
             if (isdigit(c)) return scanner_get_atom(x, b, "number");
-            else return scanner_get_atoml(x, b, "symbol");
+            else return scanner_get_atom(x, b, "symbol");
         }
     default:
         head[0] = c;
-        b = bytes_from_cstring(head);
-        if (isdigit(c)) return scanner_get_number(x, b);
-        else return scanner_get_symbol(x, b);
+        b = bytes_from_cstring(NULL, head);
+        if (isdigit(c)) return scanner_get_atom(x, b, "number");
+        else return scanner_get_atom(x, b, "symbol");
+    }
+}
+
+void scanner_eof(scanner *x) {
+    printf("EOF\n");
+    exit(1);
+}
+
+int main(void) {
+    scanner x;
+    x.p = port_file_new(NULL, stdin, "<stdin>");
+    x.cont_eof;
+    for(;;) {
+        scanner_get_token(&x);
     }
 }
