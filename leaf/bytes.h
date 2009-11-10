@@ -19,6 +19,7 @@ struct _bytes {
     size_t bufsize;  // max bytes in buffer
 };
 
+bytes *bytes_copy(bytes* b);
 bytes* bytes_new(bytes_class *type, size_t size);
 // void *bytes_realloc(bytes *b, size_t size);
 

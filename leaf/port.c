@@ -60,18 +60,19 @@ int port_bytes_putc(port *p, int c) {
 }
 int port_bytes_write(port *p, void *buf, size_t len) {
     void *data = bytes_allot(p->stream.b.bytes, len);
-    return fwrite(buf, 1, len, data);
+    memcpy(data, buf, len);
+    return len;
 }
 void port_bytes_close(port *p) {
     if (p->stream.b.bytes) free_leaf((leaf_object*)(p->stream.b.bytes));
     p->stream.b.bytes = NULL;
 }
 void port_bytes_init(port *p) {
-    //p->vprintf = port_bytes_vprintf;
+    p->vprintf = port_bytes_vprintf;
     p->get     = port_bytes_getc;
-    //p->put     = port_bytes_putc;
-    //p->write   = port_bytes_write;
-    //p->close   = port_bytes_close;
+    p->put     = port_bytes_putc;
+    p->write   = port_bytes_write;
+    p->close   = port_bytes_close;
 }
 
 

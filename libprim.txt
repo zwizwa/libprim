@@ -5191,3 +5191,28 @@ matter.
 
 This will probably make a lot of code simpler.  Especially writing
 extensions.
+
+
+Entry: IO to string
+Date: Tue Nov 10 10:48:14 CET 2009
+
+In order for the normal write routines to work, the prototypes need to
+change so formatting can be done in two steps.
+
+> (define p (open-output-string))
+> (write 'd p)
+
+Program received signal SIGSEGV, Segmentation fault.
+0x0806b5d4 in _IO_str_overflow ()
+(gdb) bt
+#0  0x0806b5d4 in _IO_str_overflow ()
+#1  0x080699d3 in _IO_default_xsputn ()
+#2  0x0805d811 in vfprintf ()
+#3  0x082209a8 in ?? ()
+#4  0x00000001 in ?? ()
+#5  0xbfa435e0 in ?? ()
+#6  0xbfa455dc in ?? ()
+#7  0x08056309 in yy_Tail () at sexp.h_leg:620
+#8  0x08056626 in yy_Tail () at sexp.h_leg:624
+#9  0x00000000 in ?? ()
+(gdb) 

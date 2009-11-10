@@ -128,3 +128,9 @@ void *bytes_allot(bytes *b, size_t extra) {
     b->bytes[b->size] = 0; // zero-terminate
     return start;
 }
+
+bytes *bytes_copy(bytes* b) {
+    bytes *new_b = bytes_new(b->type, b->bufsize);
+    memcpy(new_b->bytes, b->bytes, b->bufsize);
+    return new_b;
+}

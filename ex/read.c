@@ -15,7 +15,8 @@ static port *p = NULL;
 #define SQUARE(x) x
 #define CONS(car,cdr) EX->make_pair(EX, car, cdr)
 #define NUMBER integer_to_object
-#define JUNK(str) CONS(SYMBOL("junk"), STRING(str))
+// FIXME: this is in-band data!
+#define JUNK(str) CONS(SYMBOL("__parse-junk__"), STRING(str))
 #define QUOTE(ob) CONS(SYMBOL("quote"), CONS(ob, NIL))
 #define UNQUOTE(ob) CONS(SYMBOL("unquote"), CONS(ob, NIL))
 #define UNQUOTE_SPLICING(ob) CONS(SYMBOL("unquote-splicing"), CONS(ob, NIL))
@@ -43,6 +44,17 @@ _ _ex_read(ex *ex, port *input_port) {
     ob = EOF_OBJECT;
     yyparse();
     // if (FALSE == ob) ERROR("parse", FALSE);
+    
+    pair *_p;
+    symbol *_s;
+
+    if ((_p = object_to_pair(ob)) && 
+        (_s = object_to_symbol(_p->car, ex)) &&
+        !(strcmp("__parse-junk__", _s->name))) {
+        ERROR("eof", _p->cdr);
+    }
+
     return ob;
+
 }
 

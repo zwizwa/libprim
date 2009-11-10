@@ -190,7 +190,21 @@ _ sc_write_bytes(sc *sc, _ ob_bytes, _ ob_port) {
 
 _ sc_newline(sc *sc) { return sc_display(sc, _sc_make_string(sc, "\n")); }
 
-_ sc_write(sc *sc,  _ o) {
+
+
+_ sc_write(sc *sc, _ o, _ o_port) {
+    /* This `dynamic-wind' hack only works because we're sure there
+       are no aborts in this dynamic extent!  FIXME: use explicit
+       lexical variables where possible. */
+    port *p = CAST(port, o_port);
+    _ saved_port = sc_global(sc, sc_slot_error_port);
+    sc_bang_set_global(sc, sc_slot_error_port, o_port);
+    _ rv = sc_write_stderr(sc, o);
+    sc_bang_set_global(sc, sc_slot_error_port, saved_port);
+    return rv;
+}
+
+_ sc_write_stderr(sc *sc,  _ o) {
     void *x;
     aref* a;
 
@@ -241,8 +255,8 @@ _ sc_print_error(sc *sc, _ err) {
             if (s) _ex_printf(EX, " in `%s'", s->name); 
         }
         _ex_printf(EX, ": ");
-        sc_write(sc, e->tag); _ex_printf(EX, ": ");
-        sc_write(sc, e->arg); _ex_printf(EX, "\n");
+        sc_write_stderr(sc, e->tag); _ex_printf(EX, ": ");
+        sc_write_stderr(sc, e->arg); _ex_printf(EX, "\n");
     }
     return VOID;
 }
@@ -273,6 +287,16 @@ _ sc_open_mode_file(sc *sc, _ path, _ mode) {
     FILE *f = fopen(b_path->bytes, b_mode->bytes);
     if (!f) ERROR("fopen", path);
     return _sc_make_file_port(sc, f, b_path->bytes);
+}
+_ sc_open_input_string(sc *sc, _ ob_str) {
+    bytes *b = CAST(bytes, ob_str);
+    bytes *copy_b = bytes_copy(b);
+    return _sc_make_bytes_port(sc, copy_b);
+}
+_ sc_open_output_string(sc *sc) {
+    bytes *b = bytes_new(TYPES->bytes_type, 20);
+    b->size = 0;
+    return _sc_make_bytes_port(sc, b);
 }
 
 // Manually call finalizer, creating a defunct object.
@@ -953,10 +977,11 @@ sc *_sc_new(int argc, char **argv) {
     TYPES->symbol_type = symbol_class_new(1000);
     TYPES->prim_type = (void*)0xF001; // dummy class
     TYPES->port_type = port_class_new();
+    TYPES->bytes_type = bytes_class_new();
 
     /* EX virtual methods */
     sc->m.port = (_ex_m_port)_sc_port;
-    sc->m.write = (ex_m_write)sc_write;
+    sc->m.write = (ex_m_write)sc_write_stderr;
     sc->m.make_string = (_ex_m_make_string)_sc_make_string;
     sc->m.make_qstring = (_ex_m_make_string)_sc_make_qstring;
     sc->m.make_pair = ex_cons;
