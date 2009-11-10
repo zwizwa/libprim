@@ -9,6 +9,7 @@ typedef struct _scanner scanner;
 typedef void (*eof_m)(scanner *x);
 struct _scanner {
     port *p;
+    bytes *b;
     eof_m cont_eof;
 };
 
@@ -55,28 +56,42 @@ int char_in(int c, const char *str) {
 }
 
 int scanner_isterm(scanner *x, int c) {
-    if (char_in(c, "()\',`") || isspace(c)) {
+    if (char_in(c, "()\',`#") || isspace(c)) {
         port_ungetc(x->p, c); return 1;
     }
     return 0;
 }
 
-token *scanner_get_atom(scanner *x, bytes *b, const char *tag) {
+token *scanner_save(scanner *x, char c) {
+    *bytes_allot(x->b, 1) = c;
+}
+
+
+token *scanner_get_atom(scanner *x, const char *tag) {
     int c;
     for(;;) {
         c = scanner_getc(x);
-        if (scanner_isterm(x, c)) return make_token(tag, b);
-        *bytes_allot(b, 1) = c;
+        if (scanner_isterm(x, c)) return make_token(tag, x->b);
+        scanner_save(x, c);
     }
 }
 token *make_0token(const char *name) { 
     return make_token(name, NULL); 
 }
 
+token *scanner_get_hash(scanner *x) {
+    int c = scanner_getc(x);
+    x->b->size = 0;
+    switch(c) {
+    case '\\':
+        return scanner_get_atom(x, "char");
+    }
+}
+
 token *scanner_get_token(scanner *x) {
-    int c = scanner_skip_getc(x);
-    bytes *b =  NULL;
-    char head[] = {0,0,0};
+    int c;
+    x->b->size = 0;
+    scanner_save(x, c = scanner_skip_getc(x));
 
     switch(c) {
     case '\'': return make_0token("quote");
@@ -84,22 +99,18 @@ token *scanner_get_token(scanner *x) {
     case ',':  return make_0token("unquote"); // FIXME: unquote-spicing
     case '(':  return make_0token("LP");
     case ')':  return make_0token("RP");
-        // case '#':  return scanner_get_hash(x);
+    case '#':  return scanner_get_hash(x);
         // case '"':  return scanner_get_string(x);
     case '.': 
-        head[0] = '.';
-        head[1] = c = scanner_getc(x);
+        scanner_save(x, c = scanner_getc(x));
         if (isspace(c)) return make_token("DOT", NULL);
         else {
-            b = bytes_from_cstring(NULL, head);
-            if (isdigit(c)) return scanner_get_atom(x, b, "number");
-            else return scanner_get_atom(x, b, "symbol");
+            if (isdigit(c)) return scanner_get_atom(x, "number");
+            else return scanner_get_atom(x, "symbol");
         }
     default:
-        head[0] = c;
-        b = bytes_from_cstring(NULL, head);
-        if (isdigit(c)) return scanner_get_atom(x, b, "number");
-        else return scanner_get_atom(x, b, "symbol");
+        if (isdigit(c)) return scanner_get_atom(x, "number");
+        else return scanner_get_atom(x, "symbol");
     }
 }
 
@@ -111,6 +122,7 @@ void scanner_eof(scanner *x) {
 int main(void) {
     scanner x;
     x.p = port_file_new(NULL, stdin, "<stdin>");
+    x.b = bytes_new(NULL, 10); x.b->size = 0;
     x.cont_eof;
     for(;;) {
         scanner_get_token(&x);
