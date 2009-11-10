@@ -1030,7 +1030,7 @@ sc *_sc_new(int argc, char **argv) {
     if (argc > 1)  bootfile = argv[1];
     if (!bootfile) bootfile = getenv("PRIM_BOOT_SCM");
     if (!bootfile) bootfile = PRIM_HOME "/boot.scm";
-    // _ex_printf(EX, "SC: booting from %s\n", bootfile);
+    _ex_printf(EX, "SC: booting from %s\n", bootfile);
     _sc_top(sc, _ex_boot_load(EX, bootfile));
     PURE();
     return sc;

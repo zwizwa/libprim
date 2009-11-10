@@ -172,9 +172,10 @@
 
 (define-macro (when form)
   (list 'if (cadr form)
-        (cons 'begin (cddr form))))
+        (cons 'begin (cddr form))
+        '(void)))
 (define-macro (unless form)
-  (list 'if (cadr form) (void)
+  (list 'if (cadr form) '(void)
         (cons 'begin (cddr form))))
 
 (define (open-output-file filename) (open-mode-file filename "w"))
