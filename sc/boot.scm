@@ -298,7 +298,8 @@
     (loop)))
 
 
-
+(define (read-string str) (read (open-input-string str)))
+(define (eval-string str) (eval (read-string str)))
 
 
 ;; (display "libprim/SC\n")

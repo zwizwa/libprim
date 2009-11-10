@@ -5216,3 +5216,11 @@ Program received signal SIGSEGV, Segmentation fault.
 #8  0x08056626 in yy_Tail () at sexp.h_leg:624
 #9  0x00000000 in ?? ()
 (gdb) 
+
+
+Essentially: all FILE* operations need to be replaced with port*
+operations + the routines need to return bytes written, and should be
+robust to NULL references, which will just get size estimates.
+
+Is there a way to use sprintf as a one-pass algo?
+
