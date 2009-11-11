@@ -54,8 +54,8 @@ static void *dflt_vector(void *x, void *lst) {
 
 
 void *parser_read(parser *p);
-static void *read_tail(parser *p);
-static void *read_list(parser *p);
+static void *read_tail(parser *p, int allow_dot);
+static void *read_list(parser *p, int allow_dot);
 
 static void *read_tagged(parser *p, const bytes *token) {
     void *payload = parser_read(p);
@@ -95,44 +95,46 @@ static const bytes *next(parser *p) {
 static void *make_any(parser *p, const bytes *tok) {
     switch(tok->bytes[0]) {
     case TOK_EOF:   return p->eof(p->ctx);
-    case TOK_VLEFT: return p->vector(p->ctx, read_list(p));
-    case TOK_LEFT:  return read_list(p);
+    case TOK_VLEFT: return p->vector(p->ctx, read_list(p, 0));
+    case TOK_LEFT:  return read_list(p, 1);
     case TOK_RIGHT: return p->atom(p->ctx, eright);
     case TOK_DOT:   return p->atom(p->ctx, edot);
     default:        return make_atom(p, tok);
     }
 }
 
-static void *read_list(parser *p) {
+static void *read_list(parser *p, int allow_dot) {
     const bytes *tok = next(p);
     switch(tok->bytes[0]) {
     case TOK_RIGHT: return p->nil(p->ctx);
     case TOK_DOT:   return p->atom(p->ctx, edot);
     }
     void *car = make_any(p, tok);
-    void *cdr = read_tail(p);
+    void *cdr = read_tail(p, allow_dot);
     return p->cons(p->ctx, car, cdr);
 }
 
-static void *read_tail(parser *p) {
+static void *read_tail(parser *p, int allow_dot) {
     const bytes *tok = next(p);
     switch(tok->bytes[0]) {
     case TOK_EOF:  return(p->atom(p->ctx, eright));
     case TOK_DOT:   
-    {
-        void *tail = parser_read(p);
-        tok = next(p);
-        if (TOK_RIGHT != tok->bytes[0]) {
-            // cons the tail so we won't leak
-            return p->cons(p->ctx, tail, p->atom(p->ctx, eright));
+        if (allow_dot) {
+            void *tail = parser_read(p);
+            tok = next(p);
+            if (TOK_RIGHT != tok->bytes[0]) {
+                // cons the tail so we won't leak
+                return p->cons(p->ctx, tail, p->atom(p->ctx, eright));
+            }
+            return tail;
         }
-        return tail;
-    }
+        else return p->atom(p->ctx, edot);
+        
     case TOK_RIGHT: return p->nil(p->ctx);
     default:
     {
         void *car = make_any(p, tok);
-        void *cdr = read_tail(p);
+        void *cdr = read_tail(p, allow_dot);
         return p->cons(p->ctx, car, cdr);
     }
     }
