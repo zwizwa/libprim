@@ -5247,3 +5247,18 @@ behaves as a buffer of bytes.
 
 - all leaf objects: printer routines in terms of 'port'
 
+Ok.. it took a bit longer than expected, but it looks like the
+parser's working.  At least, it takes the boot.scm input.
+
+The rest of the day maybe do some more testing.
+
+
+Entry: object structuring + exceptions
+Date: Wed Nov 11 15:44:27 CET 2009
+
+aborting the parser..  representing the parser in an object?
+connecting a parser straight to the port struct?
+
+latter is a bit dirty, but should work.
+
+found a simpler way: 

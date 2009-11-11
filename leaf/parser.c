@@ -67,7 +67,7 @@ static void parser_global_init(void) {
     if (!uqs) uqs = bytes_from_cstring(":unquote-splicing");
     if (!edot) edot = bytes_from_cstring("?.");
     if (!eright) eright = bytes_from_cstring("?)");
-    if (!eeof) eright = bytes_from_cstring("?EOF");
+    if (!eeof) eeof = bytes_from_cstring("?EOF");
 }
 static void *make_atom(parser *p, const bytes *tok) {
     switch(tok->bytes[0]) {
@@ -79,21 +79,32 @@ static void *make_atom(parser *p, const bytes *tok) {
     }
 }
 
-static void *make_any(parser *p, const bytes *tok) {
-    switch(tok->bytes[0]) {
-    case TOK_EOF:   return p->eof(p->ctx);
-    case TOK_LEFT:  return read_tail(p);
-    case TOK_RIGHT: return p->atom(p->ctx, eright);
-    case TOK_DOT:   return p->atom(p->ctx, edot);
-    default:        return make_atom(p, tok);
-    }
-}
-
 static const bytes *next(parser *p) {
     scanner_read(p->s);
     const bytes *tok = scanner_token(p->s);
     // fprintf(stderr, "TOK: %s\n", tok->bytes);
     return tok;
+}
+
+
+static void *make_any(parser *p, const bytes *tok) {
+    switch(tok->bytes[0]) {
+    case TOK_EOF:   return p->eof(p->ctx);
+    case TOK_LEFT: 
+    {
+        tok = next(p);
+        switch(tok->bytes[0]) {
+        case TOK_RIGHT: return p->nil(p->ctx);
+        case TOK_DOT:   return p->atom(p->ctx, edot);
+        }
+        void *car = make_any(p, tok);
+        void *cdr = read_tail(p);
+        return p->cons(p->ctx, car, cdr);
+    }
+    case TOK_RIGHT: return p->atom(p->ctx, eright);
+    case TOK_DOT:   return p->atom(p->ctx, edot);
+    default:        return make_atom(p, tok);
+    }
 }
 
 static void *read_tail(parser *p) {
