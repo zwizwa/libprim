@@ -1,6 +1,8 @@
 #ifndef _SYMBOL_H_
 #define _SYMBOL_H_
 
+#include <leaf/leaf.h>
+
 typedef struct _symbol  symbol;
 typedef struct _symbol_class symbol_class;
 
@@ -12,7 +14,7 @@ struct _symbol {
 };
 
 struct _symbol_class {
-    // leaf_class leaf; // FIXME: not used: this is a constant object (symbols are not GCd in EX)
+    leaf_class super;
     int nb_syms;
     int total;
     symbol **syms;

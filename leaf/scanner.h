@@ -32,6 +32,10 @@ struct _scanner {
     port *p;
     bytes *b;
     eof_m cont_eof;
+
+    // these start at 1
+    int line;
+    int col;
 };
 
 typedef bytes token;

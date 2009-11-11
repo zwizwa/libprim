@@ -2,11 +2,17 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include "symbol.h"
+#include <leaf/symbol.h>
+#include <leaf/port.h>
+
+static int symbol_write(symbol *s, port *p) {
+    return port_printf(p, "%s", s->name);
+}
 
 static symbol_class *type = NULL;
 static symbol_class *symbol_class_new(int total) {
     symbol_class *s = calloc(1, sizeof(*s));
+    s->super.write = (leaf_write_m)symbol_write;
     s->nb_syms = 0;
     s->total = total;
     s->syms = malloc(sizeof(symbol) * total);

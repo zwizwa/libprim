@@ -12,6 +12,10 @@
 
 static int next_getc(scanner *x) {
     int c = port_getc(x->p);
+
+    if ('\n' == c) {x->line++; x->column=1;}
+    else {x->column++;}
+
     if (EOF == c) {
         x->cont_eof(x);  // continuation. does not return.
         printf("EOF\n");

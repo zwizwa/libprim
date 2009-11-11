@@ -17,6 +17,7 @@ static int tree_write(tree *x, port *p) {
     int i, num = 0;
     num += port_printf(p, "{");
     for (i=0; i<x->size; i++) {
+        if (i) { num += 1; port_putc(p, ' '); }
         if (x->slot[i]) {
             num += leaf_write(x->slot[i], p);
         }

@@ -41,6 +41,7 @@ static void *dflt_atom(void *x, const bytes *b) {
 
     const char *tag;
     switch(b->bytes[0]) {
+    case TOK_CHAR:   tag = "char"; break;
     case TOK_STRING: tag = "string"; break;
     case TOK_NUMBER: tag = "number"; break;
     case TOK_SYMBOL: tag = "symbol"; break;
