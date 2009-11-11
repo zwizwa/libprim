@@ -259,7 +259,7 @@ void _sc_def_prim(sc *sc, const char *str, void *fn, long nargs);
 #define DEF(str,fn,nargs) _sc_def_prim (sc,str,fn,nargs)
 
 
-_ _sc_make_aref(sc *sc, leaf_object *);
+_ _sc_make_aref(sc *sc, void *x);  // actually. x is a leaf_object
 _ _sc_make_symbol(sc *sc, const char *str);
 _ _sc_make_string(sc *sc, const char *str);
 

@@ -1,5 +1,5 @@
 
-SRC=port.c bytes.c symbol.c 
+SRC=port.c bytes.c symbol.c sexp-tok.c
 
 
 OBJ=$(SRC:.c=.o)

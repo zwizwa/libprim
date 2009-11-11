@@ -1,23 +1,33 @@
 
+/* Scheme-style s-expression tokenizer.  This produces bytes objects
+   where the first character represents the token tag. */
+
+#define TOK_STRING      '"'
+#define TOK_NUMBER      '0'
+#define TOK_SYMBOL      ':'
+#define TOK_CHAR        '$'
+#define TOK_HASH        '#'
+
+#define TOK_QUASI_QUOTE      '`'
+#define TOK_QUOTE            '\''
+#define TOK_UNQUOTE          ','
+#define TOK_UNQUOTE_SPLICING '@'
+
+#define TOK_LEFT        '('
+#define TOK_DOT         '.'
+#define TOK_RIGHT       ')'
+
+#define TOK_EOF         'E'
+#define TOK_ERROR       '?'
+
+
 #include <leaf/port.h>
 #include <leaf/bytes.h>
 
 #include <stdlib.h>
+#include <ctype.h>
 
-#define TOK_STRING      'B'
-#define TOK_NUMER       'N'
-#define TOK_SYMBOL      'S'
 
-#define TOK_QUASI_QUOTE      'A'
-#define TOK_QUOTE            'Q'
-#define TOK_UNQUOTE          'U'
-#define TOK_UNQUOTE_SPLICING 'V'
-
-#define TOK_DOT         'D'
-#define TOK_LEFT        'L'
-#define TOK_RIGHT       'R'
-
-/* Scheme-style s-expression tokenizer. */
 typedef struct _scanner scanner;
 typedef void (*eof_m)(scanner *x);
 struct _scanner {
@@ -77,12 +87,12 @@ int scanner_isterm(scanner *x, int c) {
     return 0;
 }
 
-token *scanner_save(scanner *x, char c) {
+void scanner_save(scanner *x, char c) {
     *bytes_allot(x->b, 1) = c;
 }
 void scanner_reset(scanner *x) {
     x->b->size = 1;
-    x->b->bytes[0] = '?';
+    x->b->bytes[0] = TOK_ERROR;
     x->b->bytes[1] = 0;
 }
 
@@ -104,15 +114,18 @@ token *scanner_get_hash(scanner *x) {
     scanner_reset(x);
     switch(c) {
     case '\\':
-        return scanner_get_atom(x, 'C');
+        return scanner_get_atom(x, TOK_CHAR);
+    default:
+        return scanner_get_atom(x, TOK_HASH);
     }
+    
 }
 token *scanner_get_string(scanner *x) {
     int c;
     scanner_reset(x);
     for(;;) {
         c = scanner_getc(x);
-        if (c == '"') return make_token(x, 'B');
+        if (c == '"') return make_token(x, TOK_STRING);
         if (c == '\\') {
             c = scanner_getc(x);
             switch(c) {
@@ -127,29 +140,27 @@ token *scanner_get_string(scanner *x) {
 
 token *scanner_get_token(scanner *x) {
     int c;
-    if (!x->b) x->b = bytes_new(NULL, 20);
+    if (!x->b) x->b = bytes_new(20);
     scanner_reset(x);
     scanner_save(x, c = scanner_skip_getc(x));
 
     switch(c) {
-    case '\'': return make_0token(x, 'Q');
-    case '`':  return make_0token(x, 'A');
-    case ',':  return make_0token(x, 'U'); // FIXME: unquote-spicing
-    case '(':  return make_0token(x, 'L');
-    case ')':  return make_0token(x, 'R');
+    case '\'': return make_0token(x, TOK_QUOTE);
+    case '`':  return make_0token(x, TOK_QUASI_QUOTE);
+    case ',':  return make_0token(x, TOK_UNQUOTE); // FIXME: unquote-spicing
+    case '(':  return make_0token(x, TOK_LEFT);
+    case ')':  return make_0token(x, TOK_RIGHT);
     case '#':  return scanner_get_hash(x);
     case '"':  return scanner_get_string(x);
     case '.': 
         scanner_save(x, c = scanner_getc(x));
-        if (isspace(c)) return make_0token(x, 'D');
-        else {
-            if (isdigit(c)) return scanner_get_atom(x, 'N');
-            else return scanner_get_atom(x, 'S');
-        }
+        if (isspace(c)) return make_0token(x, TOK_DOT);
+        break;
     default:
-        if (isdigit(c)) return scanner_get_atom(x, 'N');
-        else return scanner_get_atom(x, 'S');
+        break;
     }
+    if (isdigit(c)) return scanner_get_atom(x, TOK_NUMBER);
+    else return scanner_get_atom(x, TOK_SYMBOL);
 }
 
 void scanner_eof(scanner *x) {
@@ -157,12 +168,14 @@ void scanner_eof(scanner *x) {
     exit(1);
 }
 
+#if _TEST_
 int main(void) {
     scanner x;
-    x.p = port_file_new(NULL, stdin, "<stdin>");
+    x.p = port_file_new(stdin, "<stdin>");
     x.b = NULL;
     x.cont_eof;
     for(;;) {
         scanner_get_token(&x);
     }
 }
+#endif

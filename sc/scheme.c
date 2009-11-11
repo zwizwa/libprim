@@ -35,7 +35,7 @@
    correct. */
 #define OBJECT_PREDICATE(cast) \
     {if (cast(o, &sc->m)) return TRUE; else return FALSE;}
-// _ sc_is_ck(sc *sc, _ o)     { OBJECT_PREDICATE(object_to_ck); }
+// _ _DISABLED_sc_is_ck(sc *sc, _ o)     { OBJECT_PREDICATE(object_to_ck); }
 _ sc_is_port(sc *sc, _ o)   { OBJECT_PREDICATE(object_to_port); }
 _ sc_is_bytes(sc *sc, _ o)  { OBJECT_PREDICATE(object_to_bytes); }
 
@@ -106,23 +106,22 @@ _ sc_make_k_seq(sc *sc, _ P, _ T)            {STRUCT(TAG_K_SEQ,    3, P,NIL,T);}
 /* Wrap a leaf object in an aref struct.  The destructor is gathered
    from the leaf_class.  Note that GC finalizers are pointers to
    function pointers (this is because function pointers themselves
-   might not be aligned. */
+   might not be aligned, and thus have no space for bit tags. */
 
-
-
-
-_ _sc_make_aref(sc *sc, leaf_object *ob) {
-    return sc_make_aref(sc, fin_to_object((fin*)(&ob->methods->free)), const_to_object(ob));
+_ _sc_make_aref(sc *sc, void *_x) {
+    leaf_object *x = _x;
+    fin *f = (fin*)&x->methods->free;
+    return sc_make_aref(sc, fin_to_object(f), const_to_object(x));
 }
 
 _ _sc_make_string(sc *sc, const char *str) {
-    return _sc_make_aref(sc, (leaf_object*)bytes_from_cstring(str));
+    return _sc_make_aref(sc, bytes_from_cstring(str));
 }
 _ _sc_make_qstring(sc *sc, const char *str) {
-    return _sc_make_aref(sc, (leaf_object*)bytes_from_qcstring(str));
+    return _sc_make_aref(sc, bytes_from_qcstring(str));
 }
 _ _sc_make_bytes(sc *sc, int size) {
-    return _sc_make_aref(sc,  (leaf_object*)bytes_new(size));
+    return _sc_make_aref(sc, bytes_new(size));
 }
 
 _ sc_make_mt(sc *sc)    { return MT; }
