@@ -112,3 +112,51 @@ void* ck_yield(ck_class *m, void *value) {
 
 
 
+#if 0
+
+// test code from scheme.c
+
+/* Invoke a C continuation 
+   
+   This is a data barrier: C tasks can never have access to Scheme
+   objects.  All data passes through a converter in the ck_manager.
+*/
+
+
+static _ test_ck(ck_class *m, _ o) {
+    printf("1: test_ck()\n"); o = (object)ck_yield(m, (void*)o);
+    printf("2: test_ck()\n"); o = (object)ck_yield(m, (void*)o);
+    printf("3: test_ck()\n");
+    return o;
+}
+
+_ sc_with_ck(sc *sc, _ in_ref, _ value) {
+    ck *task = NULL;
+    ck_start fn = NULL;
+    if (!(task = object_to_ck(in_ref, &sc->m))) {
+        fn = (ck_start)test_ck;
+    }
+    ck *in_task = task;
+
+    // alloc before call
+    _ ref = sc_make_aref(sc, NIL, NIL);
+    _ stream = CONS(NIL, ref);  
+    
+    ck_invoke(TYPES->ck_type, fn, &task, (void**)&value);
+
+    if (!task) return value;
+    else {
+        pair *p = object_to_pair(stream);
+        p->car = value;
+        if (in_task == task) {
+            p->cdr  = in_ref;
+        }
+        else {
+            aref *r = object_to_aref(ref);
+            r->object = const_to_object(task);
+            r->fin    = fin_to_object((fin *)TYPES->ck_type);
+        }
+        return stream;
+    }
+}
+#endif

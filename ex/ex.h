@@ -2,6 +2,7 @@
 #define _MEM_H_
 
 #include <ctype.h>
+#include <setjmp.h>
 
 /* Basic memory model for the Scheme and PF scripting languages.  This
    includes GCd vectors, and opaque primitive leaf types and
@@ -9,7 +10,7 @@
 
 /* Lowelevel opaque primtive (leaf) objects. */
 #include <leaf/symbol.h>
-#include <leaf/task.h>   // ck : abstraction for C stack
+// #include <leaf/task.h>   // ck : abstraction for C stack
 #include <leaf/port.h>
 #include <leaf/bytes.h>
 #include <ex/pair.h>
@@ -22,7 +23,7 @@
 
 typedef struct {
     symbol_class *symbol_type;
-    ck_class *ck_type;
+    // ck_class *ck_type;
     prim_class *prim_type;
     port_class *port_type;
     bytes_class *bytes_type;

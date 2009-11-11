@@ -202,7 +202,7 @@ static inline void *object_aref_struct(object ob, ex *m, void *type) {
 
 
 // GC finalized objects
-DEF_AREF_TYPE(ck)
+// DEF_AREF_TYPE(ck)
 DEF_AREF_TYPE(port)
 DEF_AREF_TYPE(bytes)
 
