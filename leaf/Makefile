@@ -1,5 +1,6 @@
 
-SRC=port.c bytes.c symbol.c sexp-tok.c
+SRC=port.c bytes.c symbol.c scanner.c parser.c
+
 
 
 OBJ=$(SRC:.c=.o)

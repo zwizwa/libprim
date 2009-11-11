@@ -1,5 +1,5 @@
 
-/* Scheme-style s-expression tokenizer.  This produces bytes objects
+/* Scheme-style s-expression scanner.  This produces bytes objects
    where the first character represents the token tag. */
 
 #define TOK_STRING      '"'
