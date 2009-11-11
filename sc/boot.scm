@@ -268,7 +268,7 @@
         (write-port it (car port)))))
 
 (define write (make-writer write-port))
-(define display (make-writer display-port))
+(define display (make-writer write-bytes))
 
 (define (newline . port)
   (let ((cr "\n"))

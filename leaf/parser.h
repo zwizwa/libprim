@@ -7,15 +7,16 @@ typedef struct _parser parser;
 typedef void* (*parser_atom)(void *ctx, const bytes*);
 typedef void* (*parser_ob)(void *ctx);
 typedef void* (*parser_cons)(void *ctx, void *a1, void *a2);
+typedef void* (*parser_vector)(void *ctx, void *lst);
 
 struct _parser {
     scanner* s;
-
     void *ctx;
-    parser_atom atom;
-    parser_cons cons;
-    parser_ob   nil;
-    parser_ob   eof;
+    parser_atom   atom;
+    parser_cons   cons;
+    parser_vector vector;
+    parser_ob     nil;
+    parser_ob     eof;
 };
 
 /* By default the parser produces symbol tagged tree instances.

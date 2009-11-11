@@ -14,7 +14,12 @@ typedef struct {
 
 static _ _nil(void) { return NIL; }
 static _ _eof(void) { return EOF_OBJECT; }
-static _ _cons(parser_ctx *x, _ car, _ cdr) {return x->ex->make_pair(x->ex, car, cdr);}
+static _ _cons(parser_ctx *x, _ car, _ cdr) {
+    return x->ex->make_pair(x->ex, car, cdr);
+}
+static _ _vector(parser_ctx *x, _ lst) {
+    return ex_list_to_vector(x->ex, lst);
+}
 static _ _atom(parser_ctx *x, const bytes *tok) {
     ex* ex = x->ex;
     const char *str = tok->bytes+1;
@@ -36,8 +41,9 @@ _ _ex_read(ex *ex, port *input_port) {
     p->ctx  = &x;
     p->cons = (parser_cons)_cons;
     p->atom = (parser_atom)_atom;
-    p->nil  = (parser_ob)_nil;
-    p->eof  = (parser_ob)_eof;
+    p->nil = (parser_ob)_nil;
+    p->eof = (parser_ob)_eof;
+    p->vector = (parser_vector)_vector;
 
     _ ob = NIL;
     if (!setjmp(x.jb)) {

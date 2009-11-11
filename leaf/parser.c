@@ -45,11 +45,17 @@ static void *dflt_cons(void *x, void *car, void *cdr) {
     t->slot[2] = cdr;
     return t;
 }
-
+static void *dflt_vector(void *x, void *lst) {
+    tree *t = tree_new(2);
+    t->slot[0] = (leaf_object*)symbol_from_cstring("vector");
+    t->slot[1] = lst;
+    return t;
+}
 
 
 void *parser_read(parser *p);
 static void *read_tail(parser *p);
+static void *read_list(parser *p);
 
 static void *read_tagged(parser *p, const bytes *token) {
     void *payload = parser_read(p);
@@ -86,32 +92,30 @@ static const bytes *next(parser *p) {
     return tok;
 }
 
-
 static void *make_any(parser *p, const bytes *tok) {
     switch(tok->bytes[0]) {
     case TOK_EOF:   return p->eof(p->ctx);
-    case TOK_VLEFT:  // FIXME: vectors parse as lists
-    case TOK_LEFT: 
-    {
-        tok = next(p);
-        switch(tok->bytes[0]) {
-        case TOK_RIGHT: return p->nil(p->ctx);
-        case TOK_DOT:   return p->atom(p->ctx, edot);
-        }
-        void *car = make_any(p, tok);
-        void *cdr = read_tail(p);
-        return p->cons(p->ctx, car, cdr);
-    }
+    case TOK_VLEFT: return p->vector(p->ctx, read_list(p));
+    case TOK_LEFT:  return read_list(p);
     case TOK_RIGHT: return p->atom(p->ctx, eright);
     case TOK_DOT:   return p->atom(p->ctx, edot);
     default:        return make_atom(p, tok);
     }
 }
 
-static void *read_tail(parser *p) {
-
+static void *read_list(parser *p) {
     const bytes *tok = next(p);
+    switch(tok->bytes[0]) {
+    case TOK_RIGHT: return p->nil(p->ctx);
+    case TOK_DOT:   return p->atom(p->ctx, edot);
+    }
+    void *car = make_any(p, tok);
+    void *cdr = read_tail(p);
+    return p->cons(p->ctx, car, cdr);
+}
 
+static void *read_tail(parser *p) {
+    const bytes *tok = next(p);
     switch(tok->bytes[0]) {
     case TOK_EOF:  return(p->atom(p->ctx, eright));
     case TOK_DOT:   
@@ -152,6 +156,7 @@ parser *parser_new(port *prt) {
     p->cons = dflt_cons;
     p->nil  = dflt_nil;
     p->eof  = dflt_eof;
+    p->vector = dflt_vector;
     return p;
 }
 

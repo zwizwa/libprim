@@ -172,11 +172,6 @@ _ sc_bytes_dump(sc *sc, _ ob) {
     bytes_dump(CAST(bytes, ob), _sc_port(sc));
     return VOID;
 }
-_ sc_display_port(sc *sc, _ o, _ o_port) {
-    bytes *b = CAST(bytes, o);
-    port_write(CAST(port, o_port), b->bytes, strlen(b->bytes));
-    return VOID;
-}
 
 _ sc_write_bytes(sc *sc, _ ob_bytes, _ ob_port) {
     port *p = CAST(port, ob_port);
