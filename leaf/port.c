@@ -127,17 +127,21 @@ void port_free(port *x) {
 
 
 
-
-port_class *port_class_new(void) {
+static port_class *type = NULL;
+static port_class *port_class_new(void) {
     port_class *x = calloc(1, sizeof(*x));
     x->super.free = (leaf_free)port_free;
     return x;
 }
-port *port_file_new(port_class *type, FILE *f, const char *name) {
+port_class *port_type(void) {
+    if (!type) type = port_class_new();
+    return type;
+}
+port *port_file_new(FILE *f, const char *name) {
     if (!f) return NULL;
     port *x = calloc(1, sizeof(*x));
     port_file_init(x);
-    x->type = type;
+    x->type = port_type();
     x->stream.file = f;
     x->name = NULL;
     if (name) {
@@ -146,11 +150,11 @@ port *port_file_new(port_class *type, FILE *f, const char *name) {
     }
     return x;
 }
-port *port_bytes_new(port_class *type, bytes *b) {
+port *port_bytes_new(bytes *b) {
     if (!b) return NULL;
     port *x = calloc(1, sizeof(*x));
     port_bytes_init(x);
-    x->type = type;
+    x->type = port_type();
     x->stream.b.bytes = b;
     x->stream.b.read_index = 0;
     x->name = malloc(9);

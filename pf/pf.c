@@ -191,7 +191,7 @@ void pf_exchange(pf *pf) {
 // this uses linear cons from EX->make_pair
 void pf_read(pf *pf) {
     static port *p = NULL;
-    if (!p) p = port_file_new(TYPES->port_type, stdin, "<stdin>");
+    if (!p) p = port_file_new(stdin, "<stdin>");
     PUSH_P(_ex_read(EX, p));
 }
 
@@ -773,7 +773,7 @@ pf* _px_new(void) {
     pf->m.p = malloc(sizeof(*(pf->m.p)));
     TYPES->ck_type = ck_class_new();
     TYPES->symbol_type = symbol_class_new(1000);
-    TYPES->port_type = port_class_new();
+    TYPES->port_type = port_type();
     TYPES->bytes_type = bytes_type();
     TYPES->prim_type = (void*)0xF001; 
     TYPES->rc_type = (void*)0xF002; 

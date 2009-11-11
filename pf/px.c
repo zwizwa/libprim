@@ -65,7 +65,7 @@ _ _px_make_rc(pf *pf, leaf_object *ob) {
 }
 
 _ _px_make_port(pf *pf, FILE *f, const char *name) {
-    return _px_make_rc(pf, (leaf_object*)port_file_new(TYPES->port_type, stdout, name));
+    return _px_make_rc(pf, (leaf_object*)port_file_new(stdout, name));
 }
 _ _px_make_string(pf *pf, const char *name) {
     return _px_make_rc(pf, (leaf_object*)bytes_from_cstring(name));

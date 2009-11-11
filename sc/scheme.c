@@ -276,10 +276,10 @@ _ sc_bytes_length(sc *sc, _ ob) {
 }
 
 _ _sc_make_file_port(sc *sc, FILE *f, const char *name) {
-    return _sc_make_aref(sc, (leaf_object *)port_file_new(TYPES->port_type, f, name));
+    return _sc_make_aref(sc, (leaf_object *)port_file_new(f, name));
 }
 _ _sc_make_bytes_port(sc *sc, bytes *b) {
-    return _sc_make_aref(sc, (leaf_object *)port_bytes_new(TYPES->port_type, b));
+    return _sc_make_aref(sc, (leaf_object *)port_bytes_new(b));
 }
 _ sc_open_mode_file(sc *sc, _ path, _ mode) {
     bytes *b_path = CAST(bytes, path);
@@ -974,7 +974,7 @@ sc *_sc_new(int argc, char **argv) {
     TYPES->ck_type = ck_class_new();
     TYPES->symbol_type = symbol_class_new(1000);
     TYPES->prim_type = (void*)0xF001; // dummy class
-    TYPES->port_type = port_class_new();
+    TYPES->port_type = port_type();
     TYPES->bytes_type = bytes_type();
 
     /* EX virtual methods */

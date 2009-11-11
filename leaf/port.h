@@ -49,8 +49,8 @@ void port_close(port *x);
 
 void port_free(port *x);
 int port_printf(port *p, const char *fmt, ...);
-port_class* port_class_new(void);
-port *port_file_new(port_class *type, FILE *f, const char *name);
-port *port_bytes_new(port_class *type, bytes *b);
+port_class* port_type(void);
+port *port_file_new(FILE *f, const char *name);
+port *port_bytes_new(bytes *b);
 
 #endif
