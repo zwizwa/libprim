@@ -2,7 +2,7 @@
 #define _BYTES_H_
 
 #include <stdio.h>
-#include <leaf/class.h>
+#include <leaf/leaf.h>
 #include <leaf/port.h>
 
 typedef void (*bytes_free)(bytes *p);
@@ -27,7 +27,7 @@ bytes_class* bytes_type(void);
 bytes* bytes_from_cstring(const char *str);
 bytes* bytes_from_qcstring(const char *str);
 
-void bytes_write_string(bytes *b, port *p);
+int bytes_write_string(bytes *b, port *p);
 
 /* C strings need one extra byte to contain the zero terminator.  This
    is not included in the buffer's `size' field. 

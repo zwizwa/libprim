@@ -3,7 +3,7 @@
 
 #include <stdio.h>
 #include <stdarg.h>
-#include <leaf/class.h>
+#include <leaf/leaf.h>
 
 /* Ports are abstract.  Next to libc FILE ports they can represent
    anything that produces or consumes bytes. */

@@ -6,7 +6,7 @@
 
 static symbol_class *type = NULL;
 static symbol_class *symbol_class_new(int total) {
-    symbol_class *s = malloc(sizeof(*s));
+    symbol_class *s = calloc(1, sizeof(*s));
     s->nb_syms = 0;
     s->total = total;
     s->syms = malloc(sizeof(symbol) * total);

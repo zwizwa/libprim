@@ -5,6 +5,7 @@
 #include <leaf/symbol.h>
 #include <leaf/tree.h>
 #include <string.h>
+#include <stdlib.h>
 
 typedef struct _parser parser;
 typedef void* (*parser_atom)(void *x, const bytes*);
@@ -76,7 +77,7 @@ static void parser_global_init(void) {
     if (!uq) uq = bytes_from_cstring(":unquote");
     if (!uqs) uqs = bytes_from_cstring(":unquote-splicing");
     if (!edot) edot = bytes_from_cstring("?.");
-    if (!eright) edot = bytes_from_cstring("?)");
+    if (!eright) eright = bytes_from_cstring("?)");
 }
 static void *make_atom(parser *p, const bytes *tok) {
     switch(tok->bytes[0]) {
@@ -102,12 +103,29 @@ static void *make_any(parser *p, const bytes *tok) {
     }
 }
 
-static void *read_tail(parser *p) {
+static const bytes *next(parser *p) {
     scanner_read(p->s);
     const bytes *tok = scanner_token(p->s);
+    fprintf(stderr, "TOK: %s\n", tok->bytes);
+    return tok;
+}
+
+static void *read_tail(parser *p) {
+
+    const bytes *tok = next(p);
+
     switch(tok->bytes[0]) {
-    case TOK_DOT:  return parser_read(p);
-    case TOK_LEFT: return p->nil(p->x);
+    case TOK_DOT:   
+    {
+        void *tail = parser_read(p);
+        tok = next(p);
+        if (TOK_RIGHT != tok->bytes[0]) {
+            // cons the tail so we won't leak
+            return p->cons(p->x, tail, p->atom(p->x, eright));
+        }
+        return tail;
+    }
+    case TOK_RIGHT: return p->nil(p->x);
     default:
     {
         void *car = make_any(p, tok);
@@ -119,8 +137,7 @@ static void *read_tail(parser *p) {
 
 void *parser_read(parser *p) {
     parser_global_init();
-    scanner_read(p->s);
-    const bytes *tok = scanner_token(p->s);
+    const bytes *tok = next(p);
     return make_any(p, tok);
 }
 
@@ -132,13 +149,14 @@ parser *parser_new(port *prt) {
     p->atom = dflt_atom;
     p->cons = dflt_cons;
     p->nil  = dflt_nil;
+    return p;
 }
 
 #ifdef _PARSER_TEST_
 int main(void) {
     parser *par = parser_new(port_file_new(stdin, "<stdin>"));
-    leaf_object *o = (leaf_object*)parser_read(p);
-    // print leaf object
+    leaf_object *o = (leaf_object*)parser_read(par);
+    leaf_write(o, port_file_new(stdout, "<stdout>"));
     return 0;
 }
 #endif

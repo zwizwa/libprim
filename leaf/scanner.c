@@ -65,6 +65,7 @@ static void scanner_get_atom(scanner *x, char tag) {
     for(;;) {
         c = next_getc(x);
         if (char_in(c, "()\',`#;\"") || isspace(c)) {
+            port_ungetc(x->p, c);
             set_token(x, tag);
             return;
         }

@@ -75,7 +75,7 @@ int port_bytes_write(port *p, void *buf, size_t len) {
     return len;
 }
 void port_bytes_close(port *p) {
-    if (p->stream.b.bytes) free_leaf((leaf_object*)(p->stream.b.bytes));
+    if (p->stream.b.bytes) leaf_free((leaf_object*)(p->stream.b.bytes));
     p->stream.b.bytes = NULL;
 }
 void port_bytes_init(port *p) {
@@ -130,7 +130,7 @@ void port_free(port *x) {
 static port_class *type = NULL;
 static port_class *port_class_new(void) {
     port_class *x = calloc(1, sizeof(*x));
-    x->super.free = (leaf_free)port_free;
+    x->super.free = (leaf_free_m)port_free;
     return x;
 }
 port_class *port_type(void) {

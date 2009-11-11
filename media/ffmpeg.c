@@ -24,8 +24,8 @@ codec *codec_new(codec_class *type, const char *name) {
 }
 codec_class *codec_class_new(void) {
     codec_class *x = malloc(sizeof(*x)); 
-    x->super.free = (leaf_free)free; 
-    x->super.write = (leaf_write)codec_write;
+    x->super.free  = (leaf_free_m)free; 
+    x->super.write = (leaf_write_m)codec_write;
     return x; 
 }
 
@@ -68,8 +68,8 @@ static void codec_context_write(codec_context *c, FILE *f) {
 
 codec_context_class *codec_context_class_new(void) {
     codec_context_class *x = malloc(sizeof(*x)); 
-    x->super.free = (leaf_free)codec_context_free;
-    x->super.write = (leaf_write)codec_context_write;
+    x->super.free  = (leaf_free_m)codec_context_free;
+    x->super.write = (leaf_write_m)codec_context_write;
     return x; 
 }
 
@@ -126,15 +126,15 @@ static void aframe_free(aframe *f) {
 }
 vframe_class *vframe_class_new(void) {
     vframe_class *x = malloc(sizeof(*x)); 
-    x->super.free = (leaf_free)vframe_free;
-    x->super.write = (leaf_write)vframe_write;
+    x->super.free  = (leaf_free_m)vframe_free;
+    x->super.write = (leaf_write_m)vframe_write;
     return x; 
 }
 
 aframe_class *aframe_class_new(void) {
     aframe_class *x = malloc(sizeof(*x)); 
-    x->super.free = (leaf_free)aframe_free;
-    x->super.write = (leaf_write)aframe_write;
+    x->super.free  = (leaf_free_m)aframe_free;
+    x->super.write = (leaf_write_m)aframe_write;
     return x; 
 }
 

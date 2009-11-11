@@ -2,7 +2,7 @@
 #define _SCHEME_H_
 
 #include <setjmp.h>
-#include <leaf/class.h>
+#include <leaf/leaf.h>
 #include <ex/ex.h>
 #include <ex/ex.h_ex_prims>
 

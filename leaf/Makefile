@@ -1,5 +1,6 @@
 
-SRC=port.c bytes.c symbol.c scanner.c parser.c tree.c
+SRC=port.c bytes.c symbol.c scanner.c parser.c tree.c leaf.c
+
 
 
 
@@ -16,3 +17,7 @@ libprim_leaf.a: $(OBJ)
 
 include ../Makefile.defs
 include ../Makefile.rules
+
+parser: all
+	gcc -g -D _PARSER_TEST_ -I /home/tom/libprim parser.c bytes.o \
+		scanner.o port.o tree.o leaf.o symbol.o -o parser

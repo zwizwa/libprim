@@ -12,7 +12,7 @@
 #ifndef _TREE_H_
 #define _TREE_H_
 
-#include <leaf/class.h>
+#include <leaf/leaf.h>
 
 typedef struct _tree tree;
 

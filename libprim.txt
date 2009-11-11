@@ -5244,3 +5244,6 @@ Date: Wed Nov 11 11:37:50 CET 2009
 
 I'm thinking to use the 'bytes' type to implement any data type that
 behaves as a buffer of bytes.
+
+- all leaf objects: printer routines in terms of 'port'
+

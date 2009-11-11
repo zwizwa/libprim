@@ -9,8 +9,9 @@ static void _bytes_free(bytes *x) {
 
 static bytes_class *type = NULL;
 static bytes_class *bytes_class_new(void) {
-    bytes_class *x = malloc(sizeof(*x));
-    x->super.free = (leaf_free)_bytes_free;
+    bytes_class *x = calloc(1, sizeof(*x));
+    x->super.free = (leaf_free_m)_bytes_free;
+    x->super.write = (leaf_write_m)bytes_write_string;
     return x;
 }
 bytes_class *bytes_type(void) {
@@ -82,20 +83,22 @@ static void _write_hex(port *p, int val, int digits) {
 }
 
 /* This prints full-length byte buffers, not C strings. */
-void bytes_write_string(bytes *b, port *p) {
+int bytes_write_string(bytes *b, port *p) {
     size_t i = 0;
+    int num = 0;
     int c;
 
-    port_putc(p, '"');
+    port_putc(p, '"'); num++;
     for(i = 0; i<b->size; i++) {
         c = b->bytes[i];
-        if (c == '"')  { port_putc(p, '\\'); port_putc(p, '"'); }
-        else if (c == '\n') { port_putc(p, '\\'); port_putc(p, 'n'); }
-        else if (c == '\\') { port_putc(p, '\\'); port_putc(p, '\\'); }
-        else if ((c >= 32) && (c < 127)) port_putc(p, c);
-        else {port_putc(p, '\\'); port_putc(p, 'x'); _write_hex(p, c, 2);}
+        if (c == '"')  { port_putc(p, '\\'); port_putc(p, '"'); num += 2; }
+        else if (c == '\n') { port_putc(p, '\\'); port_putc(p, 'n'); num += 2;}
+        else if (c == '\\') { port_putc(p, '\\'); port_putc(p, '\\'); num += 2;}
+        else if ((c >= 32) && (c < 127)) {port_putc(p, c); num ++; }
+        else {port_putc(p, '\\'); port_putc(p, 'x'); _write_hex(p, c, 2); num += 4;}
     }
-    port_putc(p, '"');
+    port_putc(p, '"'); num ++;
+    return num;
 }
 
 void bytes_dump(bytes *b, port *p) {

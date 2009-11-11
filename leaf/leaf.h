@@ -16,8 +16,8 @@ you wrap them according to this interface.
 */
 
 
-#ifndef __LEAF_CLASS_H__
-#define __LEAF_CLASS_H__
+#ifndef __LEAF_H__
+#define __LEAF_H__
 
 #include <stdio.h>
 
@@ -29,13 +29,13 @@ typedef struct _bytes bytes;
 typedef struct _leaf_class leaf_class;
 typedef struct _leaf_object leaf_object;
 
-typedef void (*leaf_free)(leaf_object *);
-typedef void (*leaf_write)(leaf_object *, port *);
+typedef void (*leaf_free_m)(leaf_object *);
+typedef int (*leaf_write_m)(leaf_object *, port *);
 
 // a class is a collection of methods
 struct _leaf_class {
-    leaf_free free;
-    leaf_write write;
+    leaf_free_m free;
+    leaf_write_m write;
 };
 
 // an object refers to its class
@@ -43,10 +43,10 @@ struct _leaf_object {
     leaf_class *methods;
 };
 
+void leaf_free(leaf_object *x);
+int leaf_write(leaf_object *x, port *p);
 
-static inline void free_leaf(leaf_object *x) {
-    x->methods->free(x);
-}
+
 
 
 #endif
