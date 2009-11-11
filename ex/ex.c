@@ -176,7 +176,7 @@ _ _is_vector_type(_ o, long flags) {
 }
 
 _ _ex_make_symbol(ex *ex, const char *str) {
-    return const_to_object((void*)(symbol_from_string(str)));
+    return const_to_object((void*)(symbol_from_cstring(str)));
 }
 
 void* _ex_unwrap_pointer(ex *ex, void *unwrap, object o){

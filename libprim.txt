@@ -5235,3 +5235,12 @@ Date: Tue Nov 10 15:40:34 CET 2009
 The problem seems to be the parser.  So, time to get rid of it.
 
 Lexer seems +- ok.
+
+
+Entry: stack
+Date: Wed Nov 11 11:37:50 CET 2009
+
+- bytes: add mime type
+
+I'm thinking to use the 'bytes' type to implement any data type that
+behaves as a buffer of bytes.

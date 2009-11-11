@@ -17,7 +17,7 @@ symbol_class *symbol_type(void) {
     return type;
 }
 
-symbol *symbol_from_string(const char *str){
+symbol *symbol_from_cstring(const char *str){
     int i;
     symbol_class *s = symbol_type();
     for (i=0; i<s->nb_syms; i++){
@@ -35,7 +35,7 @@ symbol *symbol_from_string(const char *str){
     return sym;
 }
 
-const char *symbol_to_string(symbol *sym) {
+const char *symbol_to_cstring(symbol *sym) {
     return sym->name;
 }
 

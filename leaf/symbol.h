@@ -18,8 +18,8 @@ struct _symbol_class {
     symbol **syms;
 };
 
-symbol *symbol_from_string(const char *str);
-const char *symbol_to_string(symbol *sym);
+symbol *symbol_from_cstring(const char *str);
+const char *symbol_to_cstring(symbol *sym);
 symbol_class *symbol_type();
 
 #endif
