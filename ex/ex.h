@@ -123,11 +123,12 @@ _ _ex_make_symbol(ex *ex, const char *str);
 static inline int named_char (const char *name) {
     char x[strlen(name)+1];
     int i;
+    if (!name[1]) return name[0]; // ordinary chars
     for(i=0; name[i]; i++) x[i] = tolower(name[i]);
     x[i] = 0;
     if (!strcmp(x, "space")) return ' ';
     if (!strcmp(x, "newline")) return '\n';
-    return 0;
+    return -1;
 }
 
 _ _ex_restart(ex *ex);

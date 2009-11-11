@@ -6,7 +6,7 @@
 
 #include <stdlib.h>
 #include <ctype.h>
-
+#include <string.h>
 
 
 
@@ -16,11 +16,6 @@ static int next_getc(scanner *x) {
     if ('\n' == c) {x->line++; x->col=1;}
     else {x->col++;}
 
-    if (EOF == c) {
-        x->cont_eof(x);  // continuation. does not return.
-        printf("EOF\n");
-        exit(1);
-    }
     return c;
 }
 
@@ -33,6 +28,7 @@ static int first_getc(scanner *x) {
     if (';' == c) {
         for (;;) {
             c = next_getc(x);
+            if (EOF == c) return c;
             if ('\n' == c) goto next;
         }
     }
@@ -68,7 +64,7 @@ static void scanner_get_atom(scanner *x, char tag) {
     int c;
     for(;;) {
         c = next_getc(x);
-        if (char_in(c, "()\',`#;\"") || isspace(c)) {
+        if (EOF == c || char_in(c, "()\',`#;\"") || isspace(c)) {
             port_ungetc(x->p, c);
             set_token(x, tag);
             return;
@@ -85,6 +81,8 @@ static void scanner_get_hash(scanner *x) {
     int c = next_getc(x);
     reset(x);
     switch(c) {
+    case 'f':  set_token(x, TOK_FALSE); break;
+    case 't':  set_token(x, TOK_TRUE); break;
     case '\\': scanner_get_atom(x, TOK_CHAR); break;
     default:   scanner_get_atom(x, TOK_HASH); break;
     }
@@ -101,6 +99,11 @@ static void scanner_get_string(scanner *x) {
         }
         if (c == '\\') {
             c = next_getc(x);
+            if (EOF == c) {
+                reset(x);
+                set_token(x, TOK_EOF);
+                return;
+            }
             switch(c) {
             case 'n': c = '\n'; break;
             case 't': c = '\n'; break;
@@ -122,6 +125,7 @@ void scanner_read(scanner *x) {
     save(x, c = first_getc(x));
 
     switch(c) {
+    case EOF:  return make_0token(x, TOK_EOF);
     case '\'': return make_0token(x, TOK_QUOTE);
     case '`':  return make_0token(x, TOK_QUASI_QUOTE);
     case ',':  return make_0token(x, TOK_UNQUOTE); // FIXME: unquote-spicing
@@ -153,7 +157,6 @@ scanner *scanner_new(port *p) {
     scanner *x = calloc(1, sizeof(*x));
     x->p = p;
     x->b = bytes_new(100);
-    x->cont_eof = scanner_eof;
     return x;
 }
 

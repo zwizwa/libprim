@@ -22,6 +22,9 @@
 #define TOK_EOF         'E'
 #define TOK_ERROR       '?'
 
+#define TOK_FALSE       'F'
+#define TOK_TRUE        'T'
+
 
 #include <leaf/port.h>
 #include <leaf/bytes.h>
@@ -31,7 +34,6 @@ typedef void (*eof_m)(scanner *x);
 struct _scanner {
     port *p;
     bytes *b;
-    eof_m cont_eof;
 
     // these start at 1
     int line;

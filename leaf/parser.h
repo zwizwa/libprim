@@ -5,7 +5,7 @@
 
 typedef struct _parser parser;
 typedef void* (*parser_atom)(void *ctx, const bytes*);
-typedef void* (*parser_nil)(void *ctx);
+typedef void* (*parser_ob)(void *ctx);
 typedef void* (*parser_cons)(void *ctx, void *a1, void *a2);
 
 struct _parser {
@@ -14,7 +14,8 @@ struct _parser {
     void *ctx;
     parser_atom atom;
     parser_cons cons;
-    parser_nil  nil;
+    parser_ob   nil;
+    parser_ob   eof;
 };
 
 /* By default the parser produces symbol tagged tree instances.

@@ -16,6 +16,7 @@ static void *dflt_nil(void *x) {
     t->slot[0] = (leaf_object*)symbol_from_cstring("nil"); 
     return t;
 }
+static void *dflt_eof(void *x) { return NULL; }
 static void *dflt_atom(void *x, const bytes *b) {
     tree *t = tree_new(2);
 
@@ -57,7 +58,8 @@ static void *read_tagged(parser *p, const bytes *token) {
            p->nil(p->ctx)));
 }
 
-static bytes *q=NULL, *uq=NULL, *qq=NULL, *uqs=NULL, *edot=NULL, *eright=NULL;
+static bytes *q=NULL, *uq=NULL, *qq=NULL, *uqs=NULL,
+    *edot=NULL, *eright=NULL, *eeof=NULL;
 static void parser_global_init(void) {
     if (!q) q = bytes_from_cstring(":quote");
     if (!qq) qq = bytes_from_cstring(":quasi-quote");
@@ -65,6 +67,7 @@ static void parser_global_init(void) {
     if (!uqs) uqs = bytes_from_cstring(":unquote-splicing");
     if (!edot) edot = bytes_from_cstring("?.");
     if (!eright) eright = bytes_from_cstring("?)");
+    if (!eeof) eright = bytes_from_cstring("?EOF");
 }
 static void *make_atom(parser *p, const bytes *tok) {
     switch(tok->bytes[0]) {
@@ -78,12 +81,8 @@ static void *make_atom(parser *p, const bytes *tok) {
 
 static void *make_any(parser *p, const bytes *tok) {
     switch(tok->bytes[0]) {
-    case TOK_LEFT:
-    {
-        void *car = parser_read(p);
-        void *cdr = read_tail(p);
-        return p->cons(p->ctx, car, cdr);
-    }
+    case TOK_EOF:   return p->eof(p->ctx);
+    case TOK_LEFT:  return read_tail(p);
     case TOK_RIGHT: return p->atom(p->ctx, eright);
     case TOK_DOT:   return p->atom(p->ctx, edot);
     default:        return make_atom(p, tok);
@@ -93,7 +92,7 @@ static void *make_any(parser *p, const bytes *tok) {
 static const bytes *next(parser *p) {
     scanner_read(p->s);
     const bytes *tok = scanner_token(p->s);
-    fprintf(stderr, "TOK: %s\n", tok->bytes);
+    // fprintf(stderr, "TOK: %s\n", tok->bytes);
     return tok;
 }
 
@@ -102,6 +101,7 @@ static void *read_tail(parser *p) {
     const bytes *tok = next(p);
 
     switch(tok->bytes[0]) {
+    case TOK_EOF:  return(p->atom(p->ctx, eright));
     case TOK_DOT:   
     {
         void *tail = parser_read(p);
@@ -139,14 +139,20 @@ parser *parser_new(port *prt) {
     p->atom = dflt_atom;
     p->cons = dflt_cons;
     p->nil  = dflt_nil;
+    p->eof  = dflt_eof;
     return p;
 }
 
 #ifdef _PARSER_TEST_
 int main(void) {
     parser *par = parser_new(port_file_new(stdin, "<stdin>"));
-    leaf_object *o = (leaf_object*)parser_read(par);
-    leaf_write(o, port_file_new(stdout, "<stdout>"));
+    leaf_object *o;
+    port *out = port_file_new(stdout, "<stdout>");
+    while ((o = (leaf_object*)parser_read(par))) {
+        leaf_write(o, out);
+        port_printf(out, "\n\n");
+        // leaf_free(o);
+    }
     return 0;
 }
 #endif
