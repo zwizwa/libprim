@@ -128,7 +128,12 @@ void scanner_read(scanner *x) {
     case EOF:  return make_0token(x, TOK_EOF);
     case '\'': return make_0token(x, TOK_QUOTE);
     case '`':  return make_0token(x, TOK_QUASI_QUOTE);
-    case ',':  return make_0token(x, TOK_UNQUOTE); // FIXME: unquote-spicing
+    case ',': {
+        c = next_getc(x);
+        if ('@' == c) return make_0token(x, TOK_UNQUOTE_SPLICING);
+        port_ungetc(x->p, c);
+        return make_0token(x, TOK_UNQUOTE);
+    }
     case '(':  return make_0token(x, TOK_LEFT);
     case ')':  return make_0token(x, TOK_RIGHT);
     case '#':  return scanner_get_hash(x);
