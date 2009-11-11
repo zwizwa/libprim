@@ -4,9 +4,22 @@
 
 #include "symbol.h"
 
+static symbol_class *type = NULL;
+static symbol_class *symbol_class_new(int total) {
+    symbol_class *s = malloc(sizeof(*s));
+    s->nb_syms = 0;
+    s->total = total;
+    s->syms = malloc(sizeof(symbol) * total);
+    return s;
+}
+symbol_class *symbol_type(void) {
+    if (!type) type = symbol_class_new(1000);
+    return type;
+}
 
-symbol *symbol_from_string(symbol_class *s, const char *str){
+symbol *symbol_from_string(const char *str){
     int i;
+    symbol_class *s = symbol_type();
     for (i=0; i<s->nb_syms; i++){
         if (!strcmp(s->syms[i]->name, str)) return s->syms[i];
     }
@@ -22,14 +35,7 @@ symbol *symbol_from_string(symbol_class *s, const char *str){
     return sym;
 }
 
-const char *symbol_to_string(symbol_class *s, symbol *sym) {
+const char *symbol_to_string(symbol *sym) {
     return sym->name;
 }
 
-symbol_class *symbol_class_new(int total) {
-    symbol_class *s = malloc(sizeof(*s));
-    s->nb_syms = 0;
-    s->total = total;
-    s->syms = malloc(sizeof(symbol) * total);
-    return s;
-}

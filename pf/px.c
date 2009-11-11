@@ -74,7 +74,7 @@ _ _px_make_qstring(pf *pf, const char *name) {
     return _px_make_rc(pf, (leaf_object*)bytes_from_qcstring(name));
 }
 _ _px_make_symbol(pf *pf, const char *str){
-    return const_to_object(symbol_from_string(TYPES->symbol_type, str));
+    return const_to_object(symbol_from_string(str));
 }
 
 _ px_display(pf *pf, _ ob) { 

@@ -971,8 +971,8 @@ sc *_sc_new(int argc, char **argv) {
     base_types *types = NULL; // FIXME: configurable subclass?
     if (!types) types = malloc(sizeof(*(sc->m.p)));
     sc->m.p = types;
-    TYPES->ck_type = ck_class_new();
-    TYPES->symbol_type = symbol_class_new(1000);
+    // TYPES->ck_type = ck_type();
+    TYPES->symbol_type = symbol_type();
     TYPES->prim_type = (void*)0xF001; // dummy class
     TYPES->port_type = port_type();
     TYPES->bytes_type = bytes_type();

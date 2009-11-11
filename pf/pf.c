@@ -771,8 +771,8 @@ pf* _px_new(void) {
     
     // Leaf types.
     pf->m.p = malloc(sizeof(*(pf->m.p)));
-    TYPES->ck_type = ck_class_new();
-    TYPES->symbol_type = symbol_class_new(1000);
+    // TYPES->ck_type = ck_type();
+    TYPES->symbol_type = symbol_type();
     TYPES->port_type = port_type();
     TYPES->bytes_type = bytes_type();
     TYPES->prim_type = (void*)0xF001; 
