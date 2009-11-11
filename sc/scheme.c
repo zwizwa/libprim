@@ -116,13 +116,13 @@ _ _sc_make_aref(sc *sc, leaf_object *ob) {
 }
 
 _ _sc_make_string(sc *sc, const char *str) {
-    return _sc_make_aref(sc, (leaf_object*)bytes_from_cstring(TYPES->bytes_type, str));
+    return _sc_make_aref(sc, (leaf_object*)bytes_from_cstring(str));
 }
 _ _sc_make_qstring(sc *sc, const char *str) {
-    return _sc_make_aref(sc, (leaf_object*)bytes_from_qcstring(TYPES->bytes_type, str));
+    return _sc_make_aref(sc, (leaf_object*)bytes_from_qcstring(str));
 }
 _ _sc_make_bytes(sc *sc, int size) {
-    return _sc_make_aref(sc,  (leaf_object*)bytes_new(TYPES->bytes_type, size));
+    return _sc_make_aref(sc,  (leaf_object*)bytes_new(size));
 }
 
 _ sc_make_mt(sc *sc)    { return MT; }
@@ -294,7 +294,7 @@ _ sc_open_input_string(sc *sc, _ ob_str) {
     return _sc_make_bytes_port(sc, copy_b);
 }
 _ sc_open_output_string(sc *sc) {
-    bytes *b = bytes_new(TYPES->bytes_type, 20);
+    bytes *b = bytes_new(20);
     b->size = 0;
     return _sc_make_bytes_port(sc, b);
 }
@@ -975,7 +975,7 @@ sc *_sc_new(int argc, char **argv) {
     TYPES->symbol_type = symbol_class_new(1000);
     TYPES->prim_type = (void*)0xF001; // dummy class
     TYPES->port_type = port_class_new();
-    TYPES->bytes_type = bytes_class_new();
+    TYPES->bytes_type = bytes_type();
 
     /* EX virtual methods */
     sc->m.port = (_ex_m_port)_sc_port;

@@ -5,11 +5,14 @@
 #include <stdlib.h>
 
 #define TOK_STRING      'B'
-#define TOK_QUOTE       'Q'
-#define TOK_QUASI_QUOTE 'A'
-#define TOK_UNQUOTE     'U'
 #define TOK_NUMER       'N'
 #define TOK_SYMBOL      'S'
+
+#define TOK_QUASI_QUOTE      'A'
+#define TOK_QUOTE            'Q'
+#define TOK_UNQUOTE          'U'
+#define TOK_UNQUOTE_SPLICING 'V'
+
 #define TOK_DOT         'D'
 #define TOK_LEFT        'L'
 #define TOK_RIGHT       'R'

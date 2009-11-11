@@ -774,7 +774,7 @@ pf* _px_new(void) {
     TYPES->ck_type = ck_class_new();
     TYPES->symbol_type = symbol_class_new(1000);
     TYPES->port_type = port_class_new();
-    TYPES->bytes_type = bytes_class_new();
+    TYPES->bytes_type = bytes_type();
     TYPES->prim_type = (void*)0xF001; 
     TYPES->rc_type = (void*)0xF002; 
 

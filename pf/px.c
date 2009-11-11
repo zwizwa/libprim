@@ -68,10 +68,10 @@ _ _px_make_port(pf *pf, FILE *f, const char *name) {
     return _px_make_rc(pf, (leaf_object*)port_file_new(TYPES->port_type, stdout, name));
 }
 _ _px_make_string(pf *pf, const char *name) {
-    return _px_make_rc(pf, (leaf_object*)bytes_from_cstring(TYPES->bytes_type, name));
+    return _px_make_rc(pf, (leaf_object*)bytes_from_cstring(name));
 }
 _ _px_make_qstring(pf *pf, const char *name) {
-    return _px_make_rc(pf, (leaf_object*)bytes_from_qcstring(TYPES->bytes_type, name));
+    return _px_make_rc(pf, (leaf_object*)bytes_from_qcstring(name));
 }
 _ _px_make_symbol(pf *pf, const char *str){
     return const_to_object(symbol_from_string(TYPES->symbol_type, str));

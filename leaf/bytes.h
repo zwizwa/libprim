@@ -20,12 +20,12 @@ struct _bytes {
 };
 
 bytes *bytes_copy(bytes* b);
-bytes* bytes_new(bytes_class *type, size_t size);
+bytes* bytes_new(size_t size);
 // void *bytes_realloc(bytes *b, size_t size);
 
-bytes_class* bytes_class_new(void);
-bytes* bytes_from_cstring(bytes_class *type, const char *str);
-bytes* bytes_from_qcstring(bytes_class *type, const char *str);
+bytes_class* bytes_type(void);
+bytes* bytes_from_cstring(const char *str);
+bytes* bytes_from_qcstring(const char *str);
 
 void bytes_write_string(bytes *b, port *p);
 

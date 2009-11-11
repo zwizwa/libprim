@@ -6,14 +6,21 @@ static void _bytes_free(bytes *x) {
     free(x->bytes);
     free(x);
 }
-bytes_class *bytes_class_new(void) {
+
+static bytes_class *type = NULL;
+static bytes_class *bytes_class_new(void) {
     bytes_class *x = malloc(sizeof(*x));
     x->super.free = (leaf_free)_bytes_free;
     return x;
 }
-bytes *bytes_new(bytes_class *type, size_t size) {
+bytes_class *bytes_type(void) {
+    if (!type) type = bytes_class_new();
+    return type;
+}
+
+bytes *bytes_new(size_t size) {
     bytes *x = malloc(sizeof(*x));
-    x->type = type;
+    x->type    = bytes_type();
     x->size    = size;
     x->bufsize = size;
     x->bytes = malloc(size);
@@ -28,9 +35,9 @@ char *cstring_from_bytes(bytes *b) {
     return b->bytes;
 }
 
-bytes* bytes_from_cstring(bytes_class *type, const char *str){
+bytes* bytes_from_cstring(const char *str){
     size_t len = strlen(str);
-    bytes *b = bytes_new(type, 1+len);
+    bytes *b = bytes_new(1+len);
     strcpy(b->bytes, str);
     b->size = len;
     return b;
@@ -44,8 +51,8 @@ static inline int fromhexdigit(int c, char digit) {
     else if ((digit >= 'a') && (digit <= 'f')) d = 10 + digit - 'a';
     return (c << 4) + (d & 15);
 }
-bytes* bytes_from_qcstring(bytes_class *type, const char *str){
-    bytes *b = bytes_from_cstring(type, str);
+bytes* bytes_from_qcstring(const char *str){
+    bytes *b = bytes_from_cstring(str);
     int dst, src;
     for (src=0,dst=0; src < b->size; src++,dst++) {
         int c;
@@ -130,7 +137,7 @@ char *bytes_allot(bytes *b, size_t extra) {
 }
 
 bytes *bytes_copy(bytes* b) {
-    bytes *new_b = bytes_new(b->type, b->bufsize);
+    bytes *new_b = bytes_new(b->bufsize);
     memcpy(new_b->bytes, b->bytes, b->bufsize);
     return new_b;
 }
