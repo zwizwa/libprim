@@ -13,8 +13,8 @@
 static int next_getc(scanner *x) {
     int c = port_getc(x->p);
 
-    if ('\n' == c) {x->line++; x->column=1;}
-    else {x->column++;}
+    if ('\n' == c) {x->line++; x->col=1;}
+    else {x->col++;}
 
     if (EOF == c) {
         x->cont_eof(x);  // continuation. does not return.
@@ -144,7 +144,11 @@ void scanner_eof(scanner *x) {
     printf("EOF\n");
     exit(1);
 }
-
+void scanner_free(scanner *x) {
+    leaf_free((leaf_object*)x->b);
+    free(x);
+    // DON'T FREE PORT.
+}
 scanner *scanner_new(port *p) {
     scanner *x = calloc(1, sizeof(*x));
     x->p = p;

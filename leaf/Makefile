@@ -2,8 +2,6 @@
 SRC=port.c bytes.c symbol.c scanner.c parser.c tree.c leaf.c
 
 
-
-
 OBJ=$(SRC:.c=.o)
 DEBUG_CFLAGS=-Wall -g
 # OPTI_CFLAGS=-Os

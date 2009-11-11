@@ -1,5 +1,7 @@
 
-SRC=ex.c gc.c read.c
+SRC=ex.c gc.c read_intl.c
+
+# read_leg.c
 
 OBJ=$(SRC:.c=.o)
 DEBUG_CFLAGS=-Wall -g

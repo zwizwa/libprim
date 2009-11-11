@@ -45,4 +45,9 @@ void scanner_read(scanner *x);
 
 scanner *scanner_new(port *p);
 
+/* FIXME: this isn't a leaf object.  Also, the _free method doesn't
+   recursively free the port. */
+void scanner_free(scanner *x);
+
+
 #endif

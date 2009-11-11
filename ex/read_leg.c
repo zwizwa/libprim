@@ -22,6 +22,7 @@ static port *p = NULL;
 #define UNQUOTE_SPLICING(ob) CONS(SYMBOL("unquote-splicing"), CONS(ob, NIL))
 #define QUASIQUOTE(ob) CONS(SYMBOL("quasiquote"), CONS(ob, NIL))
 
+
 // #define CHAR(c) STRING(c)
 
 #define YY_INPUT(buf, result, max_size)                          \

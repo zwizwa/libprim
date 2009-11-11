@@ -2,7 +2,7 @@
 APP=sc
 SRC=scheme.c main.c
 # lib.c
-DEP_OBJ=../leaf/libprim_leaf.a ../ex/libprim_ex.a
+DEP_OBJ=../ex/libprim_ex.a ../leaf/libprim_leaf.a 
 
 # media?
 # SRC += media.c

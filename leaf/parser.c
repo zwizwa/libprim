@@ -1,26 +1,12 @@
 /* Scheme-style s-expression parser built on top of the scanner.
    All constructors are parameterized. */
 
-#include <leaf/scanner.h>
+#include <leaf/parser.h>
 #include <leaf/symbol.h>
 #include <leaf/tree.h>
 #include <string.h>
 #include <stdlib.h>
 
-typedef struct _parser parser;
-typedef void* (*parser_atom)(void *x, const bytes*);
-typedef void* (*parser_symbol)(void *x, const char*);
-typedef void* (*parser_make_0)(void *x);
-typedef void* (*parser_make_2)(void *x, void *a1, void *a2);
-
-struct _parser {
-    scanner* s;
-    void *x; // delegate
-
-    parser_atom atom;
-    parser_make_2 cons;
-    parser_make_0 nil;
-};
 
 /* Default representation is in terms of leaf objects + trees.  Each
    record is tagged with a symbol in the first position. */
@@ -66,9 +52,9 @@ static void *read_tail(parser *p);
 
 static void *read_tagged(parser *p, const bytes *token) {
     void *payload = parser_read(p);
-    return p->cons(p->x, p->atom(p->x, token),
-           p->cons(p->x, payload,
-           p->nil(p->x)));
+    return p->cons(p->ctx, p->atom(p->ctx, token),
+           p->cons(p->ctx, payload,
+           p->nil(p->ctx)));
 }
 
 static bytes *q=NULL, *uq=NULL, *qq=NULL, *uqs=NULL, *edot=NULL, *eright=NULL;
@@ -86,7 +72,7 @@ static void *make_atom(parser *p, const bytes *tok) {
     case TOK_UNQUOTE:           return read_tagged(p, uq);
     case TOK_QUASI_QUOTE:       return read_tagged(p, qq);
     case TOK_UNQUOTE_SPLICING:  return read_tagged(p, uqs);
-    default: return p->atom(p->x, tok);
+    default: return p->atom(p->ctx, tok);
     }
 }
 
@@ -96,10 +82,10 @@ static void *make_any(parser *p, const bytes *tok) {
     {
         void *car = parser_read(p);
         void *cdr = read_tail(p);
-        return p->cons(p->x, car, cdr);
+        return p->cons(p->ctx, car, cdr);
     }
-    case TOK_RIGHT: return p->atom(p->x, eright);
-    case TOK_DOT:   return p->atom(p->x, edot);
+    case TOK_RIGHT: return p->atom(p->ctx, eright);
+    case TOK_DOT:   return p->atom(p->ctx, edot);
     default:        return make_atom(p, tok);
     }
 }
@@ -122,16 +108,16 @@ static void *read_tail(parser *p) {
         tok = next(p);
         if (TOK_RIGHT != tok->bytes[0]) {
             // cons the tail so we won't leak
-            return p->cons(p->x, tail, p->atom(p->x, eright));
+            return p->cons(p->ctx, tail, p->atom(p->ctx, eright));
         }
         return tail;
     }
-    case TOK_RIGHT: return p->nil(p->x);
+    case TOK_RIGHT: return p->nil(p->ctx);
     default:
     {
         void *car = make_any(p, tok);
         void *cdr = read_tail(p);
-        return p->cons(p->x, car, cdr);
+        return p->cons(p->ctx, car, cdr);
     }
     }
 }
@@ -142,11 +128,14 @@ void *parser_read(parser *p) {
     return make_any(p, tok);
 }
 
-
+void parser_free(parser *p) {
+    scanner_free(p->s);
+    free(p);
+}
 parser *parser_new(port *prt) {
     parser *p = calloc(1,sizeof(*p));
     p->s = scanner_new(prt);
-    p->x = NULL;
+    p->ctx = NULL;
     p->atom = dflt_atom;
     p->cons = dflt_cons;
     p->nil  = dflt_nil;
