@@ -172,9 +172,9 @@ _ sc_bytes_dump(sc *sc, _ ob) {
     bytes_dump(CAST(bytes, ob), _sc_port(sc));
     return VOID;
 }
-_ sc_display(sc *sc, _ o) {
+_ sc_display_port(sc *sc, _ o, _ o_port) {
     bytes *b = CAST(bytes, o);
-    port_write(_sc_port(sc), b->bytes, strlen(b->bytes));
+    port_write(CAST(port, o_port), b->bytes, strlen(b->bytes));
     return VOID;
 }
 
@@ -187,11 +187,9 @@ _ sc_write_bytes(sc *sc, _ ob_bytes, _ ob_port) {
     return VOID;
 }
 
-_ sc_newline(sc *sc) { return sc_display(sc, _sc_make_string(sc, "\n")); }
 
 
-
-_ sc_write(sc *sc, _ o, _ o_port) {
+_ sc_write_port(sc *sc, _ o, _ o_port) {
     /* This `dynamic-wind' hack only works because we're sure there
        are no aborts in this dynamic extent!  FIXME: use explicit
        lexical variables where possible. */
@@ -988,7 +986,7 @@ sc *_sc_new(int argc, char **argv) {
     if (argc > 1)  bootfile = argv[1];
     if (!bootfile) bootfile = getenv("PRIM_BOOT_SCM");
     if (!bootfile) bootfile = PRIM_HOME "/boot.scm";
-    _ex_printf(EX, "SC: booting from %s\n", bootfile);
+    // _ex_printf(EX, "SC: booting from %s\n", bootfile);
     _sc_top(sc, _ex_boot_load(EX, bootfile));
     PURE();
     return sc;

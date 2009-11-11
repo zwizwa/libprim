@@ -81,6 +81,7 @@ static void scanner_get_hash(scanner *x) {
     int c = next_getc(x);
     reset(x);
     switch(c) {
+    case '(':  set_token(x, TOK_VLEFT); break;
     case 'f':  set_token(x, TOK_FALSE); break;
     case 't':  set_token(x, TOK_TRUE); break;
     case '\\': scanner_get_atom(x, TOK_CHAR); break;
@@ -138,6 +139,12 @@ void scanner_read(scanner *x) {
     case ')':  return make_0token(x, TOK_RIGHT);
     case '#':  return scanner_get_hash(x);
     case '"':  return scanner_get_string(x);
+    case '-':
+        save(x, c = next_getc(x));
+        if (isdigit(c)) return scanner_get_atom(x, TOK_NUMBER);
+        port_ungetc(x->p, c);
+        reset(x);
+        break;
     case '.': 
         save(x, c = next_getc(x));
         if (isspace(c)) return make_0token(x, TOK_DOT);

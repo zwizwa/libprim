@@ -90,6 +90,7 @@ static const bytes *next(parser *p) {
 static void *make_any(parser *p, const bytes *tok) {
     switch(tok->bytes[0]) {
     case TOK_EOF:   return p->eof(p->ctx);
+    case TOK_VLEFT:  // FIXME: vectors parse as lists
     case TOK_LEFT: 
     {
         tok = next(p);

@@ -213,7 +213,8 @@
 
 (define + (make-accu add 0))
 (define * (make-accu mul 1))
-(define - (make-accu sub 0))
+;; (define - (make-accu sub 0))
+(define - sub)
 
 (define = eq)
 (define > gt)
@@ -259,14 +260,30 @@
 (define (make-string n . fill)
   (let ((b (make-bytes n)))
     (bytes-init b (if (null? fill) 0 (car fill))) b))
-    
-  
+
+(define (make-writer write-port)
+  (lambda (it . port)
+    (if (null? port)
+        (write-port it (current-output-port))
+        (write-port it (car port)))))
+
+(define write (make-writer write-port))
+(define display (make-writer display-port))
+
+(define (newline . port)
+  (let ((cr "\n"))
+    (apply display (cons cr port))))
 
 
 
 ;; parser might trigger GC, so we call it manually before reading.
 ;; FIXME: at least make this detectable!!
-(define (read port) (gc) (read-no-gc port))
+(define (read-gc port) (gc) (read-no-gc port))
+(define (read . port)
+  (gc)
+  (if (null? port)
+      (read-gc (current-input-port))
+      (read-gc (car port))))
 
 (define (load filename)
   (let ((port (open-input-file filename)))

@@ -14,7 +14,7 @@ typedef struct {
 
 static _ _nil(void) { return NIL; }
 static _ _eof(void) { return EOF_OBJECT; }
-static _ _cons(parser_ctx *x, _ car, _ cdr) {return ex_cons(x->ex, car, cdr);}
+static _ _cons(parser_ctx *x, _ car, _ cdr) {return x->ex->make_pair(x->ex, car, cdr);}
 static _ _atom(parser_ctx *x, const bytes *tok) {
     ex* ex = x->ex;
     const char *str = tok->bytes+1;

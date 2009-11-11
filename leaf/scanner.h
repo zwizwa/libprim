@@ -15,6 +15,7 @@
 #define TOK_UNQUOTE          ','
 #define TOK_UNQUOTE_SPLICING '@'
 
+#define TOK_VLEFT       '<'
 #define TOK_LEFT        '('
 #define TOK_DOT         '.'
 #define TOK_RIGHT       ')'
