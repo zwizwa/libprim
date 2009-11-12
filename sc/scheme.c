@@ -297,6 +297,16 @@ _ sc_get_output_string(sc *sc, _ ob_port) {
     return _sc_make_aref(sc, b);
 }
 
+_ sc_open_tcp_client(sc *sc, _ ob_host, _ ob_port, _ ob_mode) {
+    char *host  = CAST(cstring, ob_host);
+    int prt     = CAST_INTEGER(ob_port);
+    char *cmode = CAST(cstring, ob_mode);
+    _ args = CONS(ob_host, CONS(ob_port, NIL));
+    port *p = port_socket_new(host, prt, cmode, 0);
+    if (!p) ERROR("invalid", args);
+    return _sc_make_aref(sc, p);
+}
+
 // Manually call finalizer, creating a defunct object.
 _ sc_bang_finalize(sc *sc, _ ob) {
     LINEAR();
@@ -311,6 +321,10 @@ _ sc_bang_finalize(sc *sc, _ ob) {
 _ sc_close_port(sc *sc, _ ob) {
     port *p = CAST(port, ob);
     return sc_bang_finalize(sc, ob);
+}
+_ sc_flush_output_port(sc *sc, _ ob) {
+    port_flush(CAST(port, ob));
+    return VOID;
 }
 
 

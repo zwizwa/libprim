@@ -15,6 +15,7 @@ typedef int (*port_putc_m)(port *p, int c);
 typedef int (*port_write_m)(port *p, void *buf, size_t len);
 typedef void (*port_close_m)(port *x);
 typedef bytes* (*port_bytes_m)(port *x);
+typedef void (*port_flush_m)(port *x);
 
 typedef struct {
     leaf_class super; // standard methods
@@ -40,6 +41,7 @@ struct _port {
     port_write_m write;
     port_close_m close;
     port_bytes_m bytes;
+    port_flush_m flush;
 };
 
 int port_vprintf(port *p, const char *fmt, va_list ap);
@@ -48,6 +50,7 @@ int port_ungetc(port *p, int c);
 int port_putc(port *p, int c);
 int port_write(port *p, void *buf, size_t len);
 void port_close(port *x);
+void port_flush(port *x);
 
 void port_free(port *x);
 int port_printf(port *p, const char *fmt, ...);
@@ -56,5 +59,14 @@ port *port_file_new(FILE *f, const char *name);
 port *port_bytes_new(bytes *b);
 bytes *port_get_bytes(port *b); // for string ports
 
+
+#define PORT_SOCKET_SERVER    (1<<0)  // 0 = CLIENT
+#define PORT_SOCKET_UDP       (1<<1)  // 0 = TCP
+#define PORT_SOCKET_UNIX      (1<<2)  // 0 = INET
+#define PORT_SOCKET_BROADCAST (1<<3)
+port* port_socket_new(const char *sockname,  // hostname | filesystem node
+                      int port,              // only for TCP sockets
+                      char *cmode, 
+                      int kind);             // PORT_SOCKET_ bit vector
 
 #endif

@@ -31,6 +31,9 @@ void port_file_close(port *x) {
     fclose(x->stream.file);
     x->stream.file = NULL;
 }
+void port_file_flush(port *x) {
+    fflush(x->stream.file);
+}
 bytes *port_file_bytes(port *x) { return NULL; }
 void port_file_init(port *p) {
     p->vprintf = port_file_vprintf;
@@ -40,6 +43,7 @@ void port_file_init(port *p) {
     p->write   = port_file_write;
     p->close   = port_file_close;
     p->bytes   = port_file_bytes;
+    p->flush   = port_file_flush;
 }
 
 /* Bytes ports */
@@ -92,6 +96,8 @@ bytes *port_bytes_bytes(port *p) {
     p->stream.b.bytes = NULL;
     return b;
 }
+void port_bytes_flush(port *p) {}
+
 void port_bytes_init(port *p) {
     p->vprintf = port_bytes_vprintf;
     p->get     = port_bytes_getc;
@@ -100,6 +106,7 @@ void port_bytes_init(port *p) {
     p->write   = port_bytes_write;
     p->close   = port_bytes_close;
     p->bytes   = port_bytes_bytes;
+    p->flush   = port_bytes_flush;
 }
 
 
@@ -130,6 +137,9 @@ int port_write(port *p, void *buf, size_t len) {
 }
 void port_close(port *p) {
     p->close(p);
+}
+void port_flush(port *p) {
+    p->flush(p);
 }
 bytes *port_get_bytes(port *p) {
     return p->bytes(p);
@@ -179,3 +189,176 @@ port *port_bytes_new(bytes *b) {
     strcpy(x->name, "<string>");
     return x;
 }
+
+
+
+// UNIX socket code - adapted from PF.
+#include <stdio.h>
+#include <errno.h>
+
+#include <fcntl.h>
+#include <stdlib.h>
+#include <ctype.h>
+#include <string.h>
+#include <sys/types.h>
+#include <sys/wait.h>
+#include <sys/stat.h>
+#include <unistd.h>
+
+#include <sys/socket.h>
+#include <sys/un.h>
+#include <netinet/in.h>
+#include <netinet/tcp.h>
+#include <netdb.h>
+
+/* An all-in-one constructor for TCP/UNIX server/client socket. */
+
+
+#define ERROR(...) { fprintf(stderr, __VA_ARGS__); fprintf(stderr, "\n"); return NULL; } // FIXME: leaf error handling
+
+union addr {
+    struct sockaddr_un un;
+    struct sockaddr_in in;
+};
+
+// ((host port) mode kind -- stream )
+port* port_socket_new(const char *sockname,  // hostname | filesystem node
+                      int port,              // only for TCP sockets
+                      char *cmode, 
+                      int kind) {
+
+    char *action;
+
+    int sockfd = -1;
+    int intarg = -1; // for setsockopt
+    struct hostent *hp = 0; // name lookup
+    union addr address;  // target/listen address
+    socklen_t addrlen = 0;
+    FILE *f;
+    struct _port *p;
+
+
+    memset(&address, 0, sizeof(struct sockaddr_in));
+
+    // UNIX socket
+    if (kind & PORT_SOCKET_UNIX) {
+
+	// create UNIX socket
+ 	sockfd = socket(PF_UNIX, SOCK_STREAM,0);
+	if (sockfd == -1) ERROR("can't create socket");
+	address.un.sun_family = AF_UNIX;
+ 	strcpy(address.un.sun_path, sockname); // FIXME: buffer overrun UNIX_PATH_MAX
+	addrlen = sizeof(address.un.sun_family) 
+	    + strlen(address.un.sun_path) + 1;
+    }
+
+    // TCP/UDP socket
+    else{
+        // invalid port number.
+        if ((port < 0) || (port >= 0xFFFF)) {
+            ERROR("invalid IP port number %d (valid: 1->65534)", port);
+        }
+
+	// lookup DNS name
+	if (sockname[0]){
+	    hp = gethostbyname(sockname);
+	    if (!hp){
+                ERROR("lookup failed for host %s", sockname);
+	    }
+	    memcpy((char *)&address.in.sin_addr, 
+		   (char *)hp->h_addr, hp->h_length);	
+	}
+	else {
+	    // only listening TCP socket can be anonymous.
+	    sockname = "0.0.0.0";
+	}
+
+	// create socket
+	address.in.sin_port = htons((u_short)port);
+	address.in.sin_family = AF_INET;
+	
+	// UDP
+	if (kind & PORT_SOCKET_UDP){
+	    sockfd = socket(AF_INET, SOCK_DGRAM, 0);
+	    if (sockfd < -1) ERROR("can't create socket");
+	    if (kind & PORT_SOCKET_BROADCAST){
+		intarg =  1;
+		if (setsockopt(sockfd, SOL_SOCKET, SO_BROADCAST,
+			       &intarg, sizeof(intarg)) < 0){
+		    close(sockfd);
+		    ERROR("can't set broadcast socket option");
+		}
+	    }
+	}
+	// TCP
+	else {
+	    sockfd = socket(AF_INET, SOCK_STREAM, 0);
+	    if (sockfd < -1) ERROR("can't create socket");
+	    if (setsockopt(sockfd, IPPROTO_TCP, TCP_NODELAY,
+			   &intarg, sizeof(intarg)) < 0){
+		close(sockfd);
+		ERROR("setsockopt error");
+	    }
+	}
+	addrlen = sizeof(address.in);
+    }
+    // server socket
+    if (kind & PORT_SOCKET_SERVER){
+	if (-1 == bind(sockfd, (struct sockaddr *) &address, addrlen)){
+	    action = "bind";
+	    goto error;
+	}
+	if (!(kind & PORT_SOCKET_UDP)){
+	    if (-1 == listen(sockfd, 5)) { // FIXME: magic number
+		close(sockfd);
+		ERROR("can't listen: %s", strerror(errno));
+	    }
+	}
+
+	// need nonblocking IO
+	//if (-1 == fd_nonblock(sockfd)) {
+	//    ERROR("can't set nonblock mode on sockfd %d", sockfd);
+	//}
+    }
+
+    // client socket
+    else {
+	if (-1 == connect(sockfd, (struct sockaddr *) &address, addrlen)){
+	    action = "connect";
+	    goto error;
+	}
+    }
+    
+    // create port object
+
+        f = fdopen(sockfd, cmode);
+    {
+        char name[10 + strlen(sockname)];
+        if (port) sprintf(name, "%s:%d", sockname, port);
+        else sprintf(name, "%s", sockname);
+        p = port_file_new(f, name);
+    }
+
+#if 0
+    // for server sockets, we have a different interface
+    if (kind == (PORT_SOCKET_UNIX | PORT_SOCKET_SERVER)){
+	// pf_post("setting unix socket interface");
+	stream->m = unix_server_socket_interface;
+    }
+#endif
+    return p;
+
+    // connect / bind error handler
+  error:
+    close(sockfd);
+    if (port) { 
+	ERROR("%s to host %s, TCP port %d failed: %s", 
+	      action, sockname, port, strerror(errno)); 
+    }
+    else {
+	ERROR("%s to UNIX socket %s failed: %s", 
+	      action, sockname, strerror(errno));
+    }
+}
+
+
