@@ -14,6 +14,7 @@ typedef int (*port_ungetc_m)(port *p, int c);
 typedef int (*port_putc_m)(port *p, int c);
 typedef int (*port_write_m)(port *p, void *buf, size_t len);
 typedef void (*port_close_m)(port *x);
+typedef bytes* (*port_bytes_m)(port *x);
 
 typedef struct {
     leaf_class super; // standard methods
@@ -38,6 +39,7 @@ struct _port {
     port_putc_m  put;
     port_write_m write;
     port_close_m close;
+    port_bytes_m bytes;
 };
 
 int port_vprintf(port *p, const char *fmt, va_list ap);
@@ -52,5 +54,7 @@ int port_printf(port *p, const char *fmt, ...);
 port_class* port_type(void);
 port *port_file_new(FILE *f, const char *name);
 port *port_bytes_new(bytes *b);
+
+
 
 #endif

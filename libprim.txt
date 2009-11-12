@@ -5261,3 +5261,11 @@ latter is a bit dirty, but should work.
 
 found a simpler way: using setjmp
 
+did some more bugfixing.  todo: make the error reporting a bit less
+spartan.
+
+
+
+Entry: printing to string ports
+Date: Thu Nov 12 06:43:36 CET 2009
+

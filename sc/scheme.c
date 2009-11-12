@@ -290,6 +290,12 @@ _ sc_open_output_string(sc *sc) {
     b->size = 0;
     return _sc_make_bytes_port(sc, b);
 }
+_ sc_get_output_string(sc *sc, _ ob_port) {
+    port *p = CAST(port, ob_port);
+    bytes *b = port_get_bytes(p);
+    if (!b) return TYPE_ERROR(ob_port);
+    return _sc_make_aref(sc, b);
+}
 
 // Manually call finalizer, creating a defunct object.
 _ sc_bang_finalize(sc *sc, _ ob) {
@@ -980,7 +986,7 @@ sc *_sc_new(int argc, char **argv) {
     char *bootfile = NULL;
     if (argc > 1)  bootfile = argv[1];
     if (!bootfile) bootfile = getenv("PRIM_BOOT_SCM");
-    if (!bootfile) bootfile = PRIM_HOME "/boot.scm";
+    if (!bootfile) bootfile = PRIM_HOME "boot.scm";
     // _ex_printf(EX, "SC: booting from %s\n", bootfile);
     _sc_top(sc, _ex_boot_load(EX, bootfile));
     PURE();
