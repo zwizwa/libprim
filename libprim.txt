@@ -5211,9 +5211,9 @@ robust to NULL references, which will just get size estimates.
 Is there a way to use sprintf as a one-pass algo?
 
 So, need to fix:
-  - output to string
-  - faster boot  (added expand.scm -> broken)
-  - constructors without class argument (class = global context)
+  - output to string OK (from packetforth, using vnsprintf)
+  - faster boot  (added expand.scm -> broken) (parser -> OK?)
+  - constructors without class argument (class = global context) OK
 
 Entry: boot speed
 Date: Tue Nov 10 15:40:34 CET 2009
@@ -5256,4 +5256,18 @@ spartan.
 
 Entry: printing to string ports
 Date: Thu Nov 12 06:43:36 CET 2009
+
+Fixed.  Using vnsprintf instead of vsprintf to limit nb of chars
+actually written.  This can probably be optimized by attempting to
+write and retrying when it fails instead of always calling the
+formatter twice.
+
+
+
+Entry: parameters
+Date: Thu Nov 12 08:13:28 CET 2009
+
+The next useful feature would be dynamic parameters.  I think the
+necessary VM machinery is in place (continuation marks) so the rest
+would be manipulation of continuation chain.
 
