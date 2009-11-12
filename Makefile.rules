@@ -7,7 +7,7 @@ CPPFLAGS += -I../ -DTASK_DEBUG=0
 CFLAGS += -x c
 COMPILE = $(CC) $(CPPFLAGS) $(CFLAGS) $(OPTI_CFLAGS) $(DEBUG_CFLAGS) 
 
-# APP_LDFLAGS += -static
+APP_LDFLAGS += -static
 # APP_DEBUG_LDFLAGS += -lefence -lpthread
 
 # This is for testing compliance; don't set this in archived code.

@@ -28,6 +28,7 @@ $var{finkpath} = "/sw";
 $var{cc}        = "cc";
 $var{make}      = "make";
 
+$var{static}    = "no";
 
 # determine dirs. we use absolute paths for convenience
 # this means that if you move the project, you need to re-run
@@ -172,6 +173,10 @@ makefile "MZSCHEME = mzscheme"; # FIXME: check this!
 
 if ($var{jobs} > 1){
     makefile "MAKE += -j$var{jobs}"; # run multiple jobs
+}
+
+if ($var{static} eq "yes") {
+    makefile "APP_LDFLAGS += -static";
 }
 
 

@@ -302,8 +302,9 @@
       (if (eof-object? expr)
           (exit-repl)
           (begin
-            (write (eval expr))
-            (newline)
+            (let ((val (eval expr)))
+              (unless (void? val)
+                (write val) (newline)))
             (loop))))))
 
 ;; Run repl, abort on error or EOF.  Perform collection before halt.

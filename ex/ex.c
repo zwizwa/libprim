@@ -259,7 +259,9 @@ _ ex_not(ex *ex, _ o) {
 _ ex_is_null(ex *ex, _ o) {
     if (NIL == o) return TRUE; else return FALSE;
 }
-_ ex_is_eof_object(ex *ex, _ o) {
+_ ex_is_void(ex *ex, _ o) {
+    if (VOID == o) return TRUE; else return FALSE;
+}_ ex_is_eof_object(ex *ex, _ o) {
     if (EOF_OBJECT == o) return TRUE; else return FALSE;
 }
 _ ex_is_integer(ex *ex, _ o) {
