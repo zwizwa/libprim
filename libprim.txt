@@ -5271,3 +5271,26 @@ The next useful feature would be dynamic parameters.  I think the
 necessary VM machinery is in place (continuation marks) so the rest
 would be manipulation of continuation chain.
 
+
+
+Entry: String repl
+Date: Thu Nov 12 10:41:39 CET 2009
+
+For embedded applications without stdio a string repl is useful.  A
+coroutine-style interface between a C node and the VM would make this
+possible.
+
+Let's use the following interface.  This will consume Scheme commands
+in string form and produce a string with stdio.  The string needs to
+be used before the VM is re-entered.
+
+const char *_sc_rep(sc *sc, const char *commands);
+
+Needed: 
+  - a repl written in scheme
+  - a 'c-yield-string' word that exchanges strings.
+  - modifiable output ports
+
+parameter's aren't necessary yet + IO ports only need to be settable
+from scheme, so this should simply work.
+

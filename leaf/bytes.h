@@ -20,7 +20,9 @@ struct _bytes {
 };
 
 bytes *bytes_copy(bytes* b);
-bytes* bytes_new(size_t size);
+bytes* bytes_new(size_t bufsize);
+bytes* bytes_buffer_new(size_t bufsize);  // same, with size = 0
+
 // void *bytes_realloc(bytes *b, size_t size);
 
 bytes_class* bytes_type(void);

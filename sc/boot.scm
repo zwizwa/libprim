@@ -297,22 +297,36 @@
           (eval expr)
           (next))))))
 
-(define (repl-no-guard)
+;; Run repl until end-of-input.  On error the abort continuation is
+;; invoked (see 'abort-k!').
+(define (repl-no-guard display-prompt exit-repl)
   (let loop ()
-    (display "> ")
+    (display-prompt)
     (let ((expr (read (current-input-port))))
       (if (eof-object? expr)
-          (exit)
+          (exit-repl)
           (begin
             (post (eval expr))
             (loop))))))
+
+;; Run repl, abort on error or EOF.  Perform collection before halt.
+;; This is used in conjuction with _sc_repl_cstring().
+(define (repl-oneshot)
+  (letcc k (begin
+             (abort-k! k)
+             (repl-no-guard void void)))
+  ;; (display "collecting..\n")
+  (gc))
+
 (define (repl)
   ;; (display "libprim/SC") (newline)
   (let loop ()
     (print-error
      (letcc k (begin
                 (abort-k! k)
-                (repl-no-guard))))
+                (repl-no-guard
+                 (lambda () (display "> "))
+                 exit))))
     (loop)))
 
 

@@ -997,3 +997,19 @@ _ sc_read_no_gc(sc *sc, _ o) {
     port *p = CAST(port, o);
     return _ex_read(EX, p);
 }
+
+/* FIXME: currently this doesn't save the existing I/O ports (only for
+   headless embedding). */
+
+const char *_sc_repl_cstring(sc *sc, const char *commands) {
+    bytes *bin = bytes_from_cstring(commands);
+    bytes *bout = bytes_buffer_new(1000);
+    _ in  = _sc_make_bytes_port(sc, bin);
+    _ out = _sc_make_bytes_port(sc, bout);
+    sc_bang_set_global(sc, sc_slot_input_port, in);
+    sc_bang_set_global(sc, sc_slot_output_port, out);
+    _sc_top(sc, CONS(SYMBOL("repl-no-guard"), NIL));
+    return cstring_from_bytes(bout);
+}
+
+

@@ -271,10 +271,19 @@ _ _sc_printf(sc *sc, char *fmt, ...);
 
 port *_sc_port(sc *sc);
 
+/* For maximal separation (no access to internal data), the VM can be
+   driven using a string interface.  This function returns the output
+   written to current-output-port as a string.  Its data is live until
+   the next entry. */
+const char *_sc_repl_cstring(sc *sc, const char *commands);
 
 /* INIT */
 sc *_sc_new(int argc, char **argv);
 void _sc_def_prims(sc *sc, prim_def *prims);
+
+
+
+
 
 
 #endif

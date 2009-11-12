@@ -19,15 +19,20 @@ bytes_class *bytes_type(void) {
     return type;
 }
 
-bytes *bytes_new(size_t size) {
+// don't use this for strings!
+bytes *bytes_new(size_t bufsize) {
     bytes *x = malloc(sizeof(*x));
     x->type    = bytes_type();
-    x->size    = size;
-    x->bufsize = size;
-    x->bytes = malloc(size);
+    x->size    = bufsize;
+    x->bufsize = bufsize;
+    x->bytes = malloc(bufsize);
     return x;
 }
-
+bytes *bytes_buffer_new(size_t bufsize) {
+    bytes *b = bytes_new(bufsize);
+    b->size = 0;
+    return b;
+}
 
 
 char *cstring_from_bytes(bytes *b) {
