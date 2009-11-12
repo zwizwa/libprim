@@ -5303,3 +5303,8 @@ Date: Thu Nov 12 12:05:20 CET 2009
 #state(#redex(repl-oneshot ()) #k_apply(#k_mt () () ()))$3 = 20
 
 
+Entry: lowlevel errors
+Date: Thu Nov 12 17:56:48 CET 2009
+
+Need a mechanism in leaf to propagate errors.
+
