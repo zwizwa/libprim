@@ -64,10 +64,10 @@ static void scanner_get_atom(scanner *x, char tag) {
     int c;
     for(;;) {
         c = next_getc(x);
-        if (EOF == c || char_in(c, "()\',`#;\"") || isspace(c)) {
+        if (EOF == c) return set_token(x, tag);
+        if (char_in(c, "()\',`#;\"") || isspace(c)) {
             port_ungetc(x->p, c);
-            set_token(x, tag);
-            return;
+            return set_token(x, tag);
         }
         save(x, c);
     }
@@ -156,10 +156,6 @@ void scanner_read(scanner *x) {
     else return scanner_get_atom(x, TOK_SYMBOL);
 }
 
-void scanner_eof(scanner *x) {
-    printf("EOF\n");
-    exit(1);
-}
 void scanner_free(scanner *x) {
     leaf_free((leaf_object*)x->b);
     free(x);

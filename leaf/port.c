@@ -65,8 +65,8 @@ int port_bytes_getc(port *p) {
 }
 int port_bytes_ungetc(port *p, int c) {
     if (!p->stream.b.bytes) return -1;
-    if (p->stream.b.bytes->size > 0) {
-        p->stream.b.bytes->bytes[--p->stream.b.bytes->size] = c;
+    if (p->stream.b.read_index > 0) {
+        p->stream.b.bytes->bytes[--(p->stream.b.read_index)] = c;
         return c;
     }
     else return EOF;

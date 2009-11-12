@@ -36,7 +36,7 @@ bytes *bytes_buffer_new(size_t bufsize) {
 
 
 char *cstring_from_bytes(bytes *b) {
-    if ((b->size + 1) < b->bufsize) return NULL;
+    if ((b->size + 1) > b->bufsize) return NULL;
     if (b->bytes[b->size] != 0) return NULL;
     return b->bytes;
 }

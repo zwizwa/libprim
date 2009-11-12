@@ -306,7 +306,8 @@
       (if (eof-object? expr)
           (exit-repl)
           (begin
-            (post (eval expr))
+            (write (eval expr))
+            (newline)
             (loop))))))
 
 ;; Run repl, abort on error or EOF.  Perform collection before halt.
@@ -315,8 +316,10 @@
   (letcc k (begin
              (abort-k! k)
              (repl-no-guard void void)))
-  ;; (display "collecting..\n")
-  (gc))
+  (post "collecting..\n")
+  ;; (gc)
+  )
+
 
 (define (repl)
   ;; (display "libprim/SC") (newline)

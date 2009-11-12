@@ -5294,3 +5294,12 @@ Needed:
 parameter's aren't necessary yet + IO ports only need to be settable
 from scheme, so this should simply work.
 
+
+
+Entry: sc_eval_step debugging
+Date: Thu Nov 12 12:05:20 CET 2009
+
+(gdb) p sc_write_stderr(sc, state)
+#state(#redex(repl-oneshot ()) #k_apply(#k_mt () () ()))$3 = 20
+
+

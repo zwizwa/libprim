@@ -396,9 +396,8 @@ _ _sc_step_value(sc *sc, _ v, _ k) {
 
     /* A fully reduced value in an empty continuation means the
        evaluation is finished, and the machine can be halted. */
-    if (MT == k) {
-        ERROR("halt", value);
-    }
+    if (MT == k) ERROR("halt", value);
+
     if (TRUE == sc_is_k_if(sc, k)) {
         k_if *kx = object_to_k_if(k);
         _ rc = (FALSE == value) ? kx->no : kx->yes;
@@ -1002,14 +1001,18 @@ _ sc_read_no_gc(sc *sc, _ o) {
    headless embedding). */
 
 const char *_sc_repl_cstring(sc *sc, const char *commands) {
+    PURE();  // enable GC
     bytes *bin = bytes_from_cstring(commands);
     bytes *bout = bytes_buffer_new(1000);
     _ in  = _sc_make_bytes_port(sc, bin);
     _ out = _sc_make_bytes_port(sc, bout);
     sc_bang_set_global(sc, sc_slot_input_port, in);
     sc_bang_set_global(sc, sc_slot_output_port, out);
-    _sc_top(sc, CONS(SYMBOL("repl-no-guard"), NIL));
-    return cstring_from_bytes(bout);
+    PURE();
+    _sc_top(sc, CONS(SYMBOL("repl-oneshot"), NIL));
+    PURE();
+    const char *output = cstring_from_bytes(bout);
+    return output;
 }
 
 

@@ -22,6 +22,6 @@ struct _symbol_class {
 
 symbol *symbol_from_cstring(const char *str);
 const char *symbol_to_cstring(symbol *sym);
-symbol_class *symbol_type();
+symbol_class *symbol_type(void);
 
 #endif
