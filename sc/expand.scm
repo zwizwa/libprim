@@ -11,3 +11,6 @@
     (write expr port)
     (close-port port)))
 
+(save-expr "boot-expanded.scm" (expand flat))
+
+

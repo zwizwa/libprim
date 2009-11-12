@@ -287,15 +287,11 @@
 
 (define (load filename)
   (let ((port (open-input-file filename)))
-    (let next ()
+    (let next ((last (void)))
       (let ((expr (read port)))
-        (unless (eof-object? expr)
-          ;; (write expr) (newline)
-          ;; (when (list? expr)
-          ;;   (when (eq? (car expr) 'define)
-          ;;      (write (cadr expr)) (newline)))
-          (eval expr)
-          (next))))))
+        (if (eof-object? expr)
+            last
+            (next (eval expr)))))))
 
 ;; Run repl until end-of-input.  On error the abort continuation is
 ;; invoked (see 'abort-k!').
