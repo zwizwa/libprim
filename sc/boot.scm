@@ -310,10 +310,9 @@
 ;; Run repl, abort on error or EOF.  Perform collection before halt.
 ;; This is used in conjuction with _sc_repl_cstring().
 (define (repl-oneshot)
-  (print-error
-   (letcc k (begin
-              (abort-k! k)
-              (repl-no-guard void void))))
+  (letcc k (begin
+             (abort-k! k)
+             (repl-no-guard void void)))
   (gc))
 
 (define (repl)
