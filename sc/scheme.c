@@ -1022,6 +1022,7 @@ const char *_sc_repl_cstring(sc *sc, const char *commands) {
     _ out = _sc_make_bytes_port(sc, bout);
     sc_bang_set_global(sc, sc_slot_input_port, in);
     sc_bang_set_global(sc, sc_slot_output_port, out);
+    sc_bang_set_global(sc, sc_slot_error_port, out);
     PURE();
     _sc_top(sc, CONS(SYMBOL("repl-oneshot"), NIL));
     PURE();
