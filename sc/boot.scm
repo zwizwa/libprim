@@ -316,10 +316,7 @@
   (letcc k (begin
              (abort-k! k)
              (repl-no-guard void void)))
-  (post "collecting..\n")
-  ;; (gc)
-  )
-
+  (gc))
 
 (define (repl)
   ;; (display "libprim/SC") (newline)

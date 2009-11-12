@@ -132,6 +132,9 @@ void bytes_realloc(bytes *b, size_t size) {
     if (!(b->bytes = realloc(b->bytes, size))) {
         b->size = b->bufsize = 0;
     }
+    else {
+        b->bufsize = size;
+    }
 }
 char *bytes_allot(bytes *b, size_t extra) {
     int len = extra + b->size;
