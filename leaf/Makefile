@@ -1,5 +1,5 @@
 
-SRC=port.c bytes.c symbol.c scanner.c parser.c tree.c leaf.c
+SRC=port.c bytes.c symbol.c scanner.c parser.c tuple.c leaf.c
 
 
 OBJ=$(SRC:.c=.o)

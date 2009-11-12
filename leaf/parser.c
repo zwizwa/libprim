@@ -3,22 +3,22 @@
 
 #include <leaf/parser.h>
 #include <leaf/symbol.h>
-#include <leaf/tree.h>
+#include <leaf/tuple.h>
 #include <string.h>
 #include <stdlib.h>
 
 
-/* Default representation is in terms of leaf objects + trees.  Each
+/* Default representation is in terms of leaf objects + tuples.  Each
    record is tagged with a symbol in the first position. */
 
 static void *dflt_nil(void *x) { 
-    tree *t = tree_new(1);
+    tuple *t = tuple_new(1);
     t->slot[0] = (leaf_object*)symbol_from_cstring("nil"); 
     return t;
 }
 static void *dflt_eof(void *x) { return NULL; }
 static void *dflt_atom(void *x, const bytes *b) {
-    tree *t = tree_new(2);
+    tuple *t = tuple_new(2);
 
     /* Create a new bytes object with stripped token. */
     bytes *s = bytes_new(b->size);
@@ -39,14 +39,14 @@ static void *dflt_atom(void *x, const bytes *b) {
 }
 
 static void *dflt_cons(void *x, void *car, void *cdr) {
-    tree *t = tree_new(3);
+    tuple *t = tuple_new(3);
     t->slot[0] = (leaf_object*)symbol_from_cstring("cons");
     t->slot[1] = car;
     t->slot[2] = cdr;
     return t;
 }
 static void *dflt_vector(void *x, void *lst) {
-    tree *t = tree_new(2);
+    tuple *t = tuple_new(2);
     t->slot[0] = (leaf_object*)symbol_from_cstring("vector");
     t->slot[1] = lst;
     return t;

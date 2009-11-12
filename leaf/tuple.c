@@ -1,10 +1,10 @@
-#include <leaf/tree.h>
+#include <leaf/tuple.h>
 #include <leaf/port.h>
 #include <stdlib.h>
 
-static tree_class *type = NULL;
+static tuple_class *type = NULL;
 
-static void tree_free(tree *x) {
+static void tuple_free(tuple *x) {
     int i;
     for (i=0; i<x->size; i++) {
         leaf_free((leaf_object*)(x->slot + i));
@@ -13,7 +13,7 @@ static void tree_free(tree *x) {
     free(x);
 }
 
-static int tree_write(tree *x, port *p) {
+static int tuple_write(tuple *x, port *p) {
     int i, num = 0;
     num += port_printf(p, "{");
     for (i=0; i<x->size; i++) {
@@ -29,13 +29,13 @@ static int tree_write(tree *x, port *p) {
     return num;
 }
 
-tree *tree_new(int size) {
+tuple *tuple_new(int size) {
     if (!type) {
         type = calloc(1, sizeof(*type));
-        type->super.free  = (leaf_free_m)tree_free;
-        type->super.write = (leaf_write_m)tree_write;
+        type->super.free  = (leaf_free_m)tuple_free;
+        type->super.write = (leaf_write_m)tuple_write;
     }
-    tree *t = calloc(1, sizeof(*t) + sizeof(leaf_object*) * size);
+    tuple *t = calloc(1, sizeof(*t) + sizeof(leaf_object*) * size);
     t->type = type;
     t->size = size;
     return t;

@@ -2,32 +2,20 @@ A ``primitive oriented'' scripting language core.
 
 Libprim is a collection of primitive objects and operations written in
 C, mostly intended for writing embedded audio/video applications.
-
 In addition it contains an approach to assemble these objects as
-primitives of a dynamic scripting core (VM).  This is an exploratory
-project, roughly based on the following goals and priciples:
+building blocks of a dynamic scripting core (VM).  
 
-   * Create an ``invisible'' scripting language that integrates well
-     with a C/C++ based project, and can be ``optimized out'' when
-     necessary, yielding a static C/C++ app.
+Libprim constists roughly of 3 layers:
 
-   * Focus on two memory/control models for the scripting language:
-     Scheme and Packet Forth - a language based on a linear, dual
-     stack memory model.
+  * LEAF: C objects (bytes, symbol, port, parser, tuple, ...) with
+    manual memory management.
 
-   * Look at C primitives as lightweight tasks.  Along side other
-     benefits of concurrency-oriented programming, the property of
-     interest is the ability to decouple the C side from the scripting
-     language's _memory_ and _control_ models.
+  * EX: graph memory with automatic asynchronous GC.  Useful for
+    writing dynamically typed expressions in C.
 
-   * Concurrency-oriented programming allows intermediate composite
-     data types to be replaced with serial channels and protocols
-     (replace data aggregation with control flow structures).
-
-   * Simple memory model: C primitives use only atoms which are either
-     C primitive values (integers, floats, structure types), or
-     abstract objects (pointers) with explicit ownership.
-
+  * PF/SC: VMs implementing two execution models using the EX data
+    structures.  SC is a standard Scheme tree-walking interpreter.  PF
+    is a linear stack language (a hybrid Scheme and Forth).
 
 
 
