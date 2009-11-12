@@ -140,10 +140,12 @@ void scanner_read(scanner *x) {
     case '#':  return scanner_get_hash(x);
     case '"':  return scanner_get_string(x);
     case '-':
-        save(x, c = next_getc(x));
-        if (isdigit(c)) return scanner_get_atom(x, TOK_NUMBER);
+        c = next_getc(x);
+        if (isdigit(c)){
+            save(x, c);
+            return scanner_get_atom(x, TOK_NUMBER);
+        }
         port_ungetc(x->p, c);
-        reset(x);
         break;
     case '.': 
         save(x, c = next_getc(x));
