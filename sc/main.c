@@ -10,6 +10,10 @@ int main(int argc, char **argv) {
     // const char *out = _sc_repl_cstring(sc, "foo");
     // fprintf(stderr, "%s\n", out);
 
-    _sc_top(sc, CONS(SYMBOL("repl"), NIL));
+    /* The variable `init-script' is defined by _sc_new() based on
+       command line arguments. Evaluating it will either start the
+       REPL or load a script. */
+
+    _sc_top(sc, CONS(SYMBOL("eval"), CONS(SYMBOL("init-script"), NIL)));
     return 0;
 }

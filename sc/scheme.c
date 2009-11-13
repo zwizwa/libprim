@@ -1051,8 +1051,20 @@ sc *_sc_new(int argc, char **argv) {
     PURE();
     while ((argc > 0)) { args = CONS(STRING(argv[0]), args); SHIFT(1); }
     args = BANG_REVERSE(args);
+
+
+    _ init;
     PURE();
-    sc_bang_def_toplevel(sc, SYMBOL("args"), args);
+    if (NIL == args) {
+        init = CONS(SYMBOL("repl"), NIL);
+    }
+    else {
+        init = CONS(SYMBOL("load"), CONS(CAR(args), NIL));
+        args = CDR(args);
+    }
+    
+    PURE(); sc_bang_def_toplevel(sc, SYMBOL("args"), args);
+    PURE(); sc_bang_def_toplevel(sc, SYMBOL("init-script"), init);
 
     /* Highlevel bootstrap. */
     if (!bootfile) bootfile = getenv("PRIM_BOOT_SCM");

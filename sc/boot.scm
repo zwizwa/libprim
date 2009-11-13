@@ -369,5 +369,6 @@
 ;; (display "libprim/SC\n")
 ;; (repl)
 
-)))
+;; Collect before re-entering C.
+(gc))))
 
