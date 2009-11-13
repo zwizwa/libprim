@@ -5378,3 +5378,10 @@ all primitives, turning it into an error.
 Primitives that allocate a lot of cells then can be the exception:
 they could allow GC restart manually.
 
+
+
+Entry: sockets working
+Date: Fri Nov 13 16:24:00 CET 2009
+
+It's now possible to start a console on a tcp socket as client or
+server.

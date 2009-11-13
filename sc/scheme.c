@@ -307,8 +307,8 @@ _ sc_tcp_connect(sc *sc, _ host, _ port) {
     }
     char name[20 + strlen(hostname)];
     sprintf(name, "I:%s:%d", hostname, port_number);
-    _ in  = port_file_new(fdopen(fd, "r"), name);  name[0] = 'O';
-    _ out = port_file_new(fdopen(fd, "w"), name);
+    _ in  = _sc_make_aref(sc, port_file_new(fdopen(fd, "r"), name));  name[0] = 'O';
+    _ out = _sc_make_aref(sc, port_file_new(fdopen(fd, "w"), name));
     return CONS(in, out);
 }
 
@@ -726,6 +726,14 @@ _ sc_eval_step(sc *sc, _ state) {
     switch(exception = setjmp(sc->m.r.step)) {
         case EXCEPT_TRY:
             PURE();
+            /* Before executing the next step, check there is a
+               certain number of cells available to make sure that
+               primitives most won't be interrupted.  This is somewhat
+               arbitrary: primitives that allocate a lot of cells
+               might still be restarted.  FIXME: specify this
+               better. */
+            if (gc_available(EX->gc) < 20) gc_collect(EX->gc);
+
             rv = _sc_step(sc, state);
             break;
         case EXCEPT_ABORT: 

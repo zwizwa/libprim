@@ -343,20 +343,22 @@
 (define current-error-port  (make-global-access 6))
 
 
-(define (open-tcp-server-accept port)
-  (let ((server (open-tcp-server "localhost" port "r+")))
-    (open-accept server "r+")))
-
 (define (repl-on-ports in out err)
   (current-input-port  in)
   (current-output-port out)
   (current-error-port err)
   (repl))
 
+;; Dial into a remote console server (i.e. "netcat -l -p 12345")
 (define (repl-connect host port)
-  (let ((ports (connect-tcp host port)))
+  (let ((ports (tcp-connect host port)))
     (repl-on-ports (car ports) (cdr ports) (cdr ports))))
 
+;; Start a (one-shot) console server.
+(define (repl-serve port)
+  (let ((fd (tcp-bind "0.0.0.0" port)))
+    (let ((ports (tcp-accept fd)))
+      (repl-on-ports (car ports) (cdr ports) (cdr ports)))))
 
 ;(let ((x (read (open-input-file "boot.scm"))))
 ;  (let loop ((n 40))

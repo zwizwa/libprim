@@ -99,4 +99,11 @@ void _gc_assert(const char *cond, const char *file, int line);
 vector *gc_alloc(gc *gc, long size);
 object gc_make_tagged_v(gc *gc, long tag, long slots, va_list ap);
 object gc_make_tagged(gc *gc, long tag, long slots, ...);
+
+static inline int gc_available(gc *gc) {
+    return gc->slot_total - gc->current_index;
+}
+
+
+
 #endif
