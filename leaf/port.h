@@ -64,9 +64,12 @@ bytes *port_get_bytes(port *b); // for string ports
 #define PORT_SOCKET_UDP       (1<<1)  // 0 = TCP
 #define PORT_SOCKET_UNIX      (1<<2)  // 0 = INET
 #define PORT_SOCKET_BROADCAST (1<<3)
-port* port_socket_new(const char *sockname,  // hostname | filesystem node
-                      int port,              // only for TCP sockets
-                      char *cmode, 
-                      int kind);             // PORT_SOCKET_ bit vector
+
+int fd_socket(const char *sockname,  // hostname | filesystem node
+              int port_number,       // only for TCP sockets
+              int kind);
+
+int fd_accept(int fd);
+
 
 #endif

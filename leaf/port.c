@@ -214,18 +214,21 @@ port *port_bytes_new(bytes *b) {
 /* An all-in-one constructor for TCP/UNIX server/client socket. */
 
 
-#define ERROR(...) { fprintf(stderr, __VA_ARGS__); fprintf(stderr, "\n"); return NULL; } // FIXME: leaf error handling
+#define ERROR(...) { fprintf(stderr, __VA_ARGS__); fprintf(stderr, "\n"); return -1; } // FIXME: leaf error handling
 
 union addr {
     struct sockaddr_un un;
     struct sockaddr_in in;
 };
 
+/* This produces file descriptors.  It's a bit awkward to work with
+   streams for listening sockets.  Use these in conjunction with
+   fdopen to create port abstractions. */
+
 // ((host port) mode kind -- stream )
-port* port_socket_new(const char *sockname,  // hostname | filesystem node
-                      int port,              // only for TCP sockets
-                      char *cmode, 
-                      int kind) {
+int fd_socket(const char *sockname,  // hostname | filesystem node
+              int port_number,       // only for TCP sockets
+              int kind) {
 
     char *action;
 
@@ -234,9 +237,6 @@ port* port_socket_new(const char *sockname,  // hostname | filesystem node
     struct hostent *hp = 0; // name lookup
     union addr address;  // target/listen address
     socklen_t addrlen = 0;
-    FILE *f;
-    struct _port *p;
-
 
     memset(&address, 0, sizeof(struct sockaddr_in));
 
@@ -255,8 +255,8 @@ port* port_socket_new(const char *sockname,  // hostname | filesystem node
     // TCP/UDP socket
     else{
         // invalid port number.
-        if ((port < 0) || (port >= 0xFFFF)) {
-            ERROR("invalid IP port number %d (valid: 1->65534)", port);
+        if ((port_number < 0) || (port_number >= 0xFFFF)) {
+            ERROR("invalid IP port number %d (valid: 1->65534)", port_number);
         }
 
 	// lookup DNS name
@@ -274,7 +274,7 @@ port* port_socket_new(const char *sockname,  // hostname | filesystem node
 	}
 
 	// create socket
-	address.in.sin_port = htons((u_short)port);
+	address.in.sin_port = htons((u_short)port_number);
 	address.in.sin_family = AF_INET;
 	
 	// UDP
@@ -329,31 +329,14 @@ port* port_socket_new(const char *sockname,  // hostname | filesystem node
 	}
     }
     
-    // create port object
-
-        f = fdopen(sockfd, cmode);
-    {
-        char name[10 + strlen(sockname)];
-        if (port) sprintf(name, "%s:%d", sockname, port);
-        else sprintf(name, "%s", sockname);
-        p = port_file_new(f, name);
-    }
-
-#if 0
-    // for server sockets, we have a different interface
-    if (kind == (PORT_SOCKET_UNIX | PORT_SOCKET_SERVER)){
-	// pf_post("setting unix socket interface");
-	stream->m = unix_server_socket_interface;
-    }
-#endif
-    return p;
+    return sockfd;
 
     // connect / bind error handler
   error:
     close(sockfd);
-    if (port) { 
+    if (port_number) { 
 	ERROR("%s to host %s, TCP port %d failed: %s", 
-	      action, sockname, port, strerror(errno)); 
+	      action, sockname, port_number, strerror(errno)); 
     }
     else {
 	ERROR("%s to UNIX socket %s failed: %s", 
@@ -362,3 +345,15 @@ port* port_socket_new(const char *sockname,  // hostname | filesystem node
 }
 
 
+int fd_accept(int server_fd) {
+    union addr address;  // connection address
+    socklen_t addrlen = sizeof(address);
+    int fd_server = server_fd;
+    int fd_con;
+    if (-1 == (fd_con = accept(fd_server, 
+			       (struct sockaddr *)&address,
+			       &addrlen))){
+	ERROR("can't accept connection: %s", strerror(errno));
+    }
+    return fd_con;
+}

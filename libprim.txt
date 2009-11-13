@@ -5341,3 +5341,40 @@ Date: Fri Nov 13 08:45:19 CET 2009
 Also for wrapper generation from C: this should be self-hosted.
 Currently using PLT Scheme is ok but eventually it's probably best to
 make it standard.
+
+
+
+Entry: fdopen and read + write
+Date: Fri Nov 13 13:04:53 CET 2009
+
+man fdopen:
+
+   Reads and writes may be intermixed on read/write streams in any
+   order.  Note that ANSI C requires that a file positioning function
+   intervene between output and input, unless an input operation
+   encounters end-of-file.  (If this condition is not met, then a read
+   is allowed to return the result of writes other than the most
+   recent.)  Therefore it is good practice (and indeed sometimes
+   necessary under Linux) to put an fseek() or fgetpos() opera- tion
+   between write and read operations on such a stream.  This operation
+   may be an apparent no-op (as in fseek(..., 0L, SEEK_CUR) called for
+   its synchronizing side effect.
+
+It's probably best to use 2 FILE objects.
+
+
+Entry: GC restarts: disallowed by default.  
+Date: Fri Nov 13 13:24:17 CET 2009
+
+FIXME: bunch of (all?) _sc_make_aref() calls might be restarted!  it's
+probably simplest to probe the GC free space inside the interpreter
+loop to at least make those calls succeed.
+
+In general: define a global nb of cells that is _guaranteed_ to be
+available to all primitives invoked from _sc_step().  This might be
+extended to a mechanism that completely prevents GC restarts inside
+all primitives, turning it into an error.
+
+Primitives that allocate a lot of cells then can be the exception:
+they could allow GC restart manually.
+

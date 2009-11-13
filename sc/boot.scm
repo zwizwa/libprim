@@ -304,7 +304,8 @@
           (begin
             (let ((val (eval expr)))
               (unless (void? val)
-                (write val) (newline)))
+                (write val) (newline)
+                (flush-output-port (current-output-port))))
             (loop))))))
 
 ;; Run repl, abort on error or EOF.  Perform collection before halt.
@@ -322,13 +323,40 @@
      (letcc k (begin
                 (abort-k! k)
                 (repl-no-guard
-                 (lambda () (display "> "))
+                 (lambda ()
+                   (display "> " (current-error-port))
+                   (flush-output-port (current-error-port)))
                  exit))))
+    (flush-output-port (current-error-port))
     (loop)))
 
 
 (define (read-string str) (read (open-input-string str)))
 (define (eval-string str) (eval (read-string str)))
+
+(define (make-global-access n)
+  (lambda p (if (null? p) (global n) (set-global! n (car p)))))
+
+;; See scheme.h -> sc_slot_*
+(define current-input-port  (make-global-access 4))
+(define current-output-port (make-global-access 5))
+(define current-error-port  (make-global-access 6))
+
+
+(define (open-tcp-server-accept port)
+  (let ((server (open-tcp-server "localhost" port "r+")))
+    (open-accept server "r+")))
+
+(define (repl-on-ports in out err)
+  (current-input-port  in)
+  (current-output-port out)
+  (current-error-port err)
+  (repl))
+
+(define (repl-connect host port)
+  (let ((ports (connect-tcp host port)))
+    (repl-on-ports (car ports) (cdr ports) (cdr ports))))
+
 
 ;(let ((x (read (open-input-file "boot.scm"))))
 ;  (let loop ((n 40))

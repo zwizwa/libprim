@@ -110,7 +110,7 @@ _ sc_make_k_seq(sc *sc, _ P, _ T)            {STRUCT(TAG_K_SEQ,    3, P,NIL,T);}
 
 _ _sc_make_aref(sc *sc, void *_x) {
     leaf_object *x = _x;
-    fin *f = (fin*)&x->methods->free;
+    fin *f = (fin*)((void*)(&x->methods->free));
     return sc_make_aref(sc, fin_to_object(f), const_to_object(x));
 }
 
@@ -297,15 +297,17 @@ _ sc_get_output_string(sc *sc, _ ob_port) {
     return _sc_make_aref(sc, b);
 }
 
-_ sc_open_tcp_client(sc *sc, _ ob_host, _ ob_port, _ ob_mode) {
-    char *host  = CAST(cstring, ob_host);
-    int prt     = CAST_INTEGER(ob_port);
-    char *cmode = CAST(cstring, ob_mode);
-    _ args = CONS(ob_host, CONS(ob_port, NIL));
-    port *p = port_socket_new(host, prt, cmode, 0);
-    if (!p) ERROR("invalid", args);
-    return _sc_make_aref(sc, p);
+_ sc_connect_tcp(sc *sc, _ host, _ port) {
+    char *hostname  = CAST(cstring, host);
+    int port_number = CAST_INTEGER(port);
+    int fd;
+    if (-1 == (fd = fd_socket(hostname, port_number, 0))) {
+        ERROR("invalid", CONS(host, CONS(port, NIL)));
+    }
+    return CONS(_sc_make_aref(sc, port_file_new(fdopen(fd, "r"), "tcp-client-in")),
+                _sc_make_aref(sc, port_file_new(fdopen(fd, "w"), "tcp-client-out")));
 }
+
 
 // Manually call finalizer, creating a defunct object.
 _ sc_bang_finalize(sc *sc, _ ob) {
@@ -1032,7 +1034,7 @@ const char *_sc_repl_cstring(sc *sc, const char *commands) {
     _ out = _sc_make_bytes_port(sc, bout);
     sc_bang_set_global(sc, sc_slot_input_port, in);
     sc_bang_set_global(sc, sc_slot_output_port, out);
-    sc_bang_set_global(sc, sc_slot_error_port, out);
+    // sc_bang_set_global(sc, sc_slot_error_port, out);
     PURE();
     _sc_top(sc, CONS(SYMBOL("repl-oneshot"), NIL));
     PURE();
