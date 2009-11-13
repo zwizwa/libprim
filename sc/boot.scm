@@ -330,10 +330,10 @@
 (define (read-string str) (read (open-input-string str)))
 (define (eval-string str) (eval (read-string str)))
 
-(let ((x (read (open-input-file "boot.scm"))))
-  (let loop ((n 40))
-    (unless (zero? n)
-      (expand x) (loop (sub1 n)))))
+;(let ((x (read (open-input-file "boot.scm"))))
+;  (let loop ((n 40))
+;    (unless (zero? n)
+;      (expand x) (loop (sub1 n)))))
 
 
 ;; (display "libprim/SC\n")
