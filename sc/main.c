@@ -7,6 +7,7 @@ int main(int argc, char **argv) {
 
     //// STRING IO
     // const char *out = _sc_repl_cstring(sc, "(procedures)");
+    // const char *out = _sc_repl_cstring(sc, "foo");
     // fprintf(stderr, "%s\n", out);
 
     _sc_top(sc, CONS(SYMBOL("repl"), NIL));

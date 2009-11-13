@@ -123,6 +123,12 @@ _ _sc_make_qstring(sc *sc, const char *str) {
 _ _sc_make_bytes(sc *sc, int size) {
     return _sc_make_aref(sc, bytes_new(size));
 }
+_ sc_bytes_ref(sc *sc, _ ob_bytes, _ ob_index) {
+    bytes *b = CAST(bytes, ob_bytes);
+    int i = CAST_INTEGER(ob_index);
+    if ((i < 0) || (i >= b->size)) return ERROR("index", ob_index);
+    return integer_to_object(b->bytes[i]);
+}
 
 _ sc_make_mt(sc *sc)    { return MT; }
 
@@ -965,11 +971,13 @@ sc *_sc_new(int argc, char **argv) {
     sc->m.prim_entries = 0;
 
     char *bootfile = NULL;
+    _ args = NIL;
 
-    /* Read command line arguments. */
+    /* Read command line interpreter options options. */
     SHIFT(1); // skip program name
     while ((argc > 0) && ('-' == argv[0][0])) {
         if (!strcmp("--boot", argv[0])) { bootfile = argv[1]; SHIFT(2); }
+        else if (!strcmp("--", argv[0])) { SHIFT(1); break; }
         else {
             fprintf(stderr, "option `%s' not recognized\n", argv[0]);
             return NULL;
@@ -1039,11 +1047,18 @@ sc *_sc_new(int argc, char **argv) {
 
     sc_bang_abort_k(sc, abort_k);
 
-    /* Highlevel bootstrap. */
+    /* Pass command line arguments to scheme. */
     PURE();
+    while ((argc > 0)) { args = CONS(STRING(argv[0]), args); SHIFT(1); }
+    args = BANG_REVERSE(args);
+    PURE();
+    sc_bang_def_toplevel(sc, SYMBOL("args"), args);
+
+    /* Highlevel bootstrap. */
     if (!bootfile) bootfile = getenv("PRIM_BOOT_SCM");
     if (!bootfile) bootfile = PRIM_HOME "boot.scm";
     // _ex_printf(EX, "SC: booting from %s\n", bootfile);
+    PURE();
     _sc_top(sc, _ex_boot_load(EX, bootfile));
     PURE();
     return sc;
@@ -1063,9 +1078,9 @@ const char *_sc_repl_cstring(sc *sc, const char *commands) {
     bytes *bout = bytes_buffer_new(1000);
     _ in  = _sc_make_bytes_port(sc, bin);
     _ out = _sc_make_bytes_port(sc, bout);
-    sc_bang_set_global(sc, sc_slot_input_port, in);
+    sc_bang_set_global(sc, sc_slot_input_port,  in);
     sc_bang_set_global(sc, sc_slot_output_port, out);
-    // sc_bang_set_global(sc, sc_slot_error_port, out);
+    sc_bang_set_global(sc, sc_slot_error_port,  out);
     PURE();
     _sc_top(sc, CONS(SYMBOL("repl-oneshot"), NIL));
     PURE();
