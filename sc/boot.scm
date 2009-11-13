@@ -157,11 +157,12 @@
 (define (dbg x) (post x) x)
 (define-macro (cond form)
   (let next ((f (cdr form)))
-    (let ((c  (car f)))
-      (if (eq? 'else (car c))
-          (cadr c)
-          (list 'if (car c) (cadr c)
-                (next (cdr f)))))))
+    (if (null? f) '(void)
+        (let ((c  (car f)))
+          (if (eq? 'else (car c))
+              (cadr c)
+              (list 'if (car c) (cadr c)
+                    (next (cdr f))))))))
 (define-macro (*** form)
   (list 'begin
         (list 'post (list 'quote (cdr form)))
@@ -203,6 +204,7 @@
               (next (cdr lst)))))))
 (define assoc (make-assoc equal?))
 ; (define assq (make-assoc eq?))
+(define assv assq) ;; FIXME
 
 (define (make-accu op init)
   (lambda lst
