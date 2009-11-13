@@ -5335,3 +5335,9 @@ additionally be unboxed.
 
 
 
+Entry: bootstrapping
+Date: Fri Nov 13 08:45:19 CET 2009
+
+Also for wrapper generation from C: this should be self-hosted.
+Currently using PLT Scheme is ok but eventually it's probably best to
+make it standard.
