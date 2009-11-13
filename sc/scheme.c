@@ -297,17 +297,36 @@ _ sc_get_output_string(sc *sc, _ ob_port) {
     return _sc_make_aref(sc, b);
 }
 
-_ sc_connect_tcp(sc *sc, _ host, _ port) {
+/* Returns a pair (input . output) of ports. */
+_ sc_tcp_connect(sc *sc, _ host, _ port) {
     char *hostname  = CAST(cstring, host);
     int port_number = CAST_INTEGER(port);
     int fd;
     if (-1 == (fd = fd_socket(hostname, port_number, 0))) {
         ERROR("invalid", CONS(host, CONS(port, NIL)));
     }
-    return CONS(_sc_make_aref(sc, port_file_new(fdopen(fd, "r"), "tcp-client-in")),
-                _sc_make_aref(sc, port_file_new(fdopen(fd, "w"), "tcp-client-out")));
+    return CONS(_sc_make_aref(sc, port_file_new(fdopen(fd, "r"), "tcp-connect-in")),
+                _sc_make_aref(sc, port_file_new(fdopen(fd, "w"), "tcp-connect-out")));
 }
 
+/* Returns a unix FILE DESCRIPTOR!  This can then be passed to accept_tcp. */
+_ sc_tcp_bind(sc *sc, _ host, _ port) {
+    char *hostname  = CAST(cstring, host);
+    int port_number = CAST_INTEGER(port);
+    int fd;
+    if (-1 == (fd = fd_socket(hostname, port_number, PORT_SOCKET_SERVER))) {
+        ERROR("invalid", CONS(host, CONS(port, NIL)));
+    }
+    return integer_to_object(fd);
+}
+
+_ sc_tcp_accept(sc *sc, _ ob) {
+    int server_fd = CAST_INTEGER(ob);
+    int connection_fd = fd_accept(server_fd);
+    if (-1 == connection_fd) ERROR("invalid-fd", ob);
+    return CONS(_sc_make_aref(sc, port_file_new(fdopen(connection_fd, "r"), "tcp-accept-in")),
+                _sc_make_aref(sc, port_file_new(fdopen(connection_fd, "w"), "tcp-connect-out")));
+}
 
 // Manually call finalizer, creating a defunct object.
 _ sc_bang_finalize(sc *sc, _ ob) {
