@@ -5308,3 +5308,30 @@ Date: Thu Nov 12 17:56:48 CET 2009
 
 Need a mechanism in leaf to propagate errors.
 
+
+
+Entry: gprof
+Date: Fri Nov 13 07:29:17 CET 2009
+
+Tried to inline some functions that are called a lot.  Most of them
+are data access & creation.
+
+The real message is: in order to speed this up: perform less consing &
+lookup.
+
+According to Dybvig, it's variable references and procedure
+applications (frame extensions).  Global variables could be linked to
+boxes instead of having to go through a search operation.  This might
+be the best speedup.
+
+ex_find() takes 44.9% of the time.
+
+It's probably best to replace global variables with a direct reference
+to the cell that contains the definition.  The same can be done for
+free variables in closures.  If they're not assigned to, they can
+additionally be unboxed.
+
+#(var (name . val))
+
+
+

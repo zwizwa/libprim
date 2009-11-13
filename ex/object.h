@@ -224,7 +224,6 @@ static inline void vector_reset_flags(vector *v, long flags) {
     v->header |= flags;
 }
 
-
 static inline unsigned long object_get_vector_flags(object o){
     vector *v = object_to_vector(o);
     if (!v) return -1;

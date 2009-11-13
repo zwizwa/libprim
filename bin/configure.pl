@@ -373,7 +373,7 @@ if ($var{debug} eq "yes"){
 else{
     makefile "OPTI_CFLAGS = -O3 -ffast-math -funroll-loops";
     if ($var{profile} eq "yes") {
-	makefile "OPTI_CFLAGS += -pg -g";
+	makefile "OPTI_CFLAGS += -pg -g -O3";
 	makefile "LIBS += -pg";
     }
     else {

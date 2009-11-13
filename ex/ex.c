@@ -179,12 +179,6 @@ _ _ex_make_symbol(ex *ex, const char *str) {
     return const_to_object((void*)(symbol_from_cstring(str)));
 }
 
-void* _ex_unwrap_pointer(ex *ex, void *unwrap, object o){
-    object_to_pointer fn = (object_to_pointer)unwrap;
-    void *x = fn(o, ex);
-    if (unlikely(!x)) ex_raise_type_error(ex, o);
-    return x;
-}
 long _ex_unwrap_integer(ex *ex, object o) {
     if ((FALSE == ex_is_integer(ex, o))) 
         return ex_raise_type_error(ex, o);

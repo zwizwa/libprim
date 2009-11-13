@@ -104,7 +104,14 @@ _ _is_vector_type(_ o, long flags);
 /* Pointer casts (just like predicates) are derived from the
    object_to_pointer function, _except_ for integers: there we use the
    predicate. */
-void* _ex_unwrap_pointer(ex *sc, void *unwrap, object o);
+// void* _ex_unwrap_pointer(ex *sc, void *unwrap, object o);
+_ ex_raise_type_error(ex *ex, _ arg_o);
+static inline void* _ex_unwrap_pointer(ex *ex, void *unwrap, object o){
+    object_to_pointer fn = (object_to_pointer)unwrap;
+    void *x = fn(o, ex);
+    if (unlikely(!x)) ex_raise_type_error(ex, o);
+    return x;
+}
 long _ex_unwrap_integer(ex *ex, object o);
 #define CAST(type,x) ((type*)(_ex_unwrap_pointer(EX, object_to_##type, x)))
 #define CAST_INTEGER(x) _ex_unwrap_integer(EX, x)
@@ -184,6 +191,9 @@ static inline _ ex_linear(ex *ex) {
 
 #define PURE() ex_pure(EX)
 #define LINEAR() ex_linear(EX)
+
+
+
 
 #endif
 
