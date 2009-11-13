@@ -42,3 +42,5 @@ GEN = scheme.h_sc_prims test.h_load media.h_sc_prims
 include ../Makefile.defs
 include ../Makefile.rules
 
+boot-expanded.scm: boot.scm sc expand.scm
+	./sc --boot boot.scm expand.scm
