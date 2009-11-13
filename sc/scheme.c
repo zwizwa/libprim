@@ -305,11 +305,15 @@ _ sc_tcp_connect(sc *sc, _ host, _ port) {
     if (-1 == (fd = fd_socket(hostname, port_number, 0))) {
         ERROR("invalid", CONS(host, CONS(port, NIL)));
     }
-    return CONS(_sc_make_aref(sc, port_file_new(fdopen(fd, "r"), "tcp-connect-in")),
-                _sc_make_aref(sc, port_file_new(fdopen(fd, "w"), "tcp-connect-out")));
+    char name[20 + strlen(hostname)];
+    sprintf(name, "I:%s:%d", hostname, port_number);
+    _ in  = port_file_new(fdopen(fd, "r"), name);  name[0] = 'O';
+    _ out = port_file_new(fdopen(fd, "w"), name);
+    return CONS(in, out);
 }
 
-/* Returns a unix FILE DESCRIPTOR!  This can then be passed to accept_tcp. */
+/* Returns a unix FILE DESCRIPTOR!  This can then be passed to
+   accept_tcp to create an I/O port pair for each connection. */
 _ sc_tcp_bind(sc *sc, _ host, _ port) {
     char *hostname  = CAST(cstring, host);
     int port_number = CAST_INTEGER(port);
@@ -324,8 +328,8 @@ _ sc_tcp_accept(sc *sc, _ ob) {
     int server_fd = CAST_INTEGER(ob);
     int connection_fd = fd_accept(server_fd);
     if (-1 == connection_fd) ERROR("invalid-fd", ob);
-    return CONS(_sc_make_aref(sc, port_file_new(fdopen(connection_fd, "r"), "tcp-accept-in")),
-                _sc_make_aref(sc, port_file_new(fdopen(connection_fd, "w"), "tcp-connect-out")));
+    return CONS(_sc_make_aref(sc, port_file_new(fdopen(connection_fd, "r"), "I:tcp-accept")),
+                _sc_make_aref(sc, port_file_new(fdopen(connection_fd, "w"), "O:tcp-accept")));
 }
 
 // Manually call finalizer, creating a defunct object.
