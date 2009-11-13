@@ -925,11 +925,23 @@ void _sc_def_prim(sc *sc, const char *str, void *fn, long nargs) {
 void _sc_media_init(sc *sc);
 
 
-
+#define SHIFT(n) {argv+=n;argc-=n;}
 sc *_sc_new(int argc, char **argv) {
     sc *sc = malloc(sizeof(*sc));
     sc->m.top_entries = 0;
     sc->m.prim_entries = 0;
+
+    char *bootfile = NULL;
+
+    /* Read command line arguments. */
+    SHIFT(1); // skip program name
+    while ((argc > 0) && ('-' == argv[0][0])) {
+        if (!strcmp("--boot", argv[0])) { bootfile = argv[1]; SHIFT(2); }
+        else {
+            fprintf(stderr, "option `%s' not recognized\n", argv[0]);
+            return NULL;
+        }
+    }
 
     /* Garbage collector. */
     sc->m.gc = sc->m.gc_save
@@ -996,8 +1008,6 @@ sc *_sc_new(int argc, char **argv) {
 
     /* Highlevel bootstrap. */
     PURE();
-    char *bootfile = NULL;
-    if (argc > 1)  bootfile = argv[1];
     if (!bootfile) bootfile = getenv("PRIM_BOOT_SCM");
     if (!bootfile) bootfile = PRIM_HOME "boot.scm";
     // _ex_printf(EX, "SC: booting from %s\n", bootfile);

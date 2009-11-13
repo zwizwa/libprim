@@ -130,9 +130,9 @@
 
 
 ;; Call this with the prefix tag.  See sc/sc_prims.ss
-(define (ex-gen tag [ctx tag])
+(define (ex-gen tag [ctx-tag tag])
   (parameterize
       ((re-def (pregexp (string-append "_\\s+?" tag "_\\S*?\\(" tag "\\s*?\\*.*?\\)")))
        (re-name (pregexp (string-append tag "_\\S*?(?=\\()")))
-       (ctx tag))
+       (ctx ctx-tag))
     (gen)))
