@@ -167,7 +167,7 @@ static void _gc_when_full(gc *gc, long slots) {
 }
 vector *gc_alloc(gc *gc, long size) {
     if (unlikely(NULL == gc)) {
-        fprintf(stderr, "ERROR: GC: Allocation in LINEAR mode.\n");
+        fprintf(stderr, "ERROR: GC: Allocation disabled.\n");
         kill(getpid(), SIGTRAP);
     }
     // fprintf(stderr, ".");

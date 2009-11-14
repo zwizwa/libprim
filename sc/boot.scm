@@ -183,7 +183,39 @@
 (define (open-input-file filename) (open-mode-file filename "r"))
 
 ;; misc r4rs
-(define (append a b) (if (null? a) b (cons (car a) (append (cdr a) b))))
+(define (append2 a b)
+  (if (null? a) b (cons (car a) (append2 (cdr a) b))))
+(define (append-lists a)
+  (if (null? a) '()
+  (if (null? (cdr a)) (car a)
+  (if (null? (cddr a)) (append2 (car a) (cadr a))
+      (append2 (car a) (append-lists (cdr a)))))))
+;; (define append append2)
+(define (append . lsts) (append-lists lsts))
+
+(define-macro (quasi-quote x)
+  (let qq ((expr (cadr x)))
+    (cond
+     ((list? expr)
+      (cond
+       ((eq? 'unquote (car expr)) (cadr expr))
+       ((eq? 'unquote-spicing (car expr)) (syntax-error x))
+       (else
+        (cons 'append
+          (map (lambda (el)
+                (or
+                 (and (pair? el)
+                 (cond
+                  ((eq? 'unquote (car el)) (list 'list (cadr el)))
+                  ((eq? 'unquote-splicing (car el)) (cadr el))
+                  (else #f)))
+               (list 'list (list 'quote el))))
+            expr)))))
+     ((pair? expr)
+      (list 'cons (qq (car expr)) (qq (cdr expr))))
+     (else
+      (list 'quote expr)))))
+
 (define (list-tail lst k) (if (zero? k) lst (list-tail (cdr lst) (sub1 k))))
 (define (list-ref lst k)  (if (zero? k) (car lst) (list-ref (cdr lst) (sub1 k))))
 

@@ -5423,3 +5423,35 @@ and ex_list_reverse().  Time will tell if I overlooked something.
 
 
 
+Entry: VM
+Date: Sat Nov 14 09:36:00 CET 2009
+
+What are the operations on the continuation?  Is it enough to simply
+serialize these?
+
+Contiuation types: if set! begin apply
+
+Currently the interpreter works in two steps:
+  1. reduce non-value
+  2. apply value to continuation
+
+
+How do do this:
+ - tag s-expressions
+ - cps-convert
+
+
+Entry: Memory usage
+Date: Sat Nov 14 10:20:54 CET 2009
+
+The current implementation isn't so efficient for memory usage.
+From[1] I gather that a one-size mark/sweep algorithm might be
+better.  It would also remove the need for restarts.  However, it
+would complicate the use of variable length objects.
+
+Additionally, pairs are represented quite inefficiently: 3 word cells
+per pair.  However, in typical applications, the amount of memory used
+for representing cells is probably much less that used for
+representing leaf objects.  Let' s not worry too much about this..
+
+[1] http://w3.ift.ulaval.ca/~dadub100/files/picbit.pdf
