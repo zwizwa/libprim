@@ -5385,3 +5385,34 @@ Date: Fri Nov 13 16:24:00 CET 2009
 
 It's now possible to start a console on a tcp socket as client or
 server.
+
+
+Entry: Proposed changes
+Date: Sat Nov 14 07:35:45 CET 2009
+
+- eliminate global variable lookup
+- treewalker -> CPS VM  (write this in Scheme first, follow Dybvig)
+- GC restarts: make sure these only happen in step()
+
+
+Entry: preventing GC restarts
+Date: Sat Nov 14 07:42:33 CET 2009
+
+It might be possible for me to write code under restarts, but in
+practice, interfacing with (stateful) C code becomes really
+difficult.  It's best to make the mechanism more explicit.
+
+remarks:
+
+1. It is possible to prevent the gross of the restarts by checking the
+available memory before executing the next VM step.  This guarantees
+no restarts in case the nb of allocated cells remains below a certain
+threshold.
+
+2. For primitives that allocate a lot of memory the restart mechanism
+might be enabled.
+
+
+Strategy: remove the 'PURE' mechanism, but prevent restarts in
+primitives.
+
