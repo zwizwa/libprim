@@ -203,9 +203,12 @@ void _ex_overflow(ex *ex, long extra) {
     _ex_restart(ex);
 }   
 
-/* Primitive map to make some primitives easier. */
+/* Primitive map to make some primitives easier.  In these functions
+   ex_list_clone() will enable restarts before any primitive code is
+   executed, making it safe for it to have side effect if allocation
+   is bounded. */
 _ _ex_map1_prim(ex *ex, ex_1 fn, _ l_in) {
-    _ res = ex_list_clone(ex, l_in);
+    _ res = ex_list_clone(ex, l_in);  
     _ l_out = res;
     pair *in, *out;
     for(;;) {
@@ -218,7 +221,7 @@ _ _ex_map1_prim(ex *ex, ex_1 fn, _ l_in) {
     }
 }
 _ _ex_map2_prim(ex *ex, ex_2 fn, _ l_in1, _ l_in2) {
-    _ res = ex_list_clone(ex, l_in1);
+    _ res = ex_list_clone(ex, l_in1); 
     _ l_out = res;
     pair *in1, *in2, *out;
     for(;;) {
@@ -307,6 +310,7 @@ _ ex_make_vector(ex *ex, _ slots, _ init) {
     return vector_to_object(v);
 }
 _ ex_reverse(ex *ex, _ lst) {
+    ENABLE_RESTART();
     _ rlst = NIL;
     while(FALSE == (IS_NULL(lst))) {
         pair *p = CAST(pair, lst);
@@ -319,7 +323,6 @@ _ ex_reverse(ex *ex, _ lst) {
 _ ex_bang_reverse_append(ex *ex, _ lst, _ tail) {
     if (NIL == lst) return tail;
     _ next, last = tail;
-    LINEAR();
     while (NIL != lst) {
         // FIXME: use poly predicate
         pair *p = object_to_lpair(lst); // polymorphic
@@ -487,7 +490,6 @@ _ ex_vector_ref(ex *ex, _ vec, _ n) {
     return *vector_index(ex, vec, n);
 }
 _ ex_bang_vector_set(ex *ex, _ vec, _ n, _ val) {
-    LINEAR();
     *vector_index(ex, vec, n) = val;
     return VOID;
 }
@@ -503,12 +505,12 @@ _ ex_env_def(ex *ex, _ E, _ var, _ value) {
         return CONS(CONS(var,value),E);
     }
     else {
-        LINEAR();
         _CDR(slot) = value;
         return E;
     }
 }
 _ ex_list_clone(ex *ex, _ lst) {
+    ENABLE_RESTART();
     if (NIL == lst) return lst;
     _ res = CONS(VOID, NIL);
     pair *in,*out;

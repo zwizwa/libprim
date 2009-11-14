@@ -71,7 +71,6 @@ void _px_run(pf *pf) {
            there are no side effects performed between this LINEAR()
            call and the PURE() invocation in the primitive.
         */
-        LINEAR();
 
         /* Quote linear datum (Implement the `dip' continuation.) */
         pair *rs = object_to_ldata(pf->k);
@@ -317,15 +316,12 @@ void pf_nop(pf *pf) {}
 /* Since we have a non-rentrant interpreter with mutable state, this
    is a bit less problematic than the EX/SC case. */
 void pf_gc(pf *pf) {
-    PURE();
     pf->m.r.prim = object_to_prim(pf->ip_nop, EX);  // don't restart pf_gc() !
     gc_collect(GC); // does not return
 }
 void pf_gc_test(pf *pf) {
-    PURE();
     _GC_STAT();
     _px_alloc_cells(pf, 2000);
-    LINEAR();
 }
 
 
@@ -398,37 +394,27 @@ void pf_interpret(pf *pf) {
 
 /* FIXME: properly switch mode! */
 void pf_make_loop(pf *pf) { 
-    PURE();
     _TOP = MAKE_LOOP(TOP);
-    LINEAR();
 }
 
 void pf_nl_compile(pf *pf) { 
-    PURE();
     _TOP = COMPILE_PROGRAM(TOP);
-    LINEAR();
 }
 
 void pf_nl_definitions(pf *pf) { 
-    PURE();
     px_define(pf, TOP); 
-    LINEAR();
     _DROP();
 }
 
 void pf_define(pf *pf) {
-    PURE();
     _ var = TOP;
     _ val = SECOND;
     pf->dict = ENV_DEF(pf->dict, var, val);
-    LINEAR();
 }
 
 void pf_to_nl(pf *pf) {
     _ ob = TOP;
-    PURE();
     _ nl = COPY_TO_GRAPH(ob);
-    LINEAR();
     _DROP();
     PUSH_P(nl);
 }
@@ -678,7 +664,6 @@ void pf_bang_abort(pf *pf) {
 
 /* Exit + make sure all the finalizers get called. */
 void pf_bye(pf *pf) {
-    PURE(); // switch on GC
     pf->p = NIL;
     pf->k = NIL;
     pf->freelist = NIL;
@@ -700,8 +685,8 @@ void pf_bye(pf *pf) {
 #define MARK(reg) pf->reg = gc_mark(GC, pf->reg)
 
 void pf_gc_stat(pf *pf) {
-    long used = pf->m.gc_save->current_index;
-    long free = pf->m.gc_save->slot_total - used;
+    long used = pf->m.gc->current_index;
+    long free = pf->m.gc->slot_total - used;
     _ex_printf(EX, ";; gc %d:%d\n", (int)used, (int)free);
 }
 
@@ -764,7 +749,7 @@ pf* _px_new(void) {
     pf *pf = malloc(sizeof(*pf));
 
     // Garbage collector.
-    pf->m.gc = pf->m.gc_save =
+    pf->m.gc = 
         gc_new(10000, pf, 
                (gc_mark_roots)_px_mark_roots,
                (gc_overflow)_ex_overflow);

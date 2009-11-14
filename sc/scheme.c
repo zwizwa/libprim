@@ -340,7 +340,6 @@ _ sc_tcp_accept(sc *sc, _ ob) {
 
 // Manually call finalizer, creating a defunct object.
 _ sc_bang_finalize(sc *sc, _ ob) {
-    LINEAR();
     aref *r = CAST(aref, ob);
     fin finalize = *(object_to_fin(r->fin));
     finalize(r->object, sc);
@@ -496,17 +495,15 @@ _ _sc_step_value(sc *sc, _ v, _ k) {
                 if (prim_nargs(p) != (n-1)) {
                     return ERROR("nargs", fn);
                 }
-                /* Perform all allocation _before_ the execution of
-                   the primitive.  This is to make sure that we won't
-                   be the cause of an abort due to GC _after_ the
-                   primitive has executed.  Meaning, a primitive won't
-                   be restarted if it doesn't call gc_alloc(). */
-                _ value   = VALUE(VOID);
-                _ state   = STATE(value, kx->k.parent); // drop frame
-                _ rv      = _sc_call(sc, prim_fn(p), n-1, rev_args);
-                object_to_value(value)->datum = rv;
-                return state;
+                /* Before entering primitive code, make GC restarts
+                   illegal.  Code that allocates a large amount of
+                   cells needs to re-enable restarts explicitly.  A
+                   small number of cells are guaranteed to exist. */
+                EX->stateful_context = 1;
+                _ rv = _sc_call(sc, prim_fn(p), n-1, rev_args);
+                return STATE(VALUE(rv), kx->k.parent);
             }
+
             /* Application of abstraction extends the fn_env environment. */
             if (TRUE==sc_is_lambda(sc, fn)) {
                 lambda *l = CAST(lambda, fn);
@@ -731,13 +728,12 @@ _ sc_eval_step(sc *sc, _ state) {
 
     switch(exception = setjmp(sc->m.r.step)) {
         case EXCEPT_TRY:
-            PURE();
-            /* Before executing the next step, check there is a
-               certain number of cells available to make sure that
-               primitives most won't be interrupted.  This is somewhat
-               arbitrary: primitives that allocate a lot of cells
-               might still be restarted.  FIXME: specify this
-               better. */
+            /* From here to the invocation of primitive code it is OK
+               to perform a restart when a garbage collection occurs.
+               We guarantee a minimum amount of free cells to
+               primitive code, and will trigger collection here in
+               case there is not enough. */
+            EX->stateful_context = 0;
             if (gc_available(EX->gc) < 20) gc_collect(EX->gc);
 
             rv = _sc_step(sc, state);
@@ -776,8 +772,8 @@ _ sc_gc(sc* sc) {
     _ k = sc_k_parent(sc, s->continuation); // drop `gc' k_apply frame
     sc_bang_set_global(sc, sc_slot_state, 
                        STATE(VALUE(VOID), k)); // update state manually
-    PURE(); // switch GC on again
-    gc_collect(sc->m.gc);                        // collect will restart at sc->state
+    EX->stateful_context = 0;  // enable restarts
+    gc_collect(sc->m.gc);      // collect will restart at sc->state
     return NIL; // not reached
 }
 
@@ -845,7 +841,7 @@ _ sc_bytes_init(sc *sc, _ ob_bytes, _ ob_int) {
 
 static void _sc_check_gc_size(sc *sc) {
     /* Check mem size. */
-    gc *gc = EX->gc_save;
+    gc *gc = EX->gc;
     long used = gc->current_index;
     long free = gc->slot_total - used;
     if (free < 100) {
@@ -885,7 +881,6 @@ _ _sc_top(sc *sc, _ expr){
             _ state;
             /* Run */
             do {
-                PURE();
                 state = sc_global(sc, sc_slot_state);      // get
                 state = sc_eval_step(sc, state);           // update (functional)
                 sc_bang_set_global(sc, sc_slot_state, state); // set
@@ -900,7 +895,6 @@ _ _sc_top(sc *sc, _ expr){
             }
             
             /* Abort */
-            PURE();
             sc_bang_set_global(sc, sc_slot_state,
                                STATE(VALUE(state), 
                                      sc_global(sc, sc_slot_abort_k)));
@@ -915,7 +909,6 @@ static prim_def ex_prims[] = ex_table_init;
 void _sc_def_prims(sc *sc, prim_def *prims) {
     prim_def *prim;
     for (prim = prims; prim->name; prim++) {
-        PURE(); // Assume no restarts during boot!
         DEF(prim->name, prim->fn, prim->nargs);
     }
 }
@@ -926,6 +919,10 @@ static void _sc_mark_roots(sc *sc, gc_finalize fin) {
     // ex_trap(EX);
     // printf("gc_mark()\n");
     // sc_post(sc, sc->state);
+    if (EX->stateful_context) {
+        _ex_printf(EX, "FATAL: GC triggered in stateful context.");
+        ex_trap(EX);
+    }
     sc->global = gc_mark(sc->m.gc, sc->global);
     sc->error  = gc_mark(sc->m.gc, sc->error);
 
@@ -985,10 +982,9 @@ sc *_sc_new(int argc, char **argv) {
     }
 
     /* Garbage collector. */
-    sc->m.gc = sc->m.gc_save
-        = gc_new(10000, sc, 
-                 (gc_mark_roots)_sc_mark_roots,
-                 (gc_overflow)_ex_overflow);
+    sc->m.gc = gc_new(10000, sc, 
+                      (gc_mark_roots)_sc_mark_roots,
+                      (gc_overflow)_ex_overflow);
                     
     /* Atom classes. */
     base_types *types = NULL; // FIXME: configurable subclass?
@@ -1041,20 +1037,17 @@ sc *_sc_new(int argc, char **argv) {
         
 
     /* Toplevel abort continuation */
-    PURE();
     _ done = CONS(FIND(TOPLEVEL(),SYMBOL("print-error")),NIL);
     _ abort_k = sc_make_k_apply(sc, MT, done, NIL);
 
     sc_bang_abort_k(sc, abort_k);
 
     /* Pass command line arguments to scheme. */
-    PURE();
     while ((argc > 0)) { args = CONS(STRING(argv[0]), args); SHIFT(1); }
     args = BANG_REVERSE(args);
 
 
     _ init;
-    PURE();
     if (NIL == args) {
         init = CONS(SYMBOL("repl"), NIL);
     }
@@ -1063,16 +1056,14 @@ sc *_sc_new(int argc, char **argv) {
         args = CDR(args);
     }
     
-    PURE(); sc_bang_def_toplevel(sc, SYMBOL("args"), args);
-    PURE(); sc_bang_def_toplevel(sc, SYMBOL("init-script"), init);
+    sc_bang_def_toplevel(sc, SYMBOL("args"), args);
+    sc_bang_def_toplevel(sc, SYMBOL("init-script"), init);
 
     /* Highlevel bootstrap. */
     if (!bootfile) bootfile = getenv("PRIM_BOOT_SCM");
     if (!bootfile) bootfile = PRIM_HOME "boot.scm";
     // _ex_printf(EX, "SC: booting from %s\n", bootfile);
-    PURE();
     _sc_top(sc, _ex_boot_load(EX, bootfile));
-    PURE();
     return sc;
 }
 
@@ -1085,7 +1076,6 @@ _ sc_read_no_gc(sc *sc, _ o) {
    headless embedding). */
 
 const char *_sc_repl_cstring(sc *sc, const char *commands) {
-    PURE();  // enable GC
     bytes *bin = bytes_from_cstring(commands);
     bytes *bout = bytes_buffer_new(1000);
     _ in  = _sc_make_bytes_port(sc, bin);
@@ -1093,9 +1083,7 @@ const char *_sc_repl_cstring(sc *sc, const char *commands) {
     sc_bang_set_global(sc, sc_slot_input_port,  in);
     sc_bang_set_global(sc, sc_slot_output_port, out);
     sc_bang_set_global(sc, sc_slot_error_port,  out);
-    PURE();
     _sc_top(sc, CONS(SYMBOL("repl-oneshot"), NIL));
-    PURE();
     const char *output = cstring_from_bytes(bout);
     return output;
 }

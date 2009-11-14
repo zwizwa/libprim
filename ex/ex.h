@@ -46,13 +46,13 @@ struct _ex {
 
     /* Garbage collector. */
     struct _gc *gc;
-    struct _gc *gc_save;
     jmp_buf top;  // GC unwind
     long top_entries; // guard semaphore
     
     /* Primitive exceptions. */
     ex_r r;
     long prim_entries;
+    long stateful_context; // if set, GC restarts are illegal
     _ error_tag;
     _ error_arg;
 
@@ -178,21 +178,23 @@ _ _ex_boot_load(ex *ex,  const char *bootfile);
 #define VEC(x) (vector_to_object(((void*)(x))))
 
 
-/* GC */
+/* The garbage collector needs to restart the C stack after it
+   performs a collection.  This is because it moves around data,
+   making any references on the C stack invalid.  By default, in
+   primitives, it is made illegal to perform restarts to avoid bugs
+   in primitive code with side effects.
 
-static inline _ ex_pure(ex *ex) {
-    ex->gc = ex->gc_save;
-    return VOID;
-}
-static inline _ ex_linear(ex *ex) {
-    ex->gc = NULL;
-    return VOID;
-}
+   This works as long as the primitives have bounded memory
+   allocation.  However, for some, allocation is not bounded.  These
+   primitives might need to be restarted.  Permission needs to be
+   granted explicitly using the following macro.  In practice this
+   means the code performs no (noticable) side effects that would
+   prevent pre-emption and restart.  (I.e. it is purely functional).
 
-#define PURE() ex_pure(EX)
-#define LINEAR() ex_linear(EX)
+   This appears in some functions in ex.c that create lists.
 
-
+*/
+#define ENABLE_RESTART() EX->stateful_context=0
 
 
 #endif
