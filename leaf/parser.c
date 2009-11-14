@@ -68,7 +68,7 @@ static bytes *q=NULL, *uq=NULL, *qq=NULL, *uqs=NULL,
     *edot=NULL, *eright=NULL, *eeof=NULL;
 static void parser_global_init(void) {
     if (!q) q = bytes_from_cstring(":quote");
-    if (!qq) qq = bytes_from_cstring(":quasi-quote");
+    if (!qq) qq = bytes_from_cstring(":quasiquote");
     if (!uq) uq = bytes_from_cstring(":unquote");
     if (!uqs) uqs = bytes_from_cstring(":unquote-splicing");
     if (!edot) edot = bytes_from_cstring("?.");

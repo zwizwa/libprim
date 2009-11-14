@@ -193,7 +193,7 @@
 ;; (define append append2)
 (define (append . lsts) (append-lists lsts))
 
-(define-macro (quasi-quote x)
+(define-macro (quasiquote x)
   (let qq ((expr (cadr x)))
     (cond
      ((list? expr)
