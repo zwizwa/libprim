@@ -49,6 +49,9 @@ install: all
 
 	install -m 755 */libprim_*.a $(PREFIX)/lib/
 
+	install -d $(PREFIX)/bin
+	install -m 755 sc/sc $(PREFIX)/bin
+
 uninstall:
 	rm -rf $(PREFIX)/share/prim
 	rm -rf $(PREFIX)/include/prim

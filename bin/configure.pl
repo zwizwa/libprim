@@ -187,7 +187,7 @@ sub header {
 
 header "#ifndef __PF_CONFIG__";
 header "#define __PF_CONFIG__";
-header "#define PRIM_HOME \"$var{prefix}/share/prim\"";
+header "#define PRIM_HOME \"$var{prefix}/share/prim/\"";
 
 
 # start tests and fill config files for base system
