@@ -109,10 +109,17 @@ void port_bytes_init(port *p) {
     p->flush   = port_bytes_flush;
 }
 
+/* Default */
+static port *_default_out = NULL;
+static port *default_out(void) {
+    if (!_default_out) _default_out = port_file_new(stdout, "<stdout>");
+    return _default_out;
+}
 
 
 /* Virtual */
 int port_printf(port *p, const char *fmt, ...) {
+    if (!p) p = default_out();
     int len;
     va_list ap;
     va_start (ap, fmt);
@@ -121,27 +128,33 @@ int port_printf(port *p, const char *fmt, ...) {
     return len;
 }
 int port_vprintf(port *p, const char *fmt, va_list ap) {
+    if (!p) p = default_out();
     return p->vprintf(p, fmt, ap);
 }
 int port_getc(port *p) {
+    if (!p) return EOF;
     return p->get(p);
 }
 int port_ungetc(port *p, int c) {
+    if (!p) return EOF;
     return p->unget(p, c);
 }
 int port_putc(port *p, int c) {
+    if (!p) p = default_out();
     return p->put(p, c);
 }
 int port_write(port *p, void *buf, size_t len) {
+    if (!p) p = default_out();
     return p->write(p, buf, len);
 }
 void port_close(port *p) {
-    p->close(p);
+    if (p) p->close(p);
 }
 void port_flush(port *p) {
-    p->flush(p);
+    if (p) p->flush(p);
 }
 bytes *port_get_bytes(port *p) {
+    if (!p) return NULL;
     return p->bytes(p);
 }
 

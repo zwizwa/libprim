@@ -963,7 +963,7 @@ void _sc_media_init(sc *sc);
 
 #define SHIFT(n) {argv+=n;argc-=n;}
 sc *_sc_new(int argc, char **argv) {
-    sc *sc = malloc(sizeof(*sc));
+    sc *sc = calloc(1, sizeof(*sc));
     sc->m.top_entries = 0;
     sc->m.prim_entries = 0;
 

@@ -104,6 +104,14 @@ void _px_run(pf *pf) {
                     pf->m.prim_entries++;
                     switch(ex = setjmp(pf->m.r.step)) {
                     case 0:
+                        /* Check memory + allow restart */
+                        EX->stateful_context = 0;
+                        if (gc_available(EX->gc) < 20) gc_collect(EX->gc);
+                        
+                        /* Disallow restart by default for primitives.
+                           Non-bounded allocation needs to explictly
+                           re-enable restart. */
+                        EX->stateful_context = 1;
                         fn(pf);
                         fn = NULL;
                         break;
@@ -380,6 +388,9 @@ void pf_interpret(pf *pf) {
         _TO_NL();
         _NL_COMPILE();
         return;
+    }
+    if (EOF_OBJECT == v) {
+        return pf_bye(pf);
     }
     /* Datum: leave intact. */
 }
@@ -746,7 +757,7 @@ _ _px_word(pf* pf, const char *str) {
 void _px_load_lib(pf *pf);
 
 pf* _px_new(void) {
-    pf *pf = malloc(sizeof(*pf));
+    pf *pf = calloc(1, sizeof(*pf));
 
     // Garbage collector.
     pf->m.gc = 
