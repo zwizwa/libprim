@@ -5392,7 +5392,7 @@ Date: Sat Nov 14 07:35:45 CET 2009
 
 - eliminate global variable lookup
 - treewalker -> CPS VM  (write this in Scheme first, follow Dybvig)
-- GC restarts: make sure these only happen in step()
+- GC restarts: make sure these only happen in step()  OK
 
 
 Entry: preventing GC restarts
@@ -5415,4 +5415,11 @@ might be enabled.
 
 Strategy: remove the 'PURE' mechanism, but prevent restarts in
 primitives.
+
+OK.  This seems to work.  The only places where unbounded allocation
+occurs are in ex.c -> ex_list_clone() (used by the mapping functions)
+and ex_list_reverse().  Time will tell if I overlooked something.
+
+
+
 
