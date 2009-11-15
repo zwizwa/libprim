@@ -5461,3 +5461,24 @@ Entry: quasiquote
 Date: Sun Nov 15 09:41:45 CET 2009
 
 Adapted from tinyscheme source.
+
+
+Entry: compact VM
+Date: Sun Nov 15 10:49:52 CET 2009
+
+Now, suppose I can later fix the compactness of data representation.
+How to make at least code as compact as possible?  Using the base-16
+ASCII encoding expaned before, it's possible to create some very
+compact code.
+
+
+Entry: cond -> hygiene
+Date: Sun Nov 15 11:12:55 CET 2009
+
+The '=>' syntax in 'cond' is the first place I encounter that needs to
+introduce variables.
+
+  (let ((x expr)) (if x (function x) <else>))
+
+However, it seems that x is perfectly shielded from the lexical scope
+of function, so there is no danger of unhygienic effects.

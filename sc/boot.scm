@@ -112,34 +112,13 @@
             (set! name _name)
             (set! value (list* 'lambda _formals (cddr form)))))
       (list name value))))
-    
-
 (define make-definer
   (lambda (def!)
     (lambda (form)
       (let ((n+v (expand-define form)))
         (list def! (list 'quote (car n+v)) (cadr n+v))))))
-;;       (let ((name (cadr form))
-;;             (value (caddr form)))
-;;         (if (pair? name)
-;;             (let ((_name (car name))
-;;                   (_formals (cdr name)))
-;;               (set! name _name)
-;;               (set! value (list* 'lambda _formals (cddr form)))))
-;;         (list def! (list 'quote name) value)))))
-
 (define-macro define (make-definer 'def-toplevel!))
 (define-macro define-macro (make-definer 'def-toplevel-macro!))
-
-;; Support internal definitions
-;; (define (lambda-collect-defines form)
-;;   (let collect ((cddr form)
-;;                 (defs '()))
-;;     (if (and (pair? form)
-;;              (eq? 'define (car form)))
-;;         ...
-
-
 
 (define (procedures) (map1 car (toplevel)))
 (define (macros) (map1 car (toplevel-macro)))
@@ -192,8 +171,9 @@
         (let ((c  (car f)))
           (if (eq? 'else (car c))
               (cadr c)
-              (list 'if (car c) (cadr c)
-                    (next (cdr f))))))))
+              (list 'if (car c) (cadr c) (next (cdr f))))))))
+
+
 (define-macro (*** form)
   (list 'begin
         (list 'post (list 'quote (cdr form)))
@@ -227,36 +207,6 @@
 
 (define (error tag ob)
   (raise-error tag ob))
-;  (let ((err (current-error-port)))
-;    (display "ERROR: " err)
-;    (display msg err)
-;    (display ": " err)
-;    (write ob err)
-;    (newline err)
-;    (abort)))
-
-;; (define-macro (quasiquote x)
-;;   (let qq ((expr (cadr x)))
-;;     (cond
-;;      ((list? expr)
-;;       (cond
-;;        ((eq? 'unquote (car expr)) (cadr expr))
-;;        ((eq? 'unquote-spicing (car expr)) (syntax-error x))
-;;        (else
-;;         (cons 'append
-;;           (map (lambda (el)
-;;                 (or
-;;                  (and (pair? el)
-;;                  (cond
-;;                   ((eq? 'unquote (car el)) (list 'list (cadr el)))
-;;                   ((eq? 'unquote-splicing (car el)) (cadr el))
-;;                   (else #f)))
-;;                (list 'list (list 'quote el))))
-;;             expr)))))
-;;      ((pair? expr)
-;;       (list 'cons (qq (car expr)) (qq (cdr expr))))
-;;      (else
-;;       (list 'quote expr)))))
 
 ;; taken from TinyScheme's init.scm:
 ;;
@@ -276,8 +226,7 @@
                    (eq? (car l) 'quote)
                    (eq? (car (cdr l)) (car f)))
               (if (or (procedure? f) (number? f) (string? f))
-                  f
-                  (list 'quote f))
+                  f (list 'quote f))
               ;(if (eqv? l vector)
               ;    (apply l (eval r))
                   (list 'cons l r)
@@ -288,22 +237,18 @@
                   (and (pair? r)
                        (eq? (car r) 'quote)
                        (eq? (car (cdr r)) '())))
-              l
-              (list 'append l r))))
+              l (list 'append l r))))
        (tx
         (lambda (level form)
           (cond ((not (pair? form))
                  (if (or (procedure? form) (number? form) (string? form))
-                     form
-                     (list 'quote form))
-                 )
+                     form (list 'quote form)))
                 ((eq? 'quasiquote (car form))
                  (mcons form ''quasiquote (tx (+ level 1) (cdr form))))
                 (#t (if (zero? level)
                         (cond ((eq? (car form) 'unquote) (car (cdr form)))
                               ((eq? (car form) 'unquote-splicing)
-                               (error "Unquote-splicing wasn't in a list"
-                                      form))
+                               (error "Unquote-splicing wasn't in a list" form))
                               ((and (pair? (car form))
                                     (eq? (car (car form)) 'unquote-splicing))
                                (mappend form (car (cdr (car form)))
@@ -311,14 +256,18 @@
                               (#t (mcons form (tx level (car form))
                                          (tx level (cdr form)))))
                         (cond ((eq? (car form) 'unquote)
-                               (mcons form ''unquote (tx (- level 1)
-                                                         (cdr form))))
+                               (mcons form ''unquote (tx (- level 1) (cdr form))))
                               ((eq? (car form) 'unquote-splicing)
                                (mcons form ''unquote-splicing
                                       (tx (- level 1) (cdr form))))
                               (#t (mcons form (tx level (car form))
                                          (tx level (cdr form)))))))))))
     (tx 0 (car (cdr l)))))
+  
+
+
+;; Re-implement some macros to be more generic using qq.
+;; (define-macro (cond form)
   
 
 
@@ -502,6 +451,27 @@
   (let ((fd (tcp-bind "0.0.0.0" port)))
     (let ((ports (tcp-accept fd)))
       (repl-on-ports (car ports) (cdr ports) (cdr ports)))))
+
+
+;; Support internal definitions
+(define (expand-lambda/defines lambda-form)
+   (let collect ((body (cddr lambda-form))
+                 (defs '()))
+     (if (and (pair? body)
+              (pair? (car body))
+              (eq? 'define (caar body)))
+         (collect (cdr body)
+                  (cons (expand-define (car body)) defs))
+         (let ((defs (reverse defs)))
+           (list* 'lambda
+                  (cadr lambda-form)
+                  (if (null? defs)
+                      (map expand body)
+                      (list (expand (list* 'letrec (reverse defs) body)))))))))
+
+(define expand-lambda expand-lambda/defines)
+
+
 
 ;(let ((x (read (open-input-file "boot.scm"))))
 ;  (let loop ((n 40))
