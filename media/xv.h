@@ -38,9 +38,10 @@ typedef struct _xv xv_t;
 #include "xwindow.h"
 
 /* xv class */
+typedef void xv_class;
 typedef struct _xv
 {
-
+    xv_class *type;
     xdisplay_t *xdpy;
 
     int xv_format;

@@ -50,7 +50,7 @@ static int error_handler(Display *dpy, XErrorEvent *e){errors++; return 0;}
 
 static void xv_create_xvimage(xv_t *xvid, int width, int height)
 {
-    int i;
+    // int i;
     long size;
     errors = 0;
 
@@ -138,7 +138,7 @@ void xv_image_display(xv_t *xvid, xwindow_t *xwin){
     int a_y = 0;
     int b_x = xvid->width;
     int b_y = xvid->height;
-    int offset = 0;
+    // int offset = 0;
 
     int w_w = xwin->winwidth;
     int w_h = xwin->winheight;
@@ -233,7 +233,7 @@ int xv_open_on_display(xv_t *xvid, xdisplay_t *d, int adaptor_start)
 {
     unsigned int ver, rel, req, ev, err, i, j;
     unsigned int adaptors;
-    int formats;
+    // int formats;
     XvAdaptorInfo        *ai;
 
     if (xvid->initialized) return 1;

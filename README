@@ -10,15 +10,13 @@ Current focus is on stabilizing the project's Scheme and PF
 interpreters, which are intended to be embedded in an application as a
 static library.
 
-No ./configure script yet
-
 Building
 --------
 
-Type "make" at the top level directory.
-This produces sc/sc and pf/pf.
+./configure && make && make install
 
-Both applications need to run in their own directory to find their boot scripts.
+See ./configure --help for options.  Without the install step the
+interpreters can be run in their own directory: see sc/sc and pf/pf.
 
 
 Dependencies

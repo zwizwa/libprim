@@ -7,6 +7,7 @@
 #include "px.h"
 #include "pf.h_pf_prims"
 #include "px.h_px_prims"
+#include "../config.h"
 
 /* 
    PF: VM interpreter and Stack primitive functions.
@@ -756,7 +757,8 @@ _ _px_word(pf* pf, const char *str) {
 
 void _px_load_lib(pf *pf);
 
-pf* _px_new(void) {
+#define SHIFT(n) {argv+=n;argc-=n;}
+pf* _px_new(int argc, char **argv) {
     pf *pf = calloc(1, sizeof(*pf));
 
     // Garbage collector.
@@ -820,8 +822,24 @@ pf* _px_new(void) {
     pf->ip_nop = WORD("nop");
     pf->ip_map_next = WORD("map-next");
     pf->ip_each_next = WORD("each-next");
+
+    char *bootfile = NULL;
+    /* Read command line interpreter options options. */
+    SHIFT(1); // skip program name
+    while ((argc > 0) && ('-' == argv[0][0])) {
+        if (!strcmp("--boot", argv[0])) { bootfile = argv[1]; SHIFT(2); }
+        else if (!strcmp("--", argv[0])) { SHIFT(1); break; }
+        else {
+            fprintf(stderr, "option `%s' not recognized\n", argv[0]);
+            return NULL;
+        }
+    }
+
     // Highlevel bootstrap
-    _px_interpret_list(pf, _ex_boot_load(EX, "boot.pf"));
+    if (!bootfile) bootfile = getenv("PRIM_BOOT_PF");
+    if (!bootfile) bootfile = PRIM_HOME "boot.pf";
+    if (!bootfile) bootfile = "boot.pf";
+    _px_interpret_list(pf, _ex_boot_load(EX, bootfile));
     return pf;
 }
 
@@ -844,7 +862,7 @@ void _px_command(pf *pf, const char *str) {
 }
 
 int main(int argc, char **argv) {
-    pf *pf = _px_new();
+    pf *pf = _px_new(argc, argv);
     _px_run(pf);
     return 0;
 }

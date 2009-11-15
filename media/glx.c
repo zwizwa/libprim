@@ -53,7 +53,7 @@ glx_t *glx_new(void){
 /* des */
 void glx_cleanup(glx_t* x)
 {
-    XEvent e;
+    // XEvent e;
 
     if (x->initialized){
 	glXDestroyContext(x->xdpy->dpy, x->glx_context);

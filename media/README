@@ -1,5 +1,16 @@
 Extensions for audio/video manipulation:
 
- FFmpeg
+- FFmpeg
+- X11, Xv, GLX
 
 libprim_media.a
+
+
+LICENCE: These files come from the PacketForth project, which uses the
+GPL licence, but they are all (c) Tom Schouten.  As they will become
+part of libprim, I'm currently thinking about relicencing them under
+less constrainted LGPL or BSD type licences, but that is not decided
+yet.
+
+Tom
+Sun Nov 15 13:54:52 CET 2009

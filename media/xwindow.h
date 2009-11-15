@@ -35,12 +35,12 @@ typedef struct _xwindow xwindow_t;
 
 #include "util.h" // small utility library
 
-//#include <pf/list.h> // no longer depending on pf
-//#include <pf/mem.h>
-
 /* x display class */
+typedef void xdisplay_class;
 typedef struct _xdisplay
 {
+    xdisplay_class *type;
+
     Display *dpy;              // the display connection
     int screen;                // the screen
     buf_t *windowlist;         // all windows belonging to this connection
@@ -51,8 +51,10 @@ typedef struct _xdisplay
 } xdisplay_t;
 
 /* x window class */
+typedef void xwindow_class;
 typedef struct _xwindow
 {
+    xwindow_class *type;
     //Display *dpy;
     //int screen;
     xdisplay_t *xdisplay; // the display object

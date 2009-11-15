@@ -1,3 +1,4 @@
+include Makefile.defs
 
 DIRS = leaf media ex sc pf
 
@@ -28,14 +29,13 @@ strip:
 	@find -name '*.o' -exec rm  '{}' ';'
 
 
-PREFIX=~/sw
-
 install: all
 	install -d $(PREFIX)/lib/pkgconfig
 	install -m 644 libprim.pc $(PREFIX)/lib/pkgconfig
 
 	install -d $(PREFIX)/share/prim/
 	install -m 644 sc/*.scm $(PREFIX)/share/prim/
+	install -m 644 pf/*.pf $(PREFIX)/share/prim/
 
 	install -d $(PREFIX)/include/prim/ex
 	install -d $(PREFIX)/include/prim/leaf
@@ -51,6 +51,7 @@ install: all
 
 	install -d $(PREFIX)/bin
 	install -m 755 sc/sc $(PREFIX)/bin
+	install -m 755 pf/pf $(PREFIX)/bin
 
 uninstall:
 	rm -rf $(PREFIX)/share/prim

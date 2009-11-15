@@ -78,7 +78,7 @@ void xdisplay_free(xdisplay_t *d)
 }
 
 /* some private members */
-//static int _windowset_contains(xdisplay_t *d, xwindow_t *w){
+// static int _windowset_contains(xdisplay_t *d, xwindow_t *w){
 //    return (buf_lookup(d->windowlist, w) >= 0);
 //}
 
@@ -159,7 +159,7 @@ void xwindow_warppointer(xwindow_t *xwin, int x, int y)
 
 
 
-static void xwindow_overrideredirect(xwindow_t *xwin, int b)
+void xwindow_overrideredirect(xwindow_t *xwin, int b)
 {
     XSetWindowAttributes new_attr;
     new_attr.override_redirect = b ? True : False;

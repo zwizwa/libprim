@@ -1,6 +1,6 @@
 /*
   util.h - (c) 2004 Tom Schouten.
-  this software is int the public domain.
+  this software is in the public domain.
 
   This is supposed to be my low-level data structures toolbox.
   Defined as inline static to avoid version and symbol clashes.
