@@ -123,6 +123,12 @@ _ _sc_make_qstring(sc *sc, const char *str) {
 _ _sc_make_bytes(sc *sc, int size) {
     return _sc_make_aref(sc, bytes_new(size));
 }
+_ sc_number_to_string(sc *sc, _ num) {
+    char str[20];
+    sprintf(str, "%ld", (long int)CAST_INTEGER(num));
+    return _sc_make_string(sc, str);
+}
+
 _ sc_bytes_ref(sc *sc, _ ob_bytes, _ ob_index) {
     bytes *b = CAST(bytes, ob_bytes);
     int i = CAST_INTEGER(ob_index);

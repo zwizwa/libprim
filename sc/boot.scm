@@ -484,14 +484,17 @@
 
 (define (cadar x) (car (cdar x)))
 
+
+
 (define-macro (record-case form)
-  (define (bind-args vars rest-name form)
-    (foldr1 (lambda (var body)
-             `(let ((,var (car ,rest-name))
-                    (,rest-name (cdr ,rest-name)))
-                ,body))
-           form vars))
-  (let ((expr (cadr form))
+  (let ((bind-args
+         (lambda (vars rest-name form)
+           (foldr1 (lambda (var body)
+                     `(let ((,var (car ,rest-name))
+                            (,rest-name (cdr ,rest-name)))
+                        ,body))
+                   form vars)))
+        (expr (cadr form))
         (e-val    '_e-val)      ;; FIXME: use gensym
         (rec-tag  '_rec-tag)
         (rec-args '_rec-args))
@@ -515,6 +518,21 @@
 ;; Re-implement some macros to be more generic using record-case and
 ;; quasiquote.
 
+(define-macro (cond form)
+  (let next ((clauses (cdr form)))
+    (if (null? clauses) '(void)
+        (let* ((clause (car clauses))
+               (rest (lambda () (next (cdr clauses))))
+               (guard (car clause))
+               (body (cadr clause)))
+          (cond
+           ((eq? 'else guard) body)
+           ((eq? '=> body)
+            (let ((body (caddr clause)))
+              `(let ((bv ,guard))
+                 (if bv (,body bv) ,(rest)))))
+           (else
+            `(if ,guard ,body ,(rest))))))))
 
 
 ;(let ((x (read (open-input-file "boot.scm"))))
