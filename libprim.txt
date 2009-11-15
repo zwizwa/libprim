@@ -5482,3 +5482,14 @@ introduce variables.
 
 However, it seems that x is perfectly shielded from the lexical scope
 of function, so there is no danger of unhygienic effects.
+
+
+Entry: treewalker vs. bytecode
+Date: Sun Nov 15 12:45:37 CET 2009
+
+Let's try to build a stackless bytecode VM.  I don't think it's really
+worth it to try to build a stack-based VM.  In cases where performance
+is necessary, it might be better to use an existing Scheme compiler.
+
+Try to focus on byte-code size.
+
