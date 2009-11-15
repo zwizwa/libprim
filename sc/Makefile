@@ -5,10 +5,18 @@ SRC=scheme.c main.c
 DEP_OBJ=../ex/libprim_ex.a ../leaf/libprim_leaf.a 
 
 # media?
-# SRC += media.c
-# LIBS+=`pkg-config libavformat --libs`
-# DEP_OBJ+=../media/libprim_media.a
-# CPPFLAGS += `pkg-config libavformat --cflags`
+media = YES
+ifdef media
+DEP_OBJ+=../media/libprim_media.a
+SRC += media.c
+CPPFLAGS += -DHAVE_MEDIA
+# FFMPEG
+LIBS+=`pkg-config libavformat --libs`
+CPPFLAGS += `pkg-config libavformat --cflags`
+# X11
+LIBS += -L/usr/X11R6/lib -lX11 -lXext -lXv -lGL -lGLU
+CPPFLAGS += -I/usr/X11R6/include
+endif
 
 OBJ=$(SRC:.c=.o)
 DEBUG_CFLAGS=-Wall -g -Wno-unused

@@ -25,8 +25,8 @@
 struct _xdisplay;
 struct _xwindow;
 #ifndef PRIVATE
-typedef struct _xdisplay xdisplay_t;
-typedef struct _xwindow xwindow_t;
+typedef struct _xdisplay xdisplay;
+typedef struct _xwindow xwindow;
 #else
 
 // x stuff
@@ -35,8 +35,13 @@ typedef struct _xwindow xwindow_t;
 
 #include "util.h" // small utility library
 
+#include <leaf/leaf.h>
+
 /* x display class */
-typedef void xdisplay_class;
+typedef struct {
+    leaf_class super;
+} xdisplay_class;
+
 typedef struct _xdisplay
 {
     xdisplay_class *type;
@@ -48,16 +53,19 @@ typedef struct _xdisplay
 
     int dragbutton;            // current drag button
 
-} xdisplay_t;
+} xdisplay;
 
 /* x window class */
-typedef void xwindow_class;
+typedef struct {
+    leaf_class super;
+} xwindow_class;
+
 typedef struct _xwindow
 {
     xwindow_class *type;
     //Display *dpy;
     //int screen;
-    xdisplay_t *xdisplay; // the display object
+    xdisplay *xdisplay; // the display object
     Window win;               // window reference
     GC gc;                    // graphics context
     Atom WM_DELETE_WINDOW;
@@ -78,68 +86,68 @@ typedef struct _xwindow
     
     float cursor;
 
-} xwindow_t;
+} xwindow;
 
 /* handle event */
-void xwindow_queue_event(xwindow_t *xwin, XEvent *e);
+void xwindow_queue_event(xwindow *xwin, XEvent *e);
 
 
 
 #endif
 
 /* cons */
-xdisplay_t *xdisplay_new(char *dpy_string);
+xdisplay *xdisplay_new(char *dpy_string);
 
 /* des */
-void xdisplay_free(xdisplay_t *d);
+void xdisplay_free(xdisplay *d);
 
 
-void xdisplay_register_window(xdisplay_t *d,  xwindow_t *w);
-void xdisplay_unregister_window(xdisplay_t *d, xwindow_t *w);
+void xdisplay_register_window(xdisplay *d,  xwindow *w);
+void xdisplay_unregister_window(xdisplay *d, xwindow *w);
 
-void xdisplay_route_events(xdisplay_t *d);
+void xdisplay_route_events(xdisplay *d);
 
 /* cons */
-void xwindow_init(xwindow_t *b);
-xwindow_t *xwindow_new(void);
+void xwindow_init(xwindow *b);
+xwindow *xwindow_new(void);
 
 /* des */    
-void xwindow_cleanup(xwindow_t *b);
-void xwindow_free(xwindow_t *b);
+void xwindow_cleanup(xwindow *b);
+void xwindow_free(xwindow *b);
 
 /* move the pointer */
-void xwindow_warppointer(xwindow_t *xwin, int x, int y);
+void xwindow_warppointer(xwindow *xwin, int x, int y);
 
 
 /* fullscreen message */
-void xwindow_fullscreen(xwindow_t *xwin);
+void xwindow_fullscreen(xwindow *xwin);
 
 /* resize window */
-void xwindow_resize(xwindow_t *b, int width, int height);
+void xwindow_resize(xwindow *b, int width, int height);
 
 /* resize window */
-void xwindow_moveresize(xwindow_t *b, int xoffset, int yoffset, int width, int height);
+void xwindow_moveresize(xwindow *b, int xoffset, int yoffset, int width, int height);
 
 /* fill a tile of the screen */
-void xwindow_tile(xwindow_t *xwin, int x_tiles, int y_tiles, int i, int j);
+void xwindowile(xwindow *xwin, int x_tiles, int y_tiles, int i, int j);
 
 /* move window */
-void xwindow_move(xwindow_t *xwin, int xoffset, int yoffset);
+void xwindow_move(xwindow *xwin, int xoffset, int yoffset);
 
 /* enable/disable cursor */
-void xwindow_cursor(xwindow_t *b, int flag);
+void xwindow_cursor(xwindow *b, int flag);
 
 /* create xwindow. return code != NULL on succes */
-int xwindow_config(xwindow_t *b, xdisplay_t *d);
+int xwindow_config(xwindow *b, xdisplay *d);
 
 /* close window */    
-void xwindow_close(xwindow_t *b);
+void xwindow_close(xwindow *b);
 
 /* set title */
-void xwindow_title(xwindow_t *xwin, char *title);
+void xwindowitle(xwindow *xwin, char *title);
 
 /* clear event queue */
-void xwindow_drop_events(xwindow_t *x);
+void xwindow_drop_events(xwindow *x);
 
 
 // dequeueing needs to be implemented by client

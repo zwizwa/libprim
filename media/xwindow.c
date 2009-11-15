@@ -35,6 +35,8 @@
 #include <stdio.h>
 #include <X11/Xutil.h>
 
+#include <leaf/port.h>
+
 #define D if(0)
 
 // TODO: clean this up
@@ -48,11 +50,25 @@ int xdisplay_errorhandler(Display *dpy, XErrorEvent *ev){
     return 0xdeadf00d;
 }
 
+static int xdisplay_write(xdisplay_t *x, port *p) {
+    return port_printf(p, "#<xdisplay:%p>", x);
+}
+xdisplay_class *xdisplay_type(void) {
+    static xdisplay_class *type = NULL;
+    if (!type) {
+        type = calloc(1, sizeof(*type));
+        type->super.free  = (leaf_free_m)xdisplay_free;
+        type->super.write = (leaf_write_m)xdisplay_write;
+    }
+    return type;
+}
+
 xdisplay_t *xdisplay_new(char *dpy_string)
 {
 
     /* open display */
     xdisplay_t *d = malloc(sizeof(*d));
+    d->type = xdisplay_type();
     if (!(d->dpy = XOpenDisplay(dpy_string))){
 	fprintf(stderr, "x11: can't open display %s\n", dpy_string);
 	free(d);
@@ -419,9 +435,22 @@ void xwindow_init(xwindow_t *xwin)
     xwin->events = buf_new(16);
 
 }
+static int xwindow_write(xdisplay_t *x, port *p) {
+    return port_printf(p, "#<xwindow:%p>", x);
+}
+xwindow_class *xwindow_type(void) {
+    static xwindow_class *type = NULL;
+    if (!type) {
+        type = calloc(1, sizeof(*type));
+        type->super.free  = (leaf_free_m)xwindow_free;
+        type->super.write = (leaf_write_m)xwindow_write;
+    }
+    return type;
+}
 xwindow_t *xwindow_new(void)
 {
     xwindow_t *xwin = malloc(sizeof(*xwin));
+    xwin->type = xwindow_type();
     xwindow_init(xwin);
     return xwin;
 }
