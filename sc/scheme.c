@@ -242,15 +242,20 @@ _ sc_read_char(sc *sc) {
     return integer_to_object(fgetc(stdin));
 }
 
-
+// FIXME: factor this out to incorportate high level errors
 _ sc_print_error(sc *sc, _ err) {
     if (TRUE == sc_is_error(sc, err)) {
         error *e = object_to_error(err);
         _ex_printf(EX, "ERROR");
         if (TRUE == IS_PRIM(e->prim)) {
             prim *p = object_to_prim(e->prim, &sc->m);
-            symbol *s = object_to_symbol(p->var, &sc->m);
-            if (s) _ex_printf(EX, " in `%s'", s->name); 
+            /* If the recorded primitive is sc_print_error itself,
+               this means the error is a result of a direct
+               invocation, i.e. a highlevel error. */
+            if (SYMBOL("raise-error") != p->var) { 
+                symbol *s = object_to_symbol(p->var, &sc->m);
+                if (s) _ex_printf(EX, " in `%s'", s->name); 
+            }
         }
         _ex_printf(EX, ": ");
         sc_write_stderr(sc, e->tag); _ex_printf(EX, ": ");
@@ -499,9 +504,12 @@ _ _sc_step_value(sc *sc, _ v, _ k) {
                    illegal.  Code that allocates a large amount of
                    cells needs to re-enable restarts explicitly.  A
                    small number of cells are guaranteed to exist. */
+                _ value = VALUE(VOID);
+                _ state = STATE(value, kx->k.parent);
                 EX->stateful_context = 1;
                 _ rv = _sc_call(sc, prim_fn(p), n-1, rev_args);
-                return STATE(VALUE(rv), kx->k.parent);
+                object_to_value(value)->datum = rv;
+                return state;
             }
 
             /* Application of abstraction extends the fn_env environment. */
@@ -734,7 +742,7 @@ _ sc_eval_step(sc *sc, _ state) {
                primitive code, and will trigger collection here in
                case there is not enough. */
             EX->stateful_context = 0;
-            if (gc_available(EX->gc) < 20) gc_collect(EX->gc);
+            if (gc_available(EX->gc) < 40) gc_collect(EX->gc);
 
             rv = _sc_step(sc, state);
             break;

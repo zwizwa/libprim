@@ -5455,3 +5455,9 @@ for representing cells is probably much less that used for
 representing leaf objects.  Let' s not worry too much about this..
 
 [1] http://w3.ift.ulaval.ca/~dadub100/files/picbit.pdf
+
+
+Entry: quasiquote
+Date: Sun Nov 15 09:41:45 CET 2009
+
+Adapted from tinyscheme source.

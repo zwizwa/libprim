@@ -17,12 +17,17 @@
     (if (null? lst) lst
         (cons (fn (car lst))
               (map1 fn (cdr lst))))))
+(def-toplevel! 'expand-lambda
+  (lambda (expr)
+    (cons 'lambda
+    (cons (cadr expr)
+    (map1 expand (cddr expr))))))
 (def-toplevel! 'expand
   (lambda (expr)
     (if (pair? expr)
         ((lambda (tag)
            (if (eq? tag 'quote) expr
-           (if (eq? tag 'lambda) (cons 'lambda (cons (cadr expr) (map1 expand (cddr expr))))
+           (if (eq? tag 'lambda) (expand-lambda expr)
                ((lambda (rec)
                   (if rec
                       (expand ((cdr rec) expr))
@@ -95,20 +100,46 @@
                (cddr form))))))
 
 ;; Overwrite define + define-macro with more complete implementations.
+
+;; Convert define syntax into (list symbol form)
+(define expand-define
+  (lambda (form)
+    (let ((name (cadr form))
+          (value (caddr form)))
+      (if (pair? name)
+          (let ((_name (car name))
+                (_formals (cdr name)))
+            (set! name _name)
+            (set! value (list* 'lambda _formals (cddr form)))))
+      (list name value))))
+    
+
 (define make-definer
   (lambda (def!)
     (lambda (form)
-      (let ((name (cadr form))
-            (value (caddr form)))
-        (if (pair? name)
-            (let ((_name (car name))
-                  (_formals (cdr name)))
-              (set! name _name)
-              (set! value (list* 'lambda _formals (cddr form)))))
-        (list def! (list 'quote name) value)))))
+      (let ((n+v (expand-define form)))
+        (list def! (list 'quote (car n+v)) (cadr n+v))))))
+;;       (let ((name (cadr form))
+;;             (value (caddr form)))
+;;         (if (pair? name)
+;;             (let ((_name (car name))
+;;                   (_formals (cdr name)))
+;;               (set! name _name)
+;;               (set! value (list* 'lambda _formals (cddr form)))))
+;;         (list def! (list 'quote name) value)))))
 
 (define-macro define (make-definer 'def-toplevel!))
 (define-macro define-macro (make-definer 'def-toplevel-macro!))
+
+;; Support internal definitions
+;; (define (lambda-collect-defines form)
+;;   (let collect ((cddr form)
+;;                 (defs '()))
+;;     (if (and (pair? form)
+;;              (eq? 'define (car form)))
+;;         ...
+
+
 
 (define (procedures) (map1 car (toplevel)))
 (define (macros) (map1 car (toplevel-macro)))
@@ -194,14 +225,15 @@
 (define (append . lsts) (append-lists lsts))
 
 
-(define (error msg ob)
-  (let ((err (current-error-port)))
-    (display "ERROR: " err)
-    (display msg err)
-    (display ": " err)
-    (write ob err)
-    (newline err)
-    (abort)))
+(define (error tag ob)
+  (raise-error tag ob))
+;  (let ((err (current-error-port)))
+;    (display "ERROR: " err)
+;    (display msg err)
+;    (display ": " err)
+;    (write ob err)
+;    (newline err)
+;    (abort)))
 
 ;; (define-macro (quasiquote x)
 ;;   (let qq ((expr (cadr x)))
@@ -270,7 +302,7 @@
                 (#t (if (zero? level)
                         (cond ((eq? (car form) 'unquote) (car (cdr form)))
                               ((eq? (car form) 'unquote-splicing)
-                               (error "Unquote-splicing wasn't in a list:"
+                               (error "Unquote-splicing wasn't in a list"
                                       form))
                               ((and (pair? (car form))
                                     (eq? (car (car form)) 'unquote-splicing))
@@ -377,7 +409,9 @@
         (write-port it (car port)))))
 
 (define write (make-writer write-port))
-(define display (make-writer write-bytes))
+(define display (make-writer
+                 (lambda (it port)
+                   ((if (bytes? it) write-bytes write) it port))))
 
 (define (newline . port)
   (let ((cr "\n"))
