@@ -169,9 +169,8 @@
   (let next ((f (cdr form)))
     (if (null? f) '(void)
         (let ((c  (car f)))
-          (if (eq? 'else (car c))
-              (cadr c)
-              (list 'if (car c) (cadr c) (next (cdr f))))))))
+          (if (eq? 'else (car c)) (cadr c)
+          (list 'if (car c) (cadr c) (next (cdr f))))))))
 
 
 (define-macro (*** form)
@@ -513,11 +512,9 @@
                    ,(bind-args args rec-args body)
                    ,(rec (cdr clauses))))))))))
 
-    
-    
 ;; Re-implement some macros to be more generic using record-case and
 ;; quasiquote.
-  
+
 
 
 ;(let ((x (read (open-input-file "boot.scm"))))
