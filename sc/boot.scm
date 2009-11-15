@@ -263,12 +263,11 @@
                               (#t (mcons form (tx level (car form))
                                          (tx level (cdr form)))))))))))
     (tx 0 (car (cdr l)))))
-  
 
 
-;; Re-implement some macros to be more generic using qq.
-;; (define-macro (cond form)
-  
+
+
+
 
 
 
@@ -471,6 +470,54 @@
 
 (define expand-lambda expand-lambda/defines)
 
+(define (foldr1 fn init lst)
+  (let rec ((lst lst))
+    (if (null? lst) init
+        (fn (car lst) (rec (cdr lst))))))
+
+(define-macro (let* form)
+  (let ((bindings (cadr form))
+        (body (cons 'begin (cddr form))))
+    (foldr1 (lambda (clause body)
+              `(let (,clause) ,body))
+            body
+            bindings)))
+
+(define (cadar x) (car (cdar x)))
+
+(define-macro (record-case form)
+  (define (bind-args vars rest-name form)
+    (foldr1 (lambda (var body)
+             `(let ((,var (car ,rest-name))
+                    (,rest-name (cdr ,rest-name)))
+                ,body))
+           form vars))
+  (let ((expr (cadr form))
+        (e-val    '_e-val)      ;; FIXME: use gensym
+        (rec-tag  '_rec-tag)
+        (rec-args '_rec-args))
+    `(let* ((,e-val ,expr)
+            (,rec-tag (car ,e-val))
+            (,rec-args (cdr ,e-val)))
+       ,(let rec ((clauses (cddr form)))
+          (cond
+           ((null? clauses) '(void))
+           ((eq? 'else (caar clauses)) (cadar clauses))
+           (else
+            (let* ((clause (car clauses))
+                   (pattern (car clause))
+                   (body (cadr clause))
+                   (tag (car pattern))
+                   (args (cdr pattern)))
+              `(if (eq? ',tag ,rec-tag)
+                   ,(bind-args args rec-args body)
+                   ,(rec (cdr clauses))))))))))
+
+    
+    
+;; Re-implement some macros to be more generic using record-case and
+;; quasiquote.
+  
 
 
 ;(let ((x (read (open-input-file "boot.scm"))))

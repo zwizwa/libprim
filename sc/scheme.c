@@ -990,7 +990,7 @@ sc *_sc_new(int argc, char **argv) {
     }
 
     /* Garbage collector. */
-    sc->m.gc = gc_new(10000, sc, 
+    sc->m.gc = gc_new(20000, sc, 
                       (gc_mark_roots)_sc_mark_roots,
                       (gc_overflow)_ex_overflow);
                     
