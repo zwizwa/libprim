@@ -193,28 +193,103 @@
 ;; (define append append2)
 (define (append . lsts) (append-lists lsts))
 
-(define-macro (quasiquote x)
-  (let qq ((expr (cadr x)))
-    (cond
-     ((list? expr)
-      (cond
-       ((eq? 'unquote (car expr)) (cadr expr))
-       ((eq? 'unquote-spicing (car expr)) (syntax-error x))
-       (else
-        (cons 'append
-          (map (lambda (el)
-                (or
-                 (and (pair? el)
-                 (cond
-                  ((eq? 'unquote (car el)) (list 'list (cadr el)))
-                  ((eq? 'unquote-splicing (car el)) (cadr el))
-                  (else #f)))
-               (list 'list (list 'quote el))))
-            expr)))))
-     ((pair? expr)
-      (list 'cons (qq (car expr)) (qq (cdr expr))))
-     (else
-      (list 'quote expr)))))
+
+(define (error msg ob)
+  (let ((err (current-error-port)))
+    (display "ERROR: " err)
+    (display msg err)
+    (display ": " err)
+    (write ob err)
+    (newline err)
+    (abort)))
+
+;; (define-macro (quasiquote x)
+;;   (let qq ((expr (cadr x)))
+;;     (cond
+;;      ((list? expr)
+;;       (cond
+;;        ((eq? 'unquote (car expr)) (cadr expr))
+;;        ((eq? 'unquote-spicing (car expr)) (syntax-error x))
+;;        (else
+;;         (cons 'append
+;;           (map (lambda (el)
+;;                 (or
+;;                  (and (pair? el)
+;;                  (cond
+;;                   ((eq? 'unquote (car el)) (list 'list (cadr el)))
+;;                   ((eq? 'unquote-splicing (car el)) (cadr el))
+;;                   (else #f)))
+;;                (list 'list (list 'quote el))))
+;;             expr)))))
+;;      ((pair? expr)
+;;       (list 'cons (qq (car expr)) (qq (cdr expr))))
+;;      (else
+;;       (list 'quote expr)))))
+
+;; taken from TinyScheme's init.scm:
+;;
+;; The following quasiquote macro is due to Eric S. Tiedemann.
+;;   Copyright 1988 by Eric S. Tiedemann; all rights reserved.
+;;
+;; Subsequently modified to handle vectors: D. Souflis
+
+(define-macro (quasiquote l)
+  (letrec
+      ((mcons
+        (lambda (f l r)
+          (if (and (pair? r)
+                   (eq? (car r) 'quote)
+                   (eq? (car (cdr r)) (cdr f))
+                   (pair? l)
+                   (eq? (car l) 'quote)
+                   (eq? (car (cdr l)) (car f)))
+              (if (or (procedure? f) (number? f) (string? f))
+                  f
+                  (list 'quote f))
+              ;(if (eqv? l vector)
+              ;    (apply l (eval r))
+                  (list 'cons l r)
+                  )))
+       (mappend
+        (lambda (f l r)
+          (if (or (null? (cdr f))
+                  (and (pair? r)
+                       (eq? (car r) 'quote)
+                       (eq? (car (cdr r)) '())))
+              l
+              (list 'append l r))))
+       (tx
+        (lambda (level form)
+          (cond ((not (pair? form))
+                 (if (or (procedure? form) (number? form) (string? form))
+                     form
+                     (list 'quote form))
+                 )
+                ((eq? 'quasiquote (car form))
+                 (mcons form ''quasiquote (tx (+ level 1) (cdr form))))
+                (#t (if (zero? level)
+                        (cond ((eq? (car form) 'unquote) (car (cdr form)))
+                              ((eq? (car form) 'unquote-splicing)
+                               (error "Unquote-splicing wasn't in a list:"
+                                      form))
+                              ((and (pair? (car form))
+                                    (eq? (car (car form)) 'unquote-splicing))
+                               (mappend form (car (cdr (car form)))
+                                        (tx level (cdr form))))
+                              (#t (mcons form (tx level (car form))
+                                         (tx level (cdr form)))))
+                        (cond ((eq? (car form) 'unquote)
+                               (mcons form ''unquote (tx (- level 1)
+                                                         (cdr form))))
+                              ((eq? (car form) 'unquote-splicing)
+                               (mcons form ''unquote-splicing
+                                      (tx (- level 1) (cdr form))))
+                              (#t (mcons form (tx level (car form))
+                                         (tx level (cdr form)))))))))))
+    (tx 0 (car (cdr l)))))
+  
+
+
 
 (define (list-tail lst k) (if (zero? k) lst (list-tail (cdr lst) (sub1 k))))
 (define (list-ref lst k)  (if (zero? k) (car lst) (list-ref (cdr lst) (sub1 k))))
