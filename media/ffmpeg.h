@@ -43,15 +43,15 @@ struct _aframe {
 
 
 
-codec_class *codec_class_new(void);
-codec_context_class *codec_context_class_new(void);
-vframe_class *vframe_class_new(void);
-aframe_class *aframe_class_new(void);
+codec_class *codec_type(void);
+codec_context_class *codec_context_type(void);
+vframe_class *vframe_type(void);
+aframe_class *aframe_type(void);
 
-codec *codec_new(codec_class *type, const char *name);
-codec_context *codec_context_new(codec_context_class *type);
-vframe *vframe_new(vframe_class *type, codec_context *ctx);
-aframe *aframe_new(aframe_class *type, codec_context *ctx);
+codec *codec_new(const char *name);
+codec_context *codec_context_new();
+vframe *vframe_new(codec_context *ctx);
+aframe *aframe_new(codec_context *ctx);
 
 void frame_test(vframe *fram, codec_context *ctx, int i);
 

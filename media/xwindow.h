@@ -22,12 +22,6 @@
 #ifndef __xwindow_h__
 #define __xwindow_h__
 
-struct _xdisplay;
-struct _xwindow;
-#ifndef PRIVATE
-typedef struct _xdisplay xdisplay;
-typedef struct _xwindow xwindow;
-#else
 
 // x stuff
 #include <X11/Xlib.h>
@@ -93,7 +87,7 @@ void xwindow_queue_event(xwindow *xwin, XEvent *e);
 
 
 
-#endif
+
 
 /* cons */
 xdisplay *xdisplay_new(char *dpy_string);
@@ -153,5 +147,8 @@ void xwindow_drop_events(xwindow *x);
 // dequeueing needs to be implemented by client
 // all events are in the events buffer. each pointer
 // is an XEvent allocated with malloc
+
+xwindow_class *xwindow_type(void);
+xdisplay_class *xdisplay_type(void);
 
 #endif

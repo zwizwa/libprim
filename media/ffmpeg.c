@@ -13,20 +13,23 @@
 static void codec_write(codec *c, FILE *f) {
     fprintf(f, "#<codec:%s>", c->codec->name);
 }
+codec_class *codec_type(void) {
+    static codec_class *x = NULL;
+    if (!x) {
+        codec_class *x = calloc(1, sizeof(*x)); 
+        x->super.free  = (leaf_free_m)free; 
+        x->super.write = (leaf_write_m)codec_write;
+    }
+    return x; 
+}
 
-codec *codec_new(codec_class *type, const char *name) {
+codec *codec_new(const char *name) {
     AVCodec *c = avcodec_find_encoder_by_name(name);
     if (!c) return NULL;
     codec *x = malloc(sizeof(*x));
-    x->type = type;
+    x->type = codec_type();
     x->codec = c;
     return x;
-}
-codec_class *codec_class_new(void) {
-    codec_class *x = malloc(sizeof(*x)); 
-    x->super.free  = (leaf_free_m)free; 
-    x->super.write = (leaf_write_m)codec_write;
-    return x; 
 }
 
 
@@ -35,9 +38,21 @@ static void codec_context_free(codec_context *c) {
     av_freep(&c->context);
     free(c);
 };
-codec_context *codec_context_new(codec_context_class *type){
+static void codec_context_write(codec_context *c, FILE *f) {
+    fprintf(f, "#<codec_context:%p>", c);
+}
+codec_context_class *codec_context_type(void) {
+    static codec_context_class *x = NULL;
+    if (!x) {
+        x = calloc(1, sizeof(*x));
+        x->super.free  = (leaf_free_m)codec_context_free;
+        x->super.write = (leaf_write_m)codec_context_write;
+    }
+    return x; 
+}
+codec_context *codec_context_new(void){
     codec_context *x = malloc(sizeof(*x));
-    x->type = type;
+    x->type = codec_context_type();
     x->context = avcodec_alloc_context();
 
     /* FIXME: parameterize */
@@ -62,24 +77,28 @@ codec_context *codec_context_new(codec_context_class *type){
     return x;
 }
 
-static void codec_context_write(codec_context *c, FILE *f) {
-    fprintf(f, "#<codec_context:%p>", c);
-}
 
-codec_context_class *codec_context_class_new(void) {
-    codec_context_class *x = malloc(sizeof(*x)); 
-    x->super.free  = (leaf_free_m)codec_context_free;
-    x->super.write = (leaf_write_m)codec_context_write;
-    return x; 
-}
 
 
 /* FRAME */
 static void vframe_write(vframe *x, FILE *f) {
     fprintf(f, "#<vframe:%p>", x);
 }
-
-vframe *vframe_new(vframe_class *type, codec_context *ctx) {
+static void vframe_free(vframe *f) {
+    av_free(f->frame);
+    free(f->buf);
+    free(f);
+}
+vframe_class *vframe_type(void) {
+    static vframe_class *x = NULL;
+    if (!x) {
+        x = calloc(1, sizeof(*x)); 
+        x->super.free  = (leaf_free_m)vframe_free;
+        x->super.write = (leaf_write_m)vframe_write;
+    }
+    return x; 
+}
+vframe *vframe_new(codec_context *ctx) {
     if (ctx->context->pix_fmt != PIX_FMT_YUV420P) return NULL;
     int size = ctx->context->width * ctx->context->height;
 
@@ -87,7 +106,7 @@ vframe *vframe_new(vframe_class *type, codec_context *ctx) {
 
     int buf_size = (size * 3) / 2;
     vframe *x = malloc(sizeof(*x));
-    x->type = type;
+    x->type = vframe_type();
     x->buf = malloc(buf_size);
     x->frame = avcodec_alloc_frame();
 
@@ -101,42 +120,34 @@ vframe *vframe_new(vframe_class *type, codec_context *ctx) {
 
     return x;
 }
-static void vframe_free(vframe *f) {
-    av_free(f->frame);
-    free(f->buf);
-    free(f);
-}
 
 static void aframe_write(aframe *x, FILE *f) {
     fprintf(f, "#<aframe:%p>", x);
 }
-
-aframe *aframe_new(aframe_class *type, codec_context *ctx) {
-    aframe *x = malloc(sizeof(*x));
-    int size = 2 * ctx->context->frame_size * ctx->context->channels;
-    if (!size) return NULL;
-    x->type = type;
-    x->samples = malloc(size);
-    return x;
-}
-
 static void aframe_free(aframe *f) {
     free(f->samples);
     free(f);
 }
-vframe_class *vframe_class_new(void) {
-    vframe_class *x = malloc(sizeof(*x)); 
-    x->super.free  = (leaf_free_m)vframe_free;
-    x->super.write = (leaf_write_m)vframe_write;
+aframe_class *aframe_type(void) {
+    static aframe_class *x = NULL;
+    if (!x) {
+        x = calloc(1, sizeof(*x)); 
+        x->super.free  = (leaf_free_m)aframe_free;
+        x->super.write = (leaf_write_m)aframe_write;
+    }
     return x; 
 }
 
-aframe_class *aframe_class_new(void) {
-    aframe_class *x = malloc(sizeof(*x)); 
-    x->super.free  = (leaf_free_m)aframe_free;
-    x->super.write = (leaf_write_m)aframe_write;
-    return x; 
+
+aframe *aframe_new(codec_context *ctx) {
+    aframe *x = malloc(sizeof(*x));
+    int size = 2 * ctx->context->frame_size * ctx->context->channels;
+    if (!size) return NULL;
+    x->type = aframe_type();
+    x->samples = malloc(size);
+    return x;
 }
+
 
 void frame_test(vframe *fram, codec_context *ctx, int i) {
 

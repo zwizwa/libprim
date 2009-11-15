@@ -42,7 +42,7 @@ typedef void xv_class;
 typedef struct _xv
 {
     xv_class *type;
-    xdisplay_t *xdpy;
+    xdisplay *xdpy;
 
     int xv_format;
     int xv_port;
@@ -81,16 +81,16 @@ void xv_free(xv_t* x);
 
 
 /* open an xv port (and create XvImage) */
-int xv_open_on_display(xv_t *x, xdisplay_t *d, int adaptor);
+int xv_open_on_display(xv_t *x, xdisplay *d, int adaptor);
 
 /* close xv port (and delete XvImage */
 void xv_close(xv_t* x);
 
 /* get XvImage data buffer */
-void *xv_image_data(xv_t *xvid, xwindow_t *xwin, 
+void *xv_image_data(xv_t *xvid, xwindow *xwin, 
 			unsigned int width, unsigned int height);
 
 /* display the XvImage */
-void xv_image_display(xv_t *xvid, xwindow_t *xwin);
+void xv_image_display(xv_t *xvid, xwindow *xwin);
 
 #endif

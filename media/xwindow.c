@@ -50,7 +50,7 @@ int xdisplay_errorhandler(Display *dpy, XErrorEvent *ev){
     return 0xdeadf00d;
 }
 
-static int xdisplay_write(xdisplay_t *x, port *p) {
+static int xdisplay_write(xdisplay *x, port *p) {
     return port_printf(p, "#<xdisplay:%p>", x);
 }
 xdisplay_class *xdisplay_type(void) {
@@ -63,11 +63,11 @@ xdisplay_class *xdisplay_type(void) {
     return type;
 }
 
-xdisplay_t *xdisplay_new(char *dpy_string)
+xdisplay *xdisplay_new(char *dpy_string)
 {
 
     /* open display */
-    xdisplay_t *d = malloc(sizeof(*d));
+    xdisplay *d = malloc(sizeof(*d));
     d->type = xdisplay_type();
     if (!(d->dpy = XOpenDisplay(dpy_string))){
 	fprintf(stderr, "x11: can't open display %s\n", dpy_string);
@@ -85,7 +85,7 @@ xdisplay_t *xdisplay_new(char *dpy_string)
     return d;
 }
 
-void xdisplay_free(xdisplay_t *d)
+void xdisplay_free(xdisplay *d)
 {
     XCloseDisplay(d->dpy);
     ASSERT(0 == d->windowlist->elements); // make sure there are no dangling xwindow objects
@@ -94,19 +94,19 @@ void xdisplay_free(xdisplay_t *d)
 }
 
 /* some private members */
-// static int _windowset_contains(xdisplay_t *d, xwindow_t *w){
+// static int _windowset_contains(xdisplay *d, xwindow *w){
 //    return (buf_lookup(d->windowlist, w) >= 0);
 //}
 
 
-void xdisplay_register_window(xdisplay_t *d, xwindow_t *w)
+void xdisplay_register_window(xdisplay *d, xwindow *w)
 {
     //pf_post("xdisplay: registering window %p", w);
     buf_add_to_set(d->windowlist, w);
     
     //if (!_windowset_contains(d, w)) _windowset_add(d, w);
 }
-void xdisplay_unregister_window(xdisplay_t *d, xwindow_t *w)
+void xdisplay_unregister_window(xdisplay *d, xwindow *w)
 {
     //pf_post("xdisplay: unregistering window %p", w);
     buf_remove(d->windowlist, w);
@@ -118,8 +118,8 @@ void xdisplay_unregister_window(xdisplay_t *d, xwindow_t *w)
 // just raw x events. client needs to parse events.. since this is
 // shared code, we keep it as simple as possible
 
-void xdisplay_route_events(xdisplay_t *d){
-    xwindow_t *w;
+void xdisplay_route_events(xdisplay *d){
+    xwindow *w;
     int i;
     XEvent *e = 0;
 
@@ -127,10 +127,10 @@ void xdisplay_route_events(xdisplay_t *d){
 	if (!e) e = malloc(sizeof(XEvent));
 	XNextEvent(d->dpy, e);	
 
-	// find xwindow_t instance
+	// find xwindow instance
 
 	for (i = 0; i<d->windowlist->elements; i++){
-	    w = (xwindow_t *)d->windowlist->data[i];
+	    w = (xwindow *)d->windowlist->data[i];
 	    if (w->win == e->xany.window){
 
 		// handle here
@@ -155,17 +155,17 @@ void xdisplay_route_events(xdisplay_t *d){
 
 /************************************* XWINDOW ************************************/
 
-void xwindow_queue_event(xwindow_t *x, XEvent *e){
+void xwindow_queue_event(xwindow *x, XEvent *e){
     buf_add(x->events, e);
 }
 
-void xwindow_drop_events(xwindow_t *x){
+void xwindow_drop_events(xwindow *x){
     void *e;
     while ((e = stack_pop(x->events))) free(e);
 }
 
 
-void xwindow_warppointer(xwindow_t *xwin, int x, int y)
+void xwindow_warppointer(xwindow *xwin, int x, int y)
 {
     if (xwin->initialized){
 	XWarpPointer(xwin->xdisplay->dpy, None, xwin->win, 0, 0, 0, 0, x, y);
@@ -175,7 +175,7 @@ void xwindow_warppointer(xwindow_t *xwin, int x, int y)
 
 
 
-void xwindow_overrideredirect(xwindow_t *xwin, int b)
+void xwindow_overrideredirect(xwindow *xwin, int b)
 {
     XSetWindowAttributes new_attr;
     new_attr.override_redirect = b ? True : False;
@@ -185,7 +185,7 @@ void xwindow_overrideredirect(xwindow_t *xwin, int b)
 }
 
 
-void xwindow_moveresize(xwindow_t *xwin, int xoffset, int yoffset, int width, int height)
+void xwindow_moveresize(xwindow *xwin, int xoffset, int yoffset, int width, int height)
 {
 
     if ((width > 0) && (height > 0)){
@@ -202,7 +202,7 @@ void xwindow_moveresize(xwindow_t *xwin, int xoffset, int yoffset, int width, in
 }
 
 
-void xwindow_fullscreen(xwindow_t *xwin)
+void xwindow_fullscreen(xwindow *xwin)
 {
     XWindowAttributes rootwin_attr;
 
@@ -228,7 +228,7 @@ void xwindow_fullscreen(xwindow_t *xwin)
 }
 
 
-void xwindow_tile(xwindow_t *xwin, int x_tiles, int y_tiles, int i, int j)
+void xwindowile(xwindow *xwin, int x_tiles, int y_tiles, int i, int j)
 {
     XWindowAttributes rootwin_attr;
     // XSetWindowAttributes new_attr;
@@ -254,7 +254,7 @@ void xwindow_tile(xwindow_t *xwin, int x_tiles, int y_tiles, int i, int j)
 }
 
 /* resize window */
-void xwindow_resize(xwindow_t *xwin, int width, int height)
+void xwindow_resize(xwindow *xwin, int width, int height)
 {
     if ((width > 0) && (height > 0)){
 	xwin->winwidth = width;
@@ -268,7 +268,7 @@ void xwindow_resize(xwindow_t *xwin, int width, int height)
 }
 
 /* move window */
-void xwindow_move(xwindow_t *xwin, int xoffset, int yoffset)
+void xwindow_move(xwindow *xwin, int xoffset, int yoffset)
 {
     xwindow_moveresize(xwin, xoffset, yoffset, xwin->winwidth, xwin->winheight);
 }
@@ -277,7 +277,7 @@ void xwindow_move(xwindow_t *xwin, int xoffset, int yoffset)
 
 
 /* set an arbitrary cursor image */
-void xwindow_cursor_image(xwindow_t *xwin, char *data, int width, int height)
+void xwindow_cursor_image(xwindow *xwin, char *data, int width, int height)
 {
     if (!xwin->initialized) return;
 
@@ -297,7 +297,7 @@ void xwindow_cursor_image(xwindow_t *xwin, char *data, int width, int height)
 }
 
 /* enable / disable cursor */
-void xwindow_cursor(xwindow_t *xwin, int i){
+void xwindow_cursor(xwindow *xwin, int i){
     if (!xwin->initialized) return;
     if (i == 0) {
         char data[] = {0};
@@ -310,7 +310,7 @@ void xwindow_cursor(xwindow_t *xwin, int i){
 }
 
 
-void xwindow_title(xwindow_t *xwin, char *title)
+void xwindowitle(xwindow *xwin, char *title)
 {
     if (xwin->initialized)
 	XStoreName(xwin->xdisplay->dpy, xwin->win, title);
@@ -318,7 +318,7 @@ void xwindow_title(xwindow_t *xwin, char *title)
 
 
 /* create xwindow */
-int xwindow_config(xwindow_t *xwin, xdisplay_t *d) 
+int xwindow_config(xwindow *xwin, xdisplay *d) 
 {
     XEvent e;
     // unsigned int i;
@@ -408,7 +408,7 @@ int xwindow_config(xwindow_t *xwin, xdisplay_t *d)
     xwindow_cursor(xwin, xwin->cursor);
 
     /* set window title */
-    xwindow_title(xwin, "pf");
+    xwindowitle(xwin, "pf");
 
     xdisplay_register_window(xwin->xdisplay, xwin);
 
@@ -417,7 +417,7 @@ int xwindow_config(xwindow_t *xwin, xdisplay_t *d)
 
 }
 
-void xwindow_init(xwindow_t *xwin)
+void xwindow_init(xwindow *xwin)
 {
     xwin->xdisplay = 0;
     xwin->win = 0;
@@ -435,7 +435,7 @@ void xwindow_init(xwindow_t *xwin)
     xwin->events = buf_new(16);
 
 }
-static int xwindow_write(xdisplay_t *x, port *p) {
+static int xwindow_write(xdisplay *x, port *p) {
     return port_printf(p, "#<xwindow:%p>", x);
 }
 xwindow_class *xwindow_type(void) {
@@ -447,16 +447,16 @@ xwindow_class *xwindow_type(void) {
     }
     return type;
 }
-xwindow_t *xwindow_new(void)
+xwindow *xwindow_new(void)
 {
-    xwindow_t *xwin = malloc(sizeof(*xwin));
+    xwindow *xwin = malloc(sizeof(*xwin));
     xwin->type = xwindow_type();
     xwindow_init(xwin);
     return xwin;
 }
     
 
-void xwindow_close(xwindow_t *xwin)
+void xwindow_close(xwindow *xwin)
 {
     // void *v;
     xwindow_drop_events(xwin); 
@@ -476,7 +476,7 @@ void xwindow_close(xwindow_t *xwin)
 
 }
 
-void xwindow_cleanup(xwindow_t *x)
+void xwindow_cleanup(xwindow *x)
 {
     // close win
     xwindow_close(x);
@@ -484,7 +484,7 @@ void xwindow_cleanup(xwindow_t *x)
     // no more dynamic data to free
 }
 
-void xwindow_free(xwindow_t *xwin)
+void xwindow_free(xwindow *xwin)
 {
     xwindow_cleanup(xwin);
     free(xwin);

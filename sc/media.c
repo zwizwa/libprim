@@ -18,10 +18,6 @@
 #include <media/xv.h>
 #include <media/glx.h>
 
-static codec_class *codec_c;
-static codec_context_class *codec_context_c;
-static vframe_class *vframe_c;
-static aframe_class *aframe_c;
 
 /* Instead of storing the class object in the ex struct (see
    DEF_AREF_TYPE and ex's base_types member), it's also possible to
@@ -30,7 +26,7 @@ static aframe_class *aframe_c;
 
 #define DEF_GLOBAL_AREF_TYPE(name) \
     static inline name *object_to_##name(object ob, ex *m) { \
-        return (name*)object_aref_struct(ob,m,name##_c); }
+        return (name*)object_aref_struct(ob,m,name##_type()); }
 
 DEF_GLOBAL_AREF_TYPE(codec)
 DEF_GLOBAL_AREF_TYPE(codec_context)
@@ -41,10 +37,6 @@ static prim_def media_prims[] = media_table_init;
 
 void _sc_media_init(sc *sc) {
     av_register_all();
-    codec_c = codec_class_new();
-    codec_context_c = codec_context_class_new();
-    vframe_c = vframe_class_new();
-    aframe_c = aframe_class_new();
     _sc_def_prims(sc, media_prims);
 }
 
@@ -54,13 +46,13 @@ void _sc_media_init(sc *sc) {
 
 _ sc_make_codec(sc* sc, _ spec) {
     char *name = CAST(cstring, spec);
-    codec *c = codec_new(codec_c, name);
+    codec *c = codec_new(name);
     if (!c) return ERROR("codec-not-found", spec);
-    return _sc_make_aref(sc, (leaf_object*)codec_new(codec_c, name));
+    return _sc_make_aref(sc, (leaf_object*)codec_new(name));
 }
 
 _ sc_make_codec_context(sc *sc) {
-    return _sc_make_aref(sc, (leaf_object *)codec_context_new(codec_context_c));
+    return _sc_make_aref(sc, (leaf_object *)codec_context_new());
 }
 
 
@@ -72,13 +64,13 @@ _ sc_codec_context_info(sc *sc, _ ob) {
 
 _ sc_make_vframe(sc *sc, _ ob) {
     codec_context *c = CAST(codec_context, ob);
-    vframe *f = vframe_new(vframe_c, c);
+    vframe *f = vframe_new(c);
     return _sc_make_aref(sc, (leaf_object *)f);
 }
 
 _ sc_make_aframe(sc *sc, _ ob) {
     codec_context *c = CAST(codec_context, ob);
-    aframe *f = aframe_new(aframe_c, c);
+    aframe *f = aframe_new(c);
     if (!f) return INVALID(ob);
     return _sc_make_aref(sc, (leaf_object*)f);
 }
@@ -125,14 +117,14 @@ _ sc_codec_context_encode_audio(sc *sc, _ ctx, _ frm, _ buf) {
 
 /*** X11 ***/
 
-_ sc_make_display(sc *sc, _ ob) {
-    xdisplay *xd = xdisplay_new(CAST(cstring, ob));
-    return _sc_make_aref(sc, xd);
-}
+DEF_GLOBAL_AREF_TYPE(xwindow)
+DEF_GLOBAL_AREF_TYPE(xdisplay)
 
+_ sc_make_display(sc *sc, _ ob) {
+    return _sc_make_aref(sc, xdisplay_new(CAST(cstring, ob)));
+}
 _ sc_make_window(sc *sc) {
-    xwindow *xd = xwindow_new();
-    return _sc_make_aref(sc, xd);
+    return _sc_make_aref(sc, xwindow_new());
 }
 _ sc_window_config(sc *sc, _ win, _ disp) {
     xwindow_config(CAST(xwindow, win), CAST(xdisplay, disp));

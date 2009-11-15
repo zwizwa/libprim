@@ -69,11 +69,11 @@ void glx_free(glx_t* x){
 }
 
 
-void glx_swapbuffers(glx_t *x, xwindow_t *xwin)
+void glx_swapbuffers(glx_t *x, xwindow *xwin)
 {
     glXSwapBuffers(x->xdpy->dpy, xwin->win);
 }
-void glx_makecurrent(glx_t *x, xwindow_t *xwin)
+void glx_makecurrent(glx_t *x, xwindow *xwin)
 {
     if (x != current_context){
 
@@ -89,7 +89,7 @@ void glx_makecurrent(glx_t *x, xwindow_t *xwin)
 }
 
 
-void *glx_image_data(glx_t* x, xwindow_t *xwin,
+void *glx_image_data(glx_t* x, xwindow *xwin,
 			unsigned int w, unsigned int h){
 
     if (!x->initialized) return 0;
@@ -124,7 +124,7 @@ void *glx_image_data(glx_t* x, xwindow_t *xwin,
  
 }
 /* display the texture */
-void glx_image_display(glx_t *x, xwindow_t *xwin){
+void glx_image_display(glx_t *x, xwindow *xwin){
 
     /* set window context current
        just to make sure we don't conflict with other contexts */
@@ -175,7 +175,7 @@ void glx_image_display(glx_t *x, xwindow_t *xwin){
 
 
 /* open an opengl context */
-int glx_open_on_display(glx_t *x, xwindow_t *w, xdisplay_t *d)
+int glx_open_on_display(glx_t *x, xwindow *w, xdisplay *d)
 {
     static int vis_attr[] = {GLX_RGBA, 
 			     GLX_RED_SIZE, 4, 

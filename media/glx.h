@@ -38,7 +38,7 @@
 typedef struct _glx
 {
 
-    xdisplay_t *xdpy; //mother display object
+    xdisplay *xdpy; //mother display object
     int  initialized;
 
     /* texture */
@@ -68,25 +68,25 @@ void glx_free(glx_t* x);
 
 
 /* open an opengl context */
-int glx_open_on_display(glx_t *x, xwindow_t *w, xdisplay_t *d);
+int glx_open_on_display(glx_t *x, xwindow *w, xdisplay *d);
 
 /* close an opengl context */
 void glx_close(glx_t* x);
 
 /* display a packet */
-//void glx_display_packet(glx_t *x, xwindow_t *xwin, pf_packet_t packet);
+//void glx_display_packet(glx_t *x, xwindow *xwin, pf_packet_t packet);
 
 /* get texture data buffer */
-void *glx_image_data(glx_t *x, xwindow_t *xwin, 
+void *glx_image_data(glx_t *x, xwindow *xwin, 
 			 unsigned int width, unsigned int height);
 
 /* display the texture */
-void glx_image_display(glx_t *x, xwindow_t *xwin);
+void glx_image_display(glx_t *x, xwindow *xwin);
 
 
 /* opengl specific stuff*/
-void glx_swapbuffers(glx_t *x, xwindow_t *xwin);
-void glx_makecurrent(glx_t *x, xwindow_t *xwin);
+void glx_swapbuffers(glx_t *x, xwindow *xwin);
+void glx_makecurrent(glx_t *x, xwindow *xwin);
 
 
 /* opengl sync module 
@@ -94,7 +94,7 @@ void glx_makecurrent(glx_t *x, xwindow_t *xwin);
 */
 
 //typedef struct {
-//    xdisplay_t *xdpy;
+//    xdisplay *xdpy;
 //    Window dummy_window;
 //   GLXContext context;
 //} glx_sync_t;
@@ -102,4 +102,4 @@ void glx_makecurrent(glx_t *x, xwindow_t *xwin);
 // glx_sync_t *glx_sync_new(void);
 // oid glx_sync_free(glx_sync_t *x);
 // void glx_sync_wait(glx_sync_t *x);
-// int glx_sync_open_on_display(glx_sync_t *x, xdisplay_t *xdpy);
+// int glx_sync_open_on_display(glx_sync_t *x, xdisplay *xdpy);

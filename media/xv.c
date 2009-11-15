@@ -128,7 +128,7 @@ static void xv_destroy_xvimage(xv_t *xvid)
 }
 
 /* display */
-void xv_image_display(xv_t *xvid, xwindow_t *xwin){
+void xv_image_display(xv_t *xvid, xwindow *xwin){
 
     if (!xvid->initialized) return;
 
@@ -156,7 +156,7 @@ void xv_image_display(xv_t *xvid, xwindow_t *xwin){
 }
 
 
-void *xv_image_data(xv_t *xvid, xwindow_t *xwin, 
+void *xv_image_data(xv_t *xvid, xwindow *xwin, 
 			unsigned int width, unsigned int height){
 
     if (!xvid->initialized) return 0;
@@ -229,7 +229,7 @@ xv_t *xv_new(void)
     return xvid;
 }
 
-int xv_open_on_display(xv_t *xvid, xdisplay_t *d, int adaptor_start)
+int xv_open_on_display(xv_t *xvid, xdisplay *d, int adaptor_start)
 {
     unsigned int ver, rel, req, ev, err, i, j;
     unsigned int adaptors;
