@@ -78,9 +78,9 @@ void xdisplay_free(xdisplay_t *d)
 }
 
 /* some private members */
-static int _windowset_contains(xdisplay_t *d, xwindow_t *w){
-    return (buf_lookup(d->windowlist, w) >= 0);
-}
+//static int _windowset_contains(xdisplay_t *d, xwindow_t *w){
+//    return (buf_lookup(d->windowlist, w) >= 0);
+//}
 
 
 void xdisplay_register_window(xdisplay_t *d, xwindow_t *w)
@@ -145,7 +145,7 @@ void xwindow_queue_event(xwindow_t *x, XEvent *e){
 
 void xwindow_drop_events(xwindow_t *x){
     void *e;
-    while (e = stack_pop(x->events)) free(e);
+    while ((e = stack_pop(x->events))) free(e);
 }
 
 
@@ -215,7 +215,7 @@ void xwindow_fullscreen(xwindow_t *xwin)
 void xwindow_tile(xwindow_t *xwin, int x_tiles, int y_tiles, int i, int j)
 {
     XWindowAttributes rootwin_attr;
-    XSetWindowAttributes new_attr;
+    // XSetWindowAttributes new_attr;
 
     if (xwin->initialized){
 	int tile_w;
@@ -305,7 +305,7 @@ void xwindow_title(xwindow_t *xwin, char *title)
 int xwindow_config(xwindow_t *xwin, xdisplay_t *d) 
 {
     XEvent e;
-    unsigned int i;
+    // unsigned int i;
 
     /* check if already opened */
     if(  xwin->initialized ){
@@ -429,7 +429,7 @@ xwindow_t *xwindow_new(void)
 
 void xwindow_close(xwindow_t *xwin)
 {
-    void *v;
+    // void *v;
     xwindow_drop_events(xwin); 
     buf_free(xwin->events);
     xwin->events = 0;
