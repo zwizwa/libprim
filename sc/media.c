@@ -170,3 +170,36 @@ _ sc_grid_dump(sc *sc, _ g, _ p) {
     grid_dump(CAST(grid, g), CAST(port, p));  return VOID; 
 }
 
+_ sc_grid_to_vector(sc *sc, _ ob) {
+    grid *g = CAST(grid, ob);
+    int i, nb = grid_total(g);
+    vector *v = gc_alloc(EX->gc, nb);
+    for (i=0; i<nb; i++) {
+        v->slot[i] = INEXACT(g->buf[i]);
+    }
+    return vector_to_object(v);
+}
+_ sc_grid_ref(sc *sc, _ obg, _ obi) {
+    int i = CAST_INTEGER(obi);
+    grid *g = CAST(grid, obg);
+    int nb = grid_total(g);
+    if ((i < 0) || (i >= nb)) ERROR("inval", obi);
+    return INEXACT(g->buf[i]);
+}
+_ sc_bang_grid_set(sc *sc, _ obg, _ obi, _ obv) {
+    int i = CAST_INTEGER(obi);
+    grid *g = CAST(grid, obg);
+    int nb = grid_total(g);
+    if ((i < 0) || (i >= nb)) ERROR("inval", obi);
+    g->buf[i] = CAST(inexact, obv)->value;
+    return VOID;
+}
+_ sc_grid_dims(sc *sc, _ obg) {
+    grid *g = CAST(grid, obg);
+    vector *v = gc_alloc(EX->gc, GRID_MAX_DIMS);
+    int i;
+    for (i=0; i<GRID_MAX_DIMS; i++) {
+        v->slot[i] = NUMBER(g->dim[i]);
+    }
+    return vector_to_object(v);
+}

@@ -7,7 +7,7 @@ static void grid_free(grid *x){
     free(x->buf);
     free(x);
 }
-#define FOR_DIM(i) for(i=0; i<MAX_DIMS; i++)
+#define FOR_DIM(i) for(i=0; i<GRID_MAX_DIMS; i++)
 static int grid_write(grid *x, port *p) {
     int i, len = 0;
     len += port_printf(p, "#<grid");
@@ -19,7 +19,7 @@ static int grid_write(grid *x, port *p) {
 
 LEAF_SIMPLE_TYPE(grid)
 
-static int grid_total(grid *g) {
+int grid_total(grid *g) {
     int i, total = 1;
     FOR_DIM(i) total *= g->dim[i];
     return total;
