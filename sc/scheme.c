@@ -115,6 +115,11 @@ _ _sc_make_aref(sc *sc, void *_x) {
     return sc_make_aref(sc, fin_to_object(f), const_to_object(x));
 }
 
+
+_ _sc_make_inexact(sc *sc, double d) {
+    return _sc_make_aref(sc, inexact_new(d));
+}
+
 _ _sc_make_string(sc *sc, const char *str) {
     return _sc_make_aref(sc, bytes_from_cstring(str));
 }
@@ -1012,12 +1017,14 @@ sc *_sc_new(int argc, char **argv) {
     TYPES->prim_type = (void*)0xF001; // dummy class
     TYPES->port_type = port_type();
     TYPES->bytes_type = bytes_type();
+    TYPES->inexact_type = inexact_type();
 
     /* EX virtual methods */
     sc->m.port = (_ex_m_port)_sc_port;
     sc->m.write = (ex_m_write)sc_write_stderr;
     sc->m.make_string = (_ex_m_make_string)_sc_make_string;
     sc->m.make_qstring = (_ex_m_make_string)_sc_make_qstring;
+    sc->m.make_inexact = (_ex_m_make_inexact)_sc_make_inexact;
     sc->m.make_pair = ex_cons;
 
     /* Data roots. */

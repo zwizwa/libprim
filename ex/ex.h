@@ -16,6 +16,7 @@
 #include <ex/pair.h>
 #include <leaf/prim.h>
 #include <leaf/rc.h>
+#include <leaf/inexact.h>
 
 /* Highlevel transparent object rep and GC */
 #include <ex/object.h>
@@ -28,6 +29,7 @@ typedef struct {
     port_class *port_type;
     bytes_class *bytes_type;
     rc_class *rc_type;
+    inexact_class *inexact_type;
 } base_types;
 
 // Re-entrant part of ex state.
@@ -40,6 +42,7 @@ typedef struct _ex ex;
 typedef object (*ex_m_write)(ex *ex, object ob);
 typedef port*  (*_ex_m_port)(ex *ex);
 typedef object (*_ex_m_make_string)(ex *ex, const char *str);
+typedef object (*_ex_m_make_inexact)(ex *ex, double d);
 typedef object (*ex_m_make_pair)(ex *ex, object car, object cdr); // reader
 struct _ex {
     void *type;
@@ -66,6 +69,7 @@ struct _ex {
     _ex_m_port port;
     _ex_m_make_string make_string;
     _ex_m_make_string make_qstring;
+    _ex_m_make_inexact make_inexact;
     ex_m_make_pair make_pair;
 
 };
@@ -123,6 +127,7 @@ long _ex_unwrap_integer(ex *ex, object o);
 _ _ex_make_symbol(ex *ex, const char *str);
 #define SYMBOL(str)   _ex_make_symbol(EX, str)
 #define STRING(str)   (EX->make_string(EX, str))
+#define INEXACT(d)    (EX->make_inexact(EX, d))
 #define QSTRING(str)  (EX->make_qstring(EX, str)) // with quotes
 #define CHAR(str)     integer_to_object(str[0])
 #define NAMED_CHAR(str) integer_to_object(named_char(str))

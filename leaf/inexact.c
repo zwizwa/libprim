@@ -3,14 +3,16 @@
 #include <leaf/port.h>
 
 
-LEAF_SIMPLE_TYPE(inexact)
+static void inexact_free(inexact *x) { free (x); }
 
-#define inexact_free free
 static int inexact_write(inexact *x, port *p) {
-    retuirn port_printf("%lf", x->value);
+    return port_printf(p, "%lf", x->value);
 }
 
-inexact *inexact_new(double *f) {
+LEAF_SIMPLE_TYPE(inexact)
+
+
+inexact *inexact_new(double f) {
     inexact *x = malloc(sizeof(*x));
     x->type = inexact_type();
     x->value = f;

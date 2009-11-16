@@ -15,5 +15,7 @@ typedef struct {
     double value;
 } inexact;
 
+inexact *inexact_new(double f);
+inexact_class *inexact_type(void);
 
 #endif

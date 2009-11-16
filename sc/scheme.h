@@ -205,6 +205,7 @@ static inline void *object_aref_struct(object ob, ex *m, void *type) {
 // DEF_AREF_TYPE(ck)
 DEF_AREF_TYPE(port)
 DEF_AREF_TYPE(bytes)
+DEF_AREF_TYPE(inexact)
 
 typedef char cstring;  // for CAST()
 static inline char *object_to_cstring(_ ob, ex *m) {

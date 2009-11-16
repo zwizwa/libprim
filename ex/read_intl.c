@@ -28,9 +28,21 @@ static _ _atom(parser_ctx *x, const bytes *tok) {
     case TOK_FALSE:  return FALSE;
     case TOK_CHAR:   return NAMED_CHAR(str);
     case TOK_STRING: return STRING(str);
-    case TOK_NUMBER: return NUMBER(atoi(str));
+    case TOK_NUMBER: {
+        char *end = NULL;
+        long long int l = 0;
+        double d = 0;
+        int i;
+        int decimal = 0;
+        for(i=0; str[i]; i++) {if (str[i] == '.') { decimal = 1;  break; }}
+        if (decimal) 
+            { d = strtod(str, &end); if (end[0]) goto error; return INEXACT(d); }
+        else
+            { l = strtoll(str, &end, 10); if (end[0]) goto error; return NUMBER(l); }
+    }
     case TOK_SYMBOL: return SYMBOL(str);
     }
+  error:
     x->tok = tok;
     longjmp(x->jb, 1);
 }
