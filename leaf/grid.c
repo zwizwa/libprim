@@ -10,7 +10,7 @@ static void grid_free(grid *x){
 }
 #define FOR_DIM(i) for(i=0; i<GRID_MAX_DIMS; i++)
 static int grid_write(grid *x, port *p) {
-#if 0
+#if 1
     return grid_dump(x, p);
 #else
     int i, len = 0;
@@ -62,10 +62,10 @@ grid *grid_new_2(int d0, int d1, grid_atom init) {
 }
 grid *grid_copy(grid *template) {
     grid *x = malloc(sizeof(*x));
-    memcpy(template, x, sizeof(*x));
-    int bytes = grid_total(template) * sizeof(grid_atom);
-    x->buf = malloc(bytes);
-    memcpy(x->buf, template->buf, bytes);
+    memcpy(x, template, sizeof(*x));
+    int nb = grid_total(template) * sizeof(grid_atom);
+    x->buf = malloc(nb);
+    memcpy(x->buf, template->buf, nb);
     return x;
 }
 
@@ -145,12 +145,14 @@ grid_proc *grid_proc_new(void *fn, int argc) {
 int grid_dump(grid *g, port *p) {
     int len = 0, i,j;
     grid_atom *a = g->buf;
+    len += port_printf(p, "\n#<grid");
     for (j = 0; j<g->dim[1]; j++) {
+        len += port_printf(p, "\n |");
         for(i = 0; i<g->dim[0]; i++) {
-            len += port_printf(p, "%f ", *a++);
+            len += port_printf(p, " %f", *a++);
         }
-        len += port_printf(p, "\n");
     }
+    len += port_printf(p, " >");
     return len;
 }
 

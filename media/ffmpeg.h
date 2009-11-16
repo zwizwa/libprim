@@ -49,7 +49,7 @@ vframe_class *vframe_type(void);
 aframe_class *aframe_type(void);
 
 codec *codec_new(const char *name);
-codec_context *codec_context_new();
+codec_context *codec_context_new(void);
 vframe *vframe_new(codec_context *ctx);
 aframe *aframe_new(codec_context *ctx);
 
