@@ -484,8 +484,6 @@
 
 (define (cadar x) (car (cdar x)))
 
-
-
 (define-macro (record-case form)
   (let ((bind-args
          (lambda (vars rest-name form)
@@ -507,11 +505,10 @@
            ((eq? 'else (caar clauses)) (cadar clauses))
            (else
             (let* ((clause (car clauses))
-                   (pattern (car clause))
-                   (body (cadr clause))
-                   (tag (car pattern))
-                   (args (cdr pattern)))
-              `(if (eq? ',tag ,rec-tag)
+                   (tag  (car clause))
+                   (args (cadr clause))
+                   (body (caddr clause)))
+              `(if (eqv? ',tag ,rec-tag)  ;; NOTE: doesn't use eq?
                    ,(bind-args args rec-args body)
                    ,(rec (cdr clauses))))))))))
 

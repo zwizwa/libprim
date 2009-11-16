@@ -64,7 +64,6 @@ static void _gc_fin_slots(gc *gc, object *o, long slots) {
 }
 
 static vector *_gc_allot(gc *gc, long size) {
-    // FIXME: check GC_VECTOR_MAX_SIZE !!
     vector *v = &gc->current[gc->current_index];
     // finalize data before overwriting
     // _gc_fin_slots(gc, &v->header, size + 1);
@@ -166,6 +165,8 @@ static void _gc_when_full(gc *gc, long slots) {
     gc_collect(gc);
 }
 vector *gc_alloc(gc *gc, long size) {
+//    if (size > GC_MAX_VECTOR_SIZE) return NULL;
+
     if (unlikely(NULL == gc)) {
         fprintf(stderr, "ERROR: GC: Allocation disabled.\n");
         kill(getpid(), SIGTRAP);

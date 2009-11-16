@@ -304,8 +304,10 @@ _ ex_lt(ex *ex, _ a, _ b)  { return BINREL(<, a, b); }
 
 /* Lists and vectors. */
 _ ex_make_vector(ex *ex, _ slots, _ init) {
+    ENABLE_RESTART();
     long i,n = CAST_INTEGER(slots);
     vector *v = gc_alloc(ex->gc, n);
+    if (!v) ERROR("invalid-size", slots);
     for(i=0; i<n; i++) v->slot[i] = init;
     return vector_to_object(v);
 }
