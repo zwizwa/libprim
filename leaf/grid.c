@@ -16,15 +16,9 @@ static int grid_write(grid *x, port *p) {
     return len;
 }
 
-grid_class *grid_type(void){
-    static grid_class *x = NULL;
-    if (!x) {
-        x = calloc(1, sizeof(*x));
-        x->super.free = (leaf_free_m)grid_free;
-        x->super.write = (leaf_write_m)grid_write;
-    }
-    return x;
-}
+
+LEAF_SIMPLE_TYPE(grid)
+
 grid *grid_new_1(int length) {
     if (length < 1) return NULL;
     grid *x = calloc(1, sizeof(*x));
@@ -101,15 +95,8 @@ static int grid_proc_write(grid *x, port *p) {
     return port_printf(p, "#<grid-proc:%p>", x);
 }
 
-grid_proc_class *grid_proc_type(void){
-    static grid_proc_class *x = NULL;
-    if (!x) {
-        x = calloc(1, sizeof(*x));
-        x->super.free = (leaf_free_m)grid_proc_free;
-        x->super.write = (leaf_write_m)grid_proc_write;
-    }
-    return x;
-}
+LEAF_SIMPLE_TYPE(grid_proc)
+
 grid_proc *grid_proc_new(void *fn, int argc) {
     if (argc < 1) return NULL;
     

@@ -47,4 +47,17 @@ int grid_for_each(grid_proc *p, int argc, grid **argv);
 
 int grid_dump(grid *g, port *p);
 
+
+#define LEAF_SIMPLE_TYPE(name) \
+    name##_class *name##_type(void) { \
+    static name##_class *x = NULL; \
+    if (!x) {\
+    x = calloc(1, sizeof(*x)); \
+    x->super.free = (leaf_free_m)name##_free; \
+    x->super.write = (leaf_write_m)name##_write; \
+    } return x; }
+
+
+
+
 #endif

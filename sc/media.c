@@ -169,3 +169,4 @@ _ sc_grid_proc_mul(sc *sc) { PROC(_mul, 3); }
 _ sc_grid_dump(sc *sc, _ g, _ p) { 
     grid_dump(CAST(grid, g), CAST(port, p));  return VOID; 
 }
+
