@@ -5539,8 +5539,12 @@ GSL easier.
 Entry: HSVD
 Date: Mon Nov 16 14:34:17 CET 2009
 
-The black-box methods explained in [1] consit of LP-based and
-state-space-based methods (i.e. HSVD / HTLS).
+A summary of [1].
+
+CHAPTER 2
+
+Explains basic principles of Linear Prediction (LP) and State Space
+(SS) based methods for parameter estimation.
 
 The flow of HSVD is like this:
 
@@ -5555,9 +5559,19 @@ The two values to be chosen are n (signal space dimension) and q
 (signal + noise space dimension).  The n parameter follows from what
 one is looking for, but how to determine q?
 
-
 Translating LP to an AR problem shifts the statistics but makes it
 easier to estimate using LS.
+
+The essence seems to be this: trunctation by SVD is essentially noise
+reduction.  This then makes the LS or TLS-based estimation for LP and
+SS approaches more precise.  However, the statistically optimal (ML)
+estimates require nonlinear optimization.
+
+In general SS methods are better for larger number of poles since they
+obtain poles from an eigenvalue decomposition instead of polynomial
+rooting, which is ill-conditioned for large order.
+
+
 
 
 [1] ftp://ftp.esat.kuleuven.ac.be/pub/SISTA/vanhamme/phd.ps
@@ -5588,8 +5602,13 @@ by a flat script should produce the same result.  However, this
 doesn't capture loops efficiently.  Maybe some combinators could be
 added to the RPC mechanism?
 
+In general: simply recording shouldn't be so difficult.
+Parameterizing the representation however is not so easy.
 
+Also, it would probably work better with statically allocated objects:
+given a pool of objects, record all operations that go between.
 
-  
+Maybe starting with a generic prototype would help?  Return int for
+errors + only operate on leaf objects.
 
 
