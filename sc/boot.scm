@@ -324,6 +324,7 @@
 (define (procedure? fn) (or (prim? fn) (lambda? fn)))
 
 
+(define (vector . args) (list->vector args))
 
 ;; for Shivers SRFI-1
 (define (check-arg pred val caller)

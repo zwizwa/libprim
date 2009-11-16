@@ -17,6 +17,7 @@
 #include <media/xwindow.h>
 #include <media/xv.h>
 #include <media/glx.h>
+#include <leaf/grid.h>
 
 
 /* Instead of storing the class object in the ex struct (see
@@ -24,14 +25,14 @@
    store it in a global variable.  Here we use a _c postfix naming
    convention. */
 
-#define DEF_GLOBAL_AREF_TYPE(name) \
+#define DEF_TYPE(name) \
     static inline name *object_to_##name(object ob, ex *m) { \
         return (name*)object_aref_struct(ob,m,name##_type()); }
 
-DEF_GLOBAL_AREF_TYPE(codec)
-DEF_GLOBAL_AREF_TYPE(codec_context)
-DEF_GLOBAL_AREF_TYPE(vframe)
-DEF_GLOBAL_AREF_TYPE(aframe)
+DEF_TYPE(codec)
+DEF_TYPE(codec_context)
+DEF_TYPE(vframe)
+DEF_TYPE(aframe)
 
 static prim_def media_prims[] = media_table_init;
 
@@ -117,8 +118,10 @@ _ sc_codec_context_encode_audio(sc *sc, _ ctx, _ frm, _ buf) {
 
 /*** X11 ***/
 
-DEF_GLOBAL_AREF_TYPE(xwindow)
-DEF_GLOBAL_AREF_TYPE(xdisplay)
+DEF_TYPE(xwindow)
+DEF_TYPE(xdisplay)
+DEF_TYPE(grid)
+DEF_TYPE(grid_proc)
 
 _ sc_make_display(sc *sc, _ ob) {
     return _sc_make_aref(sc, xdisplay_new(CAST(cstring, ob)));
@@ -129,4 +132,37 @@ _ sc_make_window(sc *sc) {
 _ sc_window_config(sc *sc, _ win, _ disp) {
     xwindow_config(CAST(xwindow, win), CAST(xdisplay, disp));
     return VOID;
+}
+
+
+/*** GRID ***/
+
+_ sc_make_grid_1(sc *sc, _ len) {
+    return _sc_make_aref(sc, grid_new_1(CAST_INTEGER(len)));
+}
+
+_ sc_grid_for_each(sc *sc, _ fn, _ gridv) {
+    vector *v = CAST(vector, gridv);
+    grid_proc *p = CAST(grid_proc, fn);
+    int i, argc = vector_size(v);
+    grid *argv[argc];
+    for (i=0; i<argc; i++) argv[i] = CAST(grid, v->slot[i]);
+    if (grid_for_each(p, argc, argv)) ERROR("args", CONS(fn, CONS(gridv, NIL)));
+    return VOID;
+}
+
+static void _add(grid_atom *a, grid_atom *b, grid_atom *c) { *c = *a + *b; }
+static void _sub(grid_atom *a, grid_atom *b, grid_atom *c) { *c = *a + *b; }
+
+_ grid_proc_wrap(sc *sc, void *fn, int argc) { 
+    grid_proc *g = grid_proc_new(fn, argc);
+    return _sc_make_aref(sc, g);
+}
+
+_ sc_grid_proc_add(sc *sc) { return grid_proc_wrap(sc, _add, 3);}
+_ sc_grid_proc_sub(sc *sc) { return grid_proc_wrap(sc, _sub, 3);}
+
+
+_ sc_grid_dump(sc *sc, _ g, _ p) { 
+    grid_dump(CAST(grid, g), CAST(port, p));  return VOID; 
 }

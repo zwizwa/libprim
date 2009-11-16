@@ -5520,3 +5520,14 @@ Scheme, the simplest approach is to keep the argument list of the
 primitive call around.
 
 
+
+Entry: Grids & Folds
+Date: Mon Nov 16 10:43:35 CET 2009
+
+Add (unsafe) operations for operating on vectors.  Make it general at
+first, then try to add a compile-time binding mechanism.  Is it worth
+to try to start from generation directly?  Probably not.  Let's define
+the datatypes first.
+
+
+
