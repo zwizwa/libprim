@@ -5495,3 +5495,28 @@ is necessary, it might be better to use an existing Scheme compiler.
 
 Try to focus on byte-code size.
 
+
+Entry: Primitive errors
+Date: Mon Nov 16 08:15:27 CET 2009
+
+The interpreter fixes can wait: it's only speed.  More important
+additions are leaf/ error handling.
+
+The problems:
+    1 this is again "context" (as with class instances)
+    2 messages should be linked to the _wrapped_ objects
+    3 memory management.
+
+For 1, there are two options: pass in an extra argument to the
+primitives, or solve it with a thread-local variable.
+
+For 2 it's best to have the caller register the wrapped object that
+needs to show up in the error message.  
+
+For 3 it's best to not have the leaf code do any allocations.
+
+Essentially: the VM needs to provide an error handling mechanism.  For
+Scheme, the simplest approach is to keep the argument list of the
+primitive call around.
+
+
