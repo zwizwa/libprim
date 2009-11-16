@@ -211,7 +211,7 @@ void xwindow_fullscreen(xwindow *xwin)
        if it looks like a hack it is a hack. */
 
     if (xwin->initialized){
-
+        
         XGetWindowAttributes(xwin->xdisplay->dpy, RootWindow(xwin->xdisplay->dpy, xwin->xdisplay->screen), &rootwin_attr );
 
 	//xwindow_overrideredirect(xwin, 0);

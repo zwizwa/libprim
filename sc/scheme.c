@@ -984,11 +984,13 @@ sc *_sc_new(int argc, char **argv) {
 
     char *bootfile = NULL;
     _ args = NIL;
+    int verbose = 0;
 
     /* Read command line interpreter options options. */
     SHIFT(1); // skip program name
     while ((argc > 0) && ('-' == argv[0][0])) {
         if (!strcmp("--boot", argv[0])) { bootfile = argv[1]; SHIFT(2); }
+        else if (!strcmp("--verbose", argv[0])) { SHIFT(1); verbose = 1; break; }
         else if (!strcmp("--", argv[0])) { SHIFT(1); break; }
         else {
             fprintf(stderr, "option `%s' not recognized\n", argv[0]);
@@ -1077,7 +1079,7 @@ sc *_sc_new(int argc, char **argv) {
     /* Highlevel bootstrap. */
     if (!bootfile) bootfile = getenv("PRIM_BOOT_SCM");
     if (!bootfile) bootfile = PRIM_HOME "boot.scm";
-    // _ex_printf(EX, "SC: booting from %s\n", bootfile);
+    if (verbose) _ex_printf(EX, "SC: %s\n", bootfile);
     _sc_top(sc, _ex_boot_load(EX, bootfile));
     return sc;
 }
