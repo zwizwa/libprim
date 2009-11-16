@@ -152,15 +152,18 @@ _ sc_grid_for_each(sc *sc, _ fn, _ gridv) {
 }
 
 static void _add(grid_atom *a, grid_atom *b, grid_atom *c) { *c = *a + *b; }
-static void _sub(grid_atom *a, grid_atom *b, grid_atom *c) { *c = *a + *b; }
+static void _sub(grid_atom *a, grid_atom *b, grid_atom *c) { *c = *a - *b; }
+static void _mul(grid_atom *a, grid_atom *b, grid_atom *c) { *c = (*a) * (*b); }
 
 _ grid_proc_wrap(sc *sc, void *fn, int argc) { 
     grid_proc *g = grid_proc_new(fn, argc);
     return _sc_make_aref(sc, g);
 }
 
-_ sc_grid_proc_add(sc *sc) { return grid_proc_wrap(sc, _add, 3);}
-_ sc_grid_proc_sub(sc *sc) { return grid_proc_wrap(sc, _sub, 3);}
+#define PROC(fn, nargs) return grid_proc_wrap(sc, fn, nargs);
+_ sc_grid_proc_add(sc *sc) { PROC(_add, 3); }
+_ sc_grid_proc_sub(sc *sc) { PROC(_sub, 3); }
+_ sc_grid_proc_mul(sc *sc) { PROC(_mul, 3); }
 
 
 _ sc_grid_dump(sc *sc, _ g, _ p) { 
