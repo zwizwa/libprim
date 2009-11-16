@@ -19,7 +19,17 @@ static int grid_write(grid *x, port *p) {
 
 LEAF_SIMPLE_TYPE(grid)
 
-grid *grid_new_1(int length) {
+static int grid_total(grid *g) {
+    int i, total = 1;
+    FOR_DIM(i) total *= g->dim[i];
+    return total;
+}
+static void grid_init(grid *x, grid_atom init) {
+    int i, total = grid_total(x);
+    for (i=0; i<total; i++) x->buf[i] = init;
+}
+
+grid *grid_new_1(int length, grid_atom init) {
     if (length < 1) return NULL;
     grid *x = calloc(1, sizeof(*x));
     x->type = grid_type();
@@ -27,7 +37,8 @@ grid *grid_new_1(int length) {
     FOR_DIM(i) x->dim[i] = 1;
 
     x->dim[0] = length;
-    x->buf = calloc(sizeof(grid_atom), length);
+    x->buf = malloc(sizeof(grid_atom) * length);
+    grid_init(x, init);
     return x;
 }
 // grid *grid_new_matrix(int rows, int columns);
@@ -43,17 +54,12 @@ typedef void (*fn_4)(grid_atom *, grid_atom *, grid_atom *, grid_atom *);
 /* Iterate over a grid.  The function is a Oz style procedure, where
    each argument is reference (pointer) to a grid_atom. */
 
-int grid_total(grid *g) {
-    int i, total = 1;
-    FOR_DIM(i) total *= g->dim[i];
-    return total;
-}
 
 int grid_for_each(grid_proc *p, int argc, grid **argv) {
     int i,j;
-    int total = 0;
+    int total = grid_total(argv[0]);
     if (p->argc != argc) return -1;
-    for (j = 0; j < argc; j++) total = MIN(grid_total(argv[j]), total);
+    for (j = 1; j < argc; j++) total = MIN(grid_total(argv[j]), total);
 
     switch(argc) {
     case 1: 

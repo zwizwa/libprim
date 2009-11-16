@@ -37,8 +37,8 @@ typedef struct {
 
 
 grid_class *grid_type(void);
-grid *grid_new_1(int length);
-grid *grid_new_2(int rows, int columns);
+grid *grid_new_1(int length, grid_atom init);
+grid *grid_new_2(int rows, int columns, grid_atom init);
 
 
 grid_proc_class *grid_proc_type(void);

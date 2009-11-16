@@ -137,8 +137,8 @@ _ sc_window_config(sc *sc, _ win, _ disp) {
 
 /*** GRID ***/
 
-_ sc_make_grid_1(sc *sc, _ len) {
-    return _sc_make_aref(sc, grid_new_1(CAST_INTEGER(len)));
+_ sc_make_grid_1(sc *sc, _ len, _ init) {
+    return _sc_make_aref(sc, grid_new_1(CAST_INTEGER(len), CAST(inexact, init)->value));
 }
 
 _ sc_grid_for_each(sc *sc, _ fn, _ gridv) {
