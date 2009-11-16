@@ -16,6 +16,8 @@ CPPFLAGS += `pkg-config libavformat --cflags`
 # X11
 LIBS += -L/usr/X11R6/lib -lX11 -lXext -lXv -lGL -lGLU
 CPPFLAGS += -I/usr/X11R6/include
+# GSL
+LIBS+=`gsl-config --libs`
 endif
 
 OBJ=$(SRC:.c=.o)

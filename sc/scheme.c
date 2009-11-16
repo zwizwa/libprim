@@ -419,6 +419,7 @@ static inline _ _sc_call(sc *sc, void *p, int nargs, _ ra) {
     case 1: return ((ex_1)p)(EX, _CAR(ra));
     case 2: return ((ex_2)p)(EX, _CADR(ra), _CAR(ra));
     case 3: return ((ex_3)p)(EX, _CADDR(ra), _CADR(ra), _CAR(ra));
+    case 4: return ((ex_4)p)(EX, _CADDDR(ra), _CADDR(ra), _CADR(ra), _CAR(ra));
     default:
         return ERROR("prim", integer_to_object(nargs));
     }

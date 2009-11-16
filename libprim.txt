@@ -5530,4 +5530,41 @@ to try to start from generation directly?  Probably not.  Let's define
 the datatypes first.
 
 
+Added: homogeneous grids - double floats to make interoperation with
+GSL easier.
 
+
+
+
+Entry: HSVD
+Date: Mon Nov 16 14:34:17 CET 2009
+
+The black-box methods explained in [1] consit of LP-based and
+state-space-based methods (i.e. HSVD / HTLS).
+
+The flow of HSVD is like this:
+
+1. start with a signal of length N
+2. create a hankel matrix (N-q x q)             -> choose q
+3. compute SVD
+4. truncate: take first n singular vectors      -> choose n
+5. LS solve shift equation
+6. compute eigenvectors
+
+The two values to be chosen are n (signal space dimension) and q
+(signal + noise space dimension).  The n parameter follows from what
+one is looking for, but how to determine q?
+
+
+Translating LP to an AR problem shifts the statistics but makes it
+easier to estimate using LS.
+
+
+[1] ftp://ftp.esat.kuleuven.ac.be/pub/SISTA/vanhamme/phd.ps
+
+
+
+Entry: fixes
+Date: Mon Nov 16 16:56:26 CET 2009
+
+remove the EX->TYPES struct: use only global classes + change all prototypes.

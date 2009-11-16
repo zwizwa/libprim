@@ -1,5 +1,5 @@
 
-SRC=ffmpeg.c xwindow.c xv.c glx.c
+SRC=ffmpeg.c xwindow.c xv.c glx.c gsl.c
 CPPFLAGS += -DPRIVATE
 
 OBJ=$(SRC:.c=.o)
@@ -16,6 +16,7 @@ libprim_media.a: $(OBJ)
 	ar rcs libprim_media.a $(OBJ)
 
 CPPFLAGS += `pkg-config libavformat --cflags`
+CPPFLAGS += `gsl-config --cflags`
 
 include ../Makefile.rules
 

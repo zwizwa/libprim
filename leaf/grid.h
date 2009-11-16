@@ -1,10 +1,10 @@
 #ifndef _LEAF_GRID_H_
 #define _LEAF_GRID_H_
 
-/* Grid object.  Currently, this contains only floats.  The idea is to
-   make most operations generic: factor as iterators and iteratees. */
+/* Grid object.  Currently, this contains only double floats to make
+   it easier to couple to GSL.  */
 
-typedef float grid_atom;
+typedef double grid_atom;
 
 #include <leaf/leaf.h>
 
@@ -36,9 +36,11 @@ typedef struct {
 
 
 
+
 grid_class *grid_type(void);
 grid *grid_new_1(int length, grid_atom init);
-grid *grid_new_2(int rows, int columns, grid_atom init);
+grid *grid_new_2(int columns, int rows, grid_atom init);
+grid *grid_copy(grid *template);
 
 
 grid_proc_class *grid_proc_type(void);

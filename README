@@ -1,7 +1,12 @@
 libprim (c) 2009 Tom Schouten
 
-This code is licensed under the terms of the GNU Lesser General Public
-Licence (LGPL).  See the file COPYING for details.
+The core components (leaf, PF, SC) are licensed under the terms of the
+GNU Lesser General Public Licence (LGPL).  See the file COPYING for
+details.
+
+Note that the use of some optional components requires a re-licencing
+under the terms of the GNU General Public Licence (GPL).  Most notably
+the GSL and some of the FFMPEG code.
 
 Documentation will follow in the near future.  The dev log is
 published online at:  http://zwizwa.be/-/libprim
