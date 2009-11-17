@@ -316,3 +316,17 @@ _ sc_grid_column(sc *sc, _ ob_A, _ ob_offset) {
     }
     return _sc_make_aref(sc, c);
 }
+_ sc_grid_roots(sc *sc, _ ob_poly) {
+    grid *poly = CAST(grid, ob_poly);
+    int N = poly->dim[0];
+    grid *roots = grid_new_2(2, N-1, 0.0);
+    int i;
+    /* coefficients of P(x) =  -1 + x^5  */
+    double a[6] = { -1, 0, 0, 0, 0, 1 };  
+
+    gsl_poly_complex_workspace *w = gsl_poly_complex_workspace_alloc (N);
+    gsl_poly_complex_solve (poly->buf, N, w, roots->buf);
+    gsl_poly_complex_workspace_free (w);
+
+    return _sc_make_aref(sc, roots);
+}

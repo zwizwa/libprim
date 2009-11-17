@@ -11,6 +11,7 @@
 #include <gsl/gsl_matrix.h>
 #include <gsl/gsl_linalg.h>
 #include <gsl/gsl_blas.h>
+#include <gsl/gsl_poly.h>
 #include <leaf/grid.h>
 
 /* Direct gsl_ -> grid_ adapters. */

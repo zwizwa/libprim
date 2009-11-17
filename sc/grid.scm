@@ -82,7 +82,23 @@
     (grid-column v order)))
 
     
-    
-  
+;; Full-circle test
+;; (fmul .25 pi)
+;; => 0.785398  
+;; (fasin (grid-ref (grid-roots (ar-poly (wave (fmul .25 pi) 100) 2)) 1))
+;; => 0.785398  
 
-(define d (svd (hankel (wave (fmul .5 pi) 20) 3)))
+(define (signal-angle signal)
+  (fasin                ;; acos gets frequency (assume from SVD that vector norm = 1)
+   (grid-ref            ;; get imaginary component 
+    (grid-roots         ;; find polynomial roots
+     (ar-poly           ;; estimate the AR polynomial
+      signal 2))        ;; AR model order = 2 (we expect a single sine wave)
+    1)))
+   
+(define (ar-test angle)
+  (signal-angle (wave angle 100)))
+
+(define (ar-test-error x) (fsub x (ar-test x)))
+
+;; (define d (svd (hankel (wave (fmul .5 pi) 20) 3)))
