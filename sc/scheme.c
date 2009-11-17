@@ -382,6 +382,38 @@ _ sc_system(sc *sc, _ ob) {
 }
 
 
+/* Inexact operations: wrapping is different for SC and PF so defined specialized here. */
+
+#define IBINOP(name) {\
+    inexact *ia = CAST(inexact, a); \
+    inexact *ib = CAST(inexact, b); \
+    inexact *iz = inexact_new(0.0); \
+    inexact_##name(CAST(inexact, a), CAST(inexact, b), iz); \
+    return _sc_make_aref(sc, iz); }
+
+#define IUNOP(name) {\
+    inexact *ia = CAST(inexact, a); \
+    inexact *iz = inexact_new(0.0); \
+    inexact_##name(CAST(inexact, a), iz); \
+    return _sc_make_aref(sc, iz); }
+
+_ sc_fadd(sc *sc, _ a, _ b) IBINOP(add)
+_ sc_fsub(sc *sc, _ a, _ b) IBINOP(sub)
+_ sc_fmul(sc *sc, _ a, _ b) IBINOP(mul)
+_ sc_fdiv(sc *sc, _ a, _ b) IBINOP(div)
+
+_ sc_fsin(sc *sc, _ a) IUNOP(sin)
+_ sc_fcos(sc *sc, _ a) IUNOP(cos)
+_ sc_ftan(sc *sc, _ a) IUNOP(tan)
+
+_ sc_fasin(sc *sc, _ a) IUNOP(asin)
+_ sc_facos(sc *sc, _ a) IUNOP(acos)
+_ sc_fatan(sc *sc, _ a) IUNOP(atan)
+
+_ sc_fexp(sc *sc, _ a) IUNOP(exp)
+_ sc_flog(sc *sc, _ a) IUNOP(log)
+_ sc_fsqrt(sc *sc, _ a) IUNOP(sqrt)
+
 #define NARGS_ERROR(fn) ERROR("nargs", fn)
 
 

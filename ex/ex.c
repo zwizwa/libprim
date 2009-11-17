@@ -302,6 +302,7 @@ _ ex_gt(ex *ex, _ a, _ b)  { return BINREL(>, a, b); }
 _ ex_lt(ex *ex, _ a, _ b)  { return BINREL(<, a, b); }
 
 
+
 /* Lists and vectors. */
 _ ex_make_vector(ex *ex, _ slots, _ init) {
     ENABLE_RESTART();
