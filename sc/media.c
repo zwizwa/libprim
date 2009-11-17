@@ -217,7 +217,7 @@ _ sc_grid_svd(sc *sc, _ A, _ V, _ S, _ work) {
     }
     return VOID;
 }
-/* _ sc_grid_svd_solve(sc *sc, _ U, _ V, _ S, _ b, _ x) { */
+/* _ _sc_grid_svd_solve(sc *sc, _ U, _ V, _ S, _ b, _ x) { */
 /*     if (grid_linalg_SV_solve(CAST(grid, U), CAST(grid, V), CAST(grid, S), */
 /*                              CAST(grid, b), CAST(grid, x))) { */
 /*     } */

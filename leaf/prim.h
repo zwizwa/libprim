@@ -15,5 +15,10 @@ typedef struct {
     object var;
 } prim;
 
+/* FIXME: turn this into a proper class object. */
+static inline void* prim_type(void) {
+    return (void*)0xF001; // dummy class
+}
+
 
 #endif

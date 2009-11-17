@@ -97,7 +97,7 @@ void _px_run(pf *pf) {
             /* Interpret primitive code or data. */
             else {
                 /* Primitive */
-                if ((p = object_to_prim(ip, &pf->m))) {
+                if ((p = object_to_prim(ip))) {
                     DROP_K(); // (*)
                     int ex;
                     fn = (pf_prim)p->fn;
@@ -325,7 +325,7 @@ void pf_nop(pf *pf) {}
 /* Since we have a non-rentrant interpreter with mutable state, this
    is a bit less problematic than the EX/SC case. */
 void pf_gc(pf *pf) {
-    pf->m.r.prim = object_to_prim(pf->ip_nop, EX);  // don't restart pf_gc() !
+    pf->m.r.prim = object_to_prim(pf->ip_nop);  // don't restart pf_gc() !
     gc_collect(GC); // does not return
 }
 void pf_gc_test(pf *pf) {
@@ -364,7 +364,7 @@ void pf_words(pf *pf) {
 void pf_interpret(pf *pf) {
     _ v = TOP;
     /* Perform linearly if possible. */
-    if (object_to_symbol(v, EX)) {
+    if (object_to_symbol(v)) {
         _ ob = FIND(pf->dict, v);
         if (FALSE == ob) {_DROP(); ERROR_UNDEFINED(v);}
         _TOP = ob;
@@ -436,7 +436,7 @@ void pf_to_nl(pf *pf) {
 
 
 static inline int is_nlcode(_ ob, ex* ex) {
-    return (object_to_prim(ob, ex) ||
+    return (object_to_prim(ob) ||
             object_to_quote(ob) ||
             object_to_seq(ob));
 }
@@ -723,7 +723,7 @@ static void _px_mark_roots(pf *pf, gc_finalize fin) {
 
 static _ _px_prim(pf* pf, pf_prim fn, _ name) {
     prim *p = malloc(sizeof(*p));
-    p->type = TYPES->prim_type;
+    p->type = prim_type();
     p->fn = fn;
     p->nargs = 0;
     p->var = name;
@@ -768,13 +768,13 @@ pf* _px_new(int argc, char **argv) {
                (gc_overflow)_ex_overflow);
     
     // Leaf types.
-    pf->m.p = malloc(sizeof(*(pf->m.p)));
+    // pf->m.p = malloc(sizeof(*(pf->m.p)));
     // TYPES->ck_type = ck_type();
-    TYPES->symbol_type = symbol_type();
-    TYPES->port_type = port_type();
-    TYPES->bytes_type = bytes_type();
-    TYPES->prim_type = (void*)0xF001; 
-    TYPES->rc_type = (void*)0xF002; 
+    // TYPES->symbol_type = symbol_type();
+    // TYPES->port_type = port_type();
+    // TYPES->bytes_type = bytes_type();
+    // TYPES->prim_type = (void*)0xF001; 
+    // TYPES->rc_type = (void*)0xF002; 
 
     // Read/Write delegate
     pf->m.write = (ex_m_write)px_write;

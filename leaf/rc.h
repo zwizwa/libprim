@@ -13,4 +13,9 @@ typedef struct {
     _ wrap;
 } rc;
 
+/* FIXME: turn this into a proper class object. */
+static inline void* rc_type(void) {
+    return (void*)0xF002; // dummy class
+}
+
 #endif

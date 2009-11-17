@@ -62,7 +62,7 @@ struct _ex {
     /* An extensible list of primitive data types.  During bootstrap
        and in the C code it is assumed to consist of only the base
        types. */
-    base_types *p;
+    // base_types *p;
 
     /* Printing: delegate + current port. */
     ex_m_write write;
@@ -74,9 +74,9 @@ struct _ex {
 
 };
 
-#define DEF_ATOM(name)                                                \
-    static inline name *object_to_##name(object ob, ex *m) {          \
-        return (name*)object_struct(ob,m->p->name##_type); }
+#define DEF_ATOM(name)                                         \
+    static inline name *object_to_##name(object ob) {          \
+        return (name*)object_struct(ob,name##_type()); }
 
 // permanent constant objects
 DEF_ATOM(prim)

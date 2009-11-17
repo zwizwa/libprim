@@ -57,7 +57,7 @@ _ px_error_underflow(pf *pf) {
 
 _ _px_make_rc(pf *pf, leaf_object *ob) {
     rc *rc = malloc(sizeof(*rc));
-    rc->type = TYPES->rc_type;
+    rc->type = rc_type();
     rc->free = (rc_free)(ob->methods->free);
     rc->ctx = ob;
     rc->rc = 1;
@@ -146,7 +146,7 @@ void _px_unlink(pf* pf, _ ob) {
     rc *x;
   again:
     /* RC objects: dec RC and possibly free */
-    if ((x = object_to_rc(ob, &pf->m))) {
+    if ((x = object_to_rc(ob))) {
         _rc_unlink(x);
     }
     /* Lists: recurse. */
@@ -160,7 +160,7 @@ void _px_unlink(pf* pf, _ ob) {
 /* Link will RC++ objects and recursively copy pair structures, using
    pairs from the freelist.. */
 _ _px_link(pf *pf, _ ob) {
-    rc *x = object_to_rc(ob, &pf->m);
+    rc *x = object_to_rc(ob);
     pair *p;
     if (x) { 
         x->rc++;
@@ -203,7 +203,7 @@ _ px_copy_to_graph(pf *pf, _ ob) {
     rc *x;
     pair *p;
     /* Wrap all RC objects in a LIN struct */
-    if ((x = object_to_rc(ob, &pf->m))) {
+    if ((x = object_to_rc(ob))) {
         x->rc++;
         return LIN(ob);
     }
@@ -255,7 +255,7 @@ _ px_copy_from_graph(pf *pf, _ ob) {
 
 
 port *_px_port(pf *pf) {
-    return object_to_port(pf->output, &pf->m);
+    return object_to_port(pf->output);
 }
 
 /* Code _printing_. tries to guess what form of quotation the object
@@ -278,7 +278,7 @@ _ px_write_name_or_quotation(pf *pf, _ ob) {
     if ((q = object_to_quote(ob))) {
         if ((object_to_seq(q->object)) ||
             (object_to_quote(q->object)) ||
-            (object_to_prim(q->object, EX))) {
+            (object_to_prim(q->object))) {
             return px_write(pf, q->object);
         } else {
             _ex_printf(EX, "'");
@@ -303,8 +303,8 @@ _ px_write(pf *pf, _ ob) {
     void *x;
     /* Ports and strings are RC wrapped in PF.  Pass them wrapped as
        const. */
-    if ((x = object_to_port(ob, EX)) ||
-        (x = object_to_bytes(ob, EX))) {
+    if ((x = object_to_port(ob)) ||
+        (x = object_to_bytes(ob))) {
         return _ex_write(EX, const_to_object(x));
     }
     else if ((x = object_to_box(ob))) {
@@ -343,7 +343,7 @@ _ px_write(pf *pf, _ ob) {
     }
     /* Primitive or quoted datum. */
     else if ((x = object_to_quote(ob)) ||
-             (x = object_to_prim(ob, EX))) {
+             (x = object_to_prim(ob))) {
         quote *q = (quote*)x;
         /* Print it as a singleton. */
         _ex_printf(EX, CL);

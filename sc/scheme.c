@@ -166,7 +166,7 @@ _ sc_bang_set_toplevel_macro(sc *sc, _ val) { _GLOBAL_SET(toplevel_macro, val); 
 _ sc_bang_def_global(sc* sc, _ slot, _ var, _ val) {
     symbol *s;
     _ env = sc_global(sc, slot);
-    if (!(s=object_to_symbol(var, &sc->m))) TYPE_ERROR(var);
+    if (!(s=object_to_symbol(var))) TYPE_ERROR(var);
     // _ex_printf(EX, "DEF %s: \n",s->name); // sc_write(EX, val);
     sc_bang_set_global(sc, slot, ENV_DEF(env, var, val));
     return VOID;
@@ -260,12 +260,12 @@ _ sc_print_error(sc *sc, _ err) {
         error *e = object_to_error(err);
         _ex_printf(EX, "ERROR");
         if (TRUE == IS_PRIM(e->prim)) {
-            prim *p = object_to_prim(e->prim, &sc->m);
+            prim *p = object_to_prim(e->prim);
             /* If the recorded primitive is sc_print_error itself,
                this means the error is a result of a direct
                invocation, i.e. a highlevel error. */
             if (SYMBOL("raise-error") != p->var) { 
-                symbol *s = object_to_symbol(p->var, &sc->m);
+                symbol *s = object_to_symbol(p->var);
                 if (s) _ex_printf(EX, " in `%s'", s->name); 
             }
         }
@@ -508,7 +508,7 @@ _ _sc_step_value(sc *sc, _ v, _ k) {
 
             /* Application of primitive function results in C call. */
             if (TRUE==IS_PRIM(fn)) {
-                prim *p = object_to_prim(fn,&sc->m);
+                prim *p = object_to_prim(fn);
                 sc->m.r.prim = p; // for debug
                 if (prim_nargs(p) != (n-1)) {
                     return ERROR("nargs", fn);
@@ -967,7 +967,7 @@ static void _sc_mark_roots(sc *sc, gc_finalize fin) {
 }
 static _ _sc_make_prim(sc *sc, void *fn, long nargs, _ var) {
     prim *p = malloc(sizeof(*p));
-    p->type = TYPES->prim_type;
+    p->type = prim_type();
     p->fn = fn;
     p->nargs = nargs;
     p->var = var;
@@ -996,7 +996,7 @@ sc *_sc_new(int argc, char **argv) {
     SHIFT(1); // skip program name
     while ((argc > 0) && ('-' == argv[0][0])) {
         if (!strcmp("--boot", argv[0])) { bootfile = argv[1]; SHIFT(2); }
-        else if (!strcmp("--verbose", argv[0])) { SHIFT(1); verbose = 1; break; }
+        else if (!strcmp("--verbose", argv[0])) { SHIFT(1); verbose = 1; }
         else if (!strcmp("--", argv[0])) { SHIFT(1); break; }
         else {
             fprintf(stderr, "option `%s' not recognized\n", argv[0]);
@@ -1011,14 +1011,14 @@ sc *_sc_new(int argc, char **argv) {
                     
     /* Atom classes. */
     base_types *types = NULL; // FIXME: configurable subclass?
-    if (!types) types = malloc(sizeof(*(sc->m.p)));
-    sc->m.p = types;
+    // if (!types) types = malloc(sizeof(*(sc->m.p)));
+    // sc->m.p = types;
     // TYPES->ck_type = ck_type();
-    TYPES->symbol_type = symbol_type();
-    TYPES->prim_type = (void*)0xF001; // dummy class
-    TYPES->port_type = port_type();
-    TYPES->bytes_type = bytes_type();
-    TYPES->inexact_type = inexact_type();
+    // TYPES->symbol_type = symbol_type();
+    // TYPES->prim_type = (void*)0xF001; // dummy class
+    // TYPES->port_type = port_type();
+    // TYPES->bytes_type = bytes_type();
+    // TYPES->inexact_type = inexact_type();
 
     /* EX virtual methods */
     sc->m.port = (_ex_m_port)_sc_port;

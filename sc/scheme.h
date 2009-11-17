@@ -196,9 +196,18 @@ static inline void *object_aref_struct(object ob, ex *m, void *type) {
     else return NULL;
 }
 
-#define DEF_AREF_TYPE(name)                                            \
+#define _DEF_AREF_TYPE(name)                                            \
     static inline name *object_to_##name(object ob, ex *m) {          \
         return (name*)object_aref_struct(ob,m,m->p->name##_type); }
+
+/* Instead of storing the class object in the ex struct (see
+   DEF_AREF_TYPE and ex's base_types member), it's also possible to
+   store it in a global variable.  Here we use a _c postfix naming
+   convention. */
+
+#define DEF_AREF_TYPE(name) \
+    static inline name *object_to_##name(object ob, ex *m) { \
+        return (name*)object_aref_struct(ob,m,name##_type()); }
 
 
 // GC finalized objects

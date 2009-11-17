@@ -65,8 +65,8 @@ static inline void _px_need_free(pf *pf) {
 /* Constant types are embedded in GC_CONST pointers, and can be
    identified by their first field (void*). */
 DEF_ATOM(rc)
-static inline void *object_rc_struct(object ob, ex *m, void *type) {
-    rc *x = object_to_rc(ob, m);
+static inline void *object_rc_struct(object ob, void *type) {
+    rc *x = object_to_rc(ob);
     if (!x) return NULL;
     void *x_type = *((void**)x->ctx);
     if (x_type != type) return NULL;
@@ -75,8 +75,8 @@ static inline void *object_rc_struct(object ob, ex *m, void *type) {
 
 /* RC types are const types wrapped in a RC struct. */
 #define DEF_RC_TYPE(name)                                              \
-    static inline name *object_to_##name(object ob, ex *m) {          \
-        return (name*)object_rc_struct(ob,m,m->p->name##_type); }
+    static inline name *object_to_##name(object ob) {                  \
+        return (name*)object_rc_struct(ob,name##_type()); }
 
 DEF_RC_TYPE(port)
 DEF_RC_TYPE(bytes)

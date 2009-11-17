@@ -113,17 +113,17 @@ object _ex_write(ex *ex, object o) {
         }
     }
     /* Opaque leaf types */
-    if ((x = object_struct(o, ex->p->symbol_type))) {
+    if ((x = object_struct(o, symbol_type()))) {
         symbol *s = (symbol*)x;
         port_printf(p, "%s", s->name);
         return VOID;
     }
-    if ((x = object_struct(o, ex->p->prim_type))) {
+    if ((x = object_struct(o, prim_type()))) {
         prim *pr = (prim*)x;
         port_printf(p, "#prim<%p:%ld>", (void*)(pr->fn),pr->nargs);
         return VOID;
     }
-    if ((x = object_struct(o, ex->p->port_type))) {
+    if ((x = object_struct(o, port_type()))) {
         port *prt = (port*)x;
         if (prt->name) {
             port_printf(p, "#port<%s>", prt->name);
@@ -133,12 +133,12 @@ object _ex_write(ex *ex, object o) {
         }
         return VOID;
     }
-    if ((x = object_struct(o, ex->p->bytes_type))) {
+    if ((x = object_struct(o, bytes_type()))) {
         bytes *b = (bytes *)x;
         bytes_write_string(b, p);
         return VOID;
     }
-    if ((x = object_struct(o, ex->p->rc_type))) {
+    if ((x = object_struct(o, rc_type()))) {
         rc *r = (rc*)x;
         port_printf(p, "#rc:");
         ex->write(ex, const_to_object(r->ctx));  // foefelare
@@ -272,7 +272,7 @@ _ ex_is_zero(ex *ex, _ o) {
 }
 
 #define OBJECT_PREDICATE(cast) \
-    {if (cast(o, ex)) return TRUE; else return FALSE;}
+    {if (cast(o)) return TRUE; else return FALSE;}
 _ ex_is_symbol(ex *ex, _ o) { OBJECT_PREDICATE(object_to_symbol); }
 _ ex_is_prim(ex *ex, _ o)   { OBJECT_PREDICATE(object_to_prim); }
 
