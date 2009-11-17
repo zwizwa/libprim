@@ -157,7 +157,7 @@ int grid_dump(grid *g, port *p) {
     for (j = 0; j<jmax; j++) {
         len += port_printf(p, "\n |");
         for(i = 0; i<g->dim[0]; i++) {
-            len += port_printf(p, " %f", *a++);
+            len += port_printf(p, " %+f", *a++);
         }
     }
     len += port_printf(p, " >");

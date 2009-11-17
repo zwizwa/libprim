@@ -9,7 +9,7 @@
 
 
 (define (svd A)
-  (let ((dims (grid-dims H)))
+  (let ((dims (grid-dims A)))
     (let ((N (vector-ref dims 0))
           (M (vector-ref dims 1)))
       (let ((U (grid-copy A))
@@ -35,12 +35,11 @@
     
 
 ;; TEST
-(define H (grid-hankel (vector->grid-1 #(1 2 3 4 5 6 7)) 3))
-(define d (svd H))
+;(define H (grid-hankel (vector->grid-1 #(1 2 3 4 5 6 7)) 3))
+;(define d (svd H))
+;(define A (make-grid-2 2 2 1.1))
+;(define x (make-grid-1 2 1.0))
 
-
-(define A (make-grid-2 2 2 1.1))
-(define x (make-grid-1 2 1.0))
 (define (ar-unfold A x len)
   (let* ((N (grid-dim A 0))
          (out (make-grid-2 N len 0.0)))
@@ -55,6 +54,7 @@
 ;; Abbrev
 (define mat list->grid-2)
 (define vec list->grid-1)
+(define hankel grid-hankel)
 
 
 (define (phasor angle)
@@ -63,3 +63,26 @@
          (s- (fmul -1.0 s)))
     (mat `((,c  ,s)
            (,s- ,c)))))
+
+(define (wave angle n)
+  (grid-column
+   (ar-unfold (phasor angle) (vec '(1 0)) n) 0))
+
+(define pi (fmul 4.0 (fatan 1.0)))
+
+(define (ar-poly signal order)
+  (let* ((h (hankel signal (+ 1 order)))
+         (d (svd h))     ;; decompose hankel matrix
+         (v (caddr d)))  ;; right singular vectors
+
+    ;; Get the right singular vector corresponding to the smallest
+    ;; singular value.  If this is zero, the model solves exactly and
+    ;; the last vector is the LP model polynomial.
+
+    (grid-column v order)))
+
+    
+    
+  
+
+(define d (svd (hankel (wave (fmul .5 pi) 20) 3)))

@@ -206,7 +206,7 @@ _ sc_grid_dims(sc *sc, _ obg) {
     grid *g = CAST(grid, obg);
     vector *v = gc_alloc(EX->gc, g->rank);
     int i;
-    for (i=0; i<grid_total(g); i++) {
+    for (i=0; i<g->rank; i++) {
         v->slot[i] = NUMBER(g->dim[i]);
     }
     return vector_to_object(v);
@@ -300,3 +300,19 @@ _ sc_grid_unfold(sc *sc, _ A, _ x, _ out) {
     return VOID;
 }
 
+_ sc_grid_column(sc *sc, _ ob_A, _ ob_offset) {
+    grid *A = CAST(grid, ob_A);
+    int offset = CAST_INTEGER(ob_offset);
+    if (A->rank != 2) ERROR("rank", ob_A);
+    int stride = A->dim[0];
+    int len = A->dim[1];
+    if ((offset < 0) || (offset >= stride)) ERROR("offset", ob_offset);
+    grid *c = grid_new_1(len, 0.0);
+    int i;
+    grid_atom *a = A->buf + offset;
+    for(i=0; i<len; i++) {
+        c->buf[i] = *a;
+        a += stride;
+    }
+    return _sc_make_aref(sc, c);
+}
