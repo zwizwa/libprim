@@ -5536,47 +5536,6 @@ GSL easier.
 
 
 
-Entry: HSVD
-Date: Mon Nov 16 14:34:17 CET 2009
-
-A summary of [1].
-
-CHAPTER 2
-
-Explains basic principles of Linear Prediction (LP) and State Space
-(SS) based methods for parameter estimation.
-
-The flow of HSVD is like this:
-
-1. start with a signal of length N
-2. create a hankel matrix (N-q x q)             -> choose q
-3. compute SVD
-4. truncate: take first n singular vectors      -> choose n
-5. LS solve shift equation
-6. compute eigenvectors
-
-The two values to be chosen are n (signal space dimension) and q
-(signal + noise space dimension).  The n parameter follows from what
-one is looking for, but how to determine q?
-
-Translating LP to an AR problem shifts the statistics but makes it
-easier to estimate using LS.
-
-The essence seems to be this: trunctation by SVD is essentially noise
-reduction.  This then makes the LS or TLS-based estimation for LP and
-SS approaches more precise.  However, the statistically optimal (ML)
-estimates require nonlinear optimization.
-
-In general SS methods are better for larger number of poles since they
-obtain poles from an eigenvalue decomposition instead of polynomial
-rooting, which is ill-conditioned for large order.
-
-
-
-
-[1] ftp://ftp.esat.kuleuven.ac.be/pub/SISTA/vanhamme/phd.ps
-
-
 
 Entry: fixes
 Date: Mon Nov 16 16:56:26 CET 2009
@@ -5610,5 +5569,11 @@ given a pool of objects, record all operations that go between.
 
 Maybe starting with a generic prototype would help?  Return int for
 errors + only operate on leaf objects.
+
+
+Entry: global _type() access
+Date: Tue Nov 17 07:36:37 CET 2009
+
+Removed "cached" type references from ex struct.
 
 
