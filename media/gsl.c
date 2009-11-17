@@ -1,5 +1,8 @@
 #include <media/gsl.h>
 
+/* NOTES: the MV and MM operations _ACCUMULATE_ */
+
+
 static inline void gsl_vector_from_grid(gsl_vector *v, grid *g) {
     v->size   = g->dim[0];
     v->stride = 1;
@@ -59,3 +62,54 @@ int grid_blas_dgemv(int transA, double alpha, grid *gA, grid *gx, double beta, g
 }
 
 
+/* Simulate a state-space model, record its output. 
+
+   [ x+ ]    [ A | B ] [ x ]
+   [----]  = [---+---] [---]
+   [ y  ]    [ C | D ] [ u ]
+
+*/
+
+#define MUL_MV(A,x,y) gsl_blas_dgemv(transA ? CblasTrans : CblasNoTrans, 1.0, A, x, 1.0, y);
+
+int grid_simulate(grid *gU, grid *gS, grid *gin, grid *gout) {
+    if (!((gU->rank = 2) &&
+          (gS->rank = 1) &&
+          (gin->rank = 2) &&
+          (gout->rank = 2) &&
+          (gin->dim[1] != gout->dim[1]))) return -1;
+
+    MATRIX(U, gU);
+    VECTOR(S, gS);
+    MATRIX(in, gin);
+    MTARIX(out, gout);
+
+    // dims
+    int N = gS->dim[0];   // state space
+    int I = gin->dim[0];  // input
+    int O = gout->dim[0]; // output
+
+    int T = gin->dim[1];  // nb of iterations
+
+    if (!((N+I == gS->dim[1]) &&
+          (N+O == gS->dim[0]))) return -1;
+
+    int s = gU->dim[0];   // U stride
+
+    // create 4 component views of S
+    gsl_matrix_view A = gsl_matrix_submatrix(S, 0,0, N,N);
+    gsl_matrix_view B = gsl_matrix_submatrix(S, 0,N, I,N);
+    gsl_matrix_view C = gsl_matrix_submatrix(S, N,0, O,N);
+    gsl_matrix_view D = gsl_matrix_submatrix(S, N,N, O,I);
+
+    // create component views of IO
+    gsl_vector vin  = {I,1,gin->buf,NULL,0};
+    gsl_vector vout = {O,1,gout->buf,NULL,0};
+    
+    int i;
+    for (i=0; i<T; T++) {
+        MUL_MM(
+        MUL_MM(A.matrix,S,S); // state update
+        gsl_blas_dgemv(ClbasNoTrans, 1.0, &A, &x
+    }
+}
