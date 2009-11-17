@@ -26,6 +26,11 @@
     (grid-svd-solve U V S b x)
     x))
 
+(define (mul-mv A x)
+  (let ((y (make-grid-1 (vector-ref (grid-dims A) 1) 0.0)))
+    (grid-mul-mv A x y) y))
+    
+
 ;; TEST
 (define H (grid-hankel (vector->grid #(1 2 3 4 5 6 7)) 3))
 (define d (svd H))

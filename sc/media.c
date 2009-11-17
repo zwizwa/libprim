@@ -204,7 +204,7 @@ _ sc_bang_grid_set(sc *sc, _ obg, _ obi, _ obv) {
 }
 _ sc_grid_dims(sc *sc, _ obg) {
     grid *g = CAST(grid, obg);
-    vector *v = gc_alloc(EX->gc, grid_total(g));
+    vector *v = gc_alloc(EX->gc, g->rank);
     int i;
     for (i=0; i<grid_total(g); i++) {
         v->slot[i] = NUMBER(g->dim[i]);
@@ -254,4 +254,12 @@ _ sc_grid_hankel(sc *sc, _ ob_sig, _ ob_cols) {
         }
     }
     return rv;
+}
+
+
+_ sc_grid_mul_mv(sc *sc, _ A, _ x, _ y) {
+    if (grid_blas_dgemv(0, 1.0, CAST(grid, A), CAST(grid, x), 1.0, CAST(grid, y))) {
+        ERROR("arg", CONS(A, CONS(x, CONS(y, NIL))));
+    }
+    return VOID;
 }

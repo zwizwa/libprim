@@ -145,9 +145,10 @@ grid_proc *grid_proc_new(void *fn, int argc) {
 }
 
 int grid_dump(grid *g, port *p) {
-    int len = 0, i,j;
+    int len = 0, i,j,d;
     grid_atom *a = g->buf;
-    len += port_printf(p, "\n#<grid:%d", g->rank);
+    len += port_printf(p, "\n#<grid:%d", g->dim[0]);
+    for (d = 1; d<g->rank; d++) len+= port_printf(p, "x%d", g->dim[d]);
 
     // FIXME: only print vector + matrix (for other: first matrix plane)
     int jmax = 1;
