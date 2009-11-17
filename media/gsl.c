@@ -28,3 +28,12 @@ int grid_linalg_SV_decomp(grid *gA, grid *gV, grid *gS, grid *gwork) {
     VECTOR(work, gwork);
     return gsl_linalg_SV_decomp(&A, &V, &S, &work);
 }
+
+int grid_linalg_SV_solve(grid *gU, grid *gV, grid *gS, grid *gb, grid *gx) {
+    MATRIX(U, gU);
+    MATRIX(V, gV);
+    VECTOR(S, gS);
+    VECTOR(b, gb);
+    VECTOR(x, gx);
+    return gsl_linalg_SV_solve(&U, &V, &S, &b, &x);
+}

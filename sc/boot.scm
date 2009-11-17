@@ -65,7 +65,8 @@
           (list 'quote (cadr form))
           (caddr form))))
 
-(define apply (lambda (fn args) (letcc k ((apply-ktx k fn args)))))
+(define apply1 (lambda (fn args) (letcc k ((apply-ktx k fn args)))))
+(define apply apply1)
 
 
 (define mapn
@@ -531,6 +532,16 @@
                  (if bv (,body bv) ,(rest)))))
            (else
             `(if ,guard ,body ,(rest))))))))
+
+(define (improper lst)
+  (let rec ((lst lst))
+    (if (null? (cdr lst))
+        (car lst)
+        (cons (car lst) (rec (cdr lst))))))
+                               
+(define (apply fn . args)
+  (apply1 fn (improper args)))
+        
 
 
 ;(let ((x (read (open-input-file "boot.scm"))))

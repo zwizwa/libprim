@@ -19,8 +19,16 @@
         (grid-svd U V S work)
         (list U S V)))))
 
+(define (svd-solve b U S V)
+  (let* ((dims (grid-dims U))
+         (N (vector-ref dims 0))
+         (x (make-grid-1 N 0.0)))
+    (grid-svd-solve U V S b x)
+    x))
 
 ;; TEST
 (define H (grid-hankel (vector->grid #(1 2 3 4 5 6 7)) 3))
+(define d (svd H))
 
-;; (svd H)
+
+

@@ -251,6 +251,8 @@ static inline void *object_to_struct(object ob, long tag) {
 #define _CADDR(o) _CAR(_CDDR(o))
 #define _CDDDR(o) _CDR(_CDDR(o))
 #define _CADDDR(o) _CAR(_CDDDR(o))
+#define _CDDDDR(o) _CDR(_CDDDR(o))
+#define _CADDDDR(o) _CAR(_CDDDDR(o))
 
 DEF_STRUCT(pair,   TAG_PAIR)
 DEF_STRUCT(lpair,  TAG_LPAIR)
