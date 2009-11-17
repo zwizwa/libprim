@@ -1,7 +1,17 @@
+/* (c) 2002-2009 Tom Schouten
+
+   Part of this file is adapted from PacketForth which is licenced
+   under the GPL.  However, this file is part of core libprim and
+   licenced under the LGPL. */
+
+
+
 #include <stdlib.h>
 #include <string.h>
 #include "port.h"
 #include <leaf/bytes.h>
+
+
 
 /* FILE ports */
 int port_file_vprintf(port *p, const char *fmt, va_list ap) {
@@ -369,4 +379,44 @@ int fd_accept(int server_fd) {
 	ERROR("can't accept connection: %s", strerror(errno));
     }
     return fd_con;
+}
+
+
+/* Open a uni-directional connection to an inferior process. 
+
+   RV = fd, 
+
+   connect_fd = 0 -> our side writes
+   connect_fd = 1 -> our side reads
+
+*/
+
+int fd_pipe(char **argv, int *_pid, int connect_fd) {
+
+    int fd[2];
+    pipe(fd);
+    int pid = fork();
+    
+    /* CHILD */
+    if (!pid){
+
+	close(connect_fd);    // connect input (sink==1) or output (sink==0)
+	dup(fd[connect_fd]);
+
+	close(fd[0]);       // don't need these
+	close(fd[1]); 
+
+	// try to execute child
+	if (-1 == execvp(argv[0], argv)){
+	    perror ("can't execute inferior process");
+	    exit(1);
+	}
+    }
+
+    /* PARENT */
+    int filedes = fd[connect_fd ^ 1];
+    close(fd[connect_fd]);
+    if (_pid) *_pid = pid;
+
+    return filedes;
 }

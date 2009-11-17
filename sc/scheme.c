@@ -355,6 +355,27 @@ _ sc_tcp_accept(sc *sc, _ ob) {
                 _sc_make_aref(sc, port_file_new(fdopen(connection_fd, "w"), "O:tcp-accept")));
 }
 
+
+/* Processes */
+
+_ _sc_open_process(sc *sc, _ args, char *cmode, int child_fd) {
+    vector *v = CAST(vector, args);
+    int argc = vector_size(v);
+    char *argv[argc+1];
+    int i,pid;
+    for (i=0; i<argc; i++) {
+        argv[i] = CAST(cstring, v->slot[i]);
+    }
+    argv[argc] = NULL;
+    int fd = fd_pipe(argv, &pid, child_fd);
+    return _sc_make_aref(sc, port_file_new(fdopen(fd, cmode), argv[0]));
+
+}
+
+_ sc_open_output_process(sc *sc, _ args) { return _sc_open_process(sc, args, "w", 0); }
+_ sc_open_input_process(sc *sc, _ args) { return _sc_open_process(sc, args, "r", 1); }
+
+
 // Manually call finalizer, creating a defunct object.
 _ sc_bang_finalize(sc *sc, _ ob) {
     aref *r = CAST(aref, ob);

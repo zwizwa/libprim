@@ -71,5 +71,6 @@ int fd_socket(const char *sockname,  // hostname | filesystem node
 
 int fd_accept(int fd);
 
+int fd_pipe(char **argv, int *pid, int connect_fd);
 
 #endif
