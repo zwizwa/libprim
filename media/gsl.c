@@ -70,46 +70,74 @@ int grid_blas_dgemv(int transA, double alpha, grid *gA, grid *gx, double beta, g
 
 */
 
-#define MUL_MV(A,x,y) gsl_blas_dgemv(transA ? CblasTrans : CblasNoTrans, 1.0, A, x, 1.0, y);
+#define MUL_MM(A,B,C,b) \
+    gsl_blas_dgemm(CblasNoTrans, CblasNoTrans, 1.0, A, B, b, C)
 
-int grid_simulate(grid *gU, grid *gS, grid *gin, grid *gout) {
-    if (!((gU->rank = 2) &&
-          (gS->rank = 1) &&
-          (gin->rank = 2) &&
-          (gout->rank = 2) &&
-          (gin->dim[1] != gout->dim[1]))) return -1;
+#define MUL_MV(A,x,y,b) \
+    gsl_blas_dgemm(CblasNoTrans, 1.0, A, x, b, y)
 
-    MATRIX(U, gU);
-    VECTOR(S, gS);
-    MATRIX(in, gin);
-    MTARIX(out, gout);
+/* int grid_simulate(grid *gU, grid *gS, grid *gin, grid *gout) { */
+/*     if (!((gU->rank = 2) && */
+/*           (gS->rank = 1) && */
+/*           (gin->rank = 2) && */
+/*           (gout->rank = 2) && */
+/*           (gin->dim[1] != gout->dim[1]))) return -1; */
 
-    // dims
-    int N = gS->dim[0];   // state space
-    int I = gin->dim[0];  // input
-    int O = gout->dim[0]; // output
+/*     MATRIX(U, gU); */
+/*     VECTOR(S, gS); */
+/*     MATRIX(in, gin); */
+/*     MTARIX(out, gout); */
 
-    int T = gin->dim[1];  // nb of iterations
+/*     // dims */
+/*     int N = gS->dim[0];   // state space */
+/*     int I = gin->dim[0];  // input */
+/*     int O = gout->dim[0]; // output */
 
-    if (!((N+I == gS->dim[1]) &&
-          (N+O == gS->dim[0]))) return -1;
+/*     int T = gin->dim[1];  // nb of iterations */
 
-    int s = gU->dim[0];   // U stride
+/*     if (!((N+I == gS->dim[1]) && */
+/*           (N+O == gS->dim[0]))) return -1; */
 
-    // create 4 component views of S
-    gsl_matrix_view A = gsl_matrix_submatrix(S, 0,0, N,N);
-    gsl_matrix_view B = gsl_matrix_submatrix(S, 0,N, I,N);
-    gsl_matrix_view C = gsl_matrix_submatrix(S, N,0, O,N);
-    gsl_matrix_view D = gsl_matrix_submatrix(S, N,N, O,I);
+/*     int s = gU->dim[0];   // U stride */
 
-    // create component views of IO
-    gsl_vector vin  = {I,1,gin->buf,NULL,0};
-    gsl_vector vout = {O,1,gout->buf,NULL,0};
+/*     // create 4 component views of S */
+/*     gsl_matrix_view A = gsl_matrix_submatrix(S, 0,0, N,N); */
+/*     gsl_matrix_view B = gsl_matrix_submatrix(S, 0,N, I,N); */
+/*     gsl_matrix_view C = gsl_matrix_submatrix(S, N,0, O,N); */
+/*     gsl_matrix_view D = gsl_matrix_submatrix(S, N,N, O,I); */
+
+/*     // create component views of IO */
+/*     gsl_vector vin  = {I,1,gin->buf,NULL,0}; */
+/*     gsl_vector vout = {O,1,gout->buf,NULL,0}; */
     
-    int i;
-    for (i=0; i<T; T++) {
-        MUL_MM(
-        MUL_MM(A.matrix,S,S); // state update
-        gsl_blas_dgemv(ClbasNoTrans, 1.0, &A, &x
+/*     int i; */
+/*     for (i=0; i<T; T++) { */
+/*         MUL_MV(A.matrix,S,S,0.0);  // state update */
+/*         MUL_MV(A.matrix,S,S,0.0);  // state update */
+/*     } */
+/* } */
+
+
+int grid_unfold(grid *gA, grid *gx, grid *gout) {
+    MATRIX(A, gA);
+    int N = gA->dim[0];
+    if (!((gA->rank == 2) &&
+          (gout->rank == 2) &&
+          (N == gA->dim[1]) &&
+          (N == gout->dim[0]))) return -1;
+    int t,T = gout->dim[1];
+
+    gsl_vector vin  = {N, 1, gx->buf, NULL, 0};
+    gsl_vector vout = {N, 1, gout->buf, NULL, 0};
+
+    gsl_blas_dgemv(CblasNoTrans, 1.0, &A, &vin, 0.0, &vout);
+    vin.data = vout.data;
+    vout.data += N;
+
+    for (t=1; t<T; t++) {
+        gsl_blas_dgemv(CblasNoTrans, 1.0, &A, &vin, 0.0, &vout);
+        vin.data += N;
+        vout.data += N;
     }
+    return 0;
 }

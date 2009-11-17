@@ -36,4 +36,9 @@
 (define d (svd H))
 
 
+(define A (make-grid-2 2 2 1.1))
+(define x (make-grid-1 2 1.0))
+(define (test A x)
+  (let ((out (make-grid-2 2 10 0.0)))
+    (grid-unfold A x out) out))
 

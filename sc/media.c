@@ -263,3 +263,16 @@ _ sc_grid_mul_mv(sc *sc, _ A, _ x, _ y) {
     }
     return VOID;
 }
+
+
+/*  Matrix unfold (for generating system output). */
+
+
+
+_ sc_grid_unfold(sc *sc, _ A, _ x, _ out) {
+    if (grid_unfold(CAST(grid, A), CAST(grid, x), CAST(grid, out))) {
+        ERROR("arg", CONS(A, CONS(x, CONS(out, NIL))));
+    }
+    return VOID;
+}
+

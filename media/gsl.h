@@ -18,5 +18,6 @@ int grid_linalg_SV_decomp(grid *A, grid *V, grid *S, grid *work);
 int grid_linalg_SV_solve(grid *gU, grid *gV, grid *gS, grid *gb, grid *gx);
 
 int grid_blas_dgemv(int transA, double alpha, grid *gA, grid *gx, double beta, grid *gy);
+int grid_unfold(grid *gA, grid *gx, grid *gout);
 
 #endif
