@@ -8,14 +8,14 @@ static void grid_free(grid *x){
     free(x->buf);
     free(x);
 }
-#define FOR_DIM(i) for(i=0; i<GRID_MAX_DIMS; i++)
+#define FOR_DIM(i,x) for(i=0; i<x->rank; i++)
 static int grid_write(grid *x, port *p) {
 #if 1
     return grid_dump(x, p);
 #else
     int i, len = 0;
     len += port_printf(p, "#<grid");
-    FOR_DIM(i) len += port_printf(p, ":%d", x->dim[i]);
+    FOR_DIM(i,x) len += port_printf(p, ":%d", x->dim[i]);
     len += port_printf(p, ">");
     return len;
 #endif
@@ -25,16 +25,13 @@ static int grid_write(grid *x, port *p) {
 
 LEAF_SIMPLE_TYPE(grid)
 
-int grid_total(grid *g) {
-    int i, total = 1;
-    FOR_DIM(i) total *= g->dim[i];
-    return total;
-}
-static grid *grid_proto(void) {
-    grid *x = calloc(1, sizeof(*x));
+static grid *grid_proto(int rank) {
+    grid *x = malloc(sizeof(*x) + (rank * sizeof(int*)));
     x->type = grid_type();
+    x->rank = rank;
+    x->buf = NULL;
     int i;
-    FOR_DIM(i) x->dim[i] = 1;
+    FOR_DIM(i,x) x->dim[i] = 1;
     return x;
 }
 static void grid_alloc(grid *x, grid_atom init) {
@@ -44,25 +41,31 @@ static void grid_alloc(grid *x, grid_atom init) {
 }
 
 
+int grid_total(grid *g) {
+    int i, total = 1;
+    FOR_DIM(i,g) total *= g->dim[i];
+    return total;
+}
 
 grid *grid_new_1(int length, grid_atom init) {
     if (length < 1) return NULL;
-    grid *x = grid_proto();
+    grid *x = grid_proto(1);
     x->dim[0] = length;
     grid_alloc(x, init);
     return x;
 }
 grid *grid_new_2(int d0, int d1, grid_atom init) {
     if ((d0 < 1) || (d1 < 1)) return NULL;
-    grid *x = grid_proto();
+    grid *x = grid_proto(2);
     x->dim[0] = d0;
     x->dim[1] = d1;
     grid_alloc(x, init);
     return x;
 }
 grid *grid_copy(grid *template) {
-    grid *x = malloc(sizeof(*x));
-    memcpy(x, template, sizeof(*x));
+    grid *x = grid_proto(template->rank);
+    int i;
+    FOR_DIM(i,x) x->dim[i] = template->dim[i];
     int nb = grid_total(template) * sizeof(grid_atom);
     x->buf = malloc(nb);
     memcpy(x->buf, template->buf, nb);
@@ -141,12 +144,16 @@ grid_proc *grid_proc_new(void *fn, int argc) {
     return x;
 }
 
-// dump the first matrix plane
 int grid_dump(grid *g, port *p) {
     int len = 0, i,j;
     grid_atom *a = g->buf;
-    len += port_printf(p, "\n#<grid");
-    for (j = 0; j<g->dim[1]; j++) {
+    len += port_printf(p, "\n#<grid:%d", g->rank);
+
+    // FIXME: only print vector + matrix (for other: first matrix plane)
+    int jmax = 1;
+    if (g->rank > 1) jmax = g->dim[1];
+
+    for (j = 0; j<jmax; j++) {
         len += port_printf(p, "\n |");
         for(i = 0; i<g->dim[0]; i++) {
             len += port_printf(p, " %f", *a++);

@@ -204,9 +204,9 @@ _ sc_bang_grid_set(sc *sc, _ obg, _ obi, _ obv) {
 }
 _ sc_grid_dims(sc *sc, _ obg) {
     grid *g = CAST(grid, obg);
-    vector *v = gc_alloc(EX->gc, GRID_MAX_DIMS);
+    vector *v = gc_alloc(EX->gc, grid_total(g));
     int i;
-    for (i=0; i<GRID_MAX_DIMS; i++) {
+    for (i=0; i<grid_total(g); i++) {
         v->slot[i] = NUMBER(g->dim[i]);
     }
     return vector_to_object(v);

@@ -12,12 +12,11 @@ typedef struct {
     leaf_class super;
 } grid_class;
 
-#define GRID_MAX_DIMS 4
-
 typedef struct {
     grid_class *type;
-    int dim[GRID_MAX_DIMS];
     grid_atom *buf;
+    int rank;    // tensor rank
+    int dim[0];  // dimensionality of each index
 } grid;
 
 
@@ -26,15 +25,13 @@ typedef struct {
     leaf_class super;
 } grid_proc_class;
 
-#define MAX_DIMS 4
-
 typedef struct {
     grid_proc_class *type;
     void *fn;
     int argc;
 } grid_proc;
 
-
+int grid_total(grid *x);
 
 
 grid_class *grid_type(void);
@@ -49,7 +46,6 @@ int grid_for_each(grid_proc *p, int argc, grid **argv);
 
 int grid_dump(grid *g, port *p);
 
-int grid_total(grid *g);
 
 
 
