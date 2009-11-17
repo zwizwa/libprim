@@ -26,21 +26,40 @@
     (grid-svd-solve U V S b x)
     x))
 
+(define (grid-dim g n)
+  (vector-ref (grid-dims g) n))
+
 (define (mul-mv A x)
   (let ((y (make-grid-1 (vector-ref (grid-dims A) 1) 0.0)))
     (grid-mul-mv A x y) y))
     
 
 ;; TEST
-(define H (grid-hankel (vector->grid #(1 2 3 4 5 6 7)) 3))
+(define H (grid-hankel (vector->grid-1 #(1 2 3 4 5 6 7)) 3))
 (define d (svd H))
 
 
 (define A (make-grid-2 2 2 1.1))
 (define x (make-grid-1 2 1.0))
-(define (test A x)
-  (let ((out (make-grid-2 2 10 0.0)))
+(define (ar-unfold A x len)
+  (let* ((N (grid-dim A 0))
+         (out (make-grid-2 N len 0.0)))
     (grid-unfold A x out) out))
 
+(define (list->grid-2 ll)
+  (vector->grid-2
+   (list->vector (map list->vector ll))))
+(define (list->grid-1 l)
+  (vector->grid-1 (list->vector l)))
+
+;; Abbrev
+(define mat list->grid-2)
+(define vec list->grid-1)
 
 
+(define (phasor angle)
+  (let* ((c (fcos angle))
+         (s (fsin angle))
+         (s- (fmul -1.0 s)))
+    (mat `((,c  ,s)
+           (,s- ,c)))))
