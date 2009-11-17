@@ -5577,3 +5577,8 @@ Date: Tue Nov 17 07:36:37 CET 2009
 Removed "cached" type references from ex struct.
 
 
+Entry: TODO: fix generic functions for numbers
+Date: Tue Nov 17 13:58:11 CET 2009
+
+Mix fixnums and flonums + prepare for full numeric tower.
+

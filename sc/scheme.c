@@ -382,8 +382,6 @@ _ sc_system(sc *sc, _ ob) {
 }
 
 
-/* Inexact operations: wrapping is different for SC and PF so defined specialized here. */
-
 #define IBINOP(name) {\
     inexact *ia = CAST(inexact, a); \
     inexact *ib = CAST(inexact, b); \

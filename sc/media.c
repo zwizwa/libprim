@@ -224,7 +224,7 @@ _ sc_grid_svd_solve(sc *sc, _ U, _ V, _ S, _ b, _ x) {
     return VOID;
 }
 
-_ sc_vector_to_grid(sc *sc, _ vec) {
+_ sc_vector_to_grid_1(sc *sc, _ vec) {
     vector *v = CAST(vector, vec);
     int i, len = vector_size(v);
     if (len < 1) return ERROR("invalid", vec);
@@ -232,6 +232,30 @@ _ sc_vector_to_grid(sc *sc, _ vec) {
     for (i=0; i<len; i++) {
         inexact *x = object_to_inexact(v->slot[i], EX);
         g->buf[i] = x ? x->value : object_to_integer(v->slot[i]);
+    }
+    return _sc_make_aref(sc, g);
+}
+
+_ sc_vector_to_grid_2(sc *sc, _ vecofvec) {
+    vector *v = CAST(vector, vecofvec);
+    int rows = vector_size(v);
+    if (rows < 1) return ERROR("invalid", rows);
+    vector *vv = CAST(vector, v->slot[0]);
+    int columns = vector_size(vv);
+    grid *g = grid_new_2(columns, rows, 0.0);
+    grid_atom *a;
+    int i,j;
+    for (j=0; j<rows; j++){
+        a = &g->buf[j * columns];
+        vv = object_to_vector(v->slot[j]);
+        if (vv) {
+            int c = vector_size(vv);
+            if (c > columns) c = columns;
+            for(i=0; i<c; i++) {
+                inexact *x = object_to_inexact(vv->slot[i], EX);
+                a[i] = x ? x->value : object_to_integer(vv->slot[i]);
+            }
+        }
     }
     return _sc_make_aref(sc, g);
 }
