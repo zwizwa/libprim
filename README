@@ -1,5 +1,16 @@
 libprim (c) 2009 Tom Schouten
 
+An application core library for multimedia applications.
+
+This is a collection of simple objects that can be manipulated from C
+using manual garbage collection (create + free).  On top of this code
+two scripting languages are implemented: Packet Forth (PF) and an
+(almost) R4RS compliant standard Scheme.
+
+
+Licence
+-------
+
 The core components (leaf, PF, SC) are licensed under the terms of the
 GNU Lesser General Public Licence (LGPL).  See the file COPYING for
 details.
@@ -8,12 +19,14 @@ Note that the use of some optional components requires a re-licencing
 under the terms of the GNU General Public Licence (GPL).  Most notably
 the GSL and some of the FFMPEG code.
 
-Documentation will follow in the near future.  The dev log is
-published online at:  http://zwizwa.be/-/libprim
 
-Current focus is on stabilizing the project's Scheme and PF
-interpreters, which are intended to be embedded in an application as a
-static library.
+Documentation
+-------------
+
+Given an understanding of the basic architecture, the project should
+be self-documenting.  Proper documentation will follow in the near
+future.  The dev log is published online at: http://zwizwa.be/-/libprim
+
 
 Building
 --------
