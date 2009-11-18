@@ -12,8 +12,19 @@ static void yuv_free(yuv *x) {
     free(x->buf);
     free(x);
 }
-
-LEAF_SIMPLE_TYPE(yuv)
+int yuv_dump(yuv *x, port *p) {
+    return port_write(p, x->buf, x->bufsize);
+}
+yuv_class *yuv_type(void) {
+    static yuv_class *x = NULL;
+    if (!x) {
+        x = calloc(1, sizeof(*x));
+        x->super.free  = (leaf_free_m)yuv_free;
+        x->super.write = (leaf_write_m)yuv_write;
+        x->super.dump  = (leaf_write_m)yuv_dump;
+    }
+    return x;
+}
 
 yuv *yuv_new(int w, int h, const char *fourcc_str) {
     int i, bufsize, fourcc = 0;

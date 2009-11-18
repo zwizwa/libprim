@@ -334,13 +334,15 @@ _ ex_string_to_symbol(ex *ex, _ sym) {
 _ ex_bytes_length(ex *ex, _ ob) {
     return integer_to_object(CAST(bytes, ob)->size);
 }
+/* This works on anything that has a 'dump' method defined. */
 _ ex_write_bytes(ex *ex, _ ob_bytes, _ ob_port) {
     port *p = CAST(port, ob_port);
-    bytes *b = CAST(bytes, ob_bytes);
-    if (b->size != port_write(p, b->bytes, b->size)) {
-        return ERROR("fwrite", ob_bytes);
+    leaf_object *l = ex->object_to_leaf(ex, ob_bytes);
+    if (l && l->methods->dump) {
+        l->methods->dump(l, p);
+        return VOID;
     }
-    return VOID;
+    return TYPE_ERROR(ob_bytes);
 }
 
 

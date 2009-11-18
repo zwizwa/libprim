@@ -7,12 +7,15 @@ static void _bytes_free(bytes *x) {
     free(x);
 }
 
+int bytes_dump(bytes *x, port *p) {
+    return port_write(p, x->bytes, x->size);
+}
 static bytes_class *type = NULL;
 static bytes_class *bytes_class_new(void) {
     bytes_class *x = calloc(1, sizeof(*x));
     x->super.free = (leaf_free_m)_bytes_free;
     x->super.write = (leaf_write_m)bytes_write_string;
-    // x->super.dump  = (leaf_write_m)bytes_dump;
+    x->super.dump  = (leaf_write_m)bytes_dump;
     return x;
 }
 bytes_class *bytes_type(void) {
