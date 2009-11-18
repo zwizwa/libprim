@@ -1,11 +1,62 @@
-(define A (make-grid-2 10 10 0.0))
-(define V (make-grid-2 10 10 0.0))
-(define S (make-grid-1 10 0.0))
-(define work (make-grid-1 10 0.0))
+;; Wrappers for the media/ objects
 
-(define (go)
-  (grid-svd A V S work)
-  (grid-dump A (current-output-port)))
+;;; FFMPEG
+
+(define (testencode filename make-frame cod-name frame-test! encode)
+  (let ((port (open-output-file filename))
+        (codec (make-codec cod-name))
+        (context (make-codec-context))
+        (buffer (make-bytes 100000)))
+    (let ((frame
+           (begin
+             ;; `open' determines frame size in context, needed by `make-frame'
+             (codec-context-open context codec) 
+             (make-frame context)))
+          (encode! 
+           (lambda (frame)
+             (encode context frame buffer)
+             ;; (bytes-dump buffer)
+             buffer)))
+
+      (write frame) (newline)
+      
+      (let next ((n 100))
+        (if (zero? n)
+            (write-bytes (encode! #f) port) ;; delayed frame
+            (begin
+              (frame-test! frame context n)
+              (let ((encoded (encode! frame)))
+                (write (bytes-length encoded)) (display " ")
+                (write-bytes encoded port))
+              (next (sub1 n)))))
+      (codec-context-close context)
+      (newline)
+      (close-port port))))
+
+(define (testvideo filename)
+  (testencode filename make-vframe "mpeg1video" frame-test! codec-context-encode-video))
+
+(define (testaudio filename)
+  (testencode filename make-aframe "aac" (lambda (frame ctx n) #f) codec-context-encode-audio))
+
+
+(define ctx
+  (let ((ctx (make-codec-context)))
+    (codec-context-open ctx (make-codec "aac"))
+    ctx))
+
+
+
+;;; GRID
+
+;(define A (make-grid-2 10 10 0.0))
+;(define V (make-grid-2 10 10 0.0))
+;(define S (make-grid-1 10 0.0))
+;(define work (make-grid-1 10 0.0))
+
+;(define (go)
+;  (grid-svd A V S work)
+;  (grid-dump A (current-output-port)))
 
 
 (define (svd A)
@@ -96,9 +147,11 @@
       signal 2))        ;; AR model order = 2 (we expect a single sine wave)
     1)))
    
-(define (ar-test angle)
-  (signal-angle (wave angle 100)))
-
-(define (ar-test-error x) (fsub x (ar-test x)))
+; (define (ar-test angle)  (signal-angle (wave angle 100)))
+; (define (ar-test-error x) (fsub x (ar-test x)))
 
 ;; (define d (svd (hankel (wave (fmul .5 pi) 20) 3)))
+
+(define (vec-gauss n)
+  (let ((g (make-grid-1 n .0)))
+    (grid-noise-normal g) g))

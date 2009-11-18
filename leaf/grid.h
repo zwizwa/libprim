@@ -46,7 +46,7 @@ int grid_for_each(grid_proc *p, int argc, grid **argv);
 
 int grid_dump(grid *g, port *p);
 
-
+void grid_noise_normal(grid *g);
 
 
 #endif

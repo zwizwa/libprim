@@ -319,3 +319,7 @@ _ sc_grid_roots(sc *sc, _ ob_poly) {
 
     return _sc_make_aref(sc, roots);
 }
+_ sc_grid_noise_normal(sc *sc, _ g) {
+    grid_noise_normal(CAST(grid, g));
+    return VOID;
+}

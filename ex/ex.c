@@ -299,28 +299,61 @@ _ ex_sub1(ex *ex, _ o) {
 #define BINOP(op, a, b) integer_to_object(CAST_INTEGER(a) op CAST_INTEGER(b))
 #define BINREL(op, a, b) (CAST_INTEGER(a) op CAST_INTEGER(b)) ? TRUE : FALSE
 
-_ ex_add(ex *ex, _ a, _ b) { return BINOP(+, a, b); }
-_ ex_sub(ex *ex, _ a, _ b) { return BINOP(-, a, b); }
-_ ex_mul(ex *ex, _ a, _ b) { return BINOP(*, a, b); }
+//_ ex_add(ex *ex, _ a, _ b) { return BINOP(+, a, b); }
+//_ ex_sub(ex *ex, _ a, _ b) { return BINOP(-, a, b); }
+//_ ex_mul(ex *ex, _ a, _ b) { return BINOP(*, a, b); }
 
-_ ex_eq(ex *ex, _ a, _ b)  { return BINREL(==, a, b); }
-_ ex_gt(ex *ex, _ a, _ b)  { return BINREL(>, a, b); }
-_ ex_lt(ex *ex, _ a, _ b)  { return BINREL(<, a, b); }
+//_ ex_eq(ex *ex, _ a, _ b)  { return BINREL(==, a, b); }
+//_ ex_gt(ex *ex, _ a, _ b)  { return BINREL(>, a, b); }
+//_ ex_lt(ex *ex, _ a, _ b)  { return BINREL(<, a, b); }
 
 
 /* Automatically convert. */
 #define IS_INT(o) (GC_INTEGER == GC_TAG(o))
+enum binop_tag {ADD,SUB,MUL,DIV,EQ,GT,LT};
 typedef _ (*binop_int)(int a, int b);
-typedef _ (*binop_inexact)(inexact *a, inexact *b);
-_ _ex_binop(ex *ex, _ a, _ b, binop_int intop) {
-    int is_int_a = IS_INT(a);
+typedef _ (*binop_inexact)(inexact *a, inexact *b, inexact *z);
+
+#define DO_BINOP(op,a,b,z,zb) switch(op) {              \
+    case ADD: z = a + b; break;                         \
+    case SUB: z = a - b; break;                         \
+    case MUL: z = a * b; break;                         \
+    case DIV: z = a / b; break;                         \
+    case EQ:  z = (a == b); zb = 1; break;              \
+    case GT:  z = (a > b); zb = 1; break;               \
+    case LT:  z = (a < b); zb = 1; break;               \
+    default: ERROR("binop", integer_to_object(op)); }
+
+_ _ex_binop(ex *ex, _ a, _ b, enum binop_tag op) {
+    int zb = 0;
+    int is_int_a = IS_INT(a); 
     int is_int_b = IS_INT(b);
     if (is_int_a && is_int_b) {
-        return intop(object_to_integer(a),
-                     object_to_integer(b));
+        int ia = object_to_integer(a);
+        int ib = object_to_integer(b);
+        int iz;
+        DO_BINOP(op,ia,ib,iz,zb);
+        if (zb) return (iz == 0) ? FALSE : TRUE;
+        else return integer_to_object(iz);
     }
-    
+    // assume the only other number kind are inexact (double float)
+    inexact *inexact_a = object_to_inexact(a);
+    inexact *inexact_b = object_to_inexact(b);
+    double da = inexact_a ? inexact_a->value : (double)(object_to_integer(a));
+    double db = inexact_b ? inexact_b->value : (double)(object_to_integer(b));
+    double dz;
+    DO_BINOP(op,da,db,dz,zb);
+    if (zb) return (dz == 0.0) ? FALSE : TRUE;
+    else return ex->leaf_to_object(ex, (leaf_object*)inexact_new(dz));
 }
+_ ex_add(ex *ex, _ a, _ b) { return _ex_binop(ex, a, b, ADD); }
+_ ex_sub(ex *ex, _ a, _ b) { return _ex_binop(ex, a, b, SUB); }
+_ ex_mul(ex *ex, _ a, _ b) { return _ex_binop(ex, a, b, MUL); }
+_ ex_div(ex *ex, _ a, _ b) { return _ex_binop(ex, a, b, DIV); }
+
+_ ex_eq(ex *ex, _ a, _ b) { return _ex_binop(ex, a, b, EQ); }
+_ ex_gt(ex *ex, _ a, _ b) { return _ex_binop(ex, a, b, GT); }
+_ ex_lt(ex *ex, _ a, _ b) { return _ex_binop(ex, a, b, LT); }
 
 
 /* Inexact numbers */

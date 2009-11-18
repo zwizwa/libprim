@@ -3,6 +3,7 @@
 #include <leaf/error.h>
 #include <stdlib.h>
 #include <string.h>
+#include <math.h>
 
 static void grid_free(grid *x){
     free(x->buf);
@@ -164,3 +165,16 @@ int grid_dump(grid *g, port *p) {
     return len;
 }
 
+/* Fill with noise from normal distribution. */
+void grid_noise_normal(grid *g) {
+    int i, N = grid_total(g);
+    for (i = 0; i < N; i+=2) {
+        float a = ((float)rand()) * (2.0f * M_PI * (1.0f / ((float)RAND_MAX)));
+        float r = ((float)(1 + rand())) * (1.0f / ((float)RAND_MAX));
+        float x = cos(a);
+        float y = sin(a);
+        r = sqrt(-2.0f * log(r));
+        g->buf[i]   = x*r;
+        if (i+1 < N) { g->buf[i+1] = y*r; }
+    }
+}
