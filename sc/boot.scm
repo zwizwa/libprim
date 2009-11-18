@@ -542,7 +542,8 @@
 (define (apply fn . args)
   (apply1 fn (improper args)))
         
-
+(define (string-append . args)
+  (bytes-vector-append (list->vector args)))
 
 ;(let ((x (read (open-input-file "boot.scm"))))
 ;  (let loop ((n 40))

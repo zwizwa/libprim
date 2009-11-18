@@ -1,6 +1,6 @@
 ;; Wrappers for the media/ objects
 
-;;; FFMPEG
+;;; FFMPEG C API
 
 (define (testencode filename make-frame cod-name frame-test! encode)
   (let ((port (open-output-file filename))
@@ -109,8 +109,8 @@
 
 
 (define (phasor angle)
-  (let* ((c (fcos angle))
-         (s (fsin angle))
+  (let* ((c (cos angle))
+         (s (sin angle))
          (s- (* -1 s)))
     (mat `((,c  ,s)
            (,s- ,c)))))
@@ -119,7 +119,7 @@
   (grid-column
    (ar-unfold (phasor angle) (vec '(1 0)) n) 0))
 
-(define pi (* 4.0 (fatan 1.0)))
+(define pi (* 4.0 (atan 1.0)))
 
 (define (ar-poly signal order)
   (let* ((h (hankel signal (+ 1 order)))
@@ -140,7 +140,7 @@
 ;; => 0.785398  
 
 (define (signal-angle signal)
-  (fasin                ;; acos gets frequency (assume from SVD that vector norm = 1)
+  (asin                ;; acos gets frequency (assume from SVD that vector norm = 1)
    (grid-ref            ;; get imaginary component 
     (grid-roots         ;; find polynomial roots
      (ar-poly           ;; estimate the AR polynomial

@@ -391,6 +391,24 @@ _ ex_sqrt(ex *ex, _ a) { return _ex_unop(ex, a, SQRT); }
 
 
 
+/* Strings / bytes */
+
+_ ex_bytes_vector_append(ex *ex, _ ob) {
+    vector *v = CAST(vector, ob);
+    int len = vector_size(v), total = 0, i;
+    bytes *b[len];
+    for (i=0; i<len; i++) { 
+        b[i] = CAST(bytes, v->slot[i]); 
+        total += b[i]->size;
+    }
+    bytes *out = bytes_buffer_new(1+total);
+    for (i=0; i<len; i++) {
+        memcpy(bytes_allot(out, b[i]->size), b[i]->bytes, b[i]->size);
+    }
+    return ex->leaf_to_object(ex, (leaf_object*)out);
+}
+
+
 
 _ ex_system(ex *ex, _ ob) {
     char *cmd = object_to_cstring(ob);
