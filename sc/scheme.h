@@ -198,18 +198,15 @@ static inline void *object_aref_struct(object ob, void *type) {
 
 /* Scheme specific object wrappers.  Note that these functions need to
    show up at link time, as they are part of the binary interface. */
-#define DECL_AREF_TYPE(name) \
-    name *object_to_##name(object ob);
 #define DEF_AREF_TYPE(name) \
     name *object_to_##name(object ob) { \
         return (name*)object_aref_struct(ob,name##_type()); }
 
-DECL_AREF_TYPE(port)
-DECL_AREF_TYPE(bytes)
-DECL_AREF_TYPE(inexact)
+DECL_TYPE(port)
+DECL_TYPE(bytes)
+DECL_TYPE(inexact)
 
 typedef char cstring;  // for CAST()
-char *object_to_cstring(_ ob);
 
 
 

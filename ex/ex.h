@@ -43,6 +43,7 @@ typedef object (*ex_m_write)(ex *ex, object ob);
 typedef port*  (*_ex_m_port)(ex *ex);
 typedef object (*_ex_m_make_string)(ex *ex, const char *str);
 typedef object (*_ex_m_make_inexact)(ex *ex, double d);
+typedef object (*_ex_m_leaf_to_object)(ex *ex, leaf_object*);
 typedef object (*ex_m_make_pair)(ex *ex, object car, object cdr); // reader
 struct _ex {
     void *type;
@@ -71,6 +72,7 @@ struct _ex {
     _ex_m_make_string make_qstring;
     _ex_m_make_inexact make_inexact;
     ex_m_make_pair make_pair;
+    _ex_m_leaf_to_object leaf_to_object;
 
 };
 
@@ -184,6 +186,14 @@ _ _ex_boot_load(ex *ex,  const char *bootfile);
 
 #define VEC(x) (vector_to_object(((void*)(x))))
 
+#define DECL_TYPE(name) \
+    name *object_to_##name(object ob);
+
+DECL_TYPE(inexact)
+DECL_TYPE(bytes)
+char *object_to_cstring(_ ob);
+
+
 
 /* The garbage collector needs to restart the C stack after it
    performs a collection.  This is because it moves around data,
@@ -202,6 +212,23 @@ _ _ex_boot_load(ex *ex,  const char *bootfile);
 
 */
 #define ENABLE_RESTART() EX->stateful_context=0
+
+
+/* NUMBERS */
+
+#define INEXACT_BINOP(name) {\
+    inexact *ia = CAST(inexact, a); \
+    inexact *ib = CAST(inexact, b); \
+    inexact *iz = inexact_new(0.0); \
+    inexact_##name(ia, ib, iz);  \
+    return EX->leaf_to_object(EX, (leaf_object*)iz); }
+
+#define INEXACT_UNOP(name) {\
+    inexact *ia = CAST(inexact, a); \
+    inexact *iz = inexact_new(0.0); \
+    inexact_##name(ia, iz); \
+    return EX->leaf_to_object(EX, (leaf_object*)iz); }
+
 
 
 #endif

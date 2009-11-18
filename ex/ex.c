@@ -14,6 +14,12 @@
 #include "ex.h"
 #include "ex.h_ex_prims"
 
+char *object_to_cstring(_ ob) {
+    bytes *b = object_to_bytes(ob);
+    if (!b) return NULL;
+    return cstring_from_bytes(b);
+}
+
 object _ex_write_vector(ex *ex, const char *type, vector *v) {
     port *p = ex->port(ex);
     long i,n = vector_size(v);
@@ -301,6 +307,31 @@ _ ex_eq(ex *ex, _ a, _ b)  { return BINREL(==, a, b); }
 _ ex_gt(ex *ex, _ a, _ b)  { return BINREL(>, a, b); }
 _ ex_lt(ex *ex, _ a, _ b)  { return BINREL(<, a, b); }
 
+
+/* Inexact numbers */
+_ ex_fadd(ex *ex, _ a, _ b) INEXACT_BINOP(add)
+_ ex_fsub(ex *ex, _ a, _ b) INEXACT_BINOP(sub)
+_ ex_fmul(ex *ex, _ a, _ b) INEXACT_BINOP(mul)
+_ ex_fdiv(ex *ex, _ a, _ b) INEXACT_BINOP(div)
+
+_ ex_fsin(ex *ex, _ a) INEXACT_UNOP(sin)
+_ ex_fcos(ex *ex, _ a) INEXACT_UNOP(cos)
+_ ex_ftan(ex *ex, _ a) INEXACT_UNOP(tan)
+
+_ ex_fasin(ex *ex, _ a) INEXACT_UNOP(asin)
+_ ex_facos(ex *ex, _ a) INEXACT_UNOP(acos)
+_ ex_fatan(ex *ex, _ a) INEXACT_UNOP(atan)
+
+_ ex_fexp(ex *ex, _ a) INEXACT_UNOP(exp)
+_ ex_flog(ex *ex, _ a) INEXACT_UNOP(log)
+_ ex_fsqrt(ex *ex, _ a) INEXACT_UNOP(sqrt)
+
+
+_ ex_system(ex *ex, _ ob) {
+    char *cmd = object_to_cstring(ob);
+    int rv = system(cmd);
+    return integer_to_object(rv);
+}
 
 
 /* Lists and vectors. */

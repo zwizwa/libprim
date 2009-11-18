@@ -38,11 +38,6 @@ DEF_AREF_TYPE(port)
 DEF_AREF_TYPE(bytes)
 DEF_AREF_TYPE(inexact)
 
-char *object_to_cstring(_ ob) {
-    bytes *b = object_to_bytes(ob);
-    if (!b) return NULL;
-    return cstring_from_bytes(b);
-}
 
 
 /* Predicates for primitive objects are derived from their
@@ -411,42 +406,7 @@ _ sc_flush_output_port(sc *sc, _ ob) {
 }
 
 
-_ sc_system(sc *sc, _ ob) {
-    char *cmd = object_to_cstring(ob);
-    int rv = system(cmd);
-    return integer_to_object(rv);
-}
 
-
-#define IBINOP(name) {\
-    inexact *ia = CAST(inexact, a); \
-    inexact *ib = CAST(inexact, b); \
-    inexact *iz = inexact_new(0.0); \
-    inexact_##name(CAST(inexact, a), CAST(inexact, b), iz); \
-    return _sc_make_aref(sc, iz); }
-
-#define IUNOP(name) {\
-    inexact *ia = CAST(inexact, a); \
-    inexact *iz = inexact_new(0.0); \
-    inexact_##name(CAST(inexact, a), iz); \
-    return _sc_make_aref(sc, iz); }
-
-_ sc_fadd(sc *sc, _ a, _ b) IBINOP(add)
-_ sc_fsub(sc *sc, _ a, _ b) IBINOP(sub)
-_ sc_fmul(sc *sc, _ a, _ b) IBINOP(mul)
-_ sc_fdiv(sc *sc, _ a, _ b) IBINOP(div)
-
-_ sc_fsin(sc *sc, _ a) IUNOP(sin)
-_ sc_fcos(sc *sc, _ a) IUNOP(cos)
-_ sc_ftan(sc *sc, _ a) IUNOP(tan)
-
-_ sc_fasin(sc *sc, _ a) IUNOP(asin)
-_ sc_facos(sc *sc, _ a) IUNOP(acos)
-_ sc_fatan(sc *sc, _ a) IUNOP(atan)
-
-_ sc_fexp(sc *sc, _ a) IUNOP(exp)
-_ sc_flog(sc *sc, _ a) IUNOP(log)
-_ sc_fsqrt(sc *sc, _ a) IUNOP(sqrt)
 
 #define NARGS_ERROR(fn) ERROR("nargs", fn)
 
@@ -1094,6 +1054,7 @@ sc *_sc_new(int argc, char **argv) {
     sc->m.make_qstring = (_ex_m_make_string)_sc_make_qstring;
     sc->m.make_inexact = (_ex_m_make_inexact)_sc_make_inexact;
     sc->m.make_pair = ex_cons;
+    sc->m.leaf_to_object = (_ex_m_leaf_to_object)_sc_make_aref;
 
     /* Data roots. */
     _ in  = _sc_make_file_port(sc, stdin,  "stdin");
