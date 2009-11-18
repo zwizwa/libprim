@@ -93,7 +93,7 @@ _ sc_codec_context_close(sc *sc, _ ctx) {
 
 _ sc_codec_to_string(sc *sc, _ ob) {
     codec *c = CAST(codec, ob);
-    return _sc_make_string(sc, c->codec->name);
+    return _ex_make_string(EX, c->codec->name);
 }
 
 _ sc_codec_context_encode_video(sc *sc, _ ctx, _ frm, _ buf) {

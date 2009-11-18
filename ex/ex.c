@@ -286,6 +286,163 @@ _ ex_is_prim(ex *ex, _ o)   { OBJECT_PREDICATE(object_to_prim); }
 _ ex_is_pair(ex *ex, _ o)    { return _is_vector_type(o, TAG_PAIR); }
 _ ex_is_vector(ex *ex, _ o)  { return _is_vector_type(o, TAG_VECTOR); }
 
+/* Strings. */
+_ _ex_make_inexact(ex *ex, double d) {
+    return _ex_leaf_to_object(ex, inexact_new(d));
+}
+
+_ _ex_make_string(ex *ex, const char *str) {
+    return _ex_leaf_to_object(ex, bytes_from_cstring(str));
+}
+_ _ex_make_qstring(ex *ex, const char *str) {
+    return _ex_leaf_to_object(ex, bytes_from_qcstring(str));
+}
+_ _ex_make_bytes(ex *ex, int size) {
+    return _ex_leaf_to_object(ex, bytes_new(size));
+}
+_ ex_number_to_string(ex *ex, _ num) {
+    char str[20];
+    sprintf(str, "%ld", (long int)CAST_INTEGER(num));
+    return _ex_make_string(ex, str);
+}
+_ ex_bytes_ref(ex *ex, _ ob_bytes, _ ob_index) {
+    bytes *b = CAST(bytes, ob_bytes);
+    int i = CAST_INTEGER(ob_index);
+    if ((i < 0) || (i >= b->size)) return ERROR("index", ob_index);
+    return integer_to_object(b->bytes[i]);
+}
+_ ex_make_bytes(ex *ex, _ ob) {
+    int size = CAST_INTEGER(ob);
+    if (size <= 0) return INVALID(ob);
+    return _ex_make_bytes(ex, size);
+}
+_ ex_bytes_init(ex *ex, _ ob_bytes, _ ob_int) {
+    bytes *b = CAST(bytes, ob_bytes);
+    int fill = CAST_INTEGER(ob_int);
+    memset(b->bytes, fill, b->size);
+    return VOID;
+}
+_ ex_symbol_to_string(ex *ex, _ sym) {
+    symbol *s = CAST(symbol, sym);
+    return _ex_make_string(ex, s->name);
+}
+_ ex_string_to_symbol(ex *ex, _ sym) {
+    bytes *b = CAST(bytes, sym);
+    return _ex_make_symbol(EX, b->bytes);
+}
+
+_ ex_bytes_length(ex *ex, _ ob) {
+    return integer_to_object(CAST(bytes, ob)->size);
+}
+
+
+/* Ports */
+_ _ex_make_file_port(ex *ex, FILE *f, const char *name) {
+    return _ex_leaf_to_object(ex, (leaf_object *)port_file_new(f, name));
+}
+_ _ex_make_bytes_port(ex *ex, bytes *b) {
+    return _ex_leaf_to_object(ex, (leaf_object *)port_bytes_new(b));
+}
+_ ex_open_mode_file(ex *ex, _ path, _ mode) {
+    bytes *b_path = CAST(bytes, path);
+    bytes *b_mode = CAST(bytes, mode);
+    FILE *f = fopen(b_path->bytes, b_mode->bytes);
+    if (!f) ERROR("fopen", path);
+    return _ex_make_file_port(ex, f, b_path->bytes);
+}
+_ ex_open_input_string(ex *ex, _ ob_str) {
+    bytes *b = CAST(bytes, ob_str);
+    bytes *copy_b = bytes_copy(b);
+    return _ex_make_bytes_port(ex, copy_b);
+}
+_ ex_open_output_string(ex *ex) {
+    bytes *b = bytes_new(20);
+    b->size = 0;
+    return _ex_make_bytes_port(ex, b);
+}
+_ ex_get_output_string(ex *ex, _ ob_port) {
+    port *p = CAST(port, ob_port);
+    bytes *b = port_get_bytes(p);
+    if (!b) return TYPE_ERROR(ob_port);
+    return _ex_leaf_to_object(ex, b);
+}
+
+/* Returns a pair (input . output) of ports. */
+_ ex_tcp_connect(ex *ex, _ host, _ port) {
+    char *hostname  = CAST(cstring, host);
+    int port_number = CAST_INTEGER(port);
+    int fd;
+    if (-1 == (fd = fd_socket(hostname, port_number, 0))) {
+        ERROR("invalid", CONS(host, CONS(port, NIL)));
+    }
+    char name[20 + strlen(hostname)];
+    sprintf(name, "I:%s:%d", hostname, port_number);
+    _ in  = _ex_leaf_to_object(ex, port_file_new(fdopen(fd, "r"), name));  name[0] = 'O';
+    _ out = _ex_leaf_to_object(ex, port_file_new(fdopen(fd, "w"), name));
+    return CONS(in, out);
+}
+
+/* Returns a unix FILE DEEXRIPTOR!  This can then be passed to
+   accept_tcp to create an I/O port pair for each connection. */
+_ ex_tcp_bind(ex *ex, _ host, _ port) {
+    char *hostname  = CAST(cstring, host);
+    int port_number = CAST_INTEGER(port);
+    int fd;
+    if (-1 == (fd = fd_socket(hostname, port_number, PORT_SOCKET_SERVER))) {
+        ERROR("invalid", CONS(host, CONS(port, NIL)));
+    }
+    return integer_to_object(fd);
+}
+
+_ ex_tcp_accept(ex *ex, _ ob) {
+    int server_fd = CAST_INTEGER(ob);
+    int connection_fd = fd_accept(server_fd);
+    if (-1 == connection_fd) ERROR("invalid-fd", ob);
+    return CONS(_ex_leaf_to_object(ex, port_file_new(fdopen(connection_fd, "r"), "I:tcp-accept")),
+                _ex_leaf_to_object(ex, port_file_new(fdopen(connection_fd, "w"), "O:tcp-accept")));
+}
+
+
+/* Processes */
+
+_ _ex_open_process(ex *ex, _ args, char *cmode, int child_fd) {
+    vector *v = CAST(vector, args);
+    int argc = vector_size(v);
+    char *argv[argc+1];
+    int i,pid;
+    for (i=0; i<argc; i++) {
+        argv[i] = CAST(cstring, v->slot[i]);
+    }
+    argv[argc] = NULL;
+    int fd = fd_pipe(argv, &pid, child_fd);
+    return _ex_leaf_to_object(ex, port_file_new(fdopen(fd, cmode), argv[0]));
+
+}
+
+_ ex_open_output_process(ex *ex, _ args) { return _ex_open_process(ex, args, "w", 0); }
+_ ex_open_input_process(ex *ex, _ args) { return _ex_open_process(ex, args, "r", 1); }
+
+// Manually call finalizer, creating a defunct object.
+_ ex_bang_finalize(ex *ex, _ ob) {
+    aref *r = CAST(aref, ob);
+    fin finalize = *(object_to_fin(r->fin));
+    finalize(r->object, ex);
+    r->fin = VOID;
+    r->object = VOID;
+    return VOID;
+}
+
+_ ex_close_port(ex *ex, _ ob) {
+    port *p = CAST(port, ob);
+    return ex_bang_finalize(ex, ob);
+}
+_ ex_flush_output_port(ex *ex, _ ob) {
+    port_flush(CAST(port, ob));
+    return VOID;
+}
+
+
+
 
 /* Arithmetic */
 _ ex_add1(ex *ex, _ o) {
@@ -328,7 +485,7 @@ _ _ex_binop(ex *ex, _ a, _ b, enum binop_tag op) {
     if (is_int_a && is_int_b) {
         int ia = object_to_integer(a);
         int ib = object_to_integer(b);
-        int iz;
+        int iz = 0;
         DO_BINOP(op,ia,ib,iz,zb);
         if (zb) return (iz == 0) ? FALSE : TRUE;
         else return integer_to_object(iz);
@@ -338,11 +495,12 @@ _ _ex_binop(ex *ex, _ a, _ b, enum binop_tag op) {
     inexact *inexact_b = object_to_inexact(b);
     double da = inexact_a ? inexact_a->value : (double)(object_to_integer(a));
     double db = inexact_b ? inexact_b->value : (double)(object_to_integer(b));
-    double dz;
+    double dz = 0;
     DO_BINOP(op,da,db,dz,zb);
     if (zb) return (dz == 0.0) ? FALSE : TRUE;
-    else return ex->leaf_to_object(ex, (leaf_object*)inexact_new(dz));
+    else return _ex_leaf_to_object(ex, (leaf_object*)inexact_new(dz));
 }
+
 _ ex_add(ex *ex, _ a, _ b) { return _ex_binop(ex, a, b, ADD); }
 _ ex_sub(ex *ex, _ a, _ b) { return _ex_binop(ex, a, b, SUB); }
 _ ex_mul(ex *ex, _ a, _ b) { return _ex_binop(ex, a, b, MUL); }
@@ -358,7 +516,7 @@ _ _ex_unop(ex *ex, _ a, enum unop_tag op) {
     double da = inexact_a ? inexact_a->value :
                (IS_INT(a) ? (double)(object_to_integer(a)) : 
                 ERROR("type", a));
-    double dz;
+    double dz = 0;
     switch (op) {
     case SIN: dz = sin(da); break;
     case COS: dz = cos(da); break;
@@ -373,7 +531,7 @@ _ _ex_unop(ex *ex, _ a, enum unop_tag op) {
     case SQRT: dz = sqrt(da); break;
     default: ERROR("unop", integer_to_object(op)); 
     }
-    return ex->leaf_to_object(ex, (leaf_object*)(inexact_new(dz)));
+    return _ex_leaf_to_object(ex, (leaf_object*)(inexact_new(dz)));
 }
 
 /* Inexact numbers */
@@ -405,7 +563,7 @@ _ ex_bytes_vector_append(ex *ex, _ ob) {
     for (i=0; i<len; i++) {
         memcpy(bytes_allot(out, b[i]->size), b[i]->bytes, b[i]->size);
     }
-    return ex->leaf_to_object(ex, (leaf_object*)out);
+    return _ex_leaf_to_object(ex, (leaf_object*)out);
 }
 
 

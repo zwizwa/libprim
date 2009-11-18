@@ -304,6 +304,7 @@
 (define * (make-accu mul 1))
 ;; (define - (make-accu sub 0))
 (define - sub)
+(define / div)
 
 (define = eq)
 (define > gt)

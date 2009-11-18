@@ -41,8 +41,6 @@ typedef struct {
 typedef struct _ex ex;
 typedef object (*ex_m_write)(ex *ex, object ob);
 typedef port*  (*_ex_m_port)(ex *ex);
-typedef object (*_ex_m_make_string)(ex *ex, const char *str);
-typedef object (*_ex_m_make_inexact)(ex *ex, double d);
 typedef object (*_ex_m_leaf_to_object)(ex *ex, leaf_object*);
 typedef object (*ex_m_make_pair)(ex *ex, object car, object cdr); // reader
 struct _ex {
@@ -68,9 +66,6 @@ struct _ex {
     /* Printing: delegate + current port. */
     ex_m_write write;
     _ex_m_port port;
-    _ex_m_make_string make_string;
-    _ex_m_make_string make_qstring;
-    _ex_m_make_inexact make_inexact;
     ex_m_make_pair make_pair;
     _ex_m_leaf_to_object leaf_to_object;
 
@@ -125,12 +120,15 @@ long _ex_unwrap_integer(ex *ex, object o);
 #define EXCEPT_TRY   0
 #define EXCEPT_ABORT 1 /* abort to default toplevel continuation. */
 
-
+_ _ex_make_bytes(ex *ex, int size);
+_ _ex_make_string(ex *ex, const char *str);
+_ _ex_make_qstring(ex *ex, const char *str);
 _ _ex_make_symbol(ex *ex, const char *str);
+_ _ex_make_inexact(ex *ex, double d);
 #define SYMBOL(str)   _ex_make_symbol(EX, str)
-#define STRING(str)   (EX->make_string(EX, str))
-#define INEXACT(d)    (EX->make_inexact(EX, d))
-#define QSTRING(str)  (EX->make_qstring(EX, str)) // with quotes
+#define STRING(str)   _ex_make_string(EX, str)
+#define INEXACT(d)    _ex_make_inexact(EX, d)
+#define QSTRING(str)  _ex_make_qstring(EX, str) // with quotes
 #define CHAR(str)     integer_to_object(str[0])
 #define NAMED_CHAR(str) integer_to_object(named_char(str))
 
@@ -195,6 +193,13 @@ DECL_TYPE(bytes)
 typedef char cstring;  // for CAST()
 DECL_TYPE(cstring)
 
+// This is not a function, and not defined as an API symbol.
+
+static inline _ _ex_leaf_to_object(ex *ex, void *leaf) {
+    return ex->leaf_to_object(ex, (leaf_object*)leaf);
+}
+
+
 
 
 
@@ -217,22 +222,8 @@ DECL_TYPE(cstring)
 #define ENABLE_RESTART() EX->stateful_context=0
 
 
-/* NUMBERS */
-
-#define INEXACT_BINOP(name) {\
-    inexact *ia = CAST(inexact, a); \
-    inexact *ib = CAST(inexact, b); \
-    inexact *iz = inexact_new(0.0); \
-    inexact_##name(ia, ib, iz);  \
-    return EX->leaf_to_object(EX, (leaf_object*)iz); }
-
-#define INEXACT_UNOP(name) {\
-    inexact *ia = CAST(inexact, a); \
-    inexact *iz = inexact_new(0.0); \
-    inexact_##name(ia, iz); \
-    return EX->leaf_to_object(EX, (leaf_object*)iz); }
-
-
+_ _ex_make_bytes_port(ex *ex, bytes *b);
+_ _ex_make_file_port(ex *ex, FILE *f, const char *name);
 
 #endif
 

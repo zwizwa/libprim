@@ -126,31 +126,6 @@ _ _sc_make_aref(sc *sc, void *_x) {
 }
 
 
-_ _sc_make_inexact(sc *sc, double d) {
-    return _sc_make_aref(sc, inexact_new(d));
-}
-
-_ _sc_make_string(sc *sc, const char *str) {
-    return _sc_make_aref(sc, bytes_from_cstring(str));
-}
-_ _sc_make_qstring(sc *sc, const char *str) {
-    return _sc_make_aref(sc, bytes_from_qcstring(str));
-}
-_ _sc_make_bytes(sc *sc, int size) {
-    return _sc_make_aref(sc, bytes_new(size));
-}
-_ sc_number_to_string(sc *sc, _ num) {
-    char str[20];
-    sprintf(str, "%ld", (long int)CAST_INTEGER(num));
-    return _sc_make_string(sc, str);
-}
-
-_ sc_bytes_ref(sc *sc, _ ob_bytes, _ ob_index) {
-    bytes *b = CAST(bytes, ob_bytes);
-    int i = CAST_INTEGER(ob_index);
-    if ((i < 0) || (i >= b->size)) return ERROR("index", ob_index);
-    return integer_to_object(b->bytes[i]);
-}
 
 _ sc_make_mt(sc *sc)    { return MT; }
 
@@ -287,123 +262,8 @@ _ sc_print_error(sc *sc, _ err) {
 }
 
 
-_ sc_symbol_to_string(sc *sc, _ sym) {
-    symbol *s = CAST(symbol, sym);
-    return _sc_make_string(sc, s->name);
-}
-_ sc_string_to_symbol(sc *sc, _ sym) {
-    bytes *b = CAST(bytes, sym);
-    return _ex_make_symbol(EX, b->bytes);
-}
-
-_ sc_bytes_length(sc *sc, _ ob) {
-    return integer_to_object(CAST(bytes, ob)->size);
-}
-
-_ _sc_make_file_port(sc *sc, FILE *f, const char *name) {
-    return _sc_make_aref(sc, (leaf_object *)port_file_new(f, name));
-}
-_ _sc_make_bytes_port(sc *sc, bytes *b) {
-    return _sc_make_aref(sc, (leaf_object *)port_bytes_new(b));
-}
-_ sc_open_mode_file(sc *sc, _ path, _ mode) {
-    bytes *b_path = CAST(bytes, path);
-    bytes *b_mode = CAST(bytes, mode);
-    FILE *f = fopen(b_path->bytes, b_mode->bytes);
-    if (!f) ERROR("fopen", path);
-    return _sc_make_file_port(sc, f, b_path->bytes);
-}
-_ sc_open_input_string(sc *sc, _ ob_str) {
-    bytes *b = CAST(bytes, ob_str);
-    bytes *copy_b = bytes_copy(b);
-    return _sc_make_bytes_port(sc, copy_b);
-}
-_ sc_open_output_string(sc *sc) {
-    bytes *b = bytes_new(20);
-    b->size = 0;
-    return _sc_make_bytes_port(sc, b);
-}
-_ sc_get_output_string(sc *sc, _ ob_port) {
-    port *p = CAST(port, ob_port);
-    bytes *b = port_get_bytes(p);
-    if (!b) return TYPE_ERROR(ob_port);
-    return _sc_make_aref(sc, b);
-}
-
-/* Returns a pair (input . output) of ports. */
-_ sc_tcp_connect(sc *sc, _ host, _ port) {
-    char *hostname  = CAST(cstring, host);
-    int port_number = CAST_INTEGER(port);
-    int fd;
-    if (-1 == (fd = fd_socket(hostname, port_number, 0))) {
-        ERROR("invalid", CONS(host, CONS(port, NIL)));
-    }
-    char name[20 + strlen(hostname)];
-    sprintf(name, "I:%s:%d", hostname, port_number);
-    _ in  = _sc_make_aref(sc, port_file_new(fdopen(fd, "r"), name));  name[0] = 'O';
-    _ out = _sc_make_aref(sc, port_file_new(fdopen(fd, "w"), name));
-    return CONS(in, out);
-}
-
-/* Returns a unix FILE DESCRIPTOR!  This can then be passed to
-   accept_tcp to create an I/O port pair for each connection. */
-_ sc_tcp_bind(sc *sc, _ host, _ port) {
-    char *hostname  = CAST(cstring, host);
-    int port_number = CAST_INTEGER(port);
-    int fd;
-    if (-1 == (fd = fd_socket(hostname, port_number, PORT_SOCKET_SERVER))) {
-        ERROR("invalid", CONS(host, CONS(port, NIL)));
-    }
-    return integer_to_object(fd);
-}
-
-_ sc_tcp_accept(sc *sc, _ ob) {
-    int server_fd = CAST_INTEGER(ob);
-    int connection_fd = fd_accept(server_fd);
-    if (-1 == connection_fd) ERROR("invalid-fd", ob);
-    return CONS(_sc_make_aref(sc, port_file_new(fdopen(connection_fd, "r"), "I:tcp-accept")),
-                _sc_make_aref(sc, port_file_new(fdopen(connection_fd, "w"), "O:tcp-accept")));
-}
 
 
-/* Processes */
-
-_ _sc_open_process(sc *sc, _ args, char *cmode, int child_fd) {
-    vector *v = CAST(vector, args);
-    int argc = vector_size(v);
-    char *argv[argc+1];
-    int i,pid;
-    for (i=0; i<argc; i++) {
-        argv[i] = CAST(cstring, v->slot[i]);
-    }
-    argv[argc] = NULL;
-    int fd = fd_pipe(argv, &pid, child_fd);
-    return _sc_make_aref(sc, port_file_new(fdopen(fd, cmode), argv[0]));
-
-}
-
-_ sc_open_output_process(sc *sc, _ args) { return _sc_open_process(sc, args, "w", 0); }
-_ sc_open_input_process(sc *sc, _ args) { return _sc_open_process(sc, args, "r", 1); }
-
-
-// Manually call finalizer, creating a defunct object.
-_ sc_bang_finalize(sc *sc, _ ob) {
-    aref *r = CAST(aref, ob);
-    fin finalize = *(object_to_fin(r->fin));
-    finalize(r->object, sc);
-    r->fin = VOID;
-    r->object = VOID;
-    return VOID;
-}
-
-_ sc_close_port(sc *sc, _ ob) {
-    port *p = CAST(port, ob);
-    return sc_bang_finalize(sc, ob);
-}
-_ sc_flush_output_port(sc *sc, _ ob) {
-    port_flush(CAST(port, ob));
-    return VOID;
-}
 
 
 
@@ -872,17 +732,6 @@ _ sc_exit(sc *sc) {
     exit(0);
 }
 
-_ sc_make_bytes(sc *sc, _ ob) {
-    int size = CAST_INTEGER(ob);
-    if (size <= 0) return INVALID(ob);
-    return _sc_make_bytes(sc, size);
-}
-_ sc_bytes_init(sc *sc, _ ob_bytes, _ ob_int) {
-    bytes *b = CAST(bytes, ob_bytes);
-    int fill = CAST_INTEGER(ob_int);
-    memset(b->bytes, fill, b->size);
-    return VOID;
-}
 
 /* --- SETUP & GC --- */
 
@@ -1050,16 +899,13 @@ sc *_sc_new(int argc, char **argv) {
     /* EX virtual methods */
     sc->m.port = (_ex_m_port)_sc_port;
     sc->m.write = (ex_m_write)sc_write_stderr;
-    sc->m.make_string = (_ex_m_make_string)_sc_make_string;
-    sc->m.make_qstring = (_ex_m_make_string)_sc_make_qstring;
-    sc->m.make_inexact = (_ex_m_make_inexact)_sc_make_inexact;
     sc->m.make_pair = ex_cons;
     sc->m.leaf_to_object = (_ex_m_leaf_to_object)_sc_make_aref;
 
     /* Data roots. */
-    _ in  = _sc_make_file_port(sc, stdin,  "stdin");
-    _ out = _sc_make_file_port(sc, stdout, "stdout");
-    _ err = _sc_make_file_port(sc, stderr, "stderr");
+    _ in  = _ex_make_file_port(EX, stdin,  "stdin");
+    _ out = _ex_make_file_port(EX, stdout, "stdout");
+    _ err = _ex_make_file_port(EX, stderr, "stderr");
     sc->global = gc_make_tagged(sc->m.gc, 
                                 TAG_VECTOR,
                                 7,
@@ -1131,8 +977,8 @@ _ sc_read_no_gc(sc *sc, _ o) {
 const char *_sc_repl_cstring(sc *sc, const char *commands) {
     bytes *bin = bytes_from_cstring(commands);
     bytes *bout = bytes_buffer_new(1000);
-    _ in  = _sc_make_bytes_port(sc, bin);
-    _ out = _sc_make_bytes_port(sc, bout);
+    _ in  = _ex_make_bytes_port(EX, bin);
+    _ out = _ex_make_bytes_port(EX, bout);
     sc_bang_set_global(sc, sc_slot_input_port,  in);
     sc_bang_set_global(sc, sc_slot_output_port, out);
     sc_bang_set_global(sc, sc_slot_error_port,  out);
@@ -1140,5 +986,3 @@ const char *_sc_repl_cstring(sc *sc, const char *commands) {
     const char *output = cstring_from_bytes(bout);
     return output;
 }
-
-
