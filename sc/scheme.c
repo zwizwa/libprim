@@ -30,11 +30,26 @@
 */
 
 
+
+
+// GC finalized objects
+// DEF_AREF_TYPE(ck)
+DEF_AREF_TYPE(port)
+DEF_AREF_TYPE(bytes)
+DEF_AREF_TYPE(inexact)
+
+char *object_to_cstring(_ ob) {
+    bytes *b = object_to_bytes(ob);
+    if (!b) return NULL;
+    return cstring_from_bytes(b);
+}
+
+
 /* Predicates for primitive objects are derived from their
    object_to_pointer cast: if it returns NULL, the type isn't
    correct. */
 #define OBJECT_PREDICATE(cast) \
-    {if (cast(o, &sc->m)) return TRUE; else return FALSE;}
+    {if (cast(o)) return TRUE; else return FALSE;}
 // _ _DISABLED_sc_is_ck(sc *sc, _ o)     { OBJECT_PREDICATE(object_to_ck); }
 _ sc_is_port(sc *sc, _ o)   { OBJECT_PREDICATE(object_to_port); }
 _ sc_is_bytes(sc *sc, _ o)  { OBJECT_PREDICATE(object_to_bytes); }
@@ -180,7 +195,7 @@ _ sc_bang_def_toplevel_macro(sc* sc, _ var, _ val) {
 
 // FIXME: should be parameter
 port *_sc_port(sc *sc) {
-    return object_to_port(CURRENT_ERROR_PORT(), EX);
+    return object_to_port(CURRENT_ERROR_PORT());
 }
 _ sc_current_error_port(sc *sc)  { return sc_global(sc, sc_slot_error_port); }
 _ sc_current_input_port(sc *sc)  { return sc_global(sc, sc_slot_input_port); }
@@ -219,8 +234,8 @@ _ sc_write_stderr(sc *sc,  _ o) {
     aref* a;
 
     /* FIXME: Bytes and strings are currently the same. */
-    if ((x = object_to_port(o, EX)) ||
-        (x = object_to_bytes(o, EX))) {
+    if ((x = object_to_port(o)) ||
+        (x = object_to_bytes(o))) {
         return _ex_write(EX, const_to_object(x));
     }
 
@@ -397,7 +412,7 @@ _ sc_flush_output_port(sc *sc, _ ob) {
 
 
 _ sc_system(sc *sc, _ ob) {
-    char *cmd = object_to_cstring(ob, &sc->m);
+    char *cmd = object_to_cstring(ob);
     int rv = system(cmd);
     return integer_to_object(rv);
 }

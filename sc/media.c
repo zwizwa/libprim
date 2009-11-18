@@ -22,19 +22,10 @@
 #include <media/gsl.h>
 
 
-/* Instead of storing the class object in the ex struct (see
-   DEF_AREF_TYPE and ex's base_types member), it's also possible to
-   store it in a global variable.  Here we use a _c postfix naming
-   convention. */
-
-#define DEF_TYPE(name) \
-    static inline name *object_to_##name(object ob, ex *m) { \
-        return (name*)object_aref_struct(ob,m,name##_type()); }
-
-DEF_TYPE(codec)
-DEF_TYPE(codec_context)
-DEF_TYPE(vframe)
-DEF_TYPE(aframe)
+DEF_AREF_TYPE(codec)
+DEF_AREF_TYPE(codec_context)
+DEF_AREF_TYPE(vframe)
+DEF_AREF_TYPE(aframe)
 
 static prim_def media_prims[] = media_table_init;
 
@@ -120,10 +111,10 @@ _ sc_codec_context_encode_audio(sc *sc, _ ctx, _ frm, _ buf) {
 
 /*** X11 ***/
 
-DEF_TYPE(xwindow)
-DEF_TYPE(xdisplay)
-DEF_TYPE(grid)
-DEF_TYPE(grid_proc)
+DEF_AREF_TYPE(xwindow)
+DEF_AREF_TYPE(xdisplay)
+DEF_AREF_TYPE(grid)
+DEF_AREF_TYPE(grid_proc)
 
 _ sc_make_display(sc *sc, _ ob) {
     return _sc_make_aref(sc, xdisplay_new(CAST(cstring, ob)));
@@ -230,7 +221,7 @@ _ sc_vector_to_grid_1(sc *sc, _ vec) {
     if (len < 1) return ERROR("invalid", vec);
     grid *g = grid_new_1(len, 0.0);
     for (i=0; i<len; i++) {
-        inexact *x = object_to_inexact(v->slot[i], EX);
+        inexact *x = object_to_inexact(v->slot[i]);
         g->buf[i] = x ? x->value : object_to_integer(v->slot[i]);
     }
     return _sc_make_aref(sc, g);
@@ -252,7 +243,7 @@ _ sc_vector_to_grid_2(sc *sc, _ vecofvec) {
             int c = vector_size(vv);
             if (c > columns) c = columns;
             for(i=0; i<c; i++) {
-                inexact *x = object_to_inexact(vv->slot[i], EX);
+                inexact *x = object_to_inexact(vv->slot[i]);
                 a[i] = x ? x->value : object_to_integer(vv->slot[i]);
             }
         }
@@ -321,8 +312,6 @@ _ sc_grid_roots(sc *sc, _ ob_poly) {
     int N = poly->dim[0];
     grid *roots = grid_new_2(2, N-1, 0.0);
     int i;
-    /* coefficients of P(x) =  -1 + x^5  */
-    double a[6] = { -1, 0, 0, 0, 0, 1 };  
 
     gsl_poly_complex_workspace *w = gsl_poly_complex_workspace_alloc (N);
     gsl_poly_complex_solve (poly->buf, N, w, roots->buf);

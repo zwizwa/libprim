@@ -5582,3 +5582,13 @@ Date: Tue Nov 17 13:58:11 CET 2009
 
 Mix fixnums and flonums + prepare for full numeric tower.
 
+
+Entry: Wrapper-independent code
+Date: Wed Nov 18 07:35:49 CET 2009
+
+PF and SC wrap the LEAF objects differently.  How can they share
+highlevel EX code?  Currently all "virtual" behaviour is encoded in a
+table in the EX struct, but since this is not VM-specific
+(i.e. multiple SC or PF VMS, all with their own local memory and GC)
+it can maybe be expressed using a static or dynamic linker interface.
+

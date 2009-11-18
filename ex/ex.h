@@ -82,7 +82,7 @@ struct _ex {
 DEF_ATOM(prim)
 DEF_ATOM(symbol)
 
-typedef void* (*object_to_pointer)(object, ex*);
+typedef void* (*object_to_pointer)(object);
 
 /* Printing is based on the assumption that GC_CONS is either a
    genuine constant (upper bits = 0) or points to an object which can
@@ -112,7 +112,7 @@ _ _is_vector_type(_ o, long flags);
 _ ex_raise_type_error(ex *ex, _ arg_o);
 static inline void* _ex_unwrap_pointer(ex *ex, void *unwrap, object o){
     object_to_pointer fn = (object_to_pointer)unwrap;
-    void *x = fn(o, ex);
+    void *x = fn(o);
     if (unlikely(!x)) ex_raise_type_error(ex, o);
     return x;
 }

@@ -188,7 +188,7 @@ struct _scheme {
 
 /* The ck atoms have a free() finalizer, so need to be wrapped in an
    aref struct */
-static inline void *object_aref_struct(object ob, ex *m, void *type) {
+static inline void *object_aref_struct(object ob, void *type) {
     aref *ref;
     void *x;
     if ((ref = object_to_aref(ob)) &&
@@ -196,32 +196,20 @@ static inline void *object_aref_struct(object ob, ex *m, void *type) {
     else return NULL;
 }
 
-#define _DEF_AREF_TYPE(name)                                            \
-    static inline name *object_to_##name(object ob, ex *m) {          \
-        return (name*)object_aref_struct(ob,m,m->p->name##_type); }
-
-/* Instead of storing the class object in the ex struct (see
-   DEF_AREF_TYPE and ex's base_types member), it's also possible to
-   store it in a global variable.  Here we use a _c postfix naming
-   convention. */
-
+/* Scheme specific object wrappers.  Note that these functions need to
+   show up at link time, as they are part of the binary interface. */
+#define DECL_AREF_TYPE(name) \
+    name *object_to_##name(object ob);
 #define DEF_AREF_TYPE(name) \
-    static inline name *object_to_##name(object ob, ex *m) { \
-        return (name*)object_aref_struct(ob,m,name##_type()); }
+    name *object_to_##name(object ob) { \
+        return (name*)object_aref_struct(ob,name##_type()); }
 
-
-// GC finalized objects
-// DEF_AREF_TYPE(ck)
-DEF_AREF_TYPE(port)
-DEF_AREF_TYPE(bytes)
-DEF_AREF_TYPE(inexact)
+DECL_AREF_TYPE(port)
+DECL_AREF_TYPE(bytes)
+DECL_AREF_TYPE(inexact)
 
 typedef char cstring;  // for CAST()
-static inline char *object_to_cstring(_ ob, ex *m) {
-    bytes *b = object_to_bytes(ob, m);
-    if (!b) return NULL;
-    return cstring_from_bytes(b);
-}
+char *object_to_cstring(_ ob);
 
 
 
