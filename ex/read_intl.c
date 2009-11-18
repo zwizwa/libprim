@@ -21,6 +21,7 @@ static _ _vector(parser_ctx *x, _ lst) {
     return ex_list_to_vector(x->ex, lst);
 }
 static _ _atom(parser_ctx *x, const bytes *tok) {
+    int base = 0;
     ex* ex = x->ex;
     const char *str = tok->bytes+1;
     switch(tok->bytes[0]) {
@@ -28,7 +29,10 @@ static _ _atom(parser_ctx *x, const bytes *tok) {
     case TOK_FALSE:  return FALSE;
     case TOK_CHAR:   return NAMED_CHAR(str);
     case TOK_STRING: return STRING(str);
+    case TOK_HEX_NUMBER:
+        base = 16;
     case TOK_NUMBER: {
+        if (!base) base = 10;
         char *end = NULL;
         long long int l = 0;
         double d = 0;
@@ -38,7 +42,7 @@ static _ _atom(parser_ctx *x, const bytes *tok) {
         if (decimal) 
             { d = strtod(str, &end); if (end[0]) goto error; return INEXACT(d); }
         else
-            { l = strtoll(str, &end, 10); if (end[0]) goto error; return NUMBER(l); }
+            { l = strtoll(str, &end, base); if (end[0]) goto error; return NUMBER(l); }
     }
     case TOK_SYMBOL: return SYMBOL(str);
     }

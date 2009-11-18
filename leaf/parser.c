@@ -28,11 +28,12 @@ static void *dflt_atom(void *x, const bytes *b) {
 
     const char *tag;
     switch(b->bytes[0]) {
-    case TOK_CHAR:   tag = "char"; break;
-    case TOK_STRING: tag = "string"; break;
-    case TOK_NUMBER: tag = "number"; break;
-    case TOK_SYMBOL: tag = "symbol"; break;
-    default:         tag = "error"; break;
+    case TOK_CHAR:       tag = "char"; break;
+    case TOK_STRING:     tag = "string"; break;
+    case TOK_NUMBER:     tag = "number"; break;
+    case TOK_HEX_NUMBER: tag = "hex-number"; break;
+    case TOK_SYMBOL:     tag = "symbol"; break;
+    default:             tag = "error"; break;
     }
     t->slot[0] = (leaf_object*)symbol_from_cstring(tag);
     return t;

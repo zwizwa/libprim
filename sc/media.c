@@ -20,6 +20,7 @@
 #include <media/glx.h>
 #include <leaf/grid.h>
 #include <media/gsl.h>
+#include <media/yuv.h>
 
 
 DEF_AREF_TYPE(codec)
@@ -322,4 +323,12 @@ _ sc_grid_roots(sc *sc, _ ob_poly) {
 _ sc_grid_noise_normal(sc *sc, _ g) {
     grid_noise_normal(CAST(grid, g));
     return VOID;
+}
+
+
+DEF_AREF_TYPE(yuv)
+
+_ sc_make_yuv(sc *sc, _ w, _ h, _ fourcc) {
+    return _sc_make_aref(sc, yuv_new(CAST_INTEGER(w), CAST_INTEGER(h), 
+                                     CAST(cstring, fourcc)));
 }

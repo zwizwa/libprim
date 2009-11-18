@@ -4,14 +4,15 @@
 // from libavcodec/api-example.c
 // http://www.irisa.fr/texmex/people/dufouil/ffmpegdoxy/apiexample_8c.html
 
+#include <leaf/port.h>
 
 // see "ffmpeg -formats"
 
 /** CLASSES **/
 
 /* CODEC */
-static void codec_write(codec *c, FILE *f) {
-    fprintf(f, "#<codec:%s>", c->codec->name);
+static int codec_write(codec *c, port *p) {
+    return port_printf(p, "#<codec:%s>", c->codec->name);
 }
 codec_class *codec_type(void) {
     static codec_class *x = NULL;
@@ -38,8 +39,8 @@ static void codec_context_free(codec_context *c) {
     av_freep(&c->context);
     free(c);
 };
-static void codec_context_write(codec_context *c, FILE *f) {
-    fprintf(f, "#<codec_context:%p>", c);
+static int codec_context_write(codec_context *c, port *p) {
+    return port_printf(p, "#<codec_context:%p>", c);
 }
 codec_context_class *codec_context_type(void) {
     static codec_context_class *x = NULL;
@@ -81,8 +82,8 @@ codec_context *codec_context_new(void){
 
 
 /* FRAME */
-static void vframe_write(vframe *x, FILE *f) {
-    fprintf(f, "#<vframe:%p>", x);
+static int vframe_write(vframe *x, port *p) {
+    return port_printf(p, "#<vframe:%p>", x);
 }
 static void vframe_free(vframe *f) {
     av_free(f->frame);
@@ -121,8 +122,8 @@ vframe *vframe_new(codec_context *ctx) {
     return x;
 }
 
-static void aframe_write(aframe *x, FILE *f) {
-    fprintf(f, "#<aframe:%p>", x);
+static void aframe_write(aframe *x, port *p) {
+    port_printf(p, "#<aframe:%p>", x);
 }
 static void aframe_free(aframe *f) {
     free(f->samples);

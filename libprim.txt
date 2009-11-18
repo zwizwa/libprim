@@ -5596,3 +5596,55 @@ OK: made leaf object wrapping virtual + moved a lot of code to from
 scheme.c to ex.c
 
 
+Entry: cleanup 'write'
+Date: Wed Nov 18 13:32:16 CET 2009
+
+This doesn't need the default port mechanism any more.
+
+
+Entry: yuv type
+Date: Wed Nov 18 13:37:10 CET 2009
+
+Y Y'
+U Cb
+V Cr
+
+To be pedantic, these are not the same:
+  Y  luminance = detected energy
+  Y' luma = brightness = gamma-compressed luminance = electric voltage
+
+However, in digital video, the Y is always gamma-compressed, and the
+prime is often removed.
+
+YPbPr is the analog equivalent[2].  For more info see YUV(analog) [3]
+and YCbCr(digital) [4].
+
+How to make the video frame type as general as possible?  Practically
+though, only a couple of different formats are necessary.
+
+These are the degrees of freedom:
+
+  * planar / packed
+
+    It seems that planar formats use only 2x2.
+    YV12     Y,Cr,Cb
+    I420     Y,Cb,Cr
+
+  * component order
+
+  * subsampling
+
+          4:4:4  none
+          4:2:2  vertical
+          4:1:1  vertical + horizontal
+
+
+Practically.  Can the yuv format be made a subclass of the bytes
+format?  Not really, as it is not a growable buffer.
+
+
+
+[1] http://www.fourcc.org
+[2] http://en.wikipedia.org/wiki/YPbPr
+[3] http://en.wikipedia.org/wiki/Yuv
+[4] http://en.wikipedia.org/wiki/YCbCr

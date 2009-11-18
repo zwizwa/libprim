@@ -6,6 +6,7 @@
 
 #define TOK_STRING      '"'
 #define TOK_NUMBER      '0'
+#define TOK_HEX_NUMBER  'x'
 #define TOK_SYMBOL      ':'
 #define TOK_CHAR        '$'
 #define TOK_HASH        '#'

@@ -1,5 +1,5 @@
 
-SRC=ffmpeg.c xwindow.c xv.c glx.c gsl.c
+SRC=ffmpeg.c xwindow.c xv.c glx.c gsl.c yuv.c
 CPPFLAGS += -DPRIVATE
 
 OBJ=$(SRC:.c=.o)

@@ -85,6 +85,7 @@ static void scanner_get_hash(scanner *x) {
     case 'f':  set_token(x, TOK_FALSE); break;
     case 't':  set_token(x, TOK_TRUE); break;
     case '\\': scanner_get_atom(x, TOK_CHAR); break;
+    case 'x':  scanner_get_atom(x, TOK_HEX_NUMBER); break;
     default:   scanner_get_atom(x, TOK_HASH); break;
     }
 }

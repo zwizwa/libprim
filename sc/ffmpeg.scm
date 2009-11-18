@@ -33,7 +33,8 @@
     (unless (zero? n) (thunk) (rec (sub1 n)))))
 
 
-(define (testmpeg filename)
+;; Write out an mpeg4 encoded avi file with garbage from memory.
+(define (test-mpeg-avi filename)
   (define (testframe w h)
     (let* ((plane (* w h))
            (size (+ plane (/ plane 2))))
@@ -47,6 +48,7 @@
        (i . pipe:.yuv)
        ;; output options
        (y . #f)           ;; force overwrite output
+       (f . avi)
        (vcodec . mpeg4)
        ) filename))
   (let ((port (open-output-mpeg4 filename))
