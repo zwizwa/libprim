@@ -55,6 +55,16 @@ object _ex_write(ex *ex, object o) {
     port *p = ex->port(ex);
     vector *v;
     void *x;
+    leaf_object *l;
+
+    /* If an aref object's class has a lowlevel write method defined, call it. */
+    if ((l = ex->object_to_leaf(ex, o))) {
+        if (l->methods->write) {
+            l->methods->write(l, p);
+            return VOID;
+        }
+    }
+
     if (TRUE  == o) { port_printf(p, "#t"); return VOID; }
     if (FALSE == o) { port_printf(p, "#f"); return VOID; }
     if (EOF_OBJECT  == o) { port_printf(p, "#eof"); return VOID; }
@@ -127,21 +137,6 @@ object _ex_write(ex *ex, object o) {
     if ((x = object_struct(o, prim_type()))) {
         prim *pr = (prim*)x;
         port_printf(p, "#prim<%p:%ld>", (void*)(pr->fn),pr->nargs);
-        return VOID;
-    }
-    if ((x = object_struct(o, port_type()))) {
-        port *prt = (port*)x;
-        if (prt->name) {
-            port_printf(p, "#port<%s>", prt->name);
-        }
-        else {
-            port_printf(p, "#port<%p>", prt->stream);
-        }
-        return VOID;
-    }
-    if ((x = object_struct(o, bytes_type()))) {
-        bytes *b = (bytes *)x;
-        bytes_write_string(b, p);
         return VOID;
     }
     if ((x = object_struct(o, rc_type()))) {
@@ -443,7 +438,7 @@ _ ex_bang_finalize(ex *ex, _ ob) {
 }
 
 _ ex_close_port(ex *ex, _ ob) {
-    port *p = CAST(port, ob);
+    if (!object_to_port(ob)) TYPE_ERROR(ob);
     return ex_bang_finalize(ex, ob);
 }
 _ ex_flush_output_port(ex *ex, _ ob) {

@@ -192,17 +192,6 @@ leaf_object *_sc_object_to_leaf(sc *sc, _ o) {
 }
 
 _ sc_write_stderr(sc *sc,  _ o) {
-    void *x;
-    leaf_object *l;
-
-    /* If an aref object's class has a lowlevel write method defined, call it. */
-    if ((l = _sc_object_to_leaf(sc, o))) {
-        if (l->methods->write) {
-            l->methods->write(l, _sc_port(sc));
-            return VOID;
-        }
-    }
-
     vector *v = object_to_vector(o);
     if (TRUE == sc_is_state(sc, o))   return _ex_write_vector(EX, "state", v);
     if (TRUE == sc_is_lambda(sc, o))  return _ex_write_vector(EX, "lambda", v);
