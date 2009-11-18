@@ -28,21 +28,29 @@
     (open-output-process args)))
 
 
-(define (open-output-mpeg4 filename)
-  (ffmpeg
-   `(;; input options
-     (r . 25)
-     (s . "320x240")
-     (f . rawvideo)
-     (i . pipe:.yuv)
-     ;; output options
-     (y . #f)           ;; force overwrite output
-     (vcodec . mpeg4)
-     ) filename))
+(define (times n thunk)
+  (let rec ((n n))
+    (unless (zero? n) (thunk) (rec (sub1 n)))))
 
 
-(define (testframe w h)
-  (let* ((plane (* w h))
-         (size (+ plane (/ plane 2))))
-    (make-bytes size)))
-            
+(define (testmpeg filename)
+  (define (testframe w h)
+    (let* ((plane (* w h))
+           (size (+ plane (/ plane 2))))
+      (make-bytes size)))
+  (define (open-output-mpeg4 filename)
+    (ffmpeg
+     `(;; input options
+       (r . 25)
+       (s . "320x240")
+       (f . rawvideo)
+       (i . pipe:.yuv)
+       ;; output options
+       (y . #f)           ;; force overwrite output
+       (vcodec . mpeg4)
+       ) filename))
+  (let ((port (open-output-mpeg4 filename))
+        (frame (testframe  320 240)))
+    (times 100 (lambda () (write-bytes frame port)))
+    (close-port port)))
+
