@@ -171,22 +171,6 @@ _ sc_current_error_port(sc *sc)  { return sc_global(sc, sc_slot_error_port); }
 _ sc_current_input_port(sc *sc)  { return sc_global(sc, sc_slot_input_port); }
 _ sc_current_output_port(sc *sc) { return sc_global(sc, sc_slot_output_port); }
 
-_ sc_bytes_dump(sc *sc, _ ob) {
-    bytes_dump(CAST(bytes, ob), _sc_port(sc));
-    return VOID;
-}
-
-_ sc_write_bytes(sc *sc, _ ob_bytes, _ ob_port) {
-    port *p = CAST(port, ob_port);
-    bytes *b = CAST(bytes, ob_bytes);
-    if (b->size != port_write(p, b->bytes, b->size)) {
-        return ERROR("fwrite", ob_bytes);
-    }
-    return VOID;
-}
-
-
-
 _ sc_write_port(sc *sc, _ o, _ o_port) {
     /* This `dynamic-wind' hack only works because we're sure there
        are no aborts in this dynamic extent!  FIXME: use explicit
