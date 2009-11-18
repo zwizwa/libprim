@@ -311,9 +311,6 @@ _ ex_sub1(ex *ex, _ o) {
 /* Automatically convert. */
 #define IS_INT(o) (GC_INTEGER == GC_TAG(o))
 enum binop_tag {ADD,SUB,MUL,DIV,EQ,GT,LT};
-typedef _ (*binop_int)(int a, int b);
-typedef _ (*binop_inexact)(inexact *a, inexact *b, inexact *z);
-
 #define DO_BINOP(op,a,b,z,zb) switch(op) {              \
     case ADD: z = a + b; break;                         \
     case SUB: z = a - b; break;                         \
@@ -355,24 +352,44 @@ _ ex_eq(ex *ex, _ a, _ b) { return _ex_binop(ex, a, b, EQ); }
 _ ex_gt(ex *ex, _ a, _ b) { return _ex_binop(ex, a, b, GT); }
 _ ex_lt(ex *ex, _ a, _ b) { return _ex_binop(ex, a, b, LT); }
 
+enum unop_tag {SIN,COS,TAN, ASIN,ACOS,ATAN, EXP,LOG, SQRT};
+_ _ex_unop(ex *ex, _ a, enum unop_tag op) {
+    inexact *inexact_a = object_to_inexact(a);
+    double da = inexact_a ? inexact_a->value :
+               (IS_INT(a) ? (double)(object_to_integer(a)) : 
+                ERROR("type", a));
+    double dz;
+    switch (op) {
+    case SIN: dz = sin(da); break;
+    case COS: dz = cos(da); break;
+    case TAN: dz = tan(da); break;
+
+    case ASIN: dz = asin(da); break;
+    case ACOS: dz = acos(da); break;
+    case ATAN: dz = atan(da); break;
+
+    case EXP: dz = exp(da); break;
+    case LOG: dz = log(da); break;
+    case SQRT: dz = sqrt(da); break;
+    default: ERROR("unop", integer_to_object(op)); 
+    }
+    return ex->leaf_to_object(ex, (leaf_object*)(inexact_new(dz)));
+}
 
 /* Inexact numbers */
-_ ex_fadd(ex *ex, _ a, _ b) INEXACT_BINOP(add)
-_ ex_fsub(ex *ex, _ a, _ b) INEXACT_BINOP(sub)
-_ ex_fmul(ex *ex, _ a, _ b) INEXACT_BINOP(mul)
-_ ex_fdiv(ex *ex, _ a, _ b) INEXACT_BINOP(div)
+_ ex_sin(ex *ex, _ a) { return _ex_unop(ex, a, SIN); }
+_ ex_cos(ex *ex, _ a) { return _ex_unop(ex, a, COS); }
+_ ex_tan(ex *ex, _ a) { return _ex_unop(ex, a, TAN); }
 
-_ ex_fsin(ex *ex, _ a) INEXACT_UNOP(sin)
-_ ex_fcos(ex *ex, _ a) INEXACT_UNOP(cos)
-_ ex_ftan(ex *ex, _ a) INEXACT_UNOP(tan)
+_ ex_asin(ex *ex, _ a) { return _ex_unop(ex, a, ASIN); }
+_ ex_acos(ex *ex, _ a) { return _ex_unop(ex, a, ACOS); }
+_ ex_atan(ex *ex, _ a) { return _ex_unop(ex, a, ATAN); }
 
-_ ex_fasin(ex *ex, _ a) INEXACT_UNOP(asin)
-_ ex_facos(ex *ex, _ a) INEXACT_UNOP(acos)
-_ ex_fatan(ex *ex, _ a) INEXACT_UNOP(atan)
+_ ex_exp(ex *ex, _ a) { return _ex_unop(ex, a, EXP); }
+_ ex_log(ex *ex, _ a) { return _ex_unop(ex, a, LOG); }
+_ ex_sqrt(ex *ex, _ a) { return _ex_unop(ex, a, SQRT); }
 
-_ ex_fexp(ex *ex, _ a) INEXACT_UNOP(exp)
-_ ex_flog(ex *ex, _ a) INEXACT_UNOP(log)
-_ ex_fsqrt(ex *ex, _ a) INEXACT_UNOP(sqrt)
+
 
 
 _ ex_system(ex *ex, _ ob) {

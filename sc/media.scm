@@ -111,7 +111,7 @@
 (define (phasor angle)
   (let* ((c (fcos angle))
          (s (fsin angle))
-         (s- (fmul -1.0 s)))
+         (s- (* -1 s)))
     (mat `((,c  ,s)
            (,s- ,c)))))
 
@@ -119,7 +119,7 @@
   (grid-column
    (ar-unfold (phasor angle) (vec '(1 0)) n) 0))
 
-(define pi (fmul 4.0 (fatan 1.0)))
+(define pi (* 4.0 (fatan 1.0)))
 
 (define (ar-poly signal order)
   (let* ((h (hankel signal (+ 1 order)))
