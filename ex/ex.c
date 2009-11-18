@@ -308,6 +308,21 @@ _ ex_gt(ex *ex, _ a, _ b)  { return BINREL(>, a, b); }
 _ ex_lt(ex *ex, _ a, _ b)  { return BINREL(<, a, b); }
 
 
+/* Automatically convert. */
+#define IS_INT(o) (GC_INTEGER == GC_TAG(o))
+typedef _ (*binop_int)(int a, int b);
+typedef _ (*binop_inexact)(inexact *a, inexact *b);
+_ _ex_binop(ex *ex, _ a, _ b, binop_int intop) {
+    int is_int_a = IS_INT(a);
+    int is_int_b = IS_INT(b);
+    if (is_int_a && is_int_b) {
+        return intop(object_to_integer(a),
+                     object_to_integer(b));
+    }
+    
+}
+
+
 /* Inexact numbers */
 _ ex_fadd(ex *ex, _ a, _ b) INEXACT_BINOP(add)
 _ ex_fsub(ex *ex, _ a, _ b) INEXACT_BINOP(sub)
