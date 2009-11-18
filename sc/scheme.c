@@ -219,9 +219,6 @@ _ sc_write_stderr(sc *sc,  _ o) {
     return _ex_write(EX, o);
 }
 
-_ sc_read_char(sc *sc) {
-    return integer_to_object(fgetc(stdin));
-}
 
 // FIXME: factor this out to incorportate high level errors
 _ sc_print_error(sc *sc, _ err) {

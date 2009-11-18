@@ -5592,3 +5592,7 @@ table in the EX struct, but since this is not VM-specific
 (i.e. multiple SC or PF VMS, all with their own local memory and GC)
 it can maybe be expressed using a static or dynamic linker interface.
 
+OK: made leaf object wrapping virtual + moved a lot of code to from
+scheme.c to ex.c
+
+
