@@ -202,11 +202,6 @@ static inline void *object_aref_struct(object ob, void *type) {
     name *object_to_##name(object ob) { \
         return (name*)object_aref_struct(ob,name##_type()); }
 
-DECL_TYPE(port)
-DECL_TYPE(bytes)
-DECL_TYPE(inexact)
-
-typedef char cstring;  // for CAST()
 
 
 

@@ -189,9 +189,12 @@ _ _ex_boot_load(ex *ex,  const char *bootfile);
 #define DECL_TYPE(name) \
     name *object_to_##name(object ob);
 
+DECL_TYPE(port)
 DECL_TYPE(inexact)
 DECL_TYPE(bytes)
-char *object_to_cstring(_ ob);
+typedef char cstring;  // for CAST()
+DECL_TYPE(cstring)
+
 
 
 
