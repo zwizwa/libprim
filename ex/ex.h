@@ -59,15 +59,17 @@ struct _ex {
     _ error_tag;
     _ error_arg;
 
-    /* An extensible list of primitive data types.  During bootstrap
-       and in the C code it is assumed to consist of only the base
-       types. */
-    // base_types *p;
+
+    /* VIRTUAL METHODS */
 
     /* Printing: delegate + current port. */
     ex_m_write write;
     _ex_m_port port;
+
+    /* Parsing */
     ex_m_make_pair make_pair;
+
+    /* Object wrapping */
     _ex_m_leaf_to_object leaf_to_object;
     _ex_m_object_to_leaf object_to_leaf;
 

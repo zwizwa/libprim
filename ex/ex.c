@@ -372,6 +372,10 @@ _ ex_get_output_string(ex *ex, _ ob_port) {
     return _ex_leaf_to_object(ex, b);
 }
 
+_ static _ex_fd_open(ex *ex, int fd, const char *cmode, const char *name) {
+    return _ex_leaf_to_object(ex, port_file_new(fdopen(fd, cmode), name));
+}
+
 /* Returns a pair (input . output) of ports. */
 _ ex_tcp_connect(ex *ex, _ host, _ port) {
     char *hostname  = CAST(cstring, host);
@@ -382,8 +386,8 @@ _ ex_tcp_connect(ex *ex, _ host, _ port) {
     }
     char name[20 + strlen(hostname)];
     sprintf(name, "I:%s:%d", hostname, port_number);
-    _ in  = _ex_leaf_to_object(ex, port_file_new(fdopen(fd, "r"), name));  name[0] = 'O';
-    _ out = _ex_leaf_to_object(ex, port_file_new(fdopen(fd, "w"), name));
+    _ in  = _ex_fd_open(ex, fd, "r", name); name[0] = 'O';
+    _ out = _ex_fd_open(ex, fd, "w", name);
     return CONS(in, out);
 }
 
@@ -403,8 +407,8 @@ _ ex_tcp_accept(ex *ex, _ ob) {
     int server_fd = CAST_INTEGER(ob);
     int connection_fd = fd_accept(server_fd);
     if (-1 == connection_fd) ERROR("invalid-fd", ob);
-    return CONS(_ex_leaf_to_object(ex, port_file_new(fdopen(connection_fd, "r"), "I:tcp-accept")),
-                _ex_leaf_to_object(ex, port_file_new(fdopen(connection_fd, "w"), "O:tcp-accept")));
+    return CONS(_ex_fd_open(ex, connection_fd, "r", "I:tcp-accept"),
+                _ex_fd_open(ex, connection_fd, "w", "O:tcp-accept"));
 }
 
 
@@ -458,17 +462,6 @@ _ ex_sub1(ex *ex, _ o) {
     long i = CAST_INTEGER(o);
     return integer_to_object(i - 1);
 }
-#define BINOP(op, a, b) integer_to_object(CAST_INTEGER(a) op CAST_INTEGER(b))
-#define BINREL(op, a, b) (CAST_INTEGER(a) op CAST_INTEGER(b)) ? TRUE : FALSE
-
-//_ ex_add(ex *ex, _ a, _ b) { return BINOP(+, a, b); }
-//_ ex_sub(ex *ex, _ a, _ b) { return BINOP(-, a, b); }
-//_ ex_mul(ex *ex, _ a, _ b) { return BINOP(*, a, b); }
-
-//_ ex_eq(ex *ex, _ a, _ b)  { return BINREL(==, a, b); }
-//_ ex_gt(ex *ex, _ a, _ b)  { return BINREL(>, a, b); }
-//_ ex_lt(ex *ex, _ a, _ b)  { return BINREL(<, a, b); }
-
 
 /* Automatically convert. */
 #define IS_INT(o) (GC_INTEGER == GC_TAG(o))
