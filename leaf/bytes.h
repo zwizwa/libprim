@@ -39,8 +39,8 @@ int bytes_write_string(bytes *b, port *p);
    through this function.  */
 
 char *cstring_from_bytes(bytes *b);
-void bytes_dump(bytes *b, port *p);
-
+int bytes_dump(bytes *b, port *p);     // raw dump
+int bytes_hexdump(bytes *b, port *p);  // human-readable
 
 
 /* Allocate a buffer segment + return pointer. */

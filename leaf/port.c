@@ -177,11 +177,15 @@ void port_free(port *x) {
 }
 
 
+static int port_write_info(port *x, port *p) {
+    return port_printf(p, "#<port:%s>", x->name);
+}
 
 static port_class *type = NULL;
 static port_class *port_class_new(void) {
     port_class *x = calloc(1, sizeof(*x));
     x->super.free = (leaf_free_m)port_free;
+    x->super.write = (leaf_write_m)port_write_info;
     return x;
 }
 port_class *port_type(void) {

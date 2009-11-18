@@ -12,6 +12,7 @@ static bytes_class *bytes_class_new(void) {
     bytes_class *x = calloc(1, sizeof(*x));
     x->super.free = (leaf_free_m)_bytes_free;
     x->super.write = (leaf_write_m)bytes_write_string;
+    // x->super.dump  = (leaf_write_m)bytes_dump;
     return x;
 }
 bytes_class *bytes_type(void) {
@@ -81,10 +82,11 @@ bytes* bytes_from_qcstring(const char *str){
 }
 
 static const char hexdigit[] = "0123456789ABCDEF";
-static void _write_hex(port *p, int val, int digits) {
+static int _write_hex(port *p, int val, int digits) {
     while (digits-- > 0) {
         port_putc(p, hexdigit[(val >> (digits * 4)) & 0xF]);
     }
+    return digits;
 }
 
 /* This prints full-length byte buffers, not C strings. */
@@ -106,25 +108,27 @@ int bytes_write_string(bytes *b, port *p) {
     return num;
 }
 
-void bytes_dump(bytes *b, port *p) {
+int bytes_hexdump(bytes *b, port *p) {
     int i,j;
+    int len = 0;
     for(j = 0; j < b->size; j += 16) {
         for (i = 0; i < 16; i++) {
-            if ((i + j) >= b->size) { port_putc(p, ' '); port_putc(p, ' '); }
-            else _write_hex(p, b->bytes[i+j], 2);
-            port_putc(p, ' ');
+            if ((i + j) >= b->size) { port_putc(p, ' '); port_putc(p, ' '); len+=2; }
+            else len += _write_hex(p, b->bytes[i+j], 2);
+            port_putc(p, ' '); len++;
         }
-        port_putc(p, ' ');
+        port_putc(p, ' '); len++;
         for (i = 0; i < 16; i++) {
-            if ((i + j) >= b->size) { port_putc(p, ' '); }
+            if ((i + j) >= b->size) { port_putc(p, ' '); len++; }
             else {
                 int c = b->bytes[i+j];
-                if ((c >= 32) && (c < 127)) port_putc(p, c);
-                else port_putc(p, '.');
+                if ((c >= 32) && (c < 127)) { port_putc(p, c); len++; }
+                else { port_putc(p, '.'); len++; }
             }
         }
-        port_putc(p, '\n');
+        port_putc(p, '\n'); len++;
     }
+    return len;
 }
 
 

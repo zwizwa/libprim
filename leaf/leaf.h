@@ -36,6 +36,7 @@ typedef int (*leaf_write_m)(leaf_object *, port *);
 struct _leaf_class {
     leaf_free_m free;
     leaf_write_m write;
+    leaf_write_m dump;    // don't write metadata
 };
 
 // an object refers to its class

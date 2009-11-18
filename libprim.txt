@@ -5642,9 +5642,19 @@ These are the degrees of freedom:
 Practically.  Can the yuv format be made a subclass of the bytes
 format?  Not really, as it is not a growable buffer.
 
+Done.
 
 
 [1] http://www.fourcc.org
 [2] http://en.wikipedia.org/wiki/YPbPr
 [3] http://en.wikipedia.org/wiki/Yuv
 [4] http://en.wikipedia.org/wiki/YCbCr
+
+
+Entry: Re-introducing packets
+Date: Wed Nov 18 14:58:24 CET 2009
+
+A packet is something that can be constructed from a raw bytes buffer
+given some meta information.  The other way around, packets can dump
+their data.
+

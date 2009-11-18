@@ -183,21 +183,22 @@ _ sc_write_port(sc *sc, _ o, _ o_port) {
     return rv;
 }
 
+/* Unwrap leaf objects: it is assumed that all aref-wrapped objects
+   are leaf objects.  See constructor. */
+leaf_object *_sc_object_to_leaf(sc *sc, _ o) {
+    aref *a = object_to_aref(o); if (!a) return NULL;
+    leaf_object *x = object_to_const(a->object);
+    return x;
+}
+
 _ sc_write_stderr(sc *sc,  _ o) {
     void *x;
-    aref* a;
-
-    /* FIXME: Bytes and strings are currently the same. */
-    if ((x = object_to_port(o)) ||
-        (x = object_to_bytes(o))) {
-        return _ex_write(EX, const_to_object(x));
-    }
+    leaf_object *l;
 
     /* If an aref object's class has a lowlevel write method defined, call it. */
-    if ((a = object_to_aref(o))) {
-        leaf_object *x = object_to_const(a->object);
-        if (x->methods->write) {
-            x->methods->write(x, _sc_port(sc));
+    if ((l = _sc_object_to_leaf(sc, o))) {
+        if (l->methods->write) {
+            l->methods->write(l, _sc_port(sc));
             return VOID;
         }
     }
@@ -882,6 +883,7 @@ sc *_sc_new(int argc, char **argv) {
     sc->m.write = (ex_m_write)sc_write_stderr;
     sc->m.make_pair = ex_cons;
     sc->m.leaf_to_object = (_ex_m_leaf_to_object)_sc_make_aref;
+    sc->m.object_to_leaf = (_ex_m_object_to_leaf)_sc_object_to_leaf;
 
     /* Data roots. */
     _ in  = _ex_make_file_port(EX, stdin,  "stdin");
