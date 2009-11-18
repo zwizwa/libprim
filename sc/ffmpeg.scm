@@ -52,7 +52,7 @@
        (vcodec . mpeg4)
        ) filename))
   (let ((port (open-output-mpeg4 filename))
-        (frame (testframe  320 240)))
+        (frame (make-yuv 320 240 "I420")))
     (times 100 (lambda () (write-bytes frame port)))
     (close-port port)))
 
