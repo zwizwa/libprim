@@ -1,4 +1,4 @@
-libprim (c) 2009 Tom Schouten
+libprim (c) 2003-2009 Tom Schouten
 
 An application core library for multimedia applications.
 
@@ -11,9 +11,9 @@ two scripting languages are implemented: Packet Forth (PF) and an
 Licence
 -------
 
-The core components (leaf, PF, SC) are licensed under the terms of the
-GNU Lesser General Public Licence (LGPL).  See the file COPYING for
-details.
+The LEAF object collection, the EX language and the PF + SC
+interpreters are licensed under the terms of the GNU Lesser General
+Public Licence (LGPL).  See the file COPYING for details.
 
 Note that the use of some optional components requires a re-licencing
 under the terms of the GNU General Public Licence (GPL).  Most notably
@@ -49,3 +49,12 @@ http://plt-scheme.org
 http://piumarta.com/software/peg/
 
 `ffmpeg' for the media library.  Last tested: svn rev 20455 (2009/11/5).
+
+
+
+History
+-------
+
+The current incarnation of this project started in August 2009, as a
+restructuring of Packet Forth, which itself is a fork of PDP for Pure
+Data.
