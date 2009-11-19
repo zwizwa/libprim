@@ -309,17 +309,8 @@ const char *CL = "[";
 const char *CR = "]";
 
 _ px_write(pf *pf, _ ob) {
-
-    return _ex_write(EX, ob);
-
     void *x;
-    /* Ports and strings are RC wrapped in PF.  Pass them wrapped as
-       const. */
-    if ((x = object_to_port(ob)) ||
-        (x = object_to_bytes(ob))) {
-        return _ex_write(EX, const_to_object(x));
-    }
-    else if ((x = object_to_box(ob))) {
+    if ((x = object_to_box(ob))) {
         return _ex_write_vector(EX, "box", object_to_vector(ob));
     }
     else if ((x = object_to_lin(ob))) {
