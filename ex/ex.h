@@ -17,6 +17,7 @@
 #include <leaf/prim.h>
 #include <leaf/rc.h>
 #include <leaf/inexact.h>
+#include <leaf/channel.h>
 
 /* Highlevel transparent object rep and GC */
 #include <ex/object.h>
@@ -192,6 +193,7 @@ _ _ex_boot_load(ex *ex,  const char *bootfile);
     name *object_to_##name(object ob);
 
 DECL_TYPE(port)
+DECL_TYPE(channel)
 DECL_TYPE(inexact)
 DECL_TYPE(bytes)
 typedef char cstring;  // for CAST()

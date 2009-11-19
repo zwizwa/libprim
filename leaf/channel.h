@@ -4,6 +4,7 @@
 #ifndef _LEAF_CHANNEL_H_
 #define _LEAF_CHANNEL_H_
 
+#include <pthread.h>
 #include <stdio.h>
 #include <leaf/leaf.h>
 #include <leaf/port.h>
@@ -15,7 +16,6 @@ typedef struct {
     channel_class *type;
     leaf_object *object;
     int open;
-
     pthread_mutex_t mut;
     pthread_cond_t get_ok;
     pthread_cond_t put_ok;

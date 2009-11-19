@@ -37,6 +37,7 @@
 DEF_AREF_TYPE(port)
 DEF_AREF_TYPE(bytes)
 DEF_AREF_TYPE(inexact)
+DEF_AREF_TYPE(channel)
 
 
 

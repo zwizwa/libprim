@@ -9,6 +9,7 @@
 */
 
 #include <leaf/port.h>
+#include <leaf/channel.h>
 #include "object.h"
 #include "pair.h"
 #include "ex.h"
@@ -451,6 +452,25 @@ _ ex_flush_output_port(ex *ex, _ ob) {
 }
 
 
+/* Channels */
+static leaf_object *read_chan_test(void *ctx, port *p) {
+    return (leaf_object*)bytes_from_cstring("test");
+}
+_ ex_make_channel_test(ex *ex) {
+    return _ex_leaf_to_object(ex, channel_from_input_port(NULL, read_chan_test, NULL));
+}
+_ ex_channel_get(ex *ex, _ chan) {
+    return _ex_leaf_to_object(ex, channel_get(CAST(channel, chan)));
+}
+
+/* This is intended as a barrier between EX and plain C code that
+   operates without GC, and thus only supports leaf objects.  */
+_ ex_channel_put(ex *ex, _ chan, _ ob) {
+    leaf_object *l = ex->object_to_leaf(ex, ob);
+    if (!l) TYPE_ERROR(ob);
+    channel_put(CAST(channel, chan), l);
+    return VOID;
+}
 
 
 /* Arithmetic */

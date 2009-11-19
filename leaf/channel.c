@@ -6,13 +6,12 @@
 static int channel_write(channel *x, port *p) {
     return port_printf(p, "#<channel>");
 }
-/* Note that a channel always has exactly two references.  Teardown
-   follows the following protocol: The writing side will signal EOF by
-   writing a NULL object, upon which the reading end frees the
-   structure. */
-static void channel_free(channel *x, port *p) {
-    if (x->object) leaf_free(x->object);
-    free(x);
+/* Note that a channel always has exactly two references.  
+
+   FIXME: Teardown: one end closes the channel by setting a variable,
+   while the other will properly cleanup the the data structures. */
+static void channel_free(channel *x) {
+    x->open = 0;
 }
 
 LEAF_SIMPLE_TYPE(channel)
@@ -30,8 +29,6 @@ channel *channel_new(void) {
     channel_init(x);
     return x;
 }
-
-
 leaf_object *channel_get(channel *x) {
     leaf_object *ob;
     pthread_mutex_lock(&x->mut);
@@ -72,6 +69,12 @@ typedef struct {
     pthread_t thread; 
 } io_channel;
 
+
+//static void io_channel_free(io_channel *x) {
+//    // pthread_destroy(&x->thread);
+//    leaf_free((leaf_object*)x->p);
+//    channel_free(&x->chan);
+//}
 static channel* channel_from_port(port *p, void *io_fn, void *ctx, void *thread_fn ) {
     io_channel *x = calloc(1, sizeof(*x));
     channel_init(&x->chan);

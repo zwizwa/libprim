@@ -39,6 +39,7 @@
 DEF_RC_TYPE(port)
 DEF_RC_TYPE(bytes)
 DEF_RC_TYPE(inexact)
+DEF_RC_TYPE(channel)
 
 
 /* TOOLS+DATA */
