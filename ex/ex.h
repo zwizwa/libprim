@@ -44,6 +44,7 @@ typedef object (*ex_m_write)(ex *ex, object ob);
 typedef port*  (*_ex_m_port)(ex *ex);
 typedef object (*_ex_m_leaf_to_object)(ex *ex, leaf_object*);
 typedef leaf_object *(*_ex_m_object_to_leaf)(ex *ex, object);
+typedef void (*_ex_m_object_erase_leaf)(ex *ex, object);
 typedef object (*ex_m_make_pair)(ex *ex, object car, object cdr); // reader
 struct _ex {
     void *type;
@@ -73,7 +74,7 @@ struct _ex {
     /* Object wrapping */
     _ex_m_leaf_to_object leaf_to_object;
     _ex_m_object_to_leaf object_to_leaf;
-
+    _ex_m_object_erase_leaf object_erase_leaf;
 };
 
 #define DEF_ATOM(name)                                         \

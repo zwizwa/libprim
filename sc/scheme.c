@@ -191,6 +191,13 @@ leaf_object *_sc_object_to_leaf(sc *sc, _ o) {
     leaf_object *x = object_to_const(a->object);
     return x;
 }
+/* This is used in channel communication: the leaf object's ownership
+   is transferred to the other end. */
+void _sc_object_erase_leaf(sc *sc, _ o) {
+    aref *a = object_to_aref(o); if (!a) return;
+    a->fin = VOID;
+    a->object = VOID;
+}
 
 _ sc_write_stderr(sc *sc,  _ o) {
     vector *v = object_to_vector(o);
@@ -874,6 +881,7 @@ sc *_sc_new(int argc, char **argv) {
     sc->m.make_pair = ex_cons;
     sc->m.leaf_to_object = (_ex_m_leaf_to_object)_sc_make_aref;
     sc->m.object_to_leaf = (_ex_m_object_to_leaf)_sc_object_to_leaf;
+    sc->m.object_erase_leaf = (_ex_m_object_erase_leaf)_sc_object_erase_leaf;
 
     /* Data roots. */
     _ in  = _ex_make_file_port(EX, stdin,  "stdin");

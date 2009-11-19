@@ -15,7 +15,7 @@ typedef struct { leaf_class super; } channel_class;
 typedef struct {
     channel_class *type;
     leaf_object *object;
-    int open;
+    int rc;
     pthread_mutex_t mut;
     pthread_cond_t get_ok;
     pthread_cond_t put_ok;

@@ -11,7 +11,17 @@ static int channel_write(channel *x, port *p) {
    FIXME: Teardown: one end closes the channel by setting a variable,
    while the other will properly cleanup the the data structures. */
 static void channel_free(channel *x) {
-    x->open = 0;
+    if (x->rc == 2) {
+        fprintf(stderr, "RC=2 %p\n", x);
+        x->rc--;
+        pthread_cond_signal(&x->get_ok);
+        pthread_cond_signal(&x->put_ok);
+    }
+    else {
+        fprintf(stderr, "RC=1 %p\n", x);
+        if (x->object) leaf_free((leaf_object*)x->object);
+        free(x);
+    }
 }
 
 LEAF_SIMPLE_TYPE(channel)
@@ -19,7 +29,7 @@ LEAF_SIMPLE_TYPE(channel)
 static void channel_init(channel *x) {
     x->type = channel_type();
     x->object = NULL;
-    x->open = 1;
+    x->rc = 2;
     pthread_mutex_init(&x->mut, NULL);
     pthread_cond_init(&x->get_ok, NULL);
     pthread_cond_init(&x->put_ok, NULL);
@@ -30,22 +40,28 @@ channel *channel_new(void) {
     return x;
 }
 leaf_object *channel_get(channel *x) {
-    leaf_object *ob;
+    leaf_object *ob = NULL;
     pthread_mutex_lock(&x->mut);
-        while(!x->object) { pthread_cond_wait(&x->get_ok, &x->mut); }
-        ob = x->object;
-        x->object = NULL;
-        pthread_cond_signal(&x->put_ok);  // wake up producer
+        while((!x->object) && (x->rc == 2)) { pthread_cond_wait(&x->get_ok, &x->mut); }
+        if (x->rc == 2) {
+            ob = x->object;
+            x->object = NULL;
+            pthread_cond_signal(&x->put_ok);  // wake up producer
+        }
     pthread_mutex_unlock(&x->mut);
     return ob;
 }
 int channel_put(channel *x, leaf_object *ob) {
+    int rv = -1;
     pthread_mutex_lock(&x->mut);
-        while(x->object) { pthread_cond_wait(&x->put_ok, &x->mut); }
-        x->object = ob;
-        pthread_cond_signal(&x->get_ok); // wake up consumer
+        while(x->object && (x->rc == 2)) { pthread_cond_wait(&x->put_ok, &x->mut); }
+        if (x->rc == 2) {
+            x->object = ob;
+            pthread_cond_signal(&x->get_ok); // wake up consumer
+            rv = 0;
+        }
     pthread_mutex_unlock(&x->mut);
-    return 0;
+    return rv;
 }
 int channel_get_would_block(channel *x) {
     return (x->object == NULL);
@@ -86,11 +102,29 @@ static channel* channel_from_port(port *p, void *io_fn, void *ctx, void *thread_
     pthread_create(&x->thread, &attr, thread_fn, x);
     return (channel*)x;
 }
+
+/* Note that channels transfer ownership. */
 static void read_thread(io_channel *x) {
-    for(;;) channel_put(&x->chan, x->io.read(x->ctx, x->p));
+    leaf_object *o;
+    for(;;) {
+        if (!(o = x->io.read(x->ctx, x->p))) break;
+        if (channel_put(&x->chan, o)) {
+            leaf_free(o);
+            break;
+        }
+    }
+    leaf_free((leaf_object*)x);
 }
 static void write_thread(io_channel *x) {
-    for(;;) x->io.write(x->ctx, x->p, channel_get(&x->chan));
+    leaf_object *o;
+    for(;;) {
+        if (!(o = channel_get(&x->chan))) break;
+        if (x->io.write(x->ctx, x->p, o)) {
+            leaf_free(o);
+            break;
+        }
+    }
+    leaf_free((leaf_object*)x);
 }
 channel* channel_from_output_port(port *p, port_writer write, void *ctx) {
     return channel_from_port(p, write, ctx, write_thread);

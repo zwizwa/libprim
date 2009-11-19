@@ -456,8 +456,18 @@ _ ex_flush_output_port(ex *ex, _ ob) {
 static leaf_object *read_chan_test(void *ctx, port *p) {
     return (leaf_object*)bytes_from_cstring("test");
 }
-_ ex_make_channel_test(ex *ex) {
+static int write_chan_test(void *ctx, port *p, leaf_object *b) {
+    if (b->methods == (leaf_class*)bytes_type()) {
+        fprintf(stderr, "GOT: %s\n", ((bytes*)b)->bytes);
+    }
+    leaf_free(b);
+    return 0;
+}
+_ ex_make_channel_test_get(ex *ex) {
     return _ex_leaf_to_object(ex, channel_from_input_port(NULL, read_chan_test, NULL));
+}
+_ ex_make_channel_test_put(ex *ex) {
+    return _ex_leaf_to_object(ex, channel_from_output_port(NULL, write_chan_test, NULL));
 }
 _ ex_channel_get(ex *ex, _ chan) {
     return _ex_leaf_to_object(ex, channel_get(CAST(channel, chan)));
@@ -469,6 +479,7 @@ _ ex_channel_put(ex *ex, _ chan, _ ob) {
     leaf_object *l = ex->object_to_leaf(ex, ob);
     if (!l) TYPE_ERROR(ob);
     channel_put(CAST(channel, chan), l);
+    ex->object_erase_leaf(ex, ob); // we no longer own it
     return VOID;
 }
 
