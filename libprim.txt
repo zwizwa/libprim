@@ -5741,3 +5741,22 @@ Date: Thu Nov 19 15:07:10 CET 2009
 The basic use case is a channel that wraps a file descriptor, which
 represents a socket or an other pipe to another process.
 
+OK, seems to work.
+
+Making this many->one would make it possible to serialize external events.
+
+The only problem is resource management.  See the following scenario:
+
+1 consumer, N producers.  Whenever the consumer looses interest, all
+the produces should give up.  However, when a producer disappears this
+should keep the channel open.
+
+In this case the 'free' method, issued at the consumer side should
+signal all producers to give up, and only cleanup the object when
+they're gone.
+
+
+Let's make it work for the many->one case.
+
+
+

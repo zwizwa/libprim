@@ -1,5 +1,8 @@
 /* Synchronous channels for leaf object communication between system
-   threads and a main VM sequencer thread. */
+   threads and a main VM sequencer thread. 
+
+   The channel is asymmetric: 1 reader, multiper writers.
+*/
 
 #ifndef _LEAF_CHANNEL_H_
 #define _LEAF_CHANNEL_H_
@@ -15,10 +18,14 @@ typedef struct { leaf_class super; } channel_class;
 typedef struct {
     channel_class *type;
     leaf_object *object;
-    int rc;
+
     pthread_mutex_t mut;
     pthread_cond_t get_ok;
     pthread_cond_t put_ok;
+
+    int rc;
+    int teardown;
+    pthread_cond_t teardown_ok;
     
 } channel;
 
@@ -31,18 +38,16 @@ channel_class *channel_type(void);
 channel* channel_new(void);
 
 
-/* The main usage for channel objects is to provide non-blocking
-   behaviour for binary data conversion (parsing and printing).  These
-   functions create channels that represent external parsing/printing
-   running in a separate thread using blocking I/O on a file port. */
+/* The main usage for channel objects is to connect to worker threads
+   that perform I/O to prevent the main thread to block.  These
+   functions add a reader or writer to a channel created with
+   channel_new().  A port_writer will READ data from the channel and
+   WRITE it to the port.  A port_reader does the reverse.  */
 
-typedef leaf_object* (*port_reader)(void *ctx, port *p);
-typedef int (*port_writer)(void *ctx, port *p, leaf_object *ob);
-
-channel* channel_from_input_port(port *p, port_reader fn, void *ctx);
-channel *channel_from_output_port(port *p, port_writer fn, void *ctx);
-
-
-
+typedef leaf_object* (*port_reader)(leaf_object *ctx, port *p);
+typedef int (*port_writer)(leaf_object *ctx, port *p, leaf_object *ob);
+ 
+int channel_connect_port_writer(channel *c, port *p, port_writer write, void *ctx);
+int channel_connect_port_reader(channel *c, port *p, port_reader read, void *ctx);
 
 #endif

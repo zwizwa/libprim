@@ -464,10 +464,14 @@ static int write_chan_test(void *ctx, port *p, leaf_object *b) {
     return 0;
 }
 _ ex_make_channel_test_get(ex *ex) {
-    return _ex_leaf_to_object(ex, channel_from_input_port(NULL, read_chan_test, NULL));
+    channel *c = channel_new();
+    channel_connect_port_reader(c, NULL, read_chan_test, NULL);
+    return _ex_leaf_to_object(ex, c);
 }
 _ ex_make_channel_test_put(ex *ex) {
-    return _ex_leaf_to_object(ex, channel_from_output_port(NULL, write_chan_test, NULL));
+    channel *c = channel_new();
+    channel_connect_port_writer(c, NULL, write_chan_test, NULL);
+    return _ex_leaf_to_object(ex, c);
 }
 _ ex_channel_get(ex *ex, _ chan) {
     return _ex_leaf_to_object(ex, channel_get(CAST(channel, chan)));
