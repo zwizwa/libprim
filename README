@@ -17,7 +17,9 @@ Public Licence (LGPL).  See the file COPYING for details.
 
 Note that the use of some optional components requires a re-licencing
 under the terms of the GNU General Public Licence (GPL).  Most notably
-the GSL and some of the FFMPEG code.
+the GSL and some of the FFMPEG code.  If the licence for a particular
+source file deviates from the default LGPL licence of the core project
+this is clearly indicated at the top of the file.
 
 
 Documentation
