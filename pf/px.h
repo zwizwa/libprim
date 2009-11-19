@@ -73,13 +73,13 @@ static inline void *object_rc_struct(object ob, void *type) {
     return x->ctx;
 }
 
+leaf_object *_px_object_to_leaf(pf *pf, _ ob);
+object _px_make_rc(pf *pf, leaf_object *x);
+
 /* RC types are const types wrapped in a RC struct. */
 #define DEF_RC_TYPE(name)                                              \
-    static inline name *object_to_##name(object ob) {                  \
+    name *object_to_##name(object ob) {                                \
         return (name*)object_rc_struct(ob,name##_type()); }
-
-DEF_RC_TYPE(port)
-DEF_RC_TYPE(bytes)
 
 port *_px_port(pf *pf);
 _ _px_make_port(pf *pf, FILE *f, const char *name);

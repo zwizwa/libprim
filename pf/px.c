@@ -35,6 +35,11 @@
 #include "pf.h"
 #include "px.h"
 
+/* Leaf object wrappers. */
+DEF_RC_TYPE(port)
+DEF_RC_TYPE(bytes)
+DEF_RC_TYPE(inexact)
+
 
 /* TOOLS+DATA */
 _ px_abort(pf *pf, _ tag, _ arg) {
@@ -63,7 +68,11 @@ _ _px_make_rc(pf *pf, leaf_object *ob) {
     rc->rc = 1;
     return const_to_object(rc);
 }
-
+leaf_object *_px_object_to_leaf(pf *pf, object ob) {
+    rc *x = object_to_rc(ob);
+    if (!x) return NULL;
+    return x->ctx;
+}
 _ _px_make_port(pf *pf, FILE *f, const char *name) {
     return _px_make_rc(pf, (leaf_object*)port_file_new(stdout, name));
 }
@@ -300,6 +309,9 @@ const char *CL = "[";
 const char *CR = "]";
 
 _ px_write(pf *pf, _ ob) {
+
+    return _ex_write(EX, ob);
+
     void *x;
     /* Ports and strings are RC wrapped in PF.  Pass them wrapped as
        const. */

@@ -757,6 +757,8 @@ _ _px_word(pf* pf, const char *str) {
 
 void _px_load_lib(pf *pf);
 
+
+
 #define SHIFT(n) {argv+=n;argc-=n;}
 pf* _px_new(int argc, char **argv) {
     pf *pf = calloc(1, sizeof(*pf));
@@ -779,9 +781,10 @@ pf* _px_new(int argc, char **argv) {
     // Read/Write delegate
     pf->m.write = (ex_m_write)px_write;
     pf->m.port  = (_ex_m_port)_px_port;
-    pf->m.make_string = (_ex_m_make_string)_px_make_string;
-    pf->m.make_qstring = (_ex_m_make_string)_px_make_qstring;
     pf->m.make_pair = (ex_m_make_pair)px_linear_cons;
+    pf->m.leaf_to_object = (_ex_m_leaf_to_object)_px_make_rc;
+    pf->m.object_to_leaf = (_ex_m_object_to_leaf)_px_object_to_leaf;
+    
 
     // Symbol cache
     pf->s_underflow = SYMBOL("underflow");

@@ -1,7 +1,6 @@
 include Makefile.defs
 
-DIRS = leaf media ex sc
-# pf
+DIRS = leaf media ex sc pf
 
 all: 
 	for dir in $(DIRS); do make -C $$dir; done
