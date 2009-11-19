@@ -5658,3 +5658,48 @@ A packet is something that can be constructed from a raw bytes buffer
 given some meta information.  The other way around, packets can dump
 their data.
 
+
+Entry: External filters
+Date: Thu Nov 19 11:30:04 CET 2009
+
+Make an abstraction to call an external data pipe filter as if it were
+a scheme function.  This needs some select-based sequencing.
+
+Actually, this only works if there is a clear RPC semantics.  Maybe
+coroutines are better?  If unix pipes can be seen as synchronous
+channels with well-defined messages this can be greatly simplified.
+
+The original PF sequencer can probably be used.  This needs
+non-blocking IO.
+
+Is there an SRFI for this?
+
+Anyway, in order to try this, it is necessary to create tasks and i/o
+operations that can be retried.  As opposed to PF, it's probably best
+to implement the basic functionality in C.
+
+This needs:
+  - pre-emptable parser (a C one-shot continuation).
+  - output state machines
+  - input state machines
+
+Only the parser is a push-down automaton, not a state machine.  This
+will be a significant amount of work.  Let's postpone it a couple of
+weeks.
+
+Rewriting the parser to use an explicit stack might be an interesting
+approach.  However, it's probably better to use a proper coroutine
+implementation.  Maybe this can be taken from lua?
+
+Alternatively, pthread can be used.  It might be a lot simpler to
+implement.  As long as the EX memory model can be separated from
+read/write threads this should actually be quite straightforward.
+However..  This does make them more expensive.
+
+We can have both..  On the longer term, figure out how lua does it.
+Switchable stacks is what is necessary.  On the short term: create a
+channel abstraction that can produce/consume leaf objects.  Malloc can
+still be used to allocate data that's passed between threads, and the
+leaf code is completely separate from any graph memory model.
+
+So, a pchannel can be used to synchronize with system threads.
