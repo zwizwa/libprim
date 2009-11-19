@@ -5703,3 +5703,41 @@ still be used to allocate data that's passed between threads, and the
 leaf code is completely separate from any graph memory model.
 
 So, a pchannel can be used to synchronize with system threads.
+
+
+Implementing channels using condition variables (semaphores are not
+enough?) There are two blocking conditions.
+
+GET blocks when C = NULL
+PUT blocks when C = OBJ
+
+Signalling  consumer -> producer:  write_ok
+            producer -> consumer:  read_ok
+
+
+
+leaf_object *channel_get(channel *x) {
+    leaf_object *ob;
+    pthread_mutex_lock(&x->mut);
+        while(!x->object) { pthread_cond_wait(&x->get_ok, &x->mut); }
+        ob = x->object;
+        x->object = NULL;
+        pthread_cond_signal(&x->put_ok);  // wake up producer
+    pthread_mutex_unlock(&x->mut);
+    return ob;
+}
+int channel_put(channel *x, leaf_object *ob) {
+    pthread_mutex_lock(&x->mut);
+        while(x->object) { pthread_cond_wait(&x->put_ok, &x->mut); }
+        x->object = ob;
+        pthread_cond_signal(&x->get_ok); // wake up consumer
+    pthread_mutex_unlock(&x->mut);
+    return 0;
+}
+
+Entry: testing channel
+Date: Thu Nov 19 15:07:10 CET 2009
+
+The basic use case is a channel that wraps a file descriptor, which
+represents a socket or an other pipe to another process.
+
