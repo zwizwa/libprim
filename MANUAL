@@ -1,0 +1,78 @@
+1. General architecture
+
+The libprim project consists of 3 main components:
+
+  - LEAF: a collection of C objects, written according to conventional
+    object-oriented C style.  Each object's first field is a pointer
+    to a class struct containing methods.  All leaf objects implement
+    the methods:
+
+      * free    recursively free resources
+      * write   serialize to stream
+      * dump    write out raw data (i.e. video/audio frames)
+
+    Leaf objects use manual memory management based on libc malloc()
+    and free().  They can be arranged in a tree structure (one leaf
+    object A containing other leaf objects not referenced outside of
+    A), or a directed graph structure using the refcount object.
+
+
+  - EX: a mark-sweep garbage collector for arbitrary graph-structured
+    data + wrappers around the leaf objects.  This essentially behaves
+    as a language with Scheme's data model, but C's execution model
+    (evaluation uses the C stack, EX primitive functions are C
+    functions).
+
+  - SC/PF: scripting language interpreters written on top of the EX
+    data model and function primitives.  Thise provide control
+    semantics that are different from C.
+
+
+The rationale behind these 3 levels is to make it easier to fall back
+to a lower level whenever performance becomes an issue.  I.e. dropping
+from SC to EX eliminates the language interpreter.  Dropping from EX
+to LEAF eliminates the garbage collector.  All drops are at the
+expense of reduced expressiveness.
+
+Libprim is designed in such a way that writing leaf objects is as
+simple as possible.
+    
+This architecture seems to work particulary well for multimedia
+applications, where the basic data types and operations are coded in
+C, wrapped in the EX memory model and made available for powerful
+composition in SC/PF.  At the highest level the inefficiency of the
+interpreter can be largely ignored if the granulairity of the basic
+operations isn't to fine (i.e. operations that process entire video
+frames in one step).
+
+
+
+
+2. Writing leaf objects
+
+Have a look at a simple example, i.e. the yuv object.  The general
+principles to keep in mind when designing leaf objects is:
+
+    Separate constructors from operations: make operations in-place
+    when possible so data can be re-used by upper layers.  
+
+
+
+3. Writing wrappers
+
+Have a look at libprim/sc/media.c for an example of how to wrap leaf
+objects and operations as Scheme primitives.  Essentially, writing a
+wrapped function consists of:
+
+   - casting wrapped objects to leaf objects and C primitives
+   - invoking a leaf procedure
+   - checking for errors and propagating exceptions
+   - wrap any constructed leaf objects
+
+
+4. Glue automation
+
+A limited amount of red-tape can be automatically generated.
+Currently this consists mostly of the EX -> SC/PF function wrapping.
+Automatic LEAF -> EX data wrapping will follow in the future.
+
