@@ -4,8 +4,8 @@
    under the GPL.  However, this file is part of core libprim and
    licenced under the LGPL. */
 
-
-
+#include <ulimit.h>
+#include <unistd.h>
 #include <stdlib.h>
 #include <string.h>
 #include "port.h"
@@ -37,6 +37,15 @@ int port_file_ungetc(port *p, int c) {
 int port_file_write(port *p, void *buf, size_t len) {
     return fwrite(buf, 1, len, p->stream.file);
 }
+int port_file_read(port *p, void *buf, size_t len) {
+    int rv = fread(buf, 1, len, p->stream.file);
+    if (rv < len) {
+        int err = ferror(p->stream.file);
+        if (err) fprintf(stderr, "ERROR: %d\n", err);
+    }
+    return rv;
+}
+
 void port_file_close(port *x) {
     fclose(x->stream.file);
     x->stream.file = NULL;
@@ -51,6 +60,7 @@ void port_file_init(port *p) {
     p->unget   = port_file_ungetc;
     p->put     = port_file_putc;
     p->write   = port_file_write;
+    p->read    = port_file_read;
     p->close   = port_file_close;
     p->bytes   = port_file_bytes;
     p->flush   = port_file_flush;
@@ -108,12 +118,17 @@ bytes *port_bytes_bytes(port *p) {
 }
 void port_bytes_flush(port *p) {}
 
+int port_bytes_read(port *p, void *b, size_t len) {
+    exit(1);
+}
+
 void port_bytes_init(port *p) {
     p->vprintf = port_bytes_vprintf;
     p->get     = port_bytes_getc;
     p->unget   = port_bytes_ungetc;
     p->put     = port_bytes_putc;
     p->write   = port_bytes_write;
+    p->read    = port_bytes_read;
     p->close   = port_bytes_close;
     p->bytes   = port_bytes_bytes;
     p->flush   = port_bytes_flush;
@@ -156,6 +171,10 @@ int port_putc(port *p, int c) {
 int port_write(port *p, void *buf, size_t len) {
     if (!p) p = default_out();
     return p->write(p, buf, len);
+}
+int port_read(port *p, void *buf, size_t len) {
+    if (!p) return EOF;
+    return p->read(p, buf, len);
 }
 void port_close(port *p) {
     if (p) p->close(p);
@@ -395,6 +414,17 @@ int fd_accept(int server_fd) {
 
 */
 
+static void close_fds_from(int from) {
+    // close all other filedescriptors
+    int i = ulimit(4, 0);
+    // i = getdtablesize();
+    while (i-- > from) {
+        // fprintf(stderr, "closing fd %d\n", i);
+        int cr;
+        do { cr = close(i); } while ((cr == -1) && (errno == EINTR));
+    }
+}
+
 int fd_pipe(char **argv, int *_pid, int connect_fd) {
 
     int fd[2];
@@ -409,6 +439,7 @@ int fd_pipe(char **argv, int *_pid, int connect_fd) {
 
 	close(fd[0]);       // don't need these
 	close(fd[1]); 
+        close_fds_from(3);
 
 	// try to execute child
 	if (-1 == execvp(argv[0], argv)){
@@ -423,4 +454,39 @@ int fd_pipe(char **argv, int *_pid, int connect_fd) {
     if (_pid) *_pid = pid;
 
     return filedes;
+}
+
+
+int fd_pipe_2(char **argv, int *_pid, int *fd_to_stdin, int *fd_from_stdout) {
+    int rv, pid, R=0, W=1;
+    int stdin_pipe_fd[2];   // R,W
+    int stdout_pipe_fd[2];
+    if ((rv = pipe(stdin_pipe_fd))) return rv;
+    if ((rv = pipe(stdout_pipe_fd))) return rv;
+
+    /* CHILD */
+    if (!(pid = fork())) {
+        close(stdin_pipe_fd[W]);
+        close(stdout_pipe_fd[R]);
+
+        close(0); dup(stdin_pipe_fd[R]);
+        close(1); dup(stdout_pipe_fd[W]);
+
+        close_fds_from(3);
+
+	// try to execute child
+	if (-1 == execvp(argv[0], argv)){
+	    perror ("can't execute inferior process");
+	    exit(1);
+	}
+    }
+
+    /* PARENT */
+    close(stdin_pipe_fd[R]);
+    close(stdout_pipe_fd[W]);
+
+    *fd_to_stdin    = stdin_pipe_fd[W];
+    *fd_from_stdout = stdout_pipe_fd[R];
+    if (_pid) *_pid = pid;
+    return 0;
 }

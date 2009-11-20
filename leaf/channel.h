@@ -44,10 +44,12 @@ channel* channel_new(void);
    channel_new().  A port_writer will READ data from the channel and
    WRITE it to the port.  A port_reader does the reverse.  */
 
-typedef leaf_object* (*port_reader)(leaf_object *ctx, port *p);
-typedef int (*port_writer)(leaf_object *ctx, port *p, leaf_object *ob);
+typedef leaf_object* (*channel_producer)(leaf_object *ctx);
+typedef int (*channel_consumer)(leaf_object *ctx, leaf_object *msg);
  
-int channel_connect_port_writer(channel *c, port *p, port_writer write, void *ctx);
-int channel_connect_port_reader(channel *c, port *p, port_reader read, void *ctx);
+
+// FIXME: make this generic (port = kind of ctx)
+int channel_connect_consumer(channel *c, channel_consumer consume, leaf_object *ctx);
+int channel_connect_producer(channel *c, channel_producer produce, leaf_object *ctx);
 
 #endif

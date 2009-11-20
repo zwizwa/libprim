@@ -13,6 +13,7 @@ typedef int (*port_getc_m)(port *p);
 typedef int (*port_ungetc_m)(port *p, int c);
 typedef int (*port_putc_m)(port *p, int c);
 typedef int (*port_write_m)(port *p, void *buf, size_t len);
+typedef int (*port_read_m)(port *p, void *buf, size_t len);
 typedef void (*port_close_m)(port *x);
 typedef bytes* (*port_bytes_m)(port *x);
 typedef void (*port_flush_m)(port *x);
@@ -39,6 +40,7 @@ struct _port {
     port_ungetc_m unget;
     port_putc_m  put;
     port_write_m write;
+    port_read_m  read;
     port_close_m close;
     port_bytes_m bytes;
     port_flush_m flush;
@@ -49,6 +51,7 @@ int port_getc(port *p);
 int port_ungetc(port *p, int c);
 int port_putc(port *p, int c);
 int port_write(port *p, void *buf, size_t len);
+int port_read(port *p, void *buf, size_t len);
 void port_close(port *x);
 void port_flush(port *x);
 
@@ -72,5 +75,6 @@ int fd_socket(const char *sockname,  // hostname | filesystem node
 int fd_accept(int fd);
 
 int fd_pipe(char **argv, int *pid, int connect_fd);
+int fd_pipe_2(char **argv, int *pid, int *fd_to_stdin, int *fd_from_stdout);
 
 #endif

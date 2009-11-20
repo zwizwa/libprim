@@ -415,18 +415,21 @@ _ ex_tcp_accept(ex *ex, _ ob) {
 
 /* Processes */
 
-_ _ex_open_process(ex *ex, _ args, char *cmode, int child_fd) {
-    vector *v = CAST(vector, args);
-    int argc = vector_size(v);
-    char *argv[argc+1];
-    int i,pid;
-    for (i=0; i<argc; i++) {
-        argv[i] = CAST(cstring, v->slot[i]);
-    }
+#define STRING_ARGS(args, argc, argv)           \
+    vector *v = CAST(vector, args);             \
+    int argc = vector_size(v);                  \
+    char *argv[argc+1];                         \
+    int i;                                      \
+    for (i=0; i<argc; i++) {                    \
+        argv[i] = CAST(cstring, v->slot[i]);    \
+    }                                           \
     argv[argc] = NULL;
-    int fd = fd_pipe(argv, &pid, child_fd);
-    return _ex_leaf_to_object(ex, port_file_new(fdopen(fd, cmode), argv[0]));
 
+
+_ _ex_open_process(ex *ex, _ args, char *cmode, int child_fd) {
+    STRING_ARGS(args, argc, argv);
+    int fd = fd_pipe(argv, NULL, child_fd);
+    return _ex_leaf_to_object(ex, port_file_new(fdopen(fd, cmode), argv[0]));
 }
 
 _ ex_open_output_process(ex *ex, _ args) { return _ex_open_process(ex, args, "w", 0); }
@@ -453,10 +456,11 @@ _ ex_flush_output_port(ex *ex, _ ob) {
 
 
 /* Channels */
-static leaf_object *read_chan_test(void *ctx, port *p) {
+
+static leaf_object *read_chan_test(port *p) {
     return (leaf_object*)bytes_from_cstring("test");
 }
-static int write_chan_test(void *ctx, port *p, leaf_object *b) {
+static int write_chan_test(port *p, leaf_object *b) {
     if (b->methods == (leaf_class*)bytes_type()) {
         fprintf(stderr, "GOT: %s\n", ((bytes*)b)->bytes);
     }
@@ -465,14 +469,16 @@ static int write_chan_test(void *ctx, port *p, leaf_object *b) {
 }
 _ ex_make_channel_test_get(ex *ex) {
     channel *c = channel_new();
-    channel_connect_port_reader(c, NULL, read_chan_test, NULL);
+    channel_connect_producer(c, (channel_producer)read_chan_test, NULL);
     return _ex_leaf_to_object(ex, c);
 }
 _ ex_make_channel_test_put(ex *ex) {
     channel *c = channel_new();
-    channel_connect_port_writer(c, NULL, write_chan_test, NULL);
+    channel_connect_consumer(c, (channel_consumer)write_chan_test, NULL);
     return _ex_leaf_to_object(ex, c);
 }
+
+
 _ ex_channel_get(ex *ex, _ chan) {
     return _ex_leaf_to_object(ex, channel_get(CAST(channel, chan)));
 }
@@ -486,6 +492,40 @@ _ ex_channel_put(ex *ex, _ chan, _ ob) {
     ex->object_erase_leaf(ex, ob); // we no longer own it
     return VOID;
 }
+
+
+/* Open a process, and collect its output in chunks. */
+static int write_chan_bytes(port *p, leaf_object *l) {
+    l->methods->dump(l, p);
+    port_flush(p);
+    leaf_free(l);
+    return 0;
+}
+static leaf_object *read_chan_bytes(port *p) {
+    int bs = 10;
+    bytes *b = bytes_new(bs);
+    b->size = port_read(p, b->bytes, bs);
+    return (leaf_object*)b;
+}
+
+_ ex_open_process_channels(ex *ex, _ args) {
+    STRING_ARGS(args, argc, argv);
+    int fd_i, fd_o;
+    if (fd_pipe_2(argv, NULL, &fd_i, &fd_o)) return ERROR("invalid", args);
+    fprintf(stderr, "FD %d %d\n", fd_i, fd_o);
+    port *p_i, *p_o;
+    if (!(p_i = port_file_new(fdopen(fd_i, "w"), "<process-in>")))  return ERROR("bad-input-fd", integer_to_object(fd_i));
+    if (!(p_o = port_file_new(fdopen(fd_o, "r"), "<process-out>"))) return ERROR("bad-output-fd", integer_to_object(fd_o));
+
+    channel *c_i = channel_new();  
+    channel *c_o = channel_new();  
+    channel_connect_consumer(c_i, (channel_consumer)write_chan_bytes, (leaf_object*)p_i);
+    channel_connect_producer(c_o, (channel_producer)read_chan_bytes, (leaf_object*)p_o);
+
+    return CONS(_ex_leaf_to_object(ex, c_i),
+                _ex_leaf_to_object(ex, c_o));
+}
+
 
 
 /* Arithmetic */

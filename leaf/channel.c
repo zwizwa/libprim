@@ -91,26 +91,23 @@ int channel_put_would_block(channel *x) {
 
 
 
-/* Connect port IO to channel. */
+/* Connect producer/consumer threads to channel. */
 
 typedef struct {
     channel *chan;
-    void *ctx;
-    port *p;
+    leaf_object *ctx;
     union {
-        port_reader read;
-        port_writer write;
+        channel_producer produce;
+        channel_consumer consume;
         void *fn;
     } io;
     pthread_t thread; 
 } port_io;
 
-static int channel_add_port(channel *chan, port *p, 
-                            void *io_fn, void *ctx, void *thread_fn ) {
+static int channel_add_client(channel *chan, void *io_fn, leaf_object *ctx, void *thread_fn) {
     port_io *x = calloc(1, sizeof(*x));
     x->chan = chan;
     x->ctx = ctx;
-    x->p = p;
     x->io.fn = io_fn;
     pthread_attr_t attr;
     pthread_attr_init(&attr);
@@ -123,7 +120,7 @@ static void read_thread(port_io *x) {
     leaf_object *o;
     channel_register(x->chan);
     for(;;) {
-        if (!(o = x->io.read(x->ctx, x->p))) break;
+        if (!(o = x->io.produce(x->ctx))) break;
         if (channel_put(x->chan, o)) {
             leaf_free(o);
             break;
@@ -138,7 +135,7 @@ static void write_thread(port_io *x) {
     channel_register(x->chan);
     for(;;) {
         if (!(o = channel_get(x->chan))) break;
-        if (x->io.write(x->ctx, x->p, o)) {
+        if (x->io.consume(x->ctx, o)) {
             leaf_free(o);
             break;
         }
@@ -147,9 +144,9 @@ static void write_thread(port_io *x) {
     if (x->ctx) leaf_free(x->ctx);
     free(x);
 }
-int channel_connect_port_writer(channel *c, port *p, port_writer write, void *ctx) {
-    return channel_add_port(c, p, write, ctx, write_thread);
+int channel_connect_consumer(channel *c, channel_consumer consume, leaf_object *ctx) {
+    return channel_add_client(c, consume, ctx, write_thread);
 }
-int channel_connect_port_reader(channel *c, port *p, port_reader read, void *ctx) {
-    return channel_add_port(c, p, read, ctx, read_thread);
+int channel_connect_producer(channel *c, channel_producer produce, leaf_object *ctx) {
+    return channel_add_client(c, produce, ctx, read_thread);
 }
