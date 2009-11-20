@@ -1,6 +1,6 @@
 1. General architecture
 
-The libprim project consists of 3 main components:
+The libprim project consists of 3 language layers:
 
   - LEAF: a collection of C objects, written according to conventional
     object-oriented C style.  Each object's first field is a pointer
@@ -16,7 +16,6 @@ The libprim project consists of 3 main components:
     object A containing other leaf objects not referenced outside of
     A), or a directed graph structure using the refcount object.
 
-
   - EX: a mark-sweep garbage collector for arbitrary graph-structured
     data + wrappers around the leaf objects.  This essentially behaves
     as a language with Scheme's data model, but C's execution model
@@ -24,26 +23,23 @@ The libprim project consists of 3 main components:
     functions).
 
   - SC/PF: scripting language interpreters written on top of the EX
-    data model and function primitives.  Thise provide control
+    data model and function primitives.  These provide control
     semantics that are different from C.
 
 
-The rationale behind these 3 levels is to make it easier to fall back
-to a lower level whenever performance becomes an issue.  I.e. dropping
-from SC to EX eliminates the language interpreter.  Dropping from EX
-to LEAF eliminates the garbage collector.  All drops are at the
-expense of reduced expressiveness.
+The rationale behind the layered design is to make it easier to fall
+back to a lower level whenever execution or memory performance becomes
+an issue.  I.e. dropping from SC to EX eliminates the language
+interpreter.  Dropping from EX to LEAF eliminates the garbage
+collector.  All drops are at the expense of reduced expressiveness.
 
-Libprim is designed in such a way that writing leaf objects is as
-simple as possible.
-    
 This architecture seems to work particulary well for multimedia
 applications, where the basic data types and operations are coded in
-C, wrapped in the EX memory model and made available for powerful
-composition in SC/PF.  At the highest level the inefficiency of the
-interpreter can be largely ignored if the granulairity of the basic
-operations isn't to fine (i.e. operations that process entire video
-frames in one step).
+C, wrapped in the EX memory model and made available to a powerful
+composition model in SC or PF.  At the highest level the inefficiency
+of the interpreter can be largely ignored if the granulairity of the
+basic operations isn't too fine (i.e. operations that process entire
+video frames in one step).
 
 
 
