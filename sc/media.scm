@@ -155,3 +155,28 @@
 (define (vec-gauss n)
   (let ((g (make-grid-1 n .0)))
     (grid-noise-normal g) g))
+
+
+;;
+
+
+;(define c (open-process-channels #("cat")))
+
+
+
+; (define c (open-process-channels #("/bin/sh")))
+;(channel-put (car c) "ls /tmp\n")
+;(channel-close (car c))
+;(define (test) (channel-get (cdr c)))
+
+
+
+;; Call an external process, pass it an object, and slurp the output.
+(define (process-filter args bytes)
+  (let ((chans (open-process-channels args)))
+    (channel-put (car chans) bytes)
+    (channel-close (car chans))
+    (let ((rv (channel-get (cdr chans))))
+      (channel-close (cdr chans))
+      rv)))
+               

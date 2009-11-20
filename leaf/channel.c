@@ -24,6 +24,9 @@ void channel_unregister(channel *x) {
 static void channel_free(channel *x) {
     // set teardown condition
     pthread_mutex_lock(&x->mut);
+
+    // wait for empty channel.
+    while(x->object && (!x->teardown)) { pthread_cond_wait(&x->put_ok, &x->mut); }
     x->teardown = 1;
     x->rc--;
 
@@ -57,36 +60,64 @@ channel *channel_new(void) {
     channel_init(x);
     return x;
 }
+
+/* Get object.  Caller owns object.  NULL is returned in case the channel is closed. */
 leaf_object *channel_get(channel *x) {
-    leaf_object *ob = NULL;
+    leaf_object *ob;
     pthread_mutex_lock(&x->mut);
+
+    /* Wait until something happens: either an object arrives, or
+       the channel gets closed. */
     while((!x->object) && (!x->teardown)) { pthread_cond_wait(&x->get_ok, &x->mut); }
-    if (!x->teardown) {
+
+    /* An object arrived.  Get it and signal producers the next
+       object can be produced. */
+    if (x->object) {
         ob = x->object;
         x->object = NULL;
-        pthread_cond_broadcast(&x->put_ok);  // wake up producers
+        pthread_cond_broadcast(&x->put_ok);
+    }
+    /* Channel is closed.  Don't do anything. */
+    else {
+        ob = NULL;
     }
     pthread_mutex_unlock(&x->mut);
     return ob;
 }
+
+
 int channel_put(channel *x, leaf_object *ob) {
-    int rv = -1;
+    int rv;
     pthread_mutex_lock(&x->mut);
+    
+    /* Wait until something happens: either an object can be sent or
+       the channel gets closed. */
     while(x->object && (!x->teardown)) { pthread_cond_wait(&x->put_ok, &x->mut); }
-    if (!x->teardown) {
+
+    /* Channel is closed.  Release the object. */
+    if (x->teardown) {
+        leaf_free(ob);
+        rv = -1;
+    }
+    /* An object can be sent.  Save it and signal consumers. */
+    else {
         x->object = ob;
-        pthread_cond_broadcast(&x->get_ok); // wake up consumer
+        pthread_cond_broadcast(&x->get_ok);
         rv = 0;
     }
     pthread_mutex_unlock(&x->mut);
     return rv;
 }
+
 int channel_get_would_block(channel *x) {
     return (x->object == NULL);
 }
 int channel_put_would_block(channel *x) {
     return (x->object != NULL);
 }
+
+
+
 
 
 
@@ -116,37 +147,33 @@ static int channel_add_client(channel *chan, void *io_fn, leaf_object *ctx, void
 }
 
 /* Note that channels transfer object ownership. */
-static void read_thread(port_io *x) {
-    leaf_object *o;
+static void produce_thread(port_io *x) {
+    leaf_object *o = NULL;
     channel_register(x->chan);
-    for(;;) {
+    for (;;) {
         if (!(o = x->io.produce(x->ctx))) break;
-        if (channel_put(x->chan, o)) {
-            leaf_free(o);
-            break;
-        }
-    }
+        if (channel_put(x->chan, o)) break;
+    };
     channel_unregister(x->chan);
     if (x->ctx) leaf_free(x->ctx);
     free(x);
+    fprintf(stderr, "leaving producer %p\n", x);
 }
-static void write_thread(port_io *x) {
-    leaf_object *o;
+static void consume_thread(port_io *x) {
+    leaf_object *o = NULL;
     channel_register(x->chan);
-    for(;;) {
+    for (;;) {
         if (!(o = channel_get(x->chan))) break;
-        if (x->io.consume(x->ctx, o)) {
-            leaf_free(o);
-            break;
-        }
+        if (x->io.consume(x->ctx, o)) break;
     }
     channel_unregister(x->chan);
     if (x->ctx) leaf_free(x->ctx);
     free(x);
+    fprintf(stderr, "leaving consumer %p\n", x);
 }
 int channel_connect_consumer(channel *c, channel_consumer consume, leaf_object *ctx) {
-    return channel_add_client(c, consume, ctx, write_thread);
+    return channel_add_client(c, consume, ctx, consume_thread);
 }
 int channel_connect_producer(channel *c, channel_producer produce, leaf_object *ctx) {
-    return channel_add_client(c, produce, ctx, read_thread);
+    return channel_add_client(c, produce, ctx, produce_thread);
 }

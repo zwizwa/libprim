@@ -77,4 +77,7 @@ int fd_accept(int fd);
 int fd_pipe(char **argv, int *pid, int connect_fd);
 int fd_pipe_2(char **argv, int *pid, int *fd_to_stdin, int *fd_from_stdout);
 
+
+bytes *port_slurp(port *p);
+
 #endif

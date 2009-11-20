@@ -48,7 +48,6 @@ void leaf_free(leaf_object *x);
 int leaf_write(leaf_object *x, port *p);
 
 
-
 #define LEAF_SIMPLE_TYPE(name) \
     name##_class *name##_type(void) { \
     static name##_class *x = NULL; \

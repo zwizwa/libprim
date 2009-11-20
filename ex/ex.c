@@ -126,7 +126,17 @@ object _ex_write(ex *ex, object o) {
         //    return object_write_vector(ex, "box", v);
         // }
         if (TAG_AREF == flags) {
-            return _ex_write_vector(ex, "aref", v);
+            aref *a = (aref *)v;
+            if (a->object == NIL) {
+                /* Wrapped native objects supporting explicit resource
+                   management (i.e. channels) can produce empty
+                   references. */
+                port_printf(p, "#<defunct>");
+                return VOID;
+            }
+            else {
+                return _ex_write_vector(ex, "aref", v);
+            }
         }
     }
     /* Opaque leaf types */
@@ -480,7 +490,20 @@ _ ex_make_channel_test_put(ex *ex) {
 
 
 _ ex_channel_get(ex *ex, _ chan) {
-    return _ex_leaf_to_object(ex, channel_get(CAST(channel, chan)));
+    channel *c = object_to_channel(chan);
+    /* Since closed channels change identity, we're robust here so
+       multiple reads from the same object keep producing
+       EOF_OBJECT. */
+    if (!c) return EOF_OBJECT;
+
+    leaf_object *l = channel_get(c);
+    if (!l) {
+        /* We close the channel because we get only one EOF
+           notification.  The next read will deadlock. */
+        ex_channel_close(ex, chan);
+        return EOF_OBJECT;
+    }
+    else return _ex_leaf_to_object(ex, l);
 }
 
 /* This is intended as a barrier between EX and plain C code that
@@ -489,30 +512,24 @@ _ ex_channel_put(ex *ex, _ chan, _ ob) {
     leaf_object *l = ex->object_to_leaf(ex, ob);
     if (!l) TYPE_ERROR(ob);
     channel_put(CAST(channel, chan), l);
-    ex->object_erase_leaf(ex, ob); // we no longer own it
+    ex->object_erase_leaf(ex, ob); // we no longer own it, so purge all references
     return VOID;
 }
 
 
 /* Open a process, and collect its output in chunks. */
 static int write_chan_bytes(port *p, leaf_object *l) {
+    if (l) { fprintf(stderr, "NULL!\n"); return 0; }
     l->methods->dump(l, p);
     port_flush(p);
     leaf_free(l);
     return 0;
 }
-static leaf_object *read_chan_bytes(port *p) {
-    int bs = 10;
-    bytes *b = bytes_new(bs);
-    b->size = port_read(p, b->bytes, bs);
-    return (leaf_object*)b;
-}
-
 _ ex_open_process_channels(ex *ex, _ args) {
     STRING_ARGS(args, argc, argv);
     int fd_i, fd_o;
     if (fd_pipe_2(argv, NULL, &fd_i, &fd_o)) return ERROR("invalid", args);
-    fprintf(stderr, "FD %d %d\n", fd_i, fd_o);
+    // fprintf(stderr, "FD %d %d\n", fd_i, fd_o);
     port *p_i, *p_o;
     if (!(p_i = port_file_new(fdopen(fd_i, "w"), "<process-in>")))  return ERROR("bad-input-fd", integer_to_object(fd_i));
     if (!(p_o = port_file_new(fdopen(fd_o, "r"), "<process-out>"))) return ERROR("bad-output-fd", integer_to_object(fd_o));
@@ -520,11 +537,22 @@ _ ex_open_process_channels(ex *ex, _ args) {
     channel *c_i = channel_new();  
     channel *c_o = channel_new();  
     channel_connect_consumer(c_i, (channel_consumer)write_chan_bytes, (leaf_object*)p_i);
-    channel_connect_producer(c_o, (channel_producer)read_chan_bytes, (leaf_object*)p_o);
+    channel_connect_producer(c_o, (channel_producer)port_slurp, (leaf_object*)p_o);
 
     return CONS(_ex_leaf_to_object(ex, c_i),
                 _ex_leaf_to_object(ex, c_o));
 }
+
+/* Channels are shared objects.  */
+
+
+_ ex_channel_close(ex *ex, _ chan) {
+    leaf_object *l = (leaf_object*)CAST(channel, chan);
+    leaf_free(l);
+    ex->object_erase_leaf(ex, chan);
+    return VOID;
+}
+
 
 
 

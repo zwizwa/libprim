@@ -35,14 +35,30 @@ int port_file_ungetc(port *p, int c) {
     return ungetc(c, p->stream.file);
 }
 int port_file_write(port *p, void *buf, size_t len) {
-    return fwrite(buf, 1, len, p->stream.file);
+    int rv = fwrite(buf, 1, len, p->stream.file);
+#if 1
+    fprintf(stderr, "WRITTEN %d\n", len);
+    if (rv != len) {
+        int rv;
+        if (rv = feof(p->stream.file)) fprintf(stderr, "WRITE EOF: %d\n", rv);
+        else if (rv = ferror(p->stream.file)) fprintf(stderr, "WRITE ERROR: %d\n", rv);
+    }
+#endif
+    return rv;
+
 }
 int port_file_read(port *p, void *buf, size_t len) {
     int rv = fread(buf, 1, len, p->stream.file);
+
+    // it might actually be simpler to forget about ERROR/EOF..
+#if 1
     if (rv < len) {
-        int err = ferror(p->stream.file);
-        if (err) fprintf(stderr, "ERROR: %d\n", err);
+        int rv;
+        if (rv = feof(p->stream.file)) fprintf(stderr, "READ EOF: %d\n", rv);
+        else if (rv = ferror(p->stream.file)) fprintf(stderr, "READ ERROR: %d\n", rv);
+        // return -1;
     }
+#endif
     return rv;
 }
 
@@ -236,6 +252,20 @@ port *port_bytes_new(bytes *b) {
     return x;
 }
 
+
+bytes *port_slurp(port *p) {
+    int bs = 4096, total = 0, chunk = 0;
+    bytes *b = bytes_buffer_new(bs);
+    do {
+        // fprintf(stderr, "slurp, total %d\n", total);
+
+        void *buf = bytes_allot(b, bs);
+        chunk = port_read(p, buf, bs);
+        total += chunk;
+    } while(chunk);
+    b->size = total;
+    return b;
+}
 
 
 // UNIX socket code - adapted from PF.

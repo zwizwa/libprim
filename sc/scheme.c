@@ -195,8 +195,7 @@ leaf_object *_sc_object_to_leaf(sc *sc, _ o) {
    is transferred to the other end. */
 void _sc_object_erase_leaf(sc *sc, _ o) {
     aref *a = object_to_aref(o); if (!a) return;
-    a->fin = VOID;
-    a->object = VOID;
+    a->fin = a->object = const_to_object(NULL);
 }
 
 _ sc_write_stderr(sc *sc,  _ o) {
