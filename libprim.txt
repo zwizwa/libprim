@@ -5596,12 +5596,6 @@ OK: made leaf object wrapping virtual + moved a lot of code to from
 scheme.c to ex.c
 
 
-Entry: cleanup 'write'
-Date: Wed Nov 18 13:32:16 CET 2009
-
-This doesn't need the default port mechanism any more.
-
-
 Entry: yuv type
 Date: Wed Nov 18 13:37:10 CET 2009
 
