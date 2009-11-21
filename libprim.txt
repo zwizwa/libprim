@@ -5754,3 +5754,20 @@ Let's make it work for the many->one case.
 
 
 
+Entry: to thread or not to thread
+Date: Sat Nov 21 14:26:50 CET 2009
+
++ C-based parsers are simpler
+
+- state machines don't need it
+- can't use VM code
+- gdb is more difficult
+- not all targets support it
+- requires special memory management
+
+The main question is however: isn't it better to have an event loop
+based mechanism in the interpreter?  Original PF at some point had to
+do this too.
+
+In this light, isn't it better to switch to non-buffered IO?  Direct
+fds?

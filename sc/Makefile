@@ -5,8 +5,9 @@ SRC=scheme.c main.c
 DEP_OBJ=../ex/libprim_ex.a ../leaf/libprim_leaf.a 
 
 
+LIBS += -lpthread
+
 # media?
-media = YES
 ifdef media
 DEP_OBJ+=../media/libprim_media.a
 SRC += media.c
