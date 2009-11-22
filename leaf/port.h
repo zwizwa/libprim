@@ -22,19 +22,8 @@ typedef struct {
     leaf_class super; // standard methods
 } port_class;
 
-struct _port {
-    port_class *type;
-    char *name;
-    union {
-        FILE* file;
-        struct {
-            bytes *bytes;
-            int read_index;
-        } b;
-    } stream;
-    /* Operations are defined in the instance struct, not the class
-       struct.  User can't distinguish between different port
-       types.  FIXME: use a behaviour object. */
+typedef struct {
+    /* Operations come from a delegate object. */
     port_vprintf_m vprintf;
     port_getc_m   get;
     port_ungetc_m unget;
@@ -44,6 +33,22 @@ struct _port {
     port_close_m close;
     port_bytes_m bytes;
     port_flush_m flush;
+} port_methods;
+
+struct _port {
+    port_class *type;
+    port_methods *m;
+    char *name;
+    union {
+        struct {
+            FILE* file;
+            int fd;  // for select()
+        } f;
+        struct {
+            bytes *bytes;
+            int read_index;
+        } b;
+    } stream;
 };
 
 int port_vprintf(port *p, const char *fmt, va_list ap);
