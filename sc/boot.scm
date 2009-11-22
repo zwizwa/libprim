@@ -151,19 +151,19 @@
 
 (define-macro (or form)
   (let clause ((args (cdr form)))
-    (if (null? (cdr args)) (car args)
-        (list 'if (car args)
-              (car args)
-              (clause (cdr args))))))
+    (if (null? args) #t
+        (if (null? (cdr args)) (car args)
+            (list 'if (car args)
+                  (car args)
+                  (clause (cdr args)))))))
   
 (define-macro (and form)
   (let clause ((args (cdr form)))
-    (if (null? (cdr args)) (car args)
-        (list 'if (car args) 
-              (clause (cdr args))
-              (car args)))))
-
-
+    (if (null? args) '#f
+        (if (null? (cdr args)) (car args)
+            (list 'if (car args) 
+                  (clause (cdr args))
+                  (car args))))))
 
 (define (dbg x) (post x) x)
 (define-macro (cond form)
@@ -556,5 +556,33 @@
 ;; (repl)
 
 ;; Collect before re-entering C.
+
+;; (define-macro (case form)
+;;   (let rec ((clauses (cdr form)))
+;;     (if (null? clauses)
+;;         '(void)
+;;         (let ((c (car clauses))
+;;               (+ (cdr clauses)))
+;;           (if (eq? 'else (car c))
+;;               (cadr c)
+;;               `(if 
+
+
+(define-macro (case form)
+  (let ((expr (cadr form))
+        (ev '_ev)) ;; FIXME: use gensym
+    `(let ((,ev ,expr))
+       ,(let rec ((clauses (cddr form)))
+          (if (null? clauses) '(void)
+              (let* ((clause (car clauses))
+                     (set (car clause))
+                     (action (cadr clause)))
+                (if (eq? 'else set)
+                    action
+                    `(if (memq ,ev ',set) ,action
+                         ,(rec (cdr clauses))))))))))
+
+    
+
 (gc))))
 
