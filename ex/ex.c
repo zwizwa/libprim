@@ -464,23 +464,48 @@ _ ex_flush_output_port(ex *ex, _ ob) {
     return VOID;
 }
 
-static int _ex_extract_fd(ex *ex, _ ob) {
-    port *p = CAST(port, ob);
-    int fd = port_fd(p);
-    if (fd < 0) return ERROR("invalid", ob);
-    return fd;
-}
 
-_ ex_select(ex *ex, _ in, _ out, _ err) {
-    vector *vin  = CAST(vector, in);
-    vector *vout = CAST(vector, out);
-    vector *verr = CAST(vector, err);
-    int rv =
-        ports_select((port_extract_fd)_ex_extract_fd, ex, (void*)FALSE,
-                     vector_size(vin),  (void**)(vin->slot),
-                     vector_size(vout), (void**)(vout->slot),
-                     vector_size(verr), (void**)(verr->slot), 1.0);
-    if (-1 == rv) ERROR("select", integer_to_object(rv));
+/* This is one of the examples where it's simpler to code only a
+   highlevel wrapper around select(), because of the data structures
+   used (FD sets). */
+#include <sys/select.h>
+typedef struct {
+    vector v;
+    _ port;
+    _ direction;
+    _ ready;
+} action;
+#define PORTS_SET 1
+#define PORTS_GET 2
+static int for_actions(ex *ex, _ actions, fd_set *sets, int cmd) {
+    int max = 0;
+    _ a;
+    for (a = actions; a != NIL; a = CDR(a)) {
+        action *v = (action*)CAST(vector, CAR(a));
+        if (vector_size((vector*)v) < 3) return ERROR("length", CAR(a));
+        port *p = CAST(port, v->port);
+        int dir = CAST_INTEGER(v->direction);
+        if ((dir < 0) || (dir > 2)) return ERROR("direction", CAR(a));
+        int fd = port_fd(p);
+        if (fd < 0) return ERROR("filedes", CAR(a));
+        if (fd > max) max = fd;
+        switch(cmd) {
+        case PORTS_SET: FD_SET(fd, sets+dir); break;
+        case PORTS_GET: v->ready = FD_ISSET(fd, sets+dir) ? TRUE : FALSE; break;
+        }
+    }
+    return max;
+}
+_ ex_bang_select(ex *ex, _ actions) {
+    fd_set sets[3];
+    FD_ZERO(sets+0);
+    FD_ZERO(sets+1);
+    FD_ZERO(sets+2);
+    int max = for_actions(ex, actions, sets, PORTS_SET);
+    struct timeval tv = {0, 1000000};
+    int rv = select(max + 1, sets+0, sets+1, sets+2, &tv);
+    if (-1 == rv) return ERROR("select", actions);
+    for_actions(ex, actions, sets, PORTS_GET);
     return integer_to_object(rv);
 }
 

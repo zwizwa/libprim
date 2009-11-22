@@ -5872,4 +5872,49 @@ possible without blocking.
 2nd question: how to get at the input buffer without triggering a
 blocking read?
 
+ -> set the underlying fd to non-blocking.  fread will return a short
+    item count and set errno = EAGAIN.
+
+so, there seems to be no problem.
+
+the real problem is: how to code this?  should resuming happen at
+scheme level, or is a low-level mechanism better (i.e. present streams
+as object channels, and wake-up only after a full object is
+read/written).
+
+iow: do we use a low-level state machine sequencer (fast, but
+inflexible) or a high-level task switching engine (slow but
+flexible).
+
+as mentioned before, one important thing to note is that if a _parser_
+is encoded as a blocking task, this whole idea won't work.  currently,
+even the scheme syntax tokenizer uses function calls.
+
+it would be _really_ convenient to have a portable lightweight threads
+library.  i don't understand why uclibc doesn't implement makecontext:
+
+       SUSv2, POSIX.1-2001.  POSIX.1-2008 removes the specifications
+       of makecontext() and swapcontext(), citing portability issues,
+       and recommending that applications be rewritten to use POSIX
+       threads instead.
+
+alternatively, it might be interesting to construct some C macros for
+nested code.  this mechanism isn't needed much: maybe a portable
+specialized implementation make sense?
+
+taking the birds-eye view, it seems that writing parts of the code
+directly in forth makes sense.  maybe the project needs a ruffle?
+
+pff... it's time to focus, and work with what's there.  writing the
+parsers as a state-machine isn't necessary yet.  current I/O
+requirements only need simple state machines.  it's probably best to
+propagate select up to the highest level, and then see how to
+specialize it if necessay.
+
+next: find a simple interface for select()
+
+A list with structures like this, where the busy flag is modified in
+place:  (port 0/1/2 !busy fn)
+
+
 
