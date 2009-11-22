@@ -37,11 +37,11 @@ int port_file_ungetc(port *p, int c) {
 int port_file_write(port *p, void *buf, size_t len) {
     int rv = fwrite(buf, 1, len, p->stream.file);
 #if 1
-    fprintf(stderr, "WRITTEN %d\n", len);
+    // fprintf(stderr, "WRITTEN %d\n", (int)len);
     if (rv != len) {
         int rv;
-        if (rv = feof(p->stream.file)) fprintf(stderr, "WRITE EOF: %d\n", rv);
-        else if (rv = ferror(p->stream.file)) fprintf(stderr, "WRITE ERROR: %d\n", rv);
+        if ((rv = feof(p->stream.file))) fprintf(stderr, "WRITE EOF: %d\n", rv);
+        else if ((rv = ferror(p->stream.file))) fprintf(stderr, "WRITE ERROR: %d\n", rv);
     }
 #endif
     return rv;
@@ -54,8 +54,8 @@ int port_file_read(port *p, void *buf, size_t len) {
 #if 1
     if (rv < len) {
         int rv;
-        if (rv = feof(p->stream.file)) fprintf(stderr, "READ EOF: %d\n", rv);
-        else if (rv = ferror(p->stream.file)) fprintf(stderr, "READ ERROR: %d\n", rv);
+        if ((rv = feof(p->stream.file))) fprintf(stderr, "READ EOF: %d\n", rv);
+        else if ((rv = ferror(p->stream.file))) fprintf(stderr, "READ ERROR: %d\n", rv);
         // return -1;
     }
 #endif

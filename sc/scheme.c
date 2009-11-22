@@ -551,7 +551,9 @@ static _ _sc_step(sc *sc, _ o_state) {
                          sc_make_k_set(sc, k, var, env, sc_slot_toplevel));
         }
         if (term_f == sc->s_begin) {
-            if (FALSE == IS_PAIR(term_args)) goto syntax_error;
+            /* (begin) is a NOP */
+            if (NIL == term_args) return STATE(VALUE(VOID), k);
+            // if (FALSE == IS_PAIR(term_args)) goto syntax_error;
             _ todo = sc_close_args(sc, term_args, env);
             pair *body = object_to_pair(todo);
             /* Don't create a contination frame if there's only a
