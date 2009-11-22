@@ -5754,3 +5754,83 @@ Let's make it work for the many->one case.
 
 
 
+Entry: channel teardown
+Date: Fri Nov 20 15:11:14 CET 2009
+
+Channels are quite simple.  What's not simple is to represent
+end-of-stream and teardown without causing deadlock.
+
+But.. calling an external app with both input and output isn't so
+simple.  Something goes wrong in the synchronization: i get commands
+that do not output anything.
+
+If I perform the commands manually everything works fine.
+
+Yes..  This is too complicated to get right.  The bric-a-brac resource
+management simply doesn't work.
+
+
+Other possibilities:  use only a feeder thread, and read the output of
+the process synchronously.
+
+But, given the trouble this creates and the difficulty of debugging a
+multi-threaded app in gdb, I'm thinking about moving to non-blocking
+IO.
+
+Let's create a special case: execute an external program, feeding it
+binary data on stdin, and collect its stout in a buffer.  Sequence the
+reads & writes with select.
+
+Is it possible to move from FILE to fd's?  For output this is just
+flush.  How does input work?
+
+
+Entry: channel problems + external processes
+Date: Fri Nov 20 16:34:54 CET 2009
+
+channels work fine, but teardown is problematic.
+
+current problems:
+ - resource allocation of attached threads doesn't work
+ - what do do with memory management?
+ - how to avoid deadlock
+
+how to talk to an external process?
+
+
+The problem seems to be that teardown isn't defined very well.  What
+does it mean?  
+
+     - all threads that block on GET should return with EOF
+     - all threads that block on PUT should get an input signal
+
+Teardown and PUT should be properly serialized = what's wrong now.
+
+This needs a different abstraction.  Let's concentrate on asymmetric
+solutions that always connect to a thread, and only support
+uni-drectional operations.
+
+Frustrating.  There has to be a way to do this properly, but the
+resource management is nontrivial.
+
+
+
+
+
+Entry: to thread or not to thread
+Date: Sat Nov 21 14:26:50 CET 2009
+
++ C-based parsers are simpler
+
+- state machines don't need it
+- can't use VM code
+- gdb is more difficult
+- not all targets support it
+- requires special memory management
+
+The main question is however: isn't it better to have an event loop
+based mechanism in the interpreter?  Original PF at some point had to
+do this too.
+
+In this light, isn't it better to switch to non-buffered IO?  Direct
+fds?
