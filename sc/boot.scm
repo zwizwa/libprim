@@ -322,9 +322,13 @@
 
 (define max (make-min-max >))
 (define min (make-min-max <))
+(define (negative? x) (< x 0))
+(define (abs x) (if (negative? x) (* -1 x) x))
 
 (define (procedure? fn) (or (prim? fn) (lambda? fn)))
 
+(define (make-vector n . args)
+  (make-vector/init n (if (null? args) 0 (car args))))
 
 (define (vector . args) (list->vector args))
 
@@ -582,7 +586,33 @@
                     `(if (memq ,ev ',set) ,action
                          ,(rec (cdr clauses))))))))))
 
-    
+;; From TinyScheme init.scm    
+(define-macro (do form)
+  (apply
+   (lambda (do vars endtest . body)
+     (let ((do-loop '_do-loop)) ;; FIXME: use gensym
+       `(letrec ((,do-loop
+                  (lambda ,(map (lambda (x)
+                                  (if (pair? x) (car x) x))
+                                `,vars)
+                    (if ,(car endtest)
+                        (begin ,@(cdr endtest))
+                        (begin
+                          ,@body
+                          (,do-loop
+                           ,@(map (lambda (x)
+                                    (cond
+                                     ((not (pair? x)) x)
+                                     ((< (length x) 3) (car x))
+                                     (else (car (cdr (cdr x))))))
+                                  `,vars)))))))
+          (,do-loop
+           ,@(map (lambda (x)
+                    (if (and (pair? x) (cdr x))
+                        (car (cdr x))
+                        '()))
+                  `,vars)))))
+   form))
 
 (gc))))
 

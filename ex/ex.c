@@ -677,7 +677,7 @@ _ ex_system(ex *ex, _ ob) {
 
 
 /* Lists and vectors. */
-_ ex_make_vector(ex *ex, _ slots, _ init) {
+_ ex_make_vector_with_init(ex *ex, _ slots, _ init) {
     ENABLE_RESTART();
     long i,n = CAST_INTEGER(slots);
     vector *v = gc_alloc(ex->gc, n);
@@ -685,6 +685,7 @@ _ ex_make_vector(ex *ex, _ slots, _ init) {
     for(i=0; i<n; i++) v->slot[i] = init;
     return vector_to_object(v);
 }
+
 _ ex_reverse(ex *ex, _ lst) {
     ENABLE_RESTART();
     _ rlst = NIL;
