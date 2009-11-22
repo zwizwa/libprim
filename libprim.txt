@@ -5834,3 +5834,42 @@ do this too.
 
 In this light, isn't it better to switch to non-buffered IO?  Direct
 fds?
+
+
+Entry: select() based event loop
+Date: Sun Nov 22 12:16:30 CET 2009
+
+Essentially, this consists of a list of file descriptors and
+associated actions.
+
+Currently the actions are:
+  - INPUT:  read when ready + parse
+  - OUTPUT: write when ready
+
+The assumption can be made that the tasks are representable as state
+machines.  Push-down automata will then need an explicit stack
+structure, or somehow wrap the C stack.
+
+
+Entry: Simpler PF
+Date: Sun Nov 22 12:19:02 CET 2009
+
+What about building the core of the PF interpreter directly on top of
+LEAF instead of on EX?  The core doesn't need a GC, and its memory can
+be built from tuples.
+
+
+
+
+Entry: setbuf fgetc
+Date: Sun Nov 22 17:47:00 CET 2009
+
+What I'd like to know is how fgetc() buffers the input.
+
+How I would do it: fix some buffer size and attempt to read as much as
+possible without blocking.
+
+2nd question: how to get at the input buffer without triggering a
+blocking read?
+
+
