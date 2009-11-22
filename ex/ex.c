@@ -464,6 +464,26 @@ _ ex_flush_output_port(ex *ex, _ ob) {
     return VOID;
 }
 
+static int _ex_extract_fd(ex *ex, _ ob) {
+    port *p = CAST(port, ob);
+    int fd = port_fd(p);
+    if (fd < 0) return ERROR("invalid", ob);
+    return fd;
+}
+
+_ ex_select(ex *ex, _ in, _ out, _ err) {
+    vector *vin  = CAST(vector, in);
+    vector *vout = CAST(vector, out);
+    vector *verr = CAST(vector, err);
+    int rv =
+        ports_select((port_extract_fd)_ex_extract_fd, ex, (void*)FALSE,
+                     vector_size(vin),  (void**)(vin->slot),
+                     vector_size(vout), (void**)(vout->slot),
+                     vector_size(verr), (void**)(verr->slot), 1.0);
+    if (-1 == rv) ERROR("select", integer_to_object(rv));
+    return integer_to_object(rv);
+}
+
 
 /* Channels */
 

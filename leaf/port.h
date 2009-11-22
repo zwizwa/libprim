@@ -84,5 +84,12 @@ int fd_pipe_2(char **argv, int *pid, int *fd_to_stdin, int *fd_from_stdout);
 
 
 bytes *port_slurp(port *p);
+int port_fd(port *p);
 
+typedef int (*port_extract_fd)(void *ctx, void *x);
+int ports_select(port_extract_fd extract, void *ctx, void *not,
+                 int nb_in,  void **in,
+                 int nb_out, void **out,
+                 int nb_err, void **err,
+                 double sec);
 #endif
