@@ -615,5 +615,9 @@
                   `,vars)))))
    form))
 
+(define (load-lib filename)
+  (load (string-append (script-dir) filename)))
+
+
 (gc))))
 

@@ -946,6 +946,9 @@ _ sc_read_no_gc(sc *sc, _ o) {
     port *p = CAST(port, o);
     return _ex_read(EX, p);
 }
+_ sc_script_dir(sc *sc) {
+    return STRING(PRIM_HOME);
+}
 
 /* FIXME: currently this doesn't save the existing I/O ports (only for
    headless embedding). */
