@@ -8,8 +8,7 @@ DEP_OBJ=../ex/libprim_ex.a ../leaf/libprim_leaf.a
 LIBS += -lpthread
 
 # media?
-media = yes
-ifdef media
+ifdef MEDIA
 DEP_OBJ+=../media/libprim_media.a
 SRC += media.c
 CPPFLAGS += -DHAVE_MEDIA

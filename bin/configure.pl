@@ -391,25 +391,14 @@ if ($var{pthread} eq "yes"){
     check_deps "libpthread";
 }
 
-# MMX
-if ($var{mmx} eq "yes"){
-    makefile "CFLAGS += -mmmx -flax-vector-conversions";
-    header "#define HAVE_MMX";
-    if (check_deps "mmx", " failed.\nFATAL: Compiler does not support MMX extensions."){
-	errorexit; # this is currently fatal..
-    }
+
+# MEDIA
+if ($var{media} eq "yes"){
+    makefile "media = yes";
+    makefile "EXTRA += media";
 }
 
 
-
-
-# PUREDATA
-if ($var{puredata} eq "yes"){
-    if (not check_deps "puredata", " failed. Not building Pure Data module."){
-	makefile "OPTIONAL_EXTRA += puredata";
-	makefile "OPTIONAL_EXTRA_INSTALL += puredata_install";
-    }
-}
 
 
 pkgconfig "Libs: -L$var{prefix}/lib -lprim_sc -lprim_ex -lprim -lprim_leaf -lprim_media" . join " ", @LIBS;
@@ -420,6 +409,8 @@ pkgconfig "Cflags: -I$var{prefix}/include/prim";
 if ($var{efence} eq "yes"){
     makefile "DEBUG_LIBS += -lefence"; 
 }
+
+# 
 
 
 header "#endif";
