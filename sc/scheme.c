@@ -835,8 +835,6 @@ void _sc_def_prim(sc *sc, const char *str, void *fn, long nargs) {
 }
 
 
-void _sc_media_init(sc *sc);
-
 
 #define SHIFT(n) {argv+=n;argc-=n;}
 sc *_sc_new(int argc, char **argv) {
@@ -911,11 +909,7 @@ sc *_sc_new(int argc, char **argv) {
     /* Primitive defs */
     _sc_def_prims(sc, ex_prims);
     _sc_def_prims(sc, scheme_prims);
-    
-#ifdef HAVE_MEDIA
-    _sc_media_init(sc);
-#endif
-        
+
 
     /* Toplevel abort continuation */
     _ done = CONS(FIND(TOPLEVEL(),SYMBOL("print-error")),NIL);

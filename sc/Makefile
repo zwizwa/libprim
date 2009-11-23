@@ -7,20 +7,25 @@ DEP_OBJ=../ex/libprim_ex.a ../leaf/libprim_leaf.a
 
 LIBS += -lpthread
 
-# media?
-ifdef MEDIA
-DEP_OBJ+=../media/libprim_media.a
-SRC += media.c
-CPPFLAGS += -DHAVE_MEDIA
-# FFMPEG
-LIBS+=`pkg-config libavformat --libs`
-CPPFLAGS += `pkg-config libavformat --cflags`
-# X11
-LIBS += -L/usr/X11R6/lib -lX11 -lXext -lXv -lGL -lGLU
-CPPFLAGS += -I/usr/X11R6/include
-# GSL
-LIBS+=`gsl-config --libs`
-endif
+# Note: libprim_media.a isn't linked in.  These objects are currently
+# used in a different project, with special-purpose wrappers.  For
+# libprim SC/PF this will eventually be replaced with automatic
+# wrappers.
+
+# # media?
+# ifdef MEDIA
+# DEP_OBJ+=../media/libprim_media.a
+# SRC += media.c
+# CPPFLAGS += -DHAVE_MEDIA
+# # FFMPEG
+# LIBS+=`pkg-config libavformat --libs`
+# CPPFLAGS += `pkg-config libavformat --cflags`
+# # X11
+# LIBS += -L/usr/X11R6/lib -lX11 -lXext -lXv -lGL -lGLU
+# CPPFLAGS += -I/usr/X11R6/include
+# # GSL
+# LIBS+=`gsl-config --libs`
+# endif
 
 OBJ=$(SRC:.c=.o)
 DEBUG_CFLAGS=-Wall -g -Wno-unused
@@ -48,7 +53,7 @@ libprim_sc.a: $(SC_LIB_OBJ)
 %.h_sc_prims: %.c sc_prims.ss ../prim-tools.ss
 	$(MZSCHEME) sc_prims.ss $< >$@
 
-GEN = scheme.h_sc_prims test.h_load media.h_sc_prims
+GEN = scheme.h_sc_prims test.h_load
 # boot.h_load 
 
 include ../Makefile.defs

@@ -20,3 +20,23 @@ CPPFLAGS += `gsl-config --cflags`
 
 include ../Makefile.rules
 
+
+# Note that this only contains leaf objects.  The wrappers still need
+# to be generated + the eventual application or shared lib needs to be
+# linked to the external libraries.  Currently this code is not
+# available.  (internal: see TSCE project).
+
+# media?
+ifdef __MEDIA
+DEP_OBJ+=../media/libprim_media.a
+SRC += media.c
+CPPFLAGS += -DHAVE_MEDIA
+# FFMPEG
+LIBS+=`pkg-config libavformat --libs`
+CPPFLAGS += `pkg-config libavformat --cflags`
+# X11
+LIBS += -L/usr/X11R6/lib -lX11 -lXext -lXv -lGL -lGLU
+CPPFLAGS += -I/usr/X11R6/include
+# GSL
+LIBS+=`gsl-config --libs`
+endif
