@@ -19,6 +19,10 @@ $var{profile} = "no";
 $var{static}  = "no";
 $var{efence} = "no";
 
+$var{ex} = "yes";
+$var{sc} = "yes";
+$var{pf} = "yes";
+
 $var{silent}   = "yes";
 $var{jobs}     = "1";
 $var{finkpath} = "/sw";
@@ -392,12 +396,11 @@ if ($var{pthread} eq "yes"){
 }
 
 
-# MEDIA
-if ($var{media} eq "yes"){
-    makefile "media = yes";
-    makefile "EXTRA += media";
-}
-
+# Optional builds
+if ($var{media} eq "yes") { makefile "MEDIA = media" }; 
+if ($var{pf} eq "yes")    { makefile "PF = pf" }; 
+if ($var{sc} eq "yes")    { makefile "SC = sc" }; 
+if ($var{ex} eq "yes")    { makefile "EX = ex" }; 
 
 
 

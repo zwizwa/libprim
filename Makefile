@@ -1,17 +1,18 @@
 include Makefile.defs
 
-DIRS = leaf $(MEDIA) ex sc pf
+OPTDIRS = leaf $(MEDIA) $(EX) $(SC) $(PF)
+ALLDIRS = leaf media ex sc pf
 
 all: 
-	for dir in $(DIRS); do make -C $$dir; done
+	for dir in $(OPTDIRS); do make -C $$dir; done
 
 clean:
 	rm -f *~
-	for dir in $(DIRS); do make -C $$dir clean; done
+	for dir in $(ALLDIRS); do make -C $$dir clean; done
 
 # Generate C code.  The resulting tree can be built without mzscheme installed.
 gen:
-	for dir in $(DIRS); do make -C $$dir gen; done
+	for dir in $(ALLDIRS); do make -C $$dir gen; done
 
 # check code size
 strip64:
