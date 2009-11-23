@@ -192,6 +192,7 @@
 
 (define (open-output-file filename) (open-mode-file filename "w"))
 (define (open-input-file filename) (open-mode-file filename "r"))
+(define (open-output-tempfile) (open-mode-tempfile (bytes-copy "tmp-XXXXXX") "w"))
 
 ;; misc r4rs
 (define (append2 a b)

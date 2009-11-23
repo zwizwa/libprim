@@ -350,7 +350,9 @@ _ ex_write_bytes(ex *ex, _ ob_bytes, _ ob_port) {
     }
     return TYPE_ERROR(ob_bytes);
 }
-
+_ ex_bytes_copy(ex *ex, _ ob) {
+    return _ex_leaf_to_object(ex, bytes_copy(CAST(bytes, ob)));
+}
 
 /* Ports */
 _ _ex_make_file_port(ex *ex, FILE *f, const char *name) {
@@ -365,6 +367,22 @@ _ ex_open_mode_file(ex *ex, _ path, _ mode) {
     FILE *f = fopen(b_path->bytes, b_mode->bytes);
     if (!f) ERROR("fopen", path);
     return _ex_make_file_port(ex, f, b_path->bytes);
+}
+_ ex_open_mode_tempfile(ex *ex, _ template, _ mode) {
+    const char *cmode = CAST(cstring, mode);
+    char *name = CAST(cstring, template);
+    int fd = mkstemp(name);
+    FILE *f = fdopen(fd, cmode);
+    if (!f) { free(name); ERROR("invalid", mode); }
+    _ rv = _ex_make_file_port(ex, f, name);
+    return rv;
+}
+_ ex_port_name(ex *ex, _ ob) {
+    port *p = CAST(port, ob);
+    return _ex_make_string(ex, p->name); 
+}
+_ ex_delete_file(ex *ex, _ ob) {
+    return (-1 == remove(CAST(cstring, ob))) ? FALSE : TRUE;
 }
 _ ex_open_input_string(ex *ex, _ ob_str) {
     bytes *b = CAST(bytes, ob_str);

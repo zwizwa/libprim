@@ -156,6 +156,7 @@ char *bytes_allot(bytes *b, size_t extra) {
 
 bytes *bytes_copy(bytes* b) {
     bytes *new_b = bytes_new(b->bufsize);
+    new_b->size = b->size;
     memcpy(new_b->bytes, b->bytes, b->bufsize);
     return new_b;
 }
