@@ -324,7 +324,23 @@ _ sc_grid_noise_normal(sc *sc, _ g) {
     grid_noise_normal(CAST(grid, g));
     return VOID;
 }
+_ sc_grid_poly_phase(sc *sc, _ opoly, _ ovec) {
+    grid *poly = CAST(grid, opoly);
+    grid *vec  = CAST(grid, ovec);
+    int i, j, N = vec->dim[0], O = poly->dim[0];
+    for (i=0; i<N; i++) {
+        double acc = 0.0, t = (double)i;
+        for(j=O-1; j>=0; j--) {
+            acc *= t;
+            acc += poly->buf[j];
+        }
+        vec->buf[i] = cos(acc);
+    }
+    return VOID;
+}
 
+
+/* Yuv */
 
 DEF_AREF_TYPE(yuv)
 

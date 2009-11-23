@@ -157,7 +157,24 @@
     (grid-noise-normal g) g))
 
 
-;;
+;; Compute a polynomial phase signal.  This evaluates cos(p(t)), t:
+;; 0->n-1 where `poly' is the coefficient vector of the polynomial p.
+
+;; p(x) = p0 + p1 t + p2 t^2
+
+;; The instantaneous frequency is p(x)' = p1 + 2 p2 t.
+
+(define (signal-polyphase poly n)
+  (let ((g (make-grid-1 n 0.0)))
+    (grid-poly-phase poly g) g))
+
+(define (signal-sweep f-begin f-end n)
+  (let ((poly (vec `(0.0 ,f-begin  ,(/ (* .5 (- f-end f-begin)) n)))))
+    (signal-polyphase poly n)))
+
+;; TEST:
+;; (signal-angle (signal-sweep .1 .11 100))
+
 
 
 ;(define c (open-process-channels #("cat")))
@@ -179,4 +196,6 @@
     (let ((rv (channel-get (cdr chans))))
       (channel-close (cdr chans))
       rv)))
-               
+
+
+
