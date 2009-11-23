@@ -373,7 +373,7 @@ _ ex_open_mode_tempfile(ex *ex, _ template, _ mode) {
     char *name = CAST(cstring, template);
     int fd = mkstemp(name);
     FILE *f = fdopen(fd, cmode);
-    if (!f) { free(name); ERROR("invalid", mode); }
+    if (!f) { ERROR("invalid", CONS(template, CONS(mode, NIL))); }
     _ rv = _ex_make_file_port(ex, f, name);
     return rv;
 }
