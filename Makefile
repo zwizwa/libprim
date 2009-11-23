@@ -1,6 +1,6 @@
 include Makefile.defs
 
-BASE = leaf ex sc pf
+BASE = leaf ex sc pf media
 DIRS = $(BASE) $(EXTRA)
 
 all: 
@@ -58,6 +58,9 @@ uninstall:
 	rm -rf $(PREFIX)/share/prim
 	rm -rf $(PREFIX)/include/prim
 	rm -rf $(PREFIX)/lib/libprim_*.a
+	rm -rf $(PREFIX)/bin/sc
+	rm -rf $(PREFIX)/bin/pf
+
 
 
 base-deps.test:

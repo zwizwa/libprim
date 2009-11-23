@@ -83,6 +83,13 @@
 (define (mul-mv A x)
   (let ((y (make-grid-1 (vector-ref (grid-dims A) 1) 0.0)))
     (grid-mul-mv A x y) y))
+
+(define (mul-mm A B)
+  (let ((M (grid-dim A 1))
+        (N (grid-dim B 0)))
+    (let ((C (make-grid-2 N M .0)))
+      (grid-mul-mm A B C) C)))
+  
     
 
 ;; TEST
@@ -168,9 +175,10 @@
   (let ((g (make-grid-1 n 0.0)))
     (grid-poly-phase poly g) g))
 
-(define (signal-sweep f-begin f-end n)
-  (let ((poly (vec `(0.0 ,f-begin  ,(/ (* .5 (- f-end f-begin)) n)))))
-    (signal-polyphase poly n)))
+(define (signal-sweep amp f-begin f-end n)
+  (let* ((poly (vec `(0.0 ,f-begin  ,(/ (* .5 (- f-end f-begin)) n))))
+         (sig (signal-polyphase poly n)))
+    (grid-scale sig amp) sig))
 
 ;; TEST:
 ;; (signal-angle (signal-sweep .1 .11 100))

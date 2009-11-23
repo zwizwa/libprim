@@ -178,3 +178,38 @@ void grid_noise_normal(grid *g) {
         if (i+1 < N) { g->buf[i+1] = y*r; }
     }
 }
+
+
+int grid_read_short(grid *g, port *p) {
+    if (g->rank != 2) return -1;
+    int chans = g->dim[0];
+    int frames = g->dim[1];
+    int i,j;
+    grid_atom *a = g->buf;
+    for (i=0; i<frames; i++) {
+        short int sbuf[chans];
+        port_read(p, sbuf, sizeof(short int) * chans);
+        for(j=0; j<chans; j++) {
+            *a++ = (double)sbuf[j];
+        }
+    }
+    return 0;
+}
+int grid_write_short(grid *g, port *p) {
+    if (g->rank != 2) return -1;
+    int chans = g->dim[0];
+    int frames = g->dim[1];
+    int i,j;
+    grid_atom *a = g->buf;
+    for (i=0; i<frames; i++) {
+        short int sbuf[chans];
+        for(j=0; j<chans; j++) {
+            double x = *a++;
+            sbuf[j] = 
+                (x > 0x7FFF) ? 0x7FFF :
+                (x < -0x8000) ? -0x8000 : x;
+        }
+        port_write(p, sbuf, sizeof(short int) * chans);
+    }
+    return 0;
+}

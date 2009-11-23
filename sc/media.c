@@ -279,6 +279,20 @@ _ sc_grid_mul_mv(sc *sc, _ A, _ x, _ y) {
     }
     return VOID;
 }
+_ sc_grid_mul_mm(sc *sc, _ A, _ B, _ C) {
+    if (grid_blas_dgemm(0, 0, 1.0, CAST(grid, A), CAST(grid, B), 1.0, CAST(grid, C))) {
+        ERROR("arg", CONS(A, CONS(B, CONS(C, NIL))));
+    }
+    return VOID;
+}
+
+_ sc_grid_component_mul(sc *sc, _ og, _ os) {
+    grid *g = CAST(grid, og);
+    inexact *f = CAST(inexact, os);
+    int i,N = grid_total(g);
+    for(i=0; i<N; i++) { g->buf[i] *= f->value; }
+    return VOID;
+}
 
 
 /*  Matrix unfold (for generating system output). */
@@ -347,4 +361,15 @@ DEF_AREF_TYPE(yuv)
 _ sc_make_yuv(sc *sc, _ w, _ h, _ fourcc) {
     return _sc_make_aref(sc, yuv_new(CAST_INTEGER(w), CAST_INTEGER(h), 
                                      CAST(cstring, fourcc)));
+}
+
+
+/* Audio I/O*/
+_ sc_grid_read_short(sc *sc, _ g, _ p) {
+    if (-1 == grid_read_short(CAST(grid, g), CAST(port, p))) ERROR("invalid", CONS(g,CONS(p,NIL)));
+    return VOID;
+}
+_ sc_grid_write_short(sc *sc, _ g, _ p) {
+    if (-1 == grid_write_short(CAST(grid, g), CAST(port, p))) ERROR("invalid", CONS(g,CONS(p,NIL)));
+    return VOID;
 }

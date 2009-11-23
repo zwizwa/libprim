@@ -61,6 +61,15 @@ int grid_blas_dgemv(int transA, double alpha, grid *gA, grid *gx, double beta, g
     VECTOR(y, gy);
     return gsl_blas_dgemv(transA ? CblasTrans : CblasNoTrans, alpha, &A, &x, beta, &y);
 }
+int grid_blas_dgemm(int transA, int transB, double alpha, grid *gA, grid *gB, double beta, grid *gC){
+    SET_HANDLER();
+    MATRIX(A, gA);
+    MATRIX(B, gB);
+    MATRIX(C, gC);
+    return gsl_blas_dgemm(transA ? CblasTrans : CblasNoTrans,
+                          transB ? CblasTrans : CblasNoTrans,
+                          alpha, &A, &B, beta, &C);
+}
 
 
 /* Compute AR output : A^n x, n 0->N-1 */
