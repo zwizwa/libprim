@@ -175,10 +175,19 @@
   (let ((g (make-grid-1 n 0.0)))
     (grid-poly-phase poly g) g))
 
-(define (signal-sweep amp f-begin f-end n)
-  (let* ((poly (vec `(0.0 ,f-begin  ,(/ (* .5 (- f-end f-begin)) n))))
+(define (signal-sweep amp phase f-begin f-end n)
+  (let* ((poly (vec `(,phase ,f-begin  ,(/ (* .5 (- f-end f-begin)) n))))
          (sig (signal-polyphase poly n)))
-    (grid-scale sig amp) sig))
+    (let ((phase+ (grid-scale sig amp)))
+      sig)))
+
+
+;; Sweep synth.  State is encoded as:
+;;  0 phase
+;;  1 frequency
+;;  2 frame nb
+
+
 
 ;; TEST:
 ;; (signal-angle (signal-sweep .1 .11 100))

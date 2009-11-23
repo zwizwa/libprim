@@ -286,7 +286,7 @@ _ sc_grid_mul_mm(sc *sc, _ A, _ B, _ C) {
     return VOID;
 }
 
-_ sc_grid_component_mul(sc *sc, _ og, _ os) {
+_ sc_grid_scale(sc *sc, _ og, _ os) {
     grid *g = CAST(grid, og);
     inexact *f = CAST(inexact, os);
     int i,N = grid_total(g);
@@ -338,19 +338,29 @@ _ sc_grid_noise_normal(sc *sc, _ g) {
     grid_noise_normal(CAST(grid, g));
     return VOID;
 }
+
+static inline double eval_poly(double t, int O, double *coef) {
+    double acc = 0.0;
+    int j;
+    for(j=O-1; j>=0; j--) {
+        acc *= t;
+        acc += coef[j];
+    }
+    return acc;
+}
+
+/* Compute a polynomial phase signal + return the phase offset */
 _ sc_grid_poly_phase(sc *sc, _ opoly, _ ovec) {
     grid *poly = CAST(grid, opoly);
     grid *vec  = CAST(grid, ovec);
     int i, j, N = vec->dim[0], O = poly->dim[0];
     for (i=0; i<N; i++) {
-        double acc = 0.0, t = (double)i;
-        for(j=O-1; j>=0; j--) {
-            acc *= t;
-            acc += poly->buf[j];
-        }
-        vec->buf[i] = cos(acc);
+        vec->buf[i] = cos(eval_poly(i, O, poly->buf));
     }
-    return VOID;
+    double phase = eval_poly(N, O, poly->buf);
+    int wrap = phase / (2.0 * M_PI);
+    phase -= wrap;
+    return _ex_make_inexact(EX, phase);
 }
 
 
@@ -366,10 +376,10 @@ _ sc_make_yuv(sc *sc, _ w, _ h, _ fourcc) {
 
 /* Audio I/O*/
 _ sc_grid_read_short(sc *sc, _ g, _ p) {
-    if (-1 == grid_read_short(CAST(grid, g), CAST(port, p))) ERROR("invalid", CONS(g,CONS(p,NIL)));
+    if (0 == grid_read_short(CAST(grid, g), CAST(port, p))) ERROR("eof", p);
     return VOID;
 }
 _ sc_grid_write_short(sc *sc, _ g, _ p) {
-    if (-1 == grid_write_short(CAST(grid, g), CAST(port, p))) ERROR("invalid", CONS(g,CONS(p,NIL)));
+    if (0 == grid_write_short(CAST(grid, g), CAST(port, p))) ERROR("invalid", CONS(g,CONS(p,NIL)));
     return VOID;
 }
