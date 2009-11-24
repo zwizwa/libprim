@@ -289,6 +289,13 @@ _ ex_is_zero(ex *ex, _ o) {
     if (i) return FALSE;
     return TRUE;
 }
+_ _ex_make_inexact(ex *ex, double d) {
+    return _ex_leaf_to_object(ex, inexact_new(d));
+}
+_ ex_is_inexact(ex *ex, _ o) {
+    return (object_to_inexact(o)) ? TRUE : FALSE;
+}
+
 
 #define OBJECT_PREDICATE(cast) \
     {if (cast(o)) return TRUE; else return FALSE;}
@@ -300,10 +307,6 @@ _ ex_is_pair(ex *ex, _ o)    { return _is_vector_type(o, TAG_PAIR); }
 _ ex_is_vector(ex *ex, _ o)  { return _is_vector_type(o, TAG_VECTOR); }
 
 /* Strings. */
-_ _ex_make_inexact(ex *ex, double d) {
-    return _ex_leaf_to_object(ex, inexact_new(d));
-}
-
 _ _ex_make_string(ex *ex, const char *str) {
     return _ex_leaf_to_object(ex, bytes_from_cstring(str));
 }
@@ -760,6 +763,8 @@ _ ex_atan(ex *ex, _ a) { return _ex_unop(ex, a, ATAN); }
 _ ex_exp(ex *ex, _ a) { return _ex_unop(ex, a, EXP); }
 _ ex_log(ex *ex, _ a) { return _ex_unop(ex, a, LOG); }
 _ ex_sqrt(ex *ex, _ a) { return _ex_unop(ex, a, SQRT); }
+
+
 
 
 

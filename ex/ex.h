@@ -122,6 +122,7 @@ static inline void* _ex_unwrap_pointer(ex *ex, void *unwrap, object o){
 long _ex_unwrap_integer(ex *ex, object o);
 #define CAST(type,x) ((type*)(_ex_unwrap_pointer(EX, object_to_##type, x)))
 #define CAST_INTEGER(x) _ex_unwrap_integer(EX, x)
+#define CAST_CHAR(x)    _ex_unwrap_char(EX, x)
 
 #define EXCEPT_TRY   0
 #define EXCEPT_ABORT 1 /* abort to default toplevel continuation. */

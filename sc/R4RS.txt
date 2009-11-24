@@ -1,0 +1,16 @@
+
+SC is as standard as possible (aiming mostly at R4RS), but features
+are implemented as needed.  Gratuitous incompatibilities are bugs.
+
+Exceptions to R4RS
+   - characters are integers
+   - strings are byte vectors
+   - numbers: only fixnums (machine word size - 2 bits signed
+     integers) and flonums (C's double)
+   - only defmacro
+
+
+Features planned:
+   - proper characters
+   - complex numbers
+   - optional bignums

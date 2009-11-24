@@ -307,13 +307,24 @@
       (if (null? lst) acc
           (next (op acc (car lst)) (cdr lst))))))
 
-(define + (make-accu add 0))
-(define * (make-accu mul 1))
+;; Like left fold, but without NIL
+(define (bin-reduce binop unit lst)
+  (cond
+   ((null? lst) unit)
+   ((null? (cdr lst)) (car lst))
+   (else
+    (let rec ((lst (cdr lst))
+              (acc (car lst)))
+      (if (null? lst) acc
+          (rec (cdr lst) (binop acc (car lst))))))))
+
+(define (+ . a) (bin-reduce add 0 a))
+(define (* . a) (bin-reduce mul 1 a))
 ;; (define - (make-accu sub 0))
 (define - sub)
 (define / div)
 
-(define = eq)
+(define = bin-reduce)
 (define > gt)
 (define < lt)
 (define (>= a b) (not (< a b)))
@@ -633,6 +644,16 @@
 (define (load-lib filename)
   (load (string-append (script-dir) filename)))
 
+
+
+;; R4RS test hacks
+(define (complex? x) #f)
+(define (rational? x) #f)
+(define real? number?)
+(define exact? integer?)
+
+
+(define (expt a b) (exp (* (log a) b)))
 
 (gc))))
 

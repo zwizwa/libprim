@@ -204,6 +204,9 @@ static inline long vector_size(vector *v) {
 #define VOID  CONSTANT(2)
 #define EOF_OBJECT CONSTANT(3)
 
+
+
+
 /* If the object is a leaf object, this will return a non-null pointer. */
 static inline void *object_struct(object ob, void *type){
     void *x = object_to_const(ob);
