@@ -170,8 +170,11 @@
   (let next ((f (cdr form)))
     (if (null? f) '(void)
         (let ((c  (car f)))
-          (if (eq? 'else (car c)) (cadr c)
-          (list 'if (car c) (cadr c) (next (cdr f))))))))
+          (if (eq? 'else (car c))
+              (cons 'begin (cdr c))
+              (list 'if (car c)
+                    (cons 'begin (cdr c))
+                    (next (cdr f))))))))
 
 
 (define-macro (*** form)
@@ -529,10 +532,10 @@
         (let* ((clause (car clauses))
                (rest (lambda () (next (cdr clauses))))
                (guard (car clause))
-               (body (cadr clause)))
+               (body (cons 'begin (cdr clause))))
           (cond
            ((eq? 'else guard) body)
-           ((eq? '=> body)
+           ((eq? '=> (cadr clause))
             (let ((body (caddr clause)))
               `(let ((bv ,guard))
                  (if bv (,body bv) ,(rest)))))
@@ -540,10 +543,11 @@
             `(if ,guard ,body ,(rest))))))))
 
 (define (improper lst)
-  (let rec ((lst lst))
-    (if (null? (cdr lst))
-        (car lst)
-        (cons (car lst) (rec (cdr lst))))))
+  (if (null? lst) '()
+      (let rec ((lst lst))
+        (if (null? (cdr lst))
+            (car lst)
+            (cons (car lst) (rec (cdr lst)))))))
                                
 (define (apply fn . args)
   (apply1 fn (improper args)))

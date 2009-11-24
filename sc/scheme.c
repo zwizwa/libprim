@@ -680,7 +680,7 @@ _ sc_apply_ktx(sc* sc, _ k, _ fn, _ args) {
     object value;
     if (NIL == args) {
         done = NIL;
-        value = fn;
+        value = VALUE(fn);
     }
     else {
         done = CONS(fn, NIL);
