@@ -170,37 +170,37 @@ int port_printf(port *p, const char *fmt, ...) {
     return len;
 }
 int port_vprintf(port *p, const char *fmt, va_list ap) {
-    if (!p) p = default_out();
+    if (!(p && p->m->vprintf)) p = default_out();
     return p->m->vprintf(p, fmt, ap);
 }
 int port_getc(port *p) {
-    if (!p) return EOF;
+    if (!(p && p->m->get)) return EOF;
     return p->m->get(p);
 }
 int port_ungetc(port *p, int c) {
-    if (!p) return EOF;
+    if (!(p && p->m->unget)) return EOF;
     return p->m->unget(p, c);
 }
 int port_putc(port *p, int c) {
-    if (!p) p = default_out();
+    if (!(p && p->m->put)) p = default_out();
     return p->m->put(p, c);
 }
 int port_write(port *p, void *buf, size_t len) {
-    if (!p) p = default_out();
+    if (!(p && p->m->write)) p = default_out();
     return p->m->write(p, buf, len);
 }
 int port_read(port *p, void *buf, size_t len) {
-    if (!p) return EOF;
+    if (!(p && p->m->read)) return EOF;
     return p->m->read(p, buf, len);
 }
 void port_close(port *p) {
-    if (p) p->m->close(p);
+    if (p && p->m->close) p->m->close(p);
 }
 void port_flush(port *p) {
-    if (p) p->m->flush(p);
+    if (p && p->m->flush) p->m->flush(p);
 }
 bytes *port_get_bytes(port *p) {
-    if (!p) return NULL;
+    if (!(p && p->m->bytes)) return NULL;
     return p->m->bytes(p);
 }
 
