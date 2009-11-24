@@ -201,7 +201,6 @@ void _sc_object_erase_leaf(sc *sc, _ o) {
 _ sc_write_stderr(sc *sc,  _ o) {
     vector *v = object_to_vector(o);
     if (TRUE == sc_is_state(sc, o))   return _ex_write_vector(EX, "state", v);
-    if (TRUE == sc_is_lambda(sc, o))  return _ex_write_vector(EX, "lambda", v);
     if (TRUE == sc_is_redex(sc, o))   return _ex_write_vector(EX, "redex", v);
     if (TRUE == sc_is_value(sc, o))   return _ex_write_vector(EX, "value", v);
     if (TRUE == sc_is_error(sc, o))   return _ex_write_vector(EX, "error", v);
@@ -212,6 +211,14 @@ _ sc_write_stderr(sc *sc,  _ o) {
     if (TRUE == sc_is_k_seq(sc, o))   return _ex_write_vector(EX, "k_seq", v);
     if (TRUE == sc_is_k_set(sc, o))   return _ex_write_vector(EX, "k_set", v);
     if (MT   == o) { _ex_printf(EX, "#k_mt"); return VOID; }
+
+    if (TRUE == sc_is_lambda(sc, o)) {
+        // return _ex_write_vector(EX, "lambda", v);
+        // code might contain cycles..
+        _ex_printf(EX, "#<procedure>", _sc_port(sc));
+        return VOID;
+    }
+
 
     return _ex_write(EX, o);
 }
