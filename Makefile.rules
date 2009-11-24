@@ -46,7 +46,12 @@ run_test: $(TEST)
 gen: $(GEN)
 	rm *.d
 
-
+# The `clean' target leaves the generated files intact.  Distribution
+# tarball is independent of mzscheme code generation.
 .PHONY: clean
 clean:
-	rm -f *.a *.o *.d *.d.* *~ *.h_* *.c_* $(APP) $(TEST)
+	rm -f *.a *.o *.d *.d.* *~ $(APP) $(TEST)
+
+# The `mrproper' target also cleans the generated files.
+mrproper: clean
+	rm -rf *.h_* *.c_*

@@ -9,6 +9,9 @@ clean:
 	rm -f *~
 	for dir in $(DIRS); do make -C $$dir clean; done
 
+mrproper:
+	for dir in $(DIRS); do make -C $$dir mrproper; done
+
 # Generate C code.  The resulting tree can be built without mzscheme installed.
 gen:
 	for dir in $(DIRS); do make -C $$dir gen; done
