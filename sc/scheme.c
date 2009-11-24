@@ -972,3 +972,7 @@ const char *_sc_repl_cstring(sc *sc, const char *commands) {
     const char *output = cstring_from_bytes(bout);
     return output;
 }
+
+void _sc_eval_cstring(sc *sc, const char *commands) {
+    _sc_top(sc, CONS(SYMBOL("eval-string"), CONS(STRING(commands), NIL)));
+}

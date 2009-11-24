@@ -271,6 +271,7 @@ const char *_sc_repl_cstring(sc *sc, const char *commands);
 sc *_sc_new(int argc, char **argv);
 void _sc_def_prims(sc *sc, prim_def *prims);
 
+void _sc_eval_cstring(sc *sc, const char *commands);
 
 
 
