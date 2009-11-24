@@ -5918,3 +5918,17 @@ place:  (port 0/1/2 !busy fn)
 
 
 
+Entry: arm cross build + test with qemu
+Date: Tue Nov 24 15:56:55 CET 2009
+
+# build the toolchain with busybox.  standard config: just pick
+# generic arm target.  this gives arm-linux-uclibcgnueabi
+
+# the distro includes a script that builds it and installs it as a
+# subdir of current dir.
+bin/build-arm
+
+# the app is compiled statically, so can run directly in QEMU.  use
+# the expanded code to boot faster.
+qemu-arm arm-linux-uclibcgnueabi/bin/sc --boot sc/boot-expanded.scm
+

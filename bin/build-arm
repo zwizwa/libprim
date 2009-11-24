@@ -1,3 +1,5 @@
-./configure --cc=arm-linux-uclibcgnueabi-gcc --enable-static
+make clean
+./configure --cc=arm-linux-uclibcgnueabi-gcc --enable-static --prefix=`pwd`/arm-linux-uclibcgnueabi && make && make install
+
 
 
