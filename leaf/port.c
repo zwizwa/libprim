@@ -4,7 +4,7 @@
    which is licenced under the GPL.  However, this file is part of
    core libprim and licenced under the LGPL. */
 
-#include <ulimit.h>
+// #include <ulimit.h>
 #include <unistd.h>
 #include <stdlib.h>
 #include <string.h>
@@ -462,8 +462,8 @@ int fd_accept(int server_fd) {
 
 static void close_fds_from(int from) {
     // close all other filedescriptors
-    int i = ulimit(4, 0);
-    // i = getdtablesize();
+    // int i = ulimit(4, 0);
+    int i = getdtablesize();
     while (i-- > from) {
         // fprintf(stderr, "closing fd %d\n", i);
         int cr;
