@@ -1,3 +1,5 @@
-make clean
+#!/bin/sh
+
+# make clean
 ./configure && make && make -C sc boot-expanded.scm && make clean
 
