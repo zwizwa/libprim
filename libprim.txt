@@ -5917,6 +5917,14 @@ A list with structures like this, where the busy flag is modified in
 place:  (port 0/1/2 !busy fn)
 
 
+Entry: R4RS compliance
+Date: Tue Nov 24 08:56:32 CET 2009
+
+Apparently `char?' and `number?' need to be disjoint.  Since I'm not
+really interested in unicode, chars can be implemented as bytes, and
+embedded inside the constant space.
+
+
 
 Entry: arm cross build + test with qemu
 Date: Tue Nov 24 15:56:55 CET 2009
