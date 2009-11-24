@@ -8,6 +8,13 @@
      - setjump(ex->r.step) for primitive exceptions.
 */
 
+/*
+  FIXME: CONS in this file should sometimes be nonlinear cons (both
+  for SC and PF) and somtimes linear cons (for PF).
+
+ */
+
+
 #include <leaf/port.h>
 #include <leaf/channel.h>
 #include "object.h"
@@ -432,7 +439,21 @@ _ ex_tcp_bind(ex *ex, _ host, _ port) {
     return integer_to_object(fd);
 }
 
-_ ex_tcp_accept(ex *ex, _ ob) {
+_ ex_unix_bind(ex *ex, _ node, _ force_delete) {
+    char *nodename = CAST(cstring, node);
+    int fd;
+    if (force_delete != FALSE) {
+        remove(nodename);
+    }
+    if (-1 == (fd = fd_socket(nodename, 0, 
+                              PORT_SOCKET_UNIX | 
+                              PORT_SOCKET_SERVER))) {
+        ERROR("invalid", node);
+    }
+    return integer_to_object(fd);
+}
+
+_ ex_socket_accept(ex *ex, _ ob) {
     int server_fd = CAST_INTEGER(ob);
     int connection_fd = fd_accept(server_fd);
     if (-1 == connection_fd) ERROR("invalid-fd", ob);

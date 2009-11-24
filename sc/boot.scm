@@ -458,7 +458,7 @@
 ;; Start a (one-shot) console server.
 (define (repl-serve port)
   (let ((fd (tcp-bind "0.0.0.0" port)))
-    (let ((ports (tcp-accept fd)))
+    (let ((ports (socket-accept fd)))
       (repl-on-ports (car ports) (cdr ports) (cdr ports)))))
 
 
