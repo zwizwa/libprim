@@ -1,5 +1,5 @@
 make clean
-./configure --enable-media --prefix=`pwd`/`uname -p` && make && make-install
+./configure --enable-media --prefix=`pwd`/local && make && make install
 
 
 

@@ -208,6 +208,8 @@
 ;; (define append append2)
 (define (append . lsts) (append-lists lsts))
 
+; (define (complex? x) #f)
+; (define real? inexact?)
 
 (define (error tag ob)
   (raise-error tag ob))
@@ -286,6 +288,7 @@
               (next (cdr lst)))))))
 (define member (make-mem equal?))
 (define memq (make-mem eq?))
+(define memv (make-mem eqv?))
 
 (define (make-assoc eq?)
   (lambda (obj lst)
@@ -355,6 +358,12 @@
 (define number? integer?)
 (define string? bytes?)
 (define (for-each . args) (void (apply map args)))
+
+(define string=? string-equal?)
+(define string-length bytes-length)
+(define string-set! bytes-set!)
+(define string-ref bytes-ref)
+(define (string . args) (vector->bytes (list->vector args)))
 
 (define (make-string n . fill)
   (let ((b (make-bytes n)))
@@ -535,6 +544,8 @@
                (body (cons 'begin (cdr clause))))
           (cond
            ((eq? 'else guard) body)
+           ((null? (cdr clause))
+            `(if ,guard ,(void) ,(rest)))
            ((eq? '=> (cadr clause))
             (let ((body (caddr clause)))
               `(let ((bv ,guard))

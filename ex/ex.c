@@ -318,16 +318,34 @@ _ ex_number_to_string(ex *ex, _ num) {
     sprintf(str, "%ld", (long int)CAST_INTEGER(num));
     return _ex_make_string(ex, str);
 }
-_ ex_bytes_ref(ex *ex, _ ob_bytes, _ ob_index) {
+static char *bytes_ref(ex *ex, _ ob_bytes, _ ob_index) {
     bytes *b = CAST(bytes, ob_bytes);
     int i = CAST_INTEGER(ob_index);
-    if ((i < 0) || (i >= b->size)) return ERROR("index", ob_index);
-    return integer_to_object(b->bytes[i]);
+    if ((i < 0) || (i >= b->size)) return (char*)ERROR("index", ob_index);
+    return &b->bytes[i];
+
+}
+_ ex_bytes_ref(ex *ex, _ ob_bytes, _ ob_index) {
+    return integer_to_object(*bytes_ref(ex, ob_bytes, ob_index));
+}
+_ ex_bang_bytes_set(ex *ex, _ ob_bytes, _ ob_index, _ ob_value) {
+    *bytes_ref(ex, ob_bytes, ob_index) = CAST_INTEGER(ob_value);
+    return VOID;
 }
 _ ex_make_bytes(ex *ex, _ ob) {
     int size = CAST_INTEGER(ob);
     if (size <= 0) return INVALID(ob);
     return _ex_make_bytes(ex, size);
+}
+_ ex_vector_to_bytes(ex *ex, _ ob) {
+    vector *v = CAST(vector, ob);
+    int i, N = vector_size(v);
+    bytes *b = bytes_buffer_new(N+1);
+    char *c = bytes_allot(b, N);
+    for (i=0; i<N; i++) {
+        c[i] = object_to_integer(v->slot[i]);  // don't leak
+    }
+    return _ex_leaf_to_object(ex, b);
 }
 _ ex_bytes_init(ex *ex, _ ob_bytes, _ ob_int) {
     bytes *b = CAST(bytes, ob_bytes);
@@ -342,6 +360,9 @@ _ ex_symbol_to_string(ex *ex, _ sym) {
 _ ex_string_to_symbol(ex *ex, _ sym) {
     bytes *b = CAST(bytes, sym);
     return _ex_make_symbol(EX, b->bytes);
+}
+_ ex_is_string_equal(ex *ex, _ s1, _ s2) {
+    return strcmp(CAST(cstring, s1), CAST(cstring, s2)) ? FALSE : TRUE;
 }
 
 _ ex_bytes_length(ex *ex, _ ob) {
@@ -460,6 +481,14 @@ _ ex_socket_accept(ex *ex, _ ob) {
     return CONS(_ex_fd_open(ex, connection_fd, "r", "I:tcp-accept"),
                 _ex_fd_open(ex, connection_fd, "w", "O:tcp-accept"));
 }
+
+/* OS */
+_ ex_system(ex *ex, _ ob) {
+    char *cmd = object_to_cstring(ob);
+    int rv = system(cmd);
+    return integer_to_object(rv);
+}
+
 
 
 /* Processes */
@@ -752,12 +781,9 @@ _ ex_bytes_vector_append(ex *ex, _ ob) {
 }
 
 
-
-_ ex_system(ex *ex, _ ob) {
-    char *cmd = object_to_cstring(ob);
-    int rv = system(cmd);
-    return integer_to_object(rv);
-}
+/* Characters.  Note that currently characters and fixnums are the same. */
+_ ex_char_upcase(ex *ex, _ ob) {  return integer_to_object(toupper(CAST_INTEGER(ob))); }
+_ ex_char_downcas(ex *ex, _ ob) {  return integer_to_object(tolower(CAST_INTEGER(ob))); }
 
 
 /* Lists and vectors. */
