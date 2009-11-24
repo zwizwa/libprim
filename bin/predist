@@ -1,1 +1,3 @@
-./configure && make gen
+make clean
+./configure && make && make -C sc boot-expanded.scm && make clean
+
