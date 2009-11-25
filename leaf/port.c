@@ -36,7 +36,7 @@ int port_file_ungetc(port *p, int c) {
 }
 int port_file_write(port *p, void *buf, size_t len) {
     int rv = fwrite(buf, 1, len, p->stream.f.file);
-#if 1
+#ifdef PORT_DEBUG
     // fprintf(stderr, "WRITTEN %d\n", (int)len);
     if (rv != len) {
         int rv;
@@ -51,7 +51,7 @@ int port_file_read(port *p, void *buf, size_t len) {
     int rv = fread(buf, 1, len, p->stream.f.file);
 
     // it might actually be simpler to forget about ERROR/EOF..
-#if 1
+#ifdef PORT_DEBUG
     if (rv < len) {
         int rv;
         if ((rv = feof(p->stream.f.file))) fprintf(stderr, "READ EOF: %d\n", rv);

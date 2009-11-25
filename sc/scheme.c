@@ -491,6 +491,7 @@ static _ _sc_step(sc *sc, _ o_state) {
 
     /* Variable Reference */
     if (TRUE==IS_SYMBOL(term)){
+        // fprintf(stderr, " %s", object_to_symbol(term)->name);
         _ slot;
         if (FALSE == (slot = FIND_SLOT(env, term))) {
             if (FALSE == (slot = FIND_SLOT(TOPLEVEL(), term))) {
