@@ -468,7 +468,9 @@ _ ex_unix_bind(ex *ex, _ node, _ force_delete) {
     char *nodename = CAST(cstring, node);
     int fd;
     if (force_delete != FALSE) {
-        remove(nodename);
+        if (0 == remove(nodename)) {
+            _ex_printf(EX, "removed socket %s\n", nodename);
+        }
     }
     if (-1 == (fd = fd_socket(nodename, 0, 
                               PORT_SOCKET_UNIX | 
@@ -766,6 +768,7 @@ _ ex_log(ex *ex, _ a) { return _ex_unop(ex, a, LOG); }
 _ ex_sqrt(ex *ex, _ a) { return _ex_unop(ex, a, SQRT); }
 
 
+_ ex_random(ex *ex) { return integer_to_object(random()); }
 
 
 
@@ -789,7 +792,7 @@ _ ex_bytes_vector_append(ex *ex, _ ob) {
 
 /* Characters.  Note that currently characters and fixnums are the same. */
 _ ex_char_upcase(ex *ex, _ ob) {  return integer_to_object(toupper(CAST_INTEGER(ob))); }
-_ ex_char_downcas(ex *ex, _ ob) {  return integer_to_object(tolower(CAST_INTEGER(ob))); }
+_ ex_char_downcase(ex *ex, _ ob) {  return integer_to_object(tolower(CAST_INTEGER(ob))); }
 
 
 /* Lists and vectors. */

@@ -476,11 +476,12 @@
     (repl-on-ports (car ports) (cdr ports) (cdr ports))))
 
 ;; Start a (one-shot) console server.
-(define (repl-serve port)
-  (let ((fd (tcp-bind "0.0.0.0" port)))
-    (let ((ports (socket-accept fd)))
-      (repl-on-ports (car ports) (cdr ports) (cdr ports)))))
-
+(define (repl-serve-accept fd)
+  (let ((ports (socket-accept fd)))
+    (repl-on-ports (car ports) (cdr ports) (cdr ports))))
+(define (repl-serve-tcp tcp-port) (repl-serve-accept (tcp-bind "0.0.0.0" tcp-port)))
+(define (repl-serve-unix node) (repl-serve-accept (unix-bind node #t)))
+  
 
 ;; Support internal definitions
 (define (expand-lambda/defines lambda-form)

@@ -5924,6 +5924,11 @@ Apparently `char?' and `number?' need to be disjoint.  Since I'm not
 really interested in unicode, chars can be implemented as bytes, and
 embedded inside the constant space.
 
+Other R4RS issues include an incomplete implementation of the numeric
+tower.  This requires quite some effort to get working, and I will
+update it ongoingly.  At least the tokenizer should recognize
+numerical syntax, and maybe complex numbers could be implemented.
+Rationals and bignums are more work and currently not really relevant.
 
 
 Entry: arm cross build + test with qemu
@@ -5940,6 +5945,15 @@ bin/build-arm
 # the expanded code to boot faster.
 qemu-arm arm-linux-uclibcgnueabi/bin/sc --boot sc/boot-expanded.scm
 
+
+Entry: Compile to AST
+Date: Wed Nov 25 12:07:21 CET 2009
+
+Currently the code remains in s-expression form.  However, `lambda'
+should compile to AST with a limited number of cases.  If this is then
+put into CPS form we have a VM.
+
+Roadmap: AST from is required for making varref explicit + cachable.
 
 Entry: VM ideas
 Date: Wed Nov 25 08:41:21 CET 2009
