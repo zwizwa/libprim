@@ -5940,3 +5940,85 @@ bin/build-arm
 # the expanded code to boot faster.
 qemu-arm arm-linux-uclibcgnueabi/bin/sc --boot sc/boot-expanded.scm
 
+
+Entry: VM ideas
+Date: Wed Nov 25 08:41:21 CET 2009
+
+To make varref work, the compiled lambda expressions need to be
+modified.  Since this is a caching operation, it could be done at
+runtime, whenever a varref is encountered.
+
+Essentially, a bare-bones lambda expression is a tree containing:
+  - constants
+  - variable references
+  - abstractions
+  - special forms
+
+The goal to speedup:
+    - eliminate variable lookup
+    - eliminate intermediate structures (deforestation)
+    
+
+Entry: kawa scheme
+Date: Thu Nov 26 22:59:20 CET 2009
+
+cd /usr/local/lib
+wget ftp://ftp.gnu.org/pub/gnu/kawa/kawa-1.9.90.jar
+export CLASSPATH=/usr/local/lib/kawa-1.9.90.jar
+java kawa.repl
+
+On android[1].
+
+[1] http://per.bothner.com/blog/2009/AndroidHelloScheme/
+
+
+Entry: `freeze'
+Date: Thu Nov 26 23:28:40 CET 2009
+
+Currently 50% of the execution time is spent in variable lookup.  What
+about adding a `freeze' operation that will replace all global names
+with values?
+
+The reason to make this a command is to make the semantics
+controllable.  Freezing variables to values needs boxing to preserve
+mutability.
+
+As long as define / set! are not used to change the contents of a
+global variables, this works fine and should speed up a lot.
+
+
+
+Entry: `apply'
+Date: Thu Nov 26 23:40:53 CET 2009
+
+I suspect apply is way too slow because of the continuation stack
+trick.  Changing the evaluation order of arguments from back to front
+should make some things easier.. i.e. argument lists can be
+constructed in a straightforward manner.  The 'reverse' operation
+necessary to construct the list of redexes can be done once at
+compilation time.
+
+But, before I'm going to do something like this, some form of
+scheme-level profiler is necessary.
+
+
+Entry: Scheme Resources
+Date: Fri Nov 27 08:03:36 CET 2009
+
+
+1. libprim/sc vs Standard Scheme.
+
+The SC interpreter is optimized for embedded use.  It has a very small
+C core of about 60K.  It is standard R4RS with the most expensive
+features removed (i.e. no rational numbers, complex numbers or
+infinite precision integers).
+
+Its main goal is to glue together C data and code, and provide a
+system interface akin to a bash shell (programs / pipes / files).
+
+
+2. getting to know Scheme
+
+To get started, take a look at this
+
+http://www.scheme.com/tspl3/
