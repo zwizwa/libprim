@@ -578,8 +578,16 @@ _ ex_bang_select(ex *ex, _ actions, _ timeout) {
     FD_ZERO(sets+1);
     FD_ZERO(sets+2);
     int max = for_actions(ex, actions, sets, PORTS_SET);
-    struct timeval tv = {object_to_integer(timeout), 0};
-    int rv = select(max + 1, sets+0, sets+1, sets+2, (timeout == FALSE) ? NULL : &tv );
+
+    double seconds;
+    inexact *isec = object_to_inexact(timeout);
+    seconds = isec ? isec->value : object_to_integer(timeout);
+    struct timeval tv = {(int)seconds,
+                         (int)((seconds - (int)seconds) * 1000000.)};
+
+    int rv = select(max + 1, sets+0, sets+1, sets+2, 
+                    (timeout == FALSE) ? NULL : &tv );
+
     if (-1 == rv) return ERROR("select", actions);
     for_actions(ex, actions, sets, PORTS_GET);
     return integer_to_object(rv);

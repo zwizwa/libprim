@@ -16,8 +16,10 @@
 (define (repl-serve-accept fd)
   (let ((ports (socket-accept fd)))
     (repl-on-ports (car ports) (cdr ports) (cdr ports))))
-(define (repl-serve-tcp tcp-port) (repl-serve-accept (tcp-bind "0.0.0.0" tcp-port)))
-(define (repl-serve-unix node) (repl-serve-accept (unix-bind node #t)))
+(define (repl-serve-tcp tcp-port)
+  (repl-serve-accept (tcp-bind "0.0.0.0" tcp-port)))
+(define (repl-serve-unix node)
+  (repl-serve-accept (unix-bind node #t)))
 
 ;
 (define (action-ready a) (vector-ref a 2))
@@ -29,27 +31,40 @@
     `(set! ,var (cons ,val ,var))))
                
 
-(define (console-dispatch fd)
-  (let ((actions '())
-        (make-io-action
-         (lambda (io)
-           (vector (car io) 0 ;; sync on input invents
-                   #f         ;; initial condition is false
-                   (lambda ()
-                     (let* ((expr (read (car io)))
-                            (val (eval expr)))
-                       (write val (cdr io))
-                       (newline (cdr io))
-                       (flush-output-port (cdr io))))))))
-    (let ((accept-thunk
-           (lambda ()
-             (let ((io (socket-accept fd)))
-               (push! actions (make-io-action io))))))
-      (set! actions (list (vector fd 0 #f accept-thunk)))
+(define (console-dispatch fd io-list poll)
+  (let* ((actions '())
+         (add-io-action!
+          (lambda (io)
+            (push! actions
+              (vector (car io) 0 ;; sync on input invents
+                      #f         ;; initial condition is false
+                      (lambda ()
+                        (let* ((expr (read (car io)))
+                               (val (eval expr)))
+                          (write val (cdr io))
+                          (newline (cdr io))
+                          (flush-output-port (cdr io))))))))
+         (accept-thunk
+          (lambda () (add-io-action! (socket-accept fd)))))
+      ;; Add listener & io ports
+      (push! actions (vector fd 0 #f accept-thunk))
+      (for-each (lambda (io) (add-io-action! io)) io-list)
+      
+      ;; Dispatch loop
       (let loop ()
-        (select! actions #f)
+        (select! actions 0.100)
         (for-each (lambda (a)
                     (when (action-ready a) ((action-thunk a))))
                   actions)
-        (loop)))))
-      
+        (poll)
+        (loop))))
+
+
+;; Start a unix socket server + stdio dispatcher.
+
+(define (unix-server node poll)
+  (console-dispatch
+   (unix-bind node #t)
+   (list (cons (current-input-port)
+               (current-output-port)))
+   poll))
