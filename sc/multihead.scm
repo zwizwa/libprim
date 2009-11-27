@@ -31,18 +31,20 @@
 
 (define (console-dispatch fd)
   (let ((actions '())
-        (make-io-handler
+        (make-io-action
          (lambda (io)
-           (lambda ()
-             (let* ((expr (read (car io)))
-                    (val (eval expr)))
-               (write val (cdr io))
-               (newline (cdr io))
-               (flush-output-port (cdr io)))))))
+           (vector (car io) 0 ;; sync on input invents
+                   #f         ;; initial condition is false
+                   (lambda ()
+                     (let* ((expr (read (car io)))
+                            (val (eval expr)))
+                       (write val (cdr io))
+                       (newline (cdr io))
+                       (flush-output-port (cdr io))))))))
     (let ((accept-thunk
            (lambda ()
              (let ((io (socket-accept fd)))
-               (push! actions (vector (car io) 0 #f (make-io-handler io)))))))
+               (push! actions (make-io-action io))))))
       (set! actions (list (vector fd 0 #f accept-thunk)))
       (let loop ()
         (select! actions #f)
