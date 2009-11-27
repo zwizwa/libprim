@@ -6036,3 +6036,15 @@ system interface akin to a bash shell (programs / pipes / files).
 To get started, take a look at this
 
 http://www.scheme.com/tspl3/
+
+
+Entry: VM change roadmap
+Date: Fri Nov 27 09:33:40 CET 2009
+
+This is a longer change, probably for the weekend.  Change the
+representation of code such that (expanded) lambda expressions get
+transformed to an intermediate form which is then interpreted by the
+VM.  This can still be a tree.  Just make sure that some binding work
+that's done at run-time atm is replaced with compile-time work.
+
+
