@@ -1,0 +1,6 @@
+make clean
+./configure --cc=arm-linux-uclibcgnueabi-gcc --prefix=/data/root/usr/ && make
+
+
+
+
