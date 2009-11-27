@@ -6048,3 +6048,29 @@ VM.  This can still be a tree.  Just make sure that some binding work
 that's done at run-time atm is replaced with compile-time work.
 
 
+Entry: Coroutine interface C <-> VM
+Date: Fri Nov 27 11:23:31 CET 2009
+
+Requires: "yield" signal that preserves current continuation.  This is
+already +- implememented with the MT continuation.
+
+
+Entry: remove support for towers
+Date: Fri Nov 27 11:36:23 CET 2009
+
+It makes the interpreter loop too complicated, and it's not used.
+
+This means sc_step is not a function accessible from scheme, which
+means it can be implemented more efficiently, and probably simpler.
+
+The fundamental conflict is this:  some primitives need explicit
+access to the current interpreter state - this conflicts with
+implementing the interpreter in a purely functional way.
+
+Essentially, the concept is broken so let's get rid of it.  The vm is
+a state-machine, not a pure function.
+
+
+
+
+

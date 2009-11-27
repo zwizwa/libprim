@@ -708,11 +708,6 @@ _ sc_eval_ktx(sc *sc, _ k, _ expr) {
     return sc_make_k_seq(sc, k, CONS(REDEX(expr, NIL),NIL));
 }
 
-
-
-
-
-
 _ sc_bang_abort_k(sc *sc, _ k) {
     return sc_bang_set_global(sc, sc_slot_abort_k, k);
 }
@@ -720,6 +715,11 @@ _ sc_exit(sc *sc) {
     exit(0);
 }
 
+/* Yield is currently implemented as halt.  Essentially it pops the
+   continuation frame that contains the sc_yield primitive application. */
+_ sc_yield(sc *sc) {
+    
+}
 
 /* --- SETUP & GC --- */
 
@@ -764,21 +764,26 @@ _ _sc_top(sc *sc, _ expr){
         // _sc_check_gc_size(sc);
         for(;;) {
             _ state;
-            /* Run */
+            /* Run until error.  The sc_eval_step function will
+               perform a single state update.  If that function
+               returns (i.e. it was not interrupted by a full unwind
+               due to GC), it produces either a next state update or
+               an error condition. */
             do {
                 state = sc_global(sc, sc_slot_state);      // get
                 state = sc_eval_step(sc, state);           // update (functional)
                 sc_bang_set_global(sc, sc_slot_state, state); // set
             }
             while (FALSE == sc_is_error(sc, state));
+
+            error *e = object_to_error(state);
             
             /* Halt */
-            error *e = object_to_error(state);
             if (e->tag == SYMBOL("halt")) {
                 sc->m.top_entries--;
                 return e->arg;
             }
-            
+
             /* Abort */
             sc_bang_set_global(sc, sc_slot_state,
                                STATE(VALUE(state), 
@@ -973,6 +978,14 @@ const char *_sc_repl_cstring(sc *sc, const char *commands) {
     const char *output = cstring_from_bytes(bout);
     return output;
 }
+
+/* Coroutine interface bwetween C caller and Scheme VM.  From the C
+ * side, this maps a string to a string: no scheme values pass this
+ * barrier. */
+
+// const char *_sc_
+
+
 
 void _sc_eval_cstring(sc *sc, const char *commands) {
     _sc_top(sc, CONS(SYMBOL("eval-string"), CONS(STRING(commands), NIL)));
