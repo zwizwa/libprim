@@ -271,9 +271,14 @@ const char *_sc_repl_cstring(sc *sc, const char *commands);
 sc *_sc_new(int argc, char **argv);
 void _sc_def_prims(sc *sc, prim_def *prims);
 
-void _sc_eval_cstring(sc *sc, const char *commands);
+void _sc_eval_cstring(sc *sc, const char *commands); // deprecated
 
+ 
+_ _sc_continue(sc *sc);
 
+/* Coroutine yield to VM: exchange a string.  The returned string is
+   only valid inbetween _sc_yield calls. */
+const char *_sc_yield(sc *sc, const char *msg);
 
 
 

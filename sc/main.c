@@ -16,5 +16,9 @@ int main(int argc, char **argv) {
        command line arguments. Evaluating it will either start the
        REPL or load a script. */
     _sc_top(sc, CONS(SYMBOL("eval"), CONS(SYMBOL("init-script"), NIL)));
+    for(;;) {
+        const char *in =  _sc_yield(sc, "foo");
+        fprintf(stderr, "got %s\n", in);
+    }
     return 0;
 }

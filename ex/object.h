@@ -143,6 +143,7 @@ static inline vector *object_to_vector(object ob) {
 
 
 #define unlikely(x) __builtin_expect((long)(x),0)
+#define likely(x) __builtin_expect((long)(x),1)
 
 
 /* Note: be careful: this is a _pointer_ to fin.  Code isn't always

@@ -469,7 +469,7 @@ _ ex_unix_bind(ex *ex, _ node, _ force_delete) {
     int fd;
     if (force_delete != FALSE) {
         if (0 == remove(nodename)) {
-            _ex_printf(EX, "removed socket %s\n", nodename);
+            // _ex_printf(EX, "removed socket %s\n", nodename);
         }
     }
     if (-1 == (fd = fd_socket(nodename, 0, 

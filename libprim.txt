@@ -6054,6 +6054,11 @@ Date: Fri Nov 27 11:23:31 CET 2009
 Requires: "yield" signal that preserves current continuation.  This is
 already +- implememented with the MT continuation.
 
+Currently I don't see how to do this.  Something isn't right.
+
+Yield should behave as a primitive: the re-entry from scheme behaves
+as the return value of the sc_yield() primitive.  
+
 
 Entry: remove support for towers
 Date: Fri Nov 27 11:36:23 CET 2009
@@ -6068,9 +6073,10 @@ access to the current interpreter state - this conflicts with
 implementing the interpreter in a purely functional way.
 
 Essentially, the concept is broken so let's get rid of it.  The vm is
-a state-machine, not a pure function.
+a state-machine because of a hack that allows modification of internal
+state (i.e. the current value & continuation) in an interface towards
+primitives that pretends as if there is no suck access.
 
-
-
+Is there a reason to not unify primitive exceptions and GC restarts?
 
 

@@ -594,20 +594,8 @@ static _ _sc_step(sc *sc, _ o_state) {
 
 
 
-/* Because interpreter-step is accessible from Scheme, it is possible
-   to create towers of interpreters.  This requires some nesting for
-   the exceptions, which only travel towards the nearest step() to be
-   turned into values for the layer above.
 
-   Note that GC exceptions are different: they travel all the way up
-   to the topmost STEP and restart its continuation.  
-
-   Only GC and the topmost STEP are allowed to access sc->state.
-*/
-
-
-
-_ sc_eval_step(sc *sc, _ state) {
+_ _sc_eval_step(sc *sc, _ state) {
     int exception;
     object rv = NIL;
     ex_r save;
@@ -640,7 +628,7 @@ _ sc_eval_step(sc *sc, _ state) {
             if (unlikely(NULL == e)) { TRAP(); }
             e->tag = sc->m.error_tag;
             e->arg = sc->m.error_arg;
-            e->state = state;
+            e->state = state; // prim's _input_ state
             e->prim = const_to_object(sc->m.r.prim);
             sc->m.error_arg = NIL;
             sc->m.error_tag = NIL;
@@ -659,15 +647,17 @@ _ sc_eval_step(sc *sc, _ state) {
 
 
 
+void _sc_pop_k(sc *sc, _ value) {
+    state *s = CAST(state, sc_global(sc, sc_slot_state));
+    _ k = sc_k_parent(sc, s->continuation); // drop `gc' k_apply frame
+    sc_bang_set_global(sc, sc_slot_state, STATE(value, k)); // update state manually    
+}
 
 
 /* GC: set continuation manually, since since the interpreter aborts
    and restarts the current step. */
 _ sc_gc(sc* sc) {
-    state *s = CAST(state, sc_global(sc, sc_slot_state));
-    _ k = sc_k_parent(sc, s->continuation); // drop `gc' k_apply frame
-    sc_bang_set_global(sc, sc_slot_state, 
-                       STATE(VALUE(VOID), k)); // update state manually
+    _sc_pop_k(sc, VALUE(VOID));
     EX->stateful_context = 0;  // enable restarts
     gc_collect(sc->m.gc);      // collect will restart at sc->state
     return NIL; // not reached
@@ -676,6 +666,16 @@ _ sc_gc(sc* sc) {
 _ sc_gc_used(sc *sc) {
     return integer_to_object(sc->m.gc->current_index);
 }
+
+
+/* Yield is currently implemented as halt.  Essentially it pops the
+   continuation frame that contains the sc_yield primitive application. */
+_ sc_yield(sc *sc, _ ob) {
+    _sc_pop_k(sc, VALUE(ob));
+    return ERROR("halt", FALSE);
+}
+
+
 
 /* Continuation transformer for apply.  
 
@@ -715,11 +715,6 @@ _ sc_exit(sc *sc) {
     exit(0);
 }
 
-/* Yield is currently implemented as halt.  Essentially it pops the
-   continuation frame that contains the sc_yield primitive application. */
-_ sc_yield(sc *sc) {
-    
-}
 
 /* --- SETUP & GC --- */
 
@@ -749,13 +744,12 @@ static void _sc_check_gc_size(sc *sc) {
 */
 
 
-_ _sc_top(sc *sc, _ expr){
+_ _sc_continue(sc *sc) {
     if (sc->m.top_entries) {
         _ex_printf(EX, "WARNING: multiple _sc_top() entries.\n");
         return NIL;
     }
     sc->m.top_entries++;
-    sc_bang_set_global(sc, sc_slot_state, STATE(REDEX(expr,NIL),MT));
     for(;;) {
         if (setjmp(sc->m.top)){
             sc->m.prim_entries = 0;  // full tower unwind
@@ -769,29 +763,35 @@ _ _sc_top(sc *sc, _ expr){
                returns (i.e. it was not interrupted by a full unwind
                due to GC), it produces either a next state update or
                an error condition. */
-            do {
-                state = sc_global(sc, sc_slot_state);      // get
-                state = sc_eval_step(sc, state);           // update (functional)
+
+            state = sc_global(sc, sc_slot_state);  // get
+            state = _sc_eval_step(sc, state);      // update
+
+            if (likely(FALSE == sc_is_error(sc, state))) {
                 sc_bang_set_global(sc, sc_slot_state, state); // set
             }
-            while (FALSE == sc_is_error(sc, state));
-
-            error *e = object_to_error(state);
+            else {
+                error *e = object_to_error(state);
             
-            /* Halt */
-            if (e->tag == SYMBOL("halt")) {
-                sc->m.top_entries--;
-                return e->arg;
-            }
+                /* Halt */
+                if (e->tag == SYMBOL("halt")) {
+                    sc->m.top_entries--;
+                    return e->arg;
+                }
 
-            /* Abort */
-            sc_bang_set_global(sc, sc_slot_state,
-                               STATE(VALUE(state), 
-                                     sc_global(sc, sc_slot_abort_k)));
+                /* Abort */
+                sc_bang_set_global(sc, sc_slot_state,
+                                   STATE(VALUE(state), 
+                                         sc_global(sc, sc_slot_abort_k)));
+            }
         }
     }
 }
 
+_ _sc_top(sc *sc, _ expr) {
+    sc_bang_set_global(sc, sc_slot_state, STATE(REDEX(expr,NIL),MT));
+    return _sc_continue(sc);
+}
 
 static prim_def scheme_prims[] = scheme_table_init;
 static prim_def ex_prims[] = ex_table_init;
@@ -986,7 +986,23 @@ const char *_sc_repl_cstring(sc *sc, const char *commands) {
 // const char *_sc_
 
 
-
 void _sc_eval_cstring(sc *sc, const char *commands) {
     _sc_top(sc, CONS(SYMBOL("eval-string"), CONS(STRING(commands), NIL)));
 }
+
+const char *_sc_yield(sc *sc, const char *msg) {
+    state *s;
+    s = CAST(state, sc_global(sc, sc_slot_state));
+    s->redex_or_value = VALUE(_sc_make_aref(sc, bytes_from_cstring(msg)));
+
+    _sc_continue(sc);
+
+    s = CAST(state, sc_global(sc, sc_slot_state));
+    value *v = object_to_value(s->redex_or_value);
+    if (!v) {
+        fprintf(stderr, "YIELD gives redex, not value!\n");
+        exit(1);
+    }
+    return object_to_cstring(v->datum);
+}
+
