@@ -464,23 +464,6 @@
 (define current-error-port  (make-global-access 6))
 
 
-(define (repl-on-ports in out err)
-  (current-input-port  in)
-  (current-output-port out)
-  (current-error-port err)
-  (repl))
-
-;; Dial into a remote console server (i.e. "netcat -l -p 12345")
-(define (repl-connect host port)
-  (let ((ports (tcp-connect host port)))
-    (repl-on-ports (car ports) (cdr ports) (cdr ports))))
-
-;; Start a (one-shot) console server.
-(define (repl-serve-accept fd)
-  (let ((ports (socket-accept fd)))
-    (repl-on-ports (car ports) (cdr ports) (cdr ports))))
-(define (repl-serve-tcp tcp-port) (repl-serve-accept (tcp-bind "0.0.0.0" tcp-port)))
-(define (repl-serve-unix node) (repl-serve-accept (unix-bind node #t)))
   
 
 ;; Support internal definitions

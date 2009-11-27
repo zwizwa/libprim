@@ -557,10 +557,12 @@ static int for_actions(ex *ex, _ actions, fd_set *sets, int cmd) {
     for (a = actions; a != NIL; a = CDR(a)) {
         action *v = (action*)CAST(vector, CAR(a));
         if (vector_size((vector*)v) < 3) return ERROR("length", CAR(a));
-        port *p = CAST(port, v->port);
         int dir = CAST_INTEGER(v->direction);
         if ((dir < 0) || (dir > 2)) return ERROR("direction", CAR(a));
-        int fd = port_fd(p);
+        int fd;
+        port *p;
+        if ((p = object_to_port(v->port))) { fd = port_fd(p); }
+        else fd = CAST_INTEGER(v->port);
         if (fd < 0) return ERROR("filedes", CAR(a));
         if (fd > max) max = fd;
         switch(cmd) {
@@ -570,14 +572,14 @@ static int for_actions(ex *ex, _ actions, fd_set *sets, int cmd) {
     }
     return max;
 }
-_ ex_bang_select(ex *ex, _ actions) {
+_ ex_bang_select(ex *ex, _ actions, _ timeout) {
     fd_set sets[3];
     FD_ZERO(sets+0);
     FD_ZERO(sets+1);
     FD_ZERO(sets+2);
     int max = for_actions(ex, actions, sets, PORTS_SET);
-    struct timeval tv = {0, 1000000};
-    int rv = select(max + 1, sets+0, sets+1, sets+2, &tv);
+    struct timeval tv = {object_to_integer(timeout), 0};
+    int rv = select(max + 1, sets+0, sets+1, sets+2, (timeout == FALSE) ? NULL : &tv );
     if (-1 == rv) return ERROR("select", actions);
     for_actions(ex, actions, sets, PORTS_GET);
     return integer_to_object(rv);
