@@ -725,9 +725,9 @@
                (current-output-port)))
    void))
 
-(define (init-console io)
+(define (init-console io node)
   (console-dispatch
-   (unix-bind "/tmp/sc" #t)
+   (unix-bind (or node "/tmp/sc") #t)
    (list io)
    void))
 

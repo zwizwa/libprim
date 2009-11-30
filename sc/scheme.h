@@ -286,8 +286,9 @@ const char *_sc_yield(sc *sc, const char *msg);
 
 
 /* Start VM in background thread and return a console object for
-   interaction. */
-console *_sc_start_console(sc *sc);
+   interaction.  If `node' is non-NULL, this starts a console server
+   on the unix socket. */
+console *_sc_start_console(sc *sc, const char *node);
 
 
 #endif

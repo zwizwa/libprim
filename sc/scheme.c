@@ -1025,7 +1025,10 @@ static void *console_start(void *x) {
     fprintf(stderr, "console_start() EXIT\n");
     return NULL;
 }
-console *_sc_start_console(sc *sc) {
+
+#define QUOTE(x) CONS(SYMBOL("quote"), CONS(x, NIL))
+
+console *_sc_start_console(sc *sc, const char *node) {
     int to_vm[2];    // 0 = READ, 1 = WRITE
     int from_vm[2];
     pipe(to_vm);    
@@ -1037,7 +1040,9 @@ console *_sc_start_console(sc *sc) {
     _ io = CONS(_ex_make_file_port(EX, fdopen(to_vm[0], "r"), "from-console"),
                 _ex_make_file_port(EX, fdopen(from_vm[1], "w"), "to-console"));
     a->sc = sc;
-    a->args = CONS(SYMBOL("init-console"), CONS(CONS(SYMBOL("quote"), CONS(io, NIL)), NIL));
+    a->args = CONS(SYMBOL("init-console"), 
+              CONS(QUOTE(io),
+              CONS(node ? STRING(node) : FALSE, NIL)));
 
     pthread_attr_t attr;
     pthread_attr_init(&attr);
