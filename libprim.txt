@@ -6131,7 +6131,12 @@ int main(int argc, char **argv) {
 }
     
 
+Entry: wish list
+Date: Mon Nov 30 15:02:50 CET 2009
 
-
-
+ - parameters + io-redir
+ - dynamic-wind
+ - exceptions 
+ - continuation printing
+ - stepping / debug?
 

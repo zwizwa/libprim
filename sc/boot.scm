@@ -599,6 +599,10 @@
              (repl-no-guard void void)))
   (gc))
 
+         
+           
+             
+
 (define (repl)
   ;; (display "libprim/SC") (newline)
   (let loop ()
@@ -649,6 +653,18 @@
   (let ((var (cadr form))
         (val (caddr form)))
     `(set! ,var (cons ,val ,var))))
+
+  
+;; Eval / error.
+;; FIXME: this uses the global abort handler.  Use params!
+(define (rpc-eval expr)
+  (let* ((result #f)
+         (err (letcc k
+                     (begin
+                       (abort-k! k)
+                       (set! result `(ok ,(eval expr)))
+                       #f))))
+    (or result '(error))))
                
 (define (console-dispatch fd io-list poll)
   (let* ((actions '())
@@ -658,11 +674,13 @@
               (vector (car io) 0 ;; sync on input invents
                       #f         ;; initial condition is false
                       (lambda ()
-                        (let* ((expr (read (car io)))
-                               (val (eval expr)))
-                          (write val (cdr io))
-                          (newline (cdr io))
-                          (flush-output-port (cdr io))))))))
+                        (let ((expr (read (car io))))
+                          (let ((val (if (eof-object? expr)
+                                         '(error eof)
+                                         (rpc-eval expr))))
+                            (write val (cdr io))
+                            (newline (cdr io))
+                            (flush-output-port (cdr io)))))))))
          (accept-thunk
           (lambda () (add-io-action! (socket-accept fd)))))
       ;; Add listener & io ports
@@ -680,12 +698,12 @@
 
 
 ;; Start a unix socket server + stdio dispatcher.
-(define (unix-server node poll)
+(define (unix-server node)
   (console-dispatch
    (unix-bind node #t)
    (list (cons (current-input-port)
                (current-output-port)))
-   poll))
+   void))
 
 (define (init-console io)
   (console-dispatch
