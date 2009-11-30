@@ -6093,9 +6093,43 @@ S stack/continuation
 How is this different from the cek machine continuation frames?
 
 
+Entry: Detached console
+Date: Mon Nov 30 13:41:47 CET 2009
+
+The idea is to run the VM with its own dispatch loop in a separate
+thread, and have the foreground app (anything that links the VM into
+its image) present only a character console I/O.
 
 
+leaf_object *console_rpc(console *d, const char *cmd) {
+    console_write_raw(d, cmd, strlen(cmd));
+    console_write_raw(d, "\n", 1);
+    port_flush(d->out);
+    return console_read(d);
+}
 
+int main(int argc, char **argv) {
+    sc *sc = _sc_new(argc, argv);
+
+    /* This will start the VM in the background with a standard
+    unix-socket based dispatch loop.  See boot.scm::init-console */
+
+    console *c = _sc_start_console(sc);
+
+
+    /* To exchange information with the VM, a character interface is
+    used.  To properly syncrhonise on the return stream, the leaf/
+    s-expression parser is used. */
+
+    for(;;) {
+        leaf_object *o = console_rpc(c, "(+ 1 2)");
+        leaf_write(o, p);
+        port_printf(p, "\n");
+        leaf_free(o);
+        sleep(3);
+    }
+}
+    
 
 
 
