@@ -28,11 +28,14 @@ typedef struct {
     port *out;
 } console;
 
-// FIXME: extend this with a tuple/symbol/bytes based write procedure.
-int console_write_raw(console *d, const char *buf, size_t size);
+
+
 leaf_object *console_read(console *d);
 console *console_new(port *in, port *out);
 
+// FIXME: extend this with a tuple/symbol/bytes based write procedure.
+
+leaf_object *console_rpc(console *d, const char *cmd);
 
 #endif
 

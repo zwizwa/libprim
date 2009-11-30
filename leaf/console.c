@@ -1,5 +1,6 @@
 #include <leaf/console.h>
 #include <stdlib.h>
+#include <string.h>
 
 static void console_free(console *x) {
     leaf_free((leaf_object*)x->p);
@@ -12,9 +13,6 @@ static int console_write(console *x, port *p) {
 }
 LEAF_SIMPLE_TYPE(console)
 
-int console_write_raw(console *d, const char *buf, size_t size) {
-    return port_write(d->out, (void*)buf, size);
-}
 leaf_object *console_read(console *d) {
     return parser_read(d->p);
 }
@@ -25,5 +23,12 @@ console *console_new(port *in, port *out) {
     x->out = out;
     x->p = parser_new(in);
     return x;
+}
+
+leaf_object *console_rpc(console *d, const char *cmd) {
+    port_write(d->out, (void*)cmd, strlen(cmd));
+    port_write(d->out, "\n", 1);
+    port_flush(d->out);
+    return console_read(d);
 }
 
