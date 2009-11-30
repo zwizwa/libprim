@@ -405,6 +405,10 @@
 (define current-output-port (make-global-access 5))
 (define current-error-port  (make-global-access 6))
 
+
+(define close-output-port close-port)
+(define close-input-port close-port)
+
 ;; Support internal definitions
 (define (expand-lambda/defines lambda-form)
    (let collect ((body (cddr lambda-form))
@@ -665,22 +669,38 @@
                        (set! result `(ok ,(eval expr)))
                        #f))))
     (or result '(error))))
-               
+
+
+(define (filter fn lst)
+  (let rec ((lst lst))
+    (cond ((null? lst) '())
+          ((fn (car lst)) (cons (car lst) (rec (cdr lst))))
+          (else (rec (cdr lst))))))
+
 (define (console-dispatch fd io-list poll)
   (let* ((actions '())
+         (remove-io-action!
+          (lambda (io)
+            (display "close conn: ") (write io) (newline)
+            (close-output-port (cdr io))
+            (close-input-port (car io))
+            (set! actions (filter
+                           (lambda (a) (not (equal? (vector-ref a 0) (car io))))
+                           actions))))
          (add-io-action!
           (lambda (io)
+            (display "conn: ") (write io) (newline)
             (push! actions
               (vector (car io) 0 ;; sync on input invents
                       #f         ;; initial condition is false
                       (lambda ()
                         (let ((expr (read (car io))))
-                          (let ((val (if (eof-object? expr)
-                                         '(error eof)
-                                         (rpc-eval expr))))
-                            (write val (cdr io))
-                            (newline (cdr io))
-                            (flush-output-port (cdr io)))))))))
+                          (if (eof-object? expr)
+                              (remove-io-action! io)
+                              (let ((val (rpc-eval expr)))
+                                (write val (cdr io))
+                                (newline (cdr io))
+                                (flush-output-port (cdr io))))))))))
          (accept-thunk
           (lambda () (add-io-action! (socket-accept fd)))))
       ;; Add listener & io ports
