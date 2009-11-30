@@ -1006,3 +1006,41 @@ const char *_sc_yield(sc *sc, const char *msg) {
     return object_to_cstring(v->datum);
 }
 
+
+#include <leaf/console.h>
+#include <pthread.h>
+
+
+/* Start a VM in a decoupled thread, and return the console object that
+   represents the I/O channels. */
+
+typedef struct {
+    sc *sc;
+    _ args;
+    pthread_t t;
+} console_start_args;
+static void *console_start(void *x) {
+    console_start_args *a = (console_start_args*)x;
+    _sc_top(a->sc, a->args);
+    fprintf(stderr, "console_start() EXIT\n");
+    return NULL;
+}
+console *_sc_start_console(sc *sc) {
+    int to_vm[2];    // 0 = READ, 1 = WRITE
+    int from_vm[2];
+    pipe(to_vm);    
+    pipe(from_vm);
+    console *c = console_new(port_file_new(fdopen(from_vm[0], "r"), "from-vm"),
+                             port_file_new(fdopen(to_vm[1], "w"), "to-vm"));
+
+    console_start_args *a = calloc(1, sizeof(*a));
+    _ io = CONS(_ex_make_file_port(EX, fdopen(to_vm[0], "r"), "from-console"),
+                _ex_make_file_port(EX, fdopen(from_vm[1], "w"), "to-console"));
+    a->sc = sc;
+    a->args = CONS(SYMBOL("init-console"), CONS(CONS(SYMBOL("quote"), CONS(io, NIL)), NIL));
+
+    pthread_attr_t attr;
+    pthread_attr_init(&attr);
+    pthread_create(&a->t, &attr, console_start, a);
+    return c;
+}

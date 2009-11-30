@@ -5,7 +5,7 @@
 #include <leaf/leaf.h>
 #include <ex/ex.h>
 #include <ex/ex.h_ex_prims>
-
+#include <leaf/console.h>
 typedef struct _scheme sc;
 
 
@@ -284,6 +284,10 @@ _ _sc_continue(sc *sc);
    only valid inbetween _sc_yield calls. */
 const char *_sc_yield(sc *sc, const char *msg);
 
+
+/* Start VM in background thread and return a console object for
+   interaction. */
+console *_sc_start_console(sc *sc);
 
 
 #endif

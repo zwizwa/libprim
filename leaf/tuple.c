@@ -7,7 +7,8 @@ static tuple_class *type = NULL;
 static void tuple_free(tuple *x) {
     int i;
     for (i=0; i<x->size; i++) {
-        leaf_free((leaf_object*)(x->slot + i));
+        leaf_object *o = x->slot[i];
+        if (o) leaf_free(o);
         x->slot[i] = NULL;
     }
     free(x);

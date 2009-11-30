@@ -1,4 +1,4 @@
-;; Bootstrap
+;;; Bootstrap
 
 ;; A single s-expression will be allocated outside the VM and passed
 ;; to the interpretation step.  This means there is no GC during
@@ -45,6 +45,8 @@
   (lambda (expr)
     (if (null? expr) (void)
         (begin (eval (car expr)) (eval-list (cdr expr))))))
+
+;;; Library with macro expansion.
 
 ;; The rest is evaluated in sequence with `eval' defined above, which
 ;; also performs macro expansion.
@@ -395,66 +397,6 @@
   (let ((cr "\n"))
     (apply display (cons cr port))))
 
-
-
-;; parser might trigger GC, so we call it manually before reading.
-;; FIXME: at least make this detectable!!
-(define (read-gc port) (gc) (read-no-gc port))
-(define (read . port)
-  (gc)
-  (if (null? port)
-      (read-gc (current-input-port))
-      (read-gc (car port))))
-
-(define (load filename)
-  (let ((port (open-input-file filename)))
-    (let next ((last (void)))
-      (let ((expr (read port)))
-        (if (eof-object? expr)
-            last
-            (next (eval expr)))))))
-
-;; Run repl until end-of-input.  On error the abort continuation is
-;; invoked (see 'abort-k!').
-(define (repl-no-guard display-prompt exit-repl)
-  (let loop ()
-    (display-prompt)
-    (let ((expr (read (current-input-port))))
-      (if (eof-object? expr)
-          (exit-repl)
-          (begin
-            (let ((val (eval expr)))
-              (unless (void? val)
-                (write val) (newline)
-                (flush-output-port (current-output-port))))
-            (loop))))))
-
-;; Run repl, abort on error or EOF.  Perform collection before halt.
-;; This is used in conjuction with _sc_repl_cstring().
-(define (repl-oneshot)
-  (letcc k (begin
-             (abort-k! k)
-             (repl-no-guard void void)))
-  (gc))
-
-(define (repl)
-  ;; (display "libprim/SC") (newline)
-  (let loop ()
-    (print-error
-     (letcc k (begin
-                (abort-k! k)
-                (repl-no-guard
-                 (lambda ()
-                   (display "> " (current-error-port))
-                   (flush-output-port (current-error-port)))
-                 exit))))
-    (flush-output-port (current-error-port))
-    (loop)))
-
-
-(define (read-string str) (read (open-input-string str)))
-(define (eval-string str) (eval (read-string str)))
-
 (define (make-global-access n)
   (lambda p (if (null? p) (global n) (set-global! n (car p)))))
 
@@ -462,9 +404,6 @@
 (define current-input-port  (make-global-access 4))
 (define current-output-port (make-global-access 5))
 (define current-error-port  (make-global-access 6))
-
-
-  
 
 ;; Support internal definitions
 (define (expand-lambda/defines lambda-form)
@@ -561,28 +500,6 @@
 (define (string-append . args)
   (bytes-vector-append (list->vector args)))
 
-;(let ((x (read (open-input-file "boot.scm"))))
-;  (let loop ((n 40))
-;    (unless (zero? n)
-;      (expand x) (loop (sub1 n)))))
-
-
-;; (display "libprim/SC\n")
-;; (repl)
-
-;; Collect before re-entering C.
-
-;; (define-macro (case form)
-;;   (let rec ((clauses (cdr form)))
-;;     (if (null? clauses)
-;;         '(void)
-;;         (let ((c (car clauses))
-;;               (+ (cdr clauses)))
-;;           (if (eq? 'else (car c))
-;;               (cadr c)
-;;               `(if 
-
-
 (define-macro (case form)
   (let ((expr (cadr form))
         (ev '_ev)) ;; FIXME: use gensym
@@ -638,6 +555,143 @@
 
 
 (define (expt a b) (exp (* (log a) b)))
+
+
+;;; Console & IO
+
+;; parser might trigger GC, so we call it manually before reading.
+;; FIXME: at least make this detectable!!
+(define (read-gc port) (gc) (read-no-gc port))
+(define (read . port)
+  (gc)
+  (if (null? port)
+      (read-gc (current-input-port))
+      (read-gc (car port))))
+
+(define (load filename)
+  (let ((port (open-input-file filename)))
+    (let next ((last (void)))
+      (let ((expr (read port)))
+        (if (eof-object? expr)
+            last
+            (next (eval expr)))))))
+
+;; Run repl until end-of-input.  On error the abort continuation is
+;; invoked (see 'abort-k!').
+(define (repl-no-guard display-prompt exit-repl)
+  (let loop ()
+    (display-prompt)
+    (let ((expr (read (current-input-port))))
+      (if (eof-object? expr)
+          (exit-repl)
+          (begin
+            (let ((val (eval expr)))
+              (unless (void? val)
+                (write val) (newline)
+                (flush-output-port (current-output-port))))
+            (loop))))))
+
+;; Run repl, abort on error or EOF.  Perform collection before halt.
+;; This is used in conjuction with _sc_repl_cstring().
+(define (repl-oneshot)
+  (letcc k (begin
+             (abort-k! k)
+             (repl-no-guard void void)))
+  (gc))
+
+(define (repl)
+  ;; (display "libprim/SC") (newline)
+  (let loop ()
+    (print-error
+     (letcc k (begin
+                (abort-k! k)
+                (repl-no-guard
+                 (lambda ()
+                   (display "> " (current-error-port))
+                   (flush-output-port (current-error-port)))
+                 exit))))
+    (flush-output-port (current-error-port))
+    (loop)))
+
+(define (repl-on-ports in out err)
+  (current-input-port  in)
+  (current-output-port out)
+  (current-error-port err)
+  (repl))
+
+
+(define (read-string str) (read (open-input-string str)))
+(define (eval-string str) (eval (read-string str)))
+
+
+;; Multihead
+
+
+;; Dial into a remote console server (i.e. "netcat -l -p 12345")
+(define (repl-connect host port)
+  (let ((ports (tcp-connect host port)))
+    (repl-on-ports (car ports) (cdr ports) (cdr ports))))
+
+;; Start a (one-shot) console server.
+(define (repl-serve-accept fd)
+  (let ((ports (socket-accept fd)))
+    (repl-on-ports (car ports) (cdr ports) (cdr ports))))
+(define (repl-serve-tcp tcp-port)
+  (repl-serve-accept (tcp-bind "0.0.0.0" tcp-port)))
+(define (repl-serve-unix node)
+  (repl-serve-accept (unix-bind node #t)))
+
+;
+(define (action-ready a) (vector-ref a 2))
+(define (action-thunk a) (vector-ref a 3))
+
+(define-macro (push! form)
+  (let ((var (cadr form))
+        (val (caddr form)))
+    `(set! ,var (cons ,val ,var))))
+               
+(define (console-dispatch fd io-list poll)
+  (let* ((actions '())
+         (add-io-action!
+          (lambda (io)
+            (push! actions
+              (vector (car io) 0 ;; sync on input invents
+                      #f         ;; initial condition is false
+                      (lambda ()
+                        (let* ((expr (read (car io)))
+                               (val (eval expr)))
+                          (write val (cdr io))
+                          (newline (cdr io))
+                          (flush-output-port (cdr io))))))))
+         (accept-thunk
+          (lambda () (add-io-action! (socket-accept fd)))))
+      ;; Add listener & io ports
+      (push! actions (vector fd 0 #f accept-thunk))
+      (for-each (lambda (io) (add-io-action! io)) io-list)
+      
+      ;; Dispatch loop
+      (let loop ()
+        (select! actions 0.100)
+        (for-each (lambda (a)
+                    (when (action-ready a) ((action-thunk a))))
+                  actions)
+        (poll)
+        (loop))))
+
+
+;; Start a unix socket server + stdio dispatcher.
+(define (unix-server node poll)
+  (console-dispatch
+   (unix-bind node #t)
+   (list (cons (current-input-port)
+               (current-output-port)))
+   poll))
+
+(define (init-console io)
+  (console-dispatch
+   (unix-bind "/tmp/sc" #t)
+   (list io)
+   void))
 
 (gc))))
 
