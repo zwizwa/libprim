@@ -36,6 +36,7 @@ console *console_new(port *in, port *out);
 // FIXME: extend this with a tuple/symbol/bytes based write procedure.
 
 leaf_object *console_rpc(console *d, const char *cmd);
+bytes *console_rpc_bytes(console *d, const char *cmd);
 
 #endif
 

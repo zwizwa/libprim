@@ -37,3 +37,10 @@ leaf_object *console_rpc(console *d, const char *cmd) {
     return o;
 }
 
+bytes *console_rpc_bytes(console *d, const char *cmd) {
+    port *p = port_bytes_new(bytes_buffer_new(100));
+    leaf_write(console_rpc(d, cmd), p);
+    bytes *b = port_get_bytes(p);
+    leaf_free((leaf_object*)p);
+    return b;
+}
