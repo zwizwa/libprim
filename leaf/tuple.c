@@ -14,9 +14,12 @@ static void tuple_free(tuple *x) {
     free(x);
 }
 
+#define LP "("
+#define RP ")"
+
 static int tuple_write(tuple *x, port *p) {
     int i, num = 0;
-    num += port_printf(p, "{");
+    num += port_printf(p, LP);
     for (i=0; i<x->size; i++) {
         if (i) { num += 1; port_putc(p, ' '); }
         if (x->slot[i]) {
@@ -26,7 +29,7 @@ static int tuple_write(tuple *x, port *p) {
             num += port_printf(p, "#<null>");
         }
     }
-    num += port_printf(p, "}");
+    num += port_printf(p, RP);
     return num;
 }
 

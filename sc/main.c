@@ -14,10 +14,16 @@ int main(int argc, char **argv) {
         port *p = port_file_new(stderr, "stderr");
         console *c = _sc_start_console(sc, "/tmp/foo-sc");
         for (;;) {
-            leaf_object *reply = console_rpc(c, "(write (+ 1 2))");
             if (1) {
+                leaf_object *reply = console_rpc(c, "(write (+ 1 2))");
                 leaf_write(reply, p);
                 port_printf(p, "\n");
+                leaf_free((leaf_object*)reply);
+            }
+            else {
+                bytes *b = console_rpc_bytes(c, "(write (+ 1 2))");
+                fprintf(stderr, "RV: %s\n", b->bytes);
+                leaf_free((leaf_object*)b);
             }
             sleep(3);
         }
