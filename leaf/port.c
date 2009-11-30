@@ -154,14 +154,14 @@ void port_methods_bytes_init(port_methods *p) {
 /* Default */
 static port *_default_out = NULL;
 static port *default_out(void) {
-    if (!_default_out) _default_out = port_file_new(stdout, "<stdout>");
+    if (!_default_out) _default_out = port_file_new(stderr, "<stderr>");
     return _default_out;
 }
 
 
 /* Virtual */
 int port_printf(port *p, const char *fmt, ...) {
-    if (!p) p = default_out();
+    if (!(p && p->m->vprintf)) p = default_out();
     int len;
     va_list ap;
     va_start (ap, fmt);

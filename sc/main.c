@@ -14,9 +14,11 @@ int main(int argc, char **argv) {
         port *p = port_file_new(stderr, "stderr");
         console *c = _sc_start_console(sc);
         for (;;) {
-            leaf_object *reply = console_rpc(c, "(+ 1 2)");
-            leaf_write(reply, p);
-            port_printf(p, "\n");
+            leaf_object *reply = console_rpc(c, "(write (+ 1 2))");
+            if (0) {
+                leaf_write(reply, p);
+                port_printf(p, "\n");
+            }
             sleep(3);
         }
     }

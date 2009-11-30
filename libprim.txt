@@ -6140,3 +6140,10 @@ Date: Mon Nov 30 15:02:50 CET 2009
  - continuation printing
  - stepping / debug?
 
+
+Entry: #< ... >
+Date: Mon Nov 30 16:08:28 CET 2009
+
+This will be scanned correctly if the brackets '<' and '>' are
+balanced.  The default parser will tag these with "hash".  The Scheme
+parser raises an error.

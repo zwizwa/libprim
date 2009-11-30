@@ -33,6 +33,7 @@ static void *dflt_atom(void *x, const bytes *b) {
     case TOK_NUMBER:     tag = "number"; break;
     case TOK_HEX_NUMBER: tag = "hex-number"; break;
     case TOK_SYMBOL:     tag = "symbol"; break;
+    case TOK_HASH:       tag = "hash"; break;
     default:             tag = "error"; break;
     }
     t->slot[0] = (leaf_object*)symbol_from_cstring(tag);

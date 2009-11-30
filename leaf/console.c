@@ -29,6 +29,11 @@ leaf_object *console_rpc(console *d, const char *cmd) {
     port_write(d->out, (void*)cmd, strlen(cmd));
     port_write(d->out, "\n", 1);
     port_flush(d->out);
-    return console_read(d);
+    leaf_object *o = console_read(d);
+    if (0) {
+        leaf_write(o, NULL);
+        fprintf(stderr, "\n");
+    }
+    return o;
 }
 

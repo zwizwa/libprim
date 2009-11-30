@@ -72,6 +72,24 @@ static void scanner_get_atom(scanner *x, char tag) {
         save(x, c);
     }
 }
+
+// not 100% well-defined (i.e. can contain names which can contain brackets..)
+
+static void scanner_get_bracket_hash(scanner *x) {
+    int c, depth = 1;
+    for (;;) {
+        c = next_getc(x);
+        if (c == '>') {
+            depth--;
+            if (0 == depth) {
+                return set_token(x, TOK_HASH);
+            }
+        }
+        if (c == '<') { depth++; }
+        save(x, c);
+    }
+}
+
 static void make_0token(scanner *x, char tag) {
     reset(x);
     set_token(x, tag);
@@ -86,6 +104,7 @@ static void scanner_get_hash(scanner *x) {
     case 't':  set_token(x, TOK_TRUE); break;
     case '\\': scanner_get_atom(x, TOK_CHAR); break;
     case 'x':  scanner_get_atom(x, TOK_HEX_NUMBER); break;
+    case '<':  scanner_get_bracket_hash(x); break;
     default:   scanner_get_atom(x, TOK_HASH); break;
     }
 }

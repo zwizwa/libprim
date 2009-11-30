@@ -681,7 +681,7 @@
   (let* ((actions '())
          (remove-io-action!
           (lambda (io)
-            (display "close conn: ") (write io) (newline)
+            ;; (display "close conn: ") (write io) (newline)
             (close-output-port (cdr io))
             (close-input-port (car io))
             (set! actions (filter
@@ -689,7 +689,7 @@
                            actions))))
          (add-io-action!
           (lambda (io)
-            (display "conn: ") (write io) (newline)
+            ;; (display "conn: ") (write io) (newline)
             (push! actions
               (vector (car io) 0 ;; sync on input invents
                       #f         ;; initial condition is false
