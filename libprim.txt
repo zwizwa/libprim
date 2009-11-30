@@ -6080,3 +6080,15 @@ primitives that pretends as if there is no suck access.
 Is there a reason to not unify primitive exceptions and GC restarts?
 
 
+
+Entry: Dybvig heap machine
+Date: Fri Nov 27 16:48:14 CET 2009
+
+A accumulator
+X next expression
+E environment
+R value rib (already accumulated values for next evaluation)
+S stack/continuation
+
+How is this different from the cek machine continuation frames?
+
