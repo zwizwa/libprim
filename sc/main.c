@@ -10,7 +10,7 @@ int main(int argc, char **argv) {
     /* A simple mechanism to detach the VM from the main C thread uses
        a 'console' object, which reads raw string s-expressions, and
        returns parsed tuple/symbol/bytes objects. */
-    if (1) {
+    if (0) {
         port *p = port_file_new(stderr, "stderr");
         console *c = _sc_start_console(sc, "/tmp/foo-sc");
         for (;;) {
