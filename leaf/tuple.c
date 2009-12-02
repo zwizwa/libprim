@@ -2,8 +2,6 @@
 #include <leaf/port.h>
 #include <stdlib.h>
 
-static tuple_class *type = NULL;
-
 static void tuple_free(tuple *x) {
     int i;
     for (i=0; i<x->size; i++) {
@@ -33,14 +31,19 @@ static int tuple_write(tuple *x, port *p) {
     return num;
 }
 
-tuple *tuple_new(int size) {
+static tuple_class *type = NULL;
+tuple_class *tuple_type(void) {
     if (!type) {
         type = calloc(1, sizeof(*type));
         type->super.free  = (leaf_free_m)tuple_free;
         type->super.write = (leaf_write_m)tuple_write;
     }
+    return type;
+}
+
+tuple *tuple_new(int size) {
     tuple *t = calloc(1, sizeof(*t) + sizeof(leaf_object*) * size);
-    t->type = type;
+    t->type = tuple_type();
     t->size = size;
     return t;
 }
