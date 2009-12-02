@@ -537,3 +537,13 @@ int fd_pipe_2(char **argv, int *_pid, int *fd_to_stdin, int *fd_from_stdout) {
     return 0;
 }
 
+
+
+
+bytes *leaf_to_string(leaf_object *o) {
+    port *p = port_bytes_new(bytes_buffer_new(100));
+    leaf_write(o, p);
+    bytes *b = port_get_bytes(p);
+    leaf_free((leaf_object*)p);
+    return b;    
+}

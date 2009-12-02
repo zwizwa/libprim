@@ -86,4 +86,7 @@ int fd_pipe_2(char **argv, int *pid, int *fd_to_stdin, int *fd_from_stdout);
 bytes *port_slurp(port *p);
 int port_fd(port *p);
 
+bytes *leaf_to_string(leaf_object *o);
+
+
 #endif

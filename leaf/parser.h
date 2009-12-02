@@ -55,6 +55,6 @@ void parser_free(parser *p);
 */
 
 tuple *tuple_ctor(tuple *t, symbol *tag, int args);
-tuple *tuple_ast_flatten(tuple *in);
+tuple *tuple_ast_flatten_lin(tuple *in);  //linear: argument is consumed
 
 #endif

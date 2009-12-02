@@ -17,7 +17,7 @@ int main(int argc, char **argv) {
             if (1) {
                 leaf_object *reply = console_rpc(c, "(write (+ 1 2))");
                 if (1) {
-                    reply = (leaf_object*)tuple_ast_flatten((tuple*)reply);
+                    reply = (leaf_object*)tuple_ast_flatten_lin((tuple*)reply);
                 }
                 leaf_write(reply, p);
                 port_printf(p, "\n");

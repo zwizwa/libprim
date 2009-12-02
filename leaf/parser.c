@@ -193,7 +193,7 @@ tuple *tuple_ctor(tuple *t, symbol *tag, int args) {
 }
 
 /* Linear operation: reuses data, frees and re-creates if necessary. */
-tuple *tuple_ast_flatten(tuple *in) {
+tuple *tuple_ast_flatten_lin(tuple *in) {
 
     symbol *cons = symbol_from_cstring("cons");
     symbol *nil = symbol_from_cstring("nil");
@@ -216,7 +216,7 @@ tuple *tuple_ast_flatten(tuple *in) {
         tuple *cell = tuple_ctor(lst, cons, 2);
         leaf_object *x = cell->slot[1];
         cell->slot[1] = NULL;
-        t->slot[i] = (leaf_object*)tuple_ast_flatten((tuple*)x);
+        t->slot[i] = (leaf_object*)tuple_ast_flatten_lin((tuple*)x);
         lst = (tuple*)(cell->slot[2]);
     }
     leaf_free((leaf_object*)in);
