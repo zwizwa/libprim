@@ -6155,3 +6155,18 @@ Date: Tue Dec  1 14:25:40 CET 2009
 Environment variables:
 
 LDFLAGS
+
+
+Entry: select and FILE*
+Date: Wed Dec  2 10:49:44 CET 2009
+
+Because of input buffering, select will not always give the correct
+behaviour.  I.e. for the input console, giving a sequence "1 1 1 1 1"
+will give only one answer as it seems the whole string was buffered.
+
+This is ok as long as the user waits for reply before sending another
+command, but it's something to be careful about for unidirectional
+channels!
+
+
+
