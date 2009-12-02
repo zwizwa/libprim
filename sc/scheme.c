@@ -122,7 +122,7 @@ _ sc_make_k_seq(sc *sc, _ P, _ T)            {STRUCT(TAG_K_SEQ,    3, P,NIL,T);}
 _ _sc_make_aref(sc *sc, void *_x) {
     leaf_object *x = _x;
     if (!x) ERROR("aref", VOID);
-    fin *f = (fin*)((void*)(&x->methods->free));
+    fin *f = (fin*)((void*)(&x->type->free));
     return sc_make_aref(sc, fin_to_object(f), const_to_object(x));
 }
 

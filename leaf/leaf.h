@@ -41,7 +41,7 @@ struct _leaf_class {
 
 // an object refers to its class
 struct _leaf_object {
-    leaf_class *methods;
+    leaf_class *type;
 };
 
 void leaf_free(leaf_object *x);
