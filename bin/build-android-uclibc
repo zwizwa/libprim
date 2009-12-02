@@ -1,5 +1,13 @@
+# -*- sh -*-
+
+# Config file for arm build, linked against a non-root fs uclibc
+# (i.e. for android).
+
+UCLIBC=/data/uclibc
+
 make clean
-./configure --cc=arm-linux-uclibcgnueabi-gcc --prefix=/data/root/usr/ && make
+LDFLAGS=-Wl,--dynamic-linker=${UCLIBC}/lib/ld-uClibc.so.0 \
+./configure --cc=arm-linux-uclibcgnueabi-gcc --prefix=${UCLIBC}/usr/ && make
 
 
 

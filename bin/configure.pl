@@ -40,6 +40,7 @@ $var{static}    = "no";
 
 $var{builddir} = $ENV{BUILDDIR};
 $var{srcdir} = $ENV{SRCDIR}; 
+$var{ldflags} = $ENV{LDFLAGS};
 
 $LOGFILE = "$var{builddir}/build.log" ;
 
@@ -161,7 +162,7 @@ if ($ENV{CC}){$var{cc} = $ENV{CC};} # get CC, MAKE from environment if defined
 if ($ENV{MAKE}){$var{make} = $ENV{MAKE};}
 
 
-
+makefile "LDFLAGS = $var{ldflags}" ;
 makefile "PREFIX = $var{prefix}" ;
 makefile "SRCDIR = $var{srcdir}" ;
 makefile "BUILDDIR = $var{builddir}" ;
