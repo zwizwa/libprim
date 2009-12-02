@@ -27,6 +27,6 @@ struct _tuple {
 };
 
 tuple *tuple_new(int size);
-tuple_class *tuple_type();
+tuple_class *tuple_type(void);
 
 #endif

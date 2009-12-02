@@ -47,6 +47,10 @@ static void *dflt_cons(void *x, void *car, void *cdr) {
     t->slot[2] = cdr;
     return t;
 }
+
+/* Note that this _first_ constructs a list using the CONS provided,
+   and then passes the result of that to this function. */
+
 static void *dflt_vector(void *x, void *lst) {
     tuple *t = tuple_new(2);
     t->slot[0] = (leaf_object*)symbol_from_cstring("vector");
@@ -163,6 +167,64 @@ parser *parser_new(port *prt) {
     p->vector = dflt_vector;
     return p;
 }
+
+
+/* De-consing standard parse result (using default_* functions).
+
+   1. The parser creates CONS lists based on the constructors provided
+      in the parser struct, ie.e .atom .cons .nil ...   For
+      s-expressions this simplifies the parser.
+
+   2. The default implementation produces leaf/tuple data structures.
+      (The EX reader overrides this using GCd vector constructors).
+
+   3. To use s-expression to embed "flat" constructors (i.e. ML-style
+      ADTs) represented as tuples, it is simpler to remove one level
+      of quotation.  This is what this routine does: convert CONS
+      lists to flat tuples.  */
+
+tuple *tuple_ctor(tuple *t, symbol *tag, int args) {
+    if ((t->type == tuple_type()) &&
+        (t->size == args+1) &&
+        (t->slot[0] == (leaf_object*)tag)) {
+        return t;
+    }
+    else return NULL;
+}
+
+/* Linear operation: reuses data, frees and re-creates if necessary. */
+tuple *tuple_ast_flatten(tuple *in) {
+
+    symbol *cons = symbol_from_cstring("cons");
+    symbol *nil = symbol_from_cstring("nil");
+    tuple *lst;
+    int n;
+
+    /* Get length of list, or return original object if not a proper list. */
+    for(n = 0, lst = in;;) {
+        if (tuple_ctor(lst, nil, 0)) break;
+        if (!tuple_ctor(lst, cons, 2)) return in; // improper list
+        n++; 
+        lst = (tuple*)(lst->slot[2]);
+    }
+    if (!n) return in; // empty list
+
+    /* Create tuple and populate with list elements. */
+    tuple *t = tuple_new(n);
+    int i;
+    for (lst=in, i=0; i<n; i++) {
+        tuple *cell = tuple_ctor(lst, cons, 2);
+        leaf_object *x = cell->slot[1];
+        cell->slot[1] = NULL;
+        t->slot[i] = (leaf_object*)tuple_ast_flatten((tuple*)x);
+        lst = (tuple*)(cell->slot[2]);
+    }
+    leaf_free((leaf_object*)in);
+    return t;
+}
+
+
+
 
 #ifdef _PARSER_TEST_
 int main(void) {

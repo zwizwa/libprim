@@ -10,12 +10,15 @@ int main(int argc, char **argv) {
     /* A simple mechanism to detach the VM from the main C thread uses
        a 'console' object, which reads raw string s-expressions, and
        returns parsed tuple/symbol/bytes objects. */
-    if (0) {
+    if (1) {
         port *p = port_file_new(stderr, "stderr");
         console *c = _sc_start_console(sc, "/tmp/foo-sc");
         for (;;) {
             if (1) {
                 leaf_object *reply = console_rpc(c, "(write (+ 1 2))");
+                if (1) {
+                    reply = (leaf_object*)tuple_ast_flatten((tuple*)reply);
+                }
                 leaf_write(reply, p);
                 port_printf(p, "\n");
                 leaf_free((leaf_object*)reply);
@@ -25,7 +28,7 @@ int main(int argc, char **argv) {
                 fprintf(stderr, "RV: %s\n", b->bytes);
                 leaf_free((leaf_object*)b);
             }
-            sleep(3);
+            sleep(1);
         }
     }
 

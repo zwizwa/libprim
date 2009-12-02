@@ -6170,3 +6170,33 @@ channels!
 
 
 
+Entry: Code reps
+Date: Wed Dec  2 13:57:13 CET 2009
+
+- tuples (low-level, tree-structures, C)
+- vectors (high-level, graphs, EX, GC)
+- cons-lists (in terms of vectors)
+
+For communication between apps, symbol-tagged tuples to represent ADT
+constructors seems simplest.  However, the s-expression parser
+produces such a description based on cons cells.
+
+Maybe there should be a routine that flattens this, and fails on
+improper lists.
+
+tagged cons list -> tagged tuples.
+
+
+Can the parser be extended to produce flat vectors directly?
+
+
+
+Entry: Java comm (converting any rep to java data structures)
+Date: Wed Dec  2 14:01:24 CET 2009
+
+Using StringTokenizer[2] a string can be converted into an iterator.
+
+Alternatives.
+
+[1] http://www.cafeaulait.org/javafaq.html#xtocid75724
+[2] http://www.javasoft.com/products/JDK/CurrentRelease/api/java.util.StringTokenizer.html
