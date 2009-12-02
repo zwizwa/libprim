@@ -6147,3 +6147,11 @@ Date: Mon Nov 30 16:08:28 CET 2009
 This will be scanned correctly if the brackets '<' and '>' are
 balanced.  The default parser will tag these with "hash".  The Scheme
 parser raises an error.
+
+
+Entry: build system fixes
+Date: Tue Dec  1 14:25:40 CET 2009
+
+Environment variables:
+
+LDFLAGS

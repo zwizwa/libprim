@@ -30,7 +30,7 @@ APP_LDFLAGS +=
 	$(COMPILE) -o $@ -c $<
 
 $(APP): $(OBJ) $(DEP_OBJ)
-	$(CC) -o $(APP) $(APP_DEBUG_LDFLAGS) $(OBJ) $(DEP_OBJ) $(LIBS) $(APP_LDFLAGS)
+	$(CC) -o $(APP) $(APP_DEBUG_LDFLAGS) $(OBJ) $(DEP_OBJ) $(LIBS) $(APP_LDFLAGS) $(LDFLAGS)
 
 $(TEST): $(TEST_OBJ)
 	$(CC) -o test $(TEST_OBJ)
