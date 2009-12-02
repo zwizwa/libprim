@@ -1028,7 +1028,9 @@ static void *console_start(void *x) {
 
 #define QUOTE(x) CONS(SYMBOL("quote"), CONS(x, NIL))
 
-console *_sc_start_console(sc *sc, const char *node) {
+
+
+void _sc_start_console(sc *sc, const char *node, console **pcons, int detach) {
     int to_vm[2];    // 0 = READ, 1 = WRITE
     int from_vm[2];
     pipe(to_vm);    
@@ -1044,8 +1046,13 @@ console *_sc_start_console(sc *sc, const char *node) {
               CONS(QUOTE(io),
               CONS(node ? STRING(node) : FALSE, NIL)));
 
-    pthread_attr_t attr;
-    pthread_attr_init(&attr);
-    pthread_create(&a->t, &attr, console_start, a);
-    return c;
+    *pcons = c;
+    if (detach) {
+        pthread_attr_t attr;
+        pthread_attr_init(&attr);
+        pthread_create(&a->t, &attr, console_start, a);
+    }
+    else {
+        _sc_top(a->sc, a->args);
+    }
 }

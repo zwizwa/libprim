@@ -12,10 +12,13 @@ int main(int argc, char **argv) {
        returns parsed tuple/symbol/bytes objects. */
     if (0) {
         port *p = port_file_new(stderr, "stderr");
-        console *c = _sc_start_console(sc, "/tmp/foo-sc");
+        console *c = NULL;
+        _sc_start_console(sc, "/tmp/foo-sc", &c, 1);
         for (;;) {
+            // const char *cmd =  "(write (+ 1 2))";
+            const char *cmd =  "(+ 1 2)";
             if (1) {
-                leaf_object *reply = console_rpc(c, "(write (+ 1 2))");
+                leaf_object *reply = console_rpc(c, cmd);
                 if (1) {
                     reply = (leaf_object*)tuple_ast_flatten_lin((tuple*)reply);
                 }
@@ -24,7 +27,7 @@ int main(int argc, char **argv) {
                 leaf_free((leaf_object*)reply);
             }
             else {
-                bytes *b = console_rpc_bytes(c, "(write (+ 1 2))");
+                bytes *b = console_rpc_bytes(c, cmd);
                 fprintf(stderr, "RV: %s\n", b->bytes);
                 leaf_free((leaf_object*)b);
             }
