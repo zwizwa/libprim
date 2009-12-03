@@ -706,16 +706,22 @@ _ ex_sub1(ex *ex, _ o) {
 
 /* Automatically convert. */
 #define IS_INT(o) (GC_INTEGER == GC_TAG(o))
-enum binop_tag {ADD,SUB,MUL,DIV,EQ,GT,LT};
+enum binop_tag {ADD,SUB,MUL,EQ,GT,LT};
 #define DO_BINOP(op,a,b,z,zb) switch(op) {              \
     case ADD: z = a + b; break;                         \
     case SUB: z = a - b; break;                         \
     case MUL: z = a * b; break;                         \
-    case DIV: z = a / b; break;                         \
     case EQ:  z = (a == b); zb = 1; break;              \
     case GT:  z = (a > b); zb = 1; break;               \
     case LT:  z = (a < b); zb = 1; break;               \
     default: ERROR("binop", integer_to_object(op)); }
+
+double object_to_double(_ ob) {
+    inexact *x = object_to_inexact(ob);
+    if (x) return x->value;
+    if (IS_INT(ob)) return (double)(object_to_integer(ob));
+    return 0.0;
+}
 
 _ _ex_binop(ex *ex, _ a, _ b, enum binop_tag op) {
     int zb = 0;
@@ -730,10 +736,8 @@ _ _ex_binop(ex *ex, _ a, _ b, enum binop_tag op) {
         else return integer_to_object(iz);
     }
     // assume the only other number kind are inexact (double float)
-    inexact *inexact_a = object_to_inexact(a);
-    inexact *inexact_b = object_to_inexact(b);
-    double da = inexact_a ? inexact_a->value : (double)(object_to_integer(a));
-    double db = inexact_b ? inexact_b->value : (double)(object_to_integer(b));
+    double da = object_to_double(a);
+    double db = object_to_double(b);
     double dz = 0;
     DO_BINOP(op,da,db,dz,zb);
     if (zb) return (dz == 0.0) ? FALSE : TRUE;
@@ -743,7 +747,21 @@ _ _ex_binop(ex *ex, _ a, _ b, enum binop_tag op) {
 _ ex_add(ex *ex, _ a, _ b) { return _ex_binop(ex, a, b, ADD); }
 _ ex_sub(ex *ex, _ a, _ b) { return _ex_binop(ex, a, b, SUB); }
 _ ex_mul(ex *ex, _ a, _ b) { return _ex_binop(ex, a, b, MUL); }
-_ ex_div(ex *ex, _ a, _ b) { return _ex_binop(ex, a, b, DIV); }
+
+
+/* This isn't completely standard since there are no rationals, but I
+   prefer to get a consistent return type based on input types (as
+   opposed to input values). */
+_ ex_div(ex *ex, _ a, _ b) { 
+    double rv = object_to_double(a) / object_to_double(b);
+    return _ex_leaf_to_object(ex, (leaf_object*)inexact_new(rv));
+}
+_ ex_quotient(ex *ex, _ a, _ b) {
+    int ia = CAST_INTEGER(a);
+    int ib = CAST_INTEGER(b);
+    if (ib == 0) return ex_raise_type_error(ex, b);
+    return integer_to_object(ia / ib);
+}
 
 _ ex_eq(ex *ex, _ a, _ b) { return _ex_binop(ex, a, b, EQ); }
 _ ex_gt(ex *ex, _ a, _ b) { return _ex_binop(ex, a, b, GT); }
