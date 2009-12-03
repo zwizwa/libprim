@@ -69,10 +69,10 @@ typedef struct {
 
 typedef struct {
     vector v;
-    _ tag;
-    _ arg;
     _ state;
     _ prim;
+    _ tag;
+    _ arg;
 } error;
 
 typedef struct {

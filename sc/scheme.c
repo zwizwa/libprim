@@ -225,6 +225,12 @@ _ sc_write_stderr(sc *sc,  _ o) {
 
 
 // FIXME: factor this out to incorportate high level errors
+
+//_ __sc_error_to_list(sc *sc, _ err) {
+//    error *e = CAST(error, err);
+//    return CONS(e->state, CONS(e->prim, tag, CONS(e->arg, CONS(e->state, CONS(
+//}
+
 _ sc_print_error(sc *sc, _ err) {
     if (TRUE == sc_is_error(sc, err)) {
         error *e = object_to_error(err);

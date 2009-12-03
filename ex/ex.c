@@ -195,6 +195,15 @@ _ _is_vector_type(_ o, long flags) {
     return FALSE;
 }
 
+_ ex_struct_to_vector(ex *ex, _ strct) {
+    vector *s = object_to_vector(strct);
+    if (!s) return ex_raise_type_error(ex, strct);
+    int i,n = vector_size(s);
+    vector *v = gc_alloc(ex->gc, n);
+    for(i=0; i<n; i++) v->slot[i] = s->slot[i];
+    return vector_to_object(v);
+}
+
 _ _ex_make_symbol(ex *ex, const char *str) {
     return const_to_object((void*)(symbol_from_cstring(str)));
 }

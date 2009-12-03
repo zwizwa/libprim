@@ -6309,6 +6309,21 @@ _ sc_java_call(sc *sc, _ ob, _ ID, _ args) {
    the method does not return.  References need to be explicitly
    released otherwise.
 
+   http://journals.ecs.soton.ac.uk/java/tutorial/native1.1/implementing/refs.html
+
+     "To make sure that Java objects can eventually be freed, the JNI
+      by default creates _local references_.  Local references become
+      invalid when the execution returns from the native method in
+      which the local reference is created."
+
+
+     "In certain situations, however, the native code may need to call
+      the DeleteLocalRef function to explicitly delete a local
+      reference."
+
+   This is done using (*env)->DeleteLocalRef(env, object)
+
+
 */
 
 
