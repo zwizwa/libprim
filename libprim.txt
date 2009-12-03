@@ -6338,6 +6338,4 @@ Date: Thu Dec  3 13:27:24 CET 2009
 
 
 
-Entry: TSPL compatibility
-Date: Thu Dec  3 16:29:42 CET 2009
 
