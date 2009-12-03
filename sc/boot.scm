@@ -326,7 +326,16 @@
 (define - sub)
 (define / div)
 
-(define = bin-reduce)
+(define (= . args)
+  (let rec ((args args))
+    (let ((x1 (car args))
+          (x2 (cadr args))
+          (rest (cddr args)))
+      (if (null? rest)
+          (eq x1 x2)
+          (and (eq x1 x2) (rec (cdr args)))))))
+
+  
 (define > gt)
 (define < lt)
 (define (>= a b) (not (< a b)))
