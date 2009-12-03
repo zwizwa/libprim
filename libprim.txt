@@ -6206,11 +6206,13 @@ post).
 Entry: Java JNI
 Date: Thu Dec  3 11:36:00 CET 2009
 
-Recipe for running Scheme in Java with access to Java objects:
+/* Recipe for running Scheme in Java with access to Java objects:
 
     Start Scheme VM as a native method called from a Java thread which
     never returns.  The JNIEnv variable passed in can be used to call
-    into Java code from the VM mainloop.
+    into Java code from the VM mainloop. */
+
+/* JAVA JNI */
 
 /* This macro defines standard LEAF object behaviour for wrapped Java
    JNI objects, and unwrappers for AREF representation. */
@@ -6234,6 +6236,16 @@ DEF_JAVA(jclass)
 DEF_JAVA(jobject)
 DEF_JAVA(jmethodID)
 
+/* Dynamic context (VM running in the dynamic extent of a java call) */
+typedef struct {
+    JNIEnv *env;   // current Java thread's environment
+    jobject this;  // the embedding scheme object
+} java_ctx;
+static inline java_ctx *_sc_java_ctx(sc *sc) {
+    java_ctx *ctx = (java_ctx*)(EX->ctx);
+    return ctx;
+}
+#define JAVA_ENV (_sc_java_ctx(sc)->env)
 
 /* Exceptions. 
 
@@ -6243,20 +6255,68 @@ DEF_JAVA(jmethodID)
 
 */
 _ _sc_java_error(sc *sc, _ ob) {
-    if ((*java_env)->ExceptionCheck(java_env)) {
-        (*java_env)->ExceptionClear(java_env);
+    if ((*JAVA_ENV)->ExceptionCheck(JAVA_ENV)) {
+        (*JAVA_ENV)->ExceptionClear(JAVA_ENV);
     }
     return ERROR("java", ob);
 }
-/* Queries */
 _ sc_java_class(sc *sc, _ name) {
-    jclass class = (*java_env)->FindClass(java_env, CAST(cstring, name));
+    jclass class = (*JAVA_ENV)->FindClass(JAVA_ENV, CAST(cstring, name));
     if (!class) { return _sc_java_error(sc, name); }
     return _ex_leaf_to_object(EX, java_jclass_new(class));
 }
 _ sc_java_methodID(sc *sc, _ cls, _ name, _ sig) {
-    jmethodID method = (*java_env)->GetMethodID(java_env, CAST(java_jclass, cls)->jni_ref,
+    jmethodID method = (*JAVA_ENV)->GetMethodID(JAVA_ENV, CAST(java_jclass, cls)->jni_ref,
                                                 CAST(cstring, name), CAST(cstring, sig));
     if (!method) return _sc_java_error(sc, name);
     return _ex_leaf_to_object(EX, java_jmethodID_new(method));
 }
+_ sc_java_this(sc *sc) {
+    return _ex_leaf_to_object(EX, java_jobject_new(_sc_java_ctx(sc)->this));
+}
+_ sc_java_string(sc *sc, _ ob) {
+    return _ex_leaf_to_object(EX, java_jobject_new((*JAVA_ENV)->NewStringUTF(JAVA_ENV, CAST(cstring, ob))));
+}
+
+
+
+/* Method calls in Java are a bit of a pain due to there not being a
+   single root object.  The scalar objects need to be handled
+   differently.  It's probably simplest to restrict to object-only
+   calls and wrap scalar types somewhere else. 
+
+   Otherwise, the native types can be handled using some macros to
+   perform the routing based on input types.
+
+*/
+_ sc_java_call(sc *sc, _ ob, _ ID, _ args) {
+    vector *v = CAST(vector, args);
+    int i, n = vector_size(v);
+    jvalue jargs[n];
+    for (i=0; i<n; i++) jargs[i].l = CAST(java_jobject, v->slot[i])->jni_ref;
+    jobject rv = (*JAVA_ENV)->CallObjectMethodA
+        (JAVA_ENV, CAST(java_jobject, ob)->jni_ref, CAST(java_jmethodID, ID)->jni_ref, jargs);
+    if (!rv)  { return _sc_java_error(sc, args); }
+    return _ex_leaf_to_object(EX, java_jobject_new(rv));
+}
+
+
+
+
+/* FIXME: check this
+
+   All objects objtained through the JNI will remain live as long as
+   the method does not return.  References need to be explicitly
+   released otherwise.
+
+*/
+
+
+
+Entry: simplifications
+Date: Thu Dec  3 13:27:24 CET 2009
+
+- eliminate towers of interpreters
+- eliminate GC_INTEGER ??
+  -> all objects are either structured leaf objects or constants
+     (it can be argued that an integer is a constant though)
