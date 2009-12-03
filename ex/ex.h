@@ -47,12 +47,12 @@ typedef leaf_object *(*_ex_m_object_to_leaf)(ex *ex, object);
 typedef void (*_ex_m_object_erase_leaf)(ex *ex, object);
 typedef object (*ex_m_make_pair)(ex *ex, object car, object cdr); // reader
 struct _ex {
-    void *type;
-
-    /* Garbage collector. */
-    struct _gc *gc;
-    jmp_buf top;  // GC unwind
+    void *type;  // in case VM structs are wrapped as LEAF objects
+    void *ctx;   // any other user context associated with VM (i.e. JNIEnv)
+    
+    struct _gc *gc; // garbage collected graph memory manager
     long top_entries; // guard semaphore
+    jmp_buf top;  // GC unwind
     
     /* Primitive exceptions. */
     ex_r r;

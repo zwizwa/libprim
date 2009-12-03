@@ -6195,8 +6195,68 @@ Entry: Java comm (converting any rep to java data structures)
 Date: Wed Dec  2 14:01:24 CET 2009
 
 Using StringTokenizer[2] a string can be converted into an iterator.
-
-Alternatives.
+However, a straight connection to JNI might be simpler (see next
+post).
 
 [1] http://www.cafeaulait.org/javafaq.html#xtocid75724
 [2] http://www.javasoft.com/products/JDK/CurrentRelease/api/java.util.StringTokenizer.html
+
+
+
+Entry: Java JNI
+Date: Thu Dec  3 11:36:00 CET 2009
+
+Recipe for running Scheme in Java with access to Java objects:
+
+    Start Scheme VM as a native method called from a Java thread which
+    never returns.  The JNIEnv variable passed in can be used to call
+    into Java code from the VM mainloop.
+
+/* This macro defines standard LEAF object behaviour for wrapped Java
+   JNI objects, and unwrappers for AREF representation. */
+#define DEF_JAVA(name) \
+    typedef struct { leaf_class super; } java_##name##_class; \
+    typedef struct { java_##name##_class *type; name jni_ref; } java_##name; \
+    void java_##name##_free(java_##name *x) { free(x); } \
+    int java_##name##_write(java_##name *x, port *p) { \
+        return port_printf(p, "#<" #name ":%p>", x->jni_ref);  \
+    } \
+    LEAF_SIMPLE_TYPE(java_##name) \
+    java_##name *java_##name##_new(name jni_ref) { \
+        java_##name *x = calloc(1, sizeof(*x)); \
+        x->type = java_##name##_type(); \
+        x->jni_ref = jni_ref; \
+        return x; \
+    }\
+    DEF_AREF_TYPE(java_##name)
+
+DEF_JAVA(jclass)
+DEF_JAVA(jobject)
+DEF_JAVA(jmethodID)
+
+
+/* Exceptions. 
+
+   JNI methods give a special return value (i.e. NULL) to indicate an
+   exception has been raised.  This needs to be handled _before_
+   making another JNI call.
+
+*/
+_ _sc_java_error(sc *sc, _ ob) {
+    if ((*java_env)->ExceptionCheck(java_env)) {
+        (*java_env)->ExceptionClear(java_env);
+    }
+    return ERROR("java", ob);
+}
+/* Queries */
+_ sc_java_class(sc *sc, _ name) {
+    jclass class = (*java_env)->FindClass(java_env, CAST(cstring, name));
+    if (!class) { return _sc_java_error(sc, name); }
+    return _ex_leaf_to_object(EX, java_jclass_new(class));
+}
+_ sc_java_methodID(sc *sc, _ cls, _ name, _ sig) {
+    jmethodID method = (*java_env)->GetMethodID(java_env, CAST(java_jclass, cls)->jni_ref,
+                                                CAST(cstring, name), CAST(cstring, sig));
+    if (!method) return _sc_java_error(sc, name);
+    return _ex_leaf_to_object(EX, java_jmethodID_new(method));
+}

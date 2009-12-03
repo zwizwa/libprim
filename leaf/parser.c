@@ -33,11 +33,19 @@ static void *dflt_atom(void *x, const bytes *b) {
     case TOK_NUMBER:     tag = "number"; break;
     case TOK_HEX_NUMBER: tag = "hex-number"; break;
     case TOK_SYMBOL:     tag = "symbol"; break;
-    case TOK_HASH:       tag = "hash"; break;
+    case TOK_HASH:       tag = "obj"; break; // (1)
     default:             tag = "error"; break;
     }
     t->slot[0] = (leaf_object*)symbol_from_cstring(tag);
     return t;
+
+    /* (1) As long as representations of un-printable objects like
+       "#<void>" respect balanced '<' and '>' characters, they are
+       scanned as a single token.  In SC and PF reading these tokens
+       is an error, while the default parser tags them as "obj", which
+       is useful to make s-expression communication a bit more rebust
+       (an unprintable value won't mess up the channel sync).  */
+
 }
 
 static void *dflt_cons(void *x, void *car, void *cdr) {

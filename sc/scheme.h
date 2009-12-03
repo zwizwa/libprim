@@ -180,8 +180,8 @@ struct _scheme {
     _ s_letcc;
 
     /* Async command I/O channels. */
-    leaf_object *async_in;
-    leaf_object *async_out;
+    // leaf_object *async_in;
+    // leaf_object *async_out;
 
 };
 
