@@ -668,7 +668,7 @@
                        (abort-k! k)
                        (set! result `(ok ,(eval expr)))
                        #f))))
-    (or result '(error))))
+    (or result `(error ,(cddr (vector->list (struct->vector err)))))))
 
 
 (define (filter fn lst)

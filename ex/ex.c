@@ -1024,6 +1024,16 @@ _ ex_env_def(ex *ex, _ E, _ var, _ value) {
         return E;
     }
 }
+
+_ ex_vector_to_list(ex *ex, _ vec) {
+    ENABLE_RESTART();
+    vector *v = CAST(vector, vec);
+    int i,n = vector_size(v);
+    _ lst = NIL;
+    for(i=n-1; i>=0; i--) { lst = CONS(v->slot[i], lst); }
+    return lst;
+}
+
 _ ex_list_clone(ex *ex, _ lst) {
     ENABLE_RESTART();
     if (NIL == lst) return lst;
