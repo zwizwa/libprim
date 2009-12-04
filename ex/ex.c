@@ -32,12 +32,12 @@ char *object_to_cstring(_ ob) {
 object _ex_write_vector(ex *ex, const char *type, vector *v) {
     port *p = ex->port(ex);
     long i,n = vector_size(v);
-    port_printf(p, "#%s(", type);
+    port_printf(p, "#<%s:", type);
     for(i=0;i<n;i++){
         ex->write(ex, v->slot[i]);
         if (i != n-1) port_printf(p, " ");
     }
-    port_printf(p, ")");
+    port_printf(p, ">");
     return VOID;
 }
 
@@ -155,25 +155,25 @@ object _ex_write(ex *ex, object o) {
     }
     if ((x = object_struct(o, prim_type()))) {
         prim *pr = (prim*)x;
-        port_printf(p, "#prim<%p:%ld>", (void*)(pr->fn),pr->nargs);
+        port_printf(p, "#<prim:%p:%ld>", (void*)(pr->fn),pr->nargs);
         return VOID;
     }
     if ((x = object_struct(o, rc_type()))) {
         rc *r = (rc*)x;
-        port_printf(p, "#rc:");
+        port_printf(p, "#<rc:");
         ex->write(ex, const_to_object(r->ctx));  // foefelare
-        port_printf(p, ":%d", (int)(r->rc));
+        port_printf(p, ":%d>", (int)(r->rc));
         return VOID;
     }
     if ((x = object_to_fin(o))) {
         port_printf(p, "#fin");
-        // port_printf(p, "#fin<%p:%p>", x, *((void**)x)); // do we care?
+        // port_printf(p, "#<fin:%p:%p>", x, *((void**)x)); // do we care?
         return VOID; 
     }
     if ((x = object_to_const(o))) { 
-        return _ex_printf(ex, "#data<%p>", x);
+        return _ex_printf(ex, "#<data:%p>", x);
     }
-    return _ex_printf(ex, "#object<%p>",(void*)o);
+    return _ex_printf(ex, "#<object:%p>",(void*)o);
 }
 
 // types_add(types *m, void *type) {}
