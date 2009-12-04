@@ -233,5 +233,8 @@ static inline _ _ex_leaf_to_object(ex *ex, void *leaf) {
 _ _ex_make_bytes_port(ex *ex, bytes *b);
 _ _ex_make_file_port(ex *ex, FILE *f, const char *name);
 
+
+double object_to_double(_ ob);
+
 #endif
 
