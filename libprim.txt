@@ -6350,3 +6350,37 @@ generic C code generatior for a subset of procedures.
 
 
 
+Entry: JNI interface with type checking
+Date: Fri Dec  4 14:17:30 CET 2009
+
+Something that's quite necessary to make this work reliably is a
+dynamic type checker.  The information is available (it's necessary
+for method lookup) so it shouldn't be too difficult to integrate.
+
+What's the simplest way to run a JNI example on a Linux platform?
+From here[1] we have:
+
+gcc  -o libnativelib.so -shared -Wl,-soname,libnative.so  
+     -I/export/home/jdk1.2/include 
+     -I/export/home/jdk1.2/include/linux nativelib.c  
+     -static -lc
+
+
+[1] http://java.sun.com/developer/onlineTraining/Programming/JDCBook/jniexamp.html
+
+
+I have some preliminary code outside of the project, which with a bit
+of cleanup can probably be made into a LEAF<->JAVA interface.
+
+
+Entry: EX and LEAF compilers
+Date: Fri Dec  4 18:02:22 CET 2009
+
+Start thinking about compiling Scheme/PF code in (readable) EX and
+LEAF C code.  For non-looping code this could be done in a
+straightforward way recording all LEAF api calls.  For looping code
+it's more involved.
+
+
+
+
