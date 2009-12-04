@@ -6335,6 +6335,17 @@ Date: Thu Dec  3 13:27:24 CET 2009
 - eliminate GC_INTEGER ??
   -> all objects are either structured leaf objects or constants
      (it can be argued that an integer is a constant though)
+- fix the .h_prims generator
+
+
+Entry: Wrapping
+Date: Fri Dec  4 07:42:52 CET 2009
+
+I spend a lot of time in wrapping something -> leaf and then leaf ->
+EX/SC.  Make at least the latter one automatic.  Use this to make
+generic C code generatior for a subset of procedures.
+
+
 
 
 
