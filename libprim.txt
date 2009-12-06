@@ -6086,6 +6086,14 @@ primitives that pretends as if there is no suck access.
 Is there a reason to not unify primitive exceptions and GC restarts?
 
 
+Entry: A better approach
+Date: Sat Nov 28 10:33:09 CET 2009
+
+1. Write the VM in Scheme
+2. Translate this to EX using a bootstrap compiler
+
+This approach allows to get the code working right first, and gives
+another escape route to compiled code.
 
 Entry: Dybvig heap machine
 Date: Fri Nov 27 16:48:14 CET 2009
