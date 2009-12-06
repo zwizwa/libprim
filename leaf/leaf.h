@@ -32,38 +32,58 @@ typedef struct _leaf_object leaf_object;
 typedef void (*leaf_free_m)(leaf_object *);
 typedef int (*leaf_write_m)(leaf_object *, port *);
 
-// a class is a collection of methods
+
 struct _leaf_class {
+    /* Recursively free resources that belong to this instance. */
     leaf_free_m free;
+
+    /* Write out a human-readable and possible machine readable
+       representation. */
     leaf_write_m write;
-    leaf_write_m dump;    // don't write metadata
+
+    /* Dump raw data without metadata. */
+    leaf_write_m dump;
 };
 
-// an object refers to its class
+/* FIXME: make class access abstract also. */
+static inline void
+leaf_class_init(leaf_class *t,
+                leaf_free_m free,
+                leaf_write_m write) {
+    t->free = free;
+    t->write = write;
+    t->dump = NULL;
+}
+
+
 struct _leaf_object {
-    leaf_class *_type;
-    int _rc;
+    leaf_class *_type;  /* Behaviour */
+    int _rc;            /* Nb. of users */
 };
 
 static inline void leaf_init(leaf_object *o, leaf_class *type) {
     o->_type = type;
     o->_rc = 1;
 }
-static inline leaf_class *leaf_type(leaf_object *o) {
-    return o->_type;
-}
+static inline leaf_class *leaf_type(leaf_object *o) { return o->_type; }
+static inline int leaf_rc(leaf_object *o) { return o->_rc; }
+static inline void leaf_dup(leaf_object *o) { o->_rc++; }
 
+
+/* If RC=1 this will effectively call the free method. */
 void leaf_free(leaf_object *x);
-int leaf_write(leaf_object *x, port *p);
 
+
+int leaf_write(leaf_object *x, port *p);
 
 #define LEAF_SIMPLE_TYPE(name) \
     leaf_class *name##_type(void) { \
     static name##_class *x = NULL; \
     if (!x) {\
     x = calloc(1, sizeof(*x)); \
-    x->super.free = (leaf_free_m)name##_free; \
-    x->super.write = (leaf_write_m)name##_write; \
+    leaf_class_init((leaf_class*)x, \
+                    (leaf_free_m)name##_free, \
+                    (leaf_write_m)name##_write);        \
     } return (leaf_class*)x; }
 
 

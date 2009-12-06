@@ -2,7 +2,10 @@
 #include <leaf/port.h>
 
 void leaf_free(leaf_object *x) {
-    leaf_type(x)->free(x);
+    int rc = leaf_rc(x);
+    if (rc == 1) {
+        leaf_type(x)->free(x);
+    }
 }
 int leaf_write(leaf_object *x, port *p) {
     leaf_class *t = leaf_type(x);
