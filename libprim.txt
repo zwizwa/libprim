@@ -6496,4 +6496,18 @@ all objects require an RC which will make them larger.  However, I
 intend to keep the interface abstract, so objects with RC=1 can be
 implemented simpler.
 
+One problem however: how can you tell whether a C function consumes an
+object, like the parser uses a port, or reads/modifies it in place?
+That inconvenience is not going away..  Maybe the convention is that
+all argument to constructors will use the object as a delegate.  Maybe
+this should be done where it's appropriate: at the point where the
+reference is _STORED_.  Essentially: users (callers) can't know what a
+procedure does with a reference.
+
+Convention: all leaf objects passed as arguments are not stored inside
+a data structure that exits the procedure in a different form.  Each
+_persistent assignment_ requires a duplication.  Assignments to local
+C stack variables are not a problem.
+
+
 
