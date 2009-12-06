@@ -5,9 +5,18 @@ DIRS = leaf $(MEDIA) $(EX) $(SC) $(PF)
 all: 
 	for dir in $(DIRS); do make -C $$dir; done
 
-clean:
+rec_clean:
 	rm -f *~
 	for dir in $(DIRS); do make -C $$dir clean; done
+
+# This doesn't trigger .h code generation.
+clean:
+	rm -f *~
+	cd leaf ; rm -f *.o *.d *.a *~
+	cd ex   ; rm -f *.o *.d *.a *~
+	cd sc   ; rm -f *.o *.d *.a *~ */*~ sc
+	cd pf   ; rm -f *.o *.d *.a *~ pf
+
 
 mrproper:
 	for dir in $(DIRS); do make -C $$dir mrproper; done

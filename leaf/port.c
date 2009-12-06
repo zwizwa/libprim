@@ -221,7 +221,7 @@ static port_class *type = NULL;
 static port_methods *methods_file = NULL;
 static port_methods *methods_bytes = NULL;
 
-port_class *port_type(void) {
+leaf_class *port_type(void) {
     if (!type) {
         type = calloc(1, sizeof(*type));
         type->super.free = (leaf_free_m)port_free;
@@ -233,12 +233,12 @@ port_class *port_type(void) {
         methods_bytes = calloc(1, sizeof(*methods_bytes));
         port_methods_bytes_init(methods_bytes);
     }
-    return type;
+    return (leaf_class*)type;
 }
 port *port_file_new(FILE *f, const char *name) {
     if (!f) return NULL;
     port *x = calloc(1, sizeof(*x));
-    x->type = port_type();
+    x->base.type = port_type();
     x->m = methods_file;
     x->stream.f.file = f;
     x->stream.f.fd = fileno(f);
@@ -252,7 +252,7 @@ port *port_file_new(FILE *f, const char *name) {
 port *port_bytes_new(bytes *b) {
     if (!b) return NULL;
     port *x = calloc(1, sizeof(*x));
-    x->type = port_type();
+    x->base.type = port_type();
     x->m = methods_bytes;
     x->stream.b.bytes = b;
     x->stream.b.read_index = 0;

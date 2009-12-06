@@ -22,7 +22,7 @@
 typedef struct { leaf_class super; } console_class;
 
 typedef struct {
-    console_class *type;
+    leaf_object base;
     parser *p;
     port *in;
     port *out;

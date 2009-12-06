@@ -13,7 +13,7 @@ typedef struct {
 } grid_class;
 
 typedef struct {
-    grid_class *type;
+    leaf_object base;
     grid_atom *buf;
     int rank;    // tensor rank
     int dim[0];  // dimensionality of each index
@@ -26,7 +26,7 @@ typedef struct {
 } grid_proc_class;
 
 typedef struct {
-    grid_proc_class *type;
+    leaf_object base;
     void *fn;
     int argc;
 } grid_proc;
@@ -34,13 +34,13 @@ typedef struct {
 int grid_total(grid *x);
 
 
-grid_class *grid_type(void);
+leaf_class *grid_type(void);
 grid *grid_new_1(int length, grid_atom init);
 grid *grid_new_2(int columns, int rows, grid_atom init);
 grid *grid_copy(grid *template);
 
 
-grid_proc_class *grid_proc_type(void);
+leaf_class *grid_proc_type(void);
 grid_proc *grid_proc_new(void *fn, int argc);
 int grid_for_each(grid_proc *p, int argc, grid **argv);
 

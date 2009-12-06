@@ -47,7 +47,7 @@ static void channel_free(channel *x) {
 LEAF_SIMPLE_TYPE(channel)
 
 static void channel_init(channel *x) {
-    x->type = channel_type();
+    x->base.type = channel_type();
     x->object = NULL;
     x->rc = 1;
     pthread_mutex_init(&x->mut, NULL);

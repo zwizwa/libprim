@@ -18,7 +18,7 @@ leaf_object *console_read(console *d) {
 }
 console *console_new(port *in, port *out) {
     console *x = calloc(1, sizeof(*x));
-    x->type = console_type();
+    x->base.type = console_type();
     x->in = in;
     x->out = out;
     x->p = parser_new(in);

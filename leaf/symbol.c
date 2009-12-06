@@ -29,7 +29,7 @@ symbol_class *symbol_type(void) {
 
 symbol *symbol_from_cstring(const char *str){
     int i;
-    symbol_class *s = symbol_type();
+    symbol_class *s = (symbol_class*)symbol_type();
     for (i=0; i<s->nb_syms; i++){
         if (!strcmp(s->syms[i]->name, str)) return s->syms[i];
     }
@@ -37,7 +37,7 @@ symbol *symbol_from_cstring(const char *str){
     if (s->nb_syms == s->total) exit(1);
 
     symbol *sym = malloc(sizeof(*sym));
-    sym->type = s;
+    sym->base.type = (leaf_class*)s;
     sym->name = malloc(1 + strlen(str));
     strcpy((char *)sym->name, str);
     s->syms[i] = sym;

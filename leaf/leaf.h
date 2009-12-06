@@ -49,13 +49,13 @@ int leaf_write(leaf_object *x, port *p);
 
 
 #define LEAF_SIMPLE_TYPE(name) \
-    name##_class *name##_type(void) { \
+    leaf_class *name##_type(void) { \
     static name##_class *x = NULL; \
     if (!x) {\
     x = calloc(1, sizeof(*x)); \
     x->super.free = (leaf_free_m)name##_free; \
     x->super.write = (leaf_write_m)name##_write; \
-    } return x; }
+    } return (leaf_class*)x; }
 
 
 

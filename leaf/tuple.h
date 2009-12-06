@@ -21,12 +21,12 @@ typedef struct {
 } tuple_class;
 
 struct _tuple {
-    tuple_class *type;
+    leaf_object base;
     int size; // nb of object slots
     leaf_object *slot[0];
 };
 
 tuple *tuple_new(int size);
-tuple_class *tuple_type(void);
+leaf_class *tuple_type(void);
 
 #endif

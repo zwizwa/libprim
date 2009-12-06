@@ -13,7 +13,7 @@ typedef struct {
 
 
 struct _bytes {
-    bytes_class *type;
+    leaf_object base;
     char *bytes;
     size_t size;     // nb of used bytes
     size_t bufsize;  // max bytes in buffer
@@ -25,7 +25,7 @@ bytes* bytes_buffer_new(size_t bufsize);  // same, with size = 0
 
 // void *bytes_realloc(bytes *b, size_t size);
 
-bytes_class* bytes_type(void);
+leaf_class* bytes_type(void);
 bytes* bytes_from_cstring(const char *str);
 bytes* bytes_from_qcstring(const char *str);
 

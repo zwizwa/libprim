@@ -14,7 +14,7 @@ LEAF_SIMPLE_TYPE(inexact)
 
 inexact *inexact_new(double f) {
     inexact *x = malloc(sizeof(*x));
-    x->type = inexact_type();
+    x->base.type = inexact_type();
     x->value = f;
     return x;
 }

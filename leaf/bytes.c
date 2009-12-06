@@ -18,16 +18,16 @@ static bytes_class *bytes_class_new(void) {
     x->super.dump  = (leaf_write_m)bytes_dump;
     return x;
 }
-bytes_class *bytes_type(void) {
+leaf_class *bytes_type(void) {
     if (!type) type = bytes_class_new();
-    return type;
+    return (leaf_class*)type;
 }
 
 // don't use this for strings!
 bytes *bytes_new(size_t bufsize) {
     bytes *x = malloc(sizeof(*x));
-    x->type    = bytes_type();
-    x->size    = bufsize;
+    x->base.type = bytes_type();
+    x->size = bufsize;
     x->bufsize = bufsize;
     x->bytes = malloc(bufsize);
     return x;

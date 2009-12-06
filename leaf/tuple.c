@@ -32,18 +32,18 @@ static int tuple_write(tuple *x, port *p) {
 }
 
 static tuple_class *type = NULL;
-tuple_class *tuple_type(void) {
+leaf_class *tuple_type(void) {
     if (!type) {
         type = calloc(1, sizeof(*type));
         type->super.free  = (leaf_free_m)tuple_free;
         type->super.write = (leaf_write_m)tuple_write;
     }
-    return type;
+    return (leaf_class*)type;
 }
 
 tuple *tuple_new(int size) {
     tuple *t = calloc(1, sizeof(*t) + sizeof(leaf_object*) * size);
-    t->type = tuple_type();
+    t->base.type = tuple_type();
     t->size = size;
     return t;
 }

@@ -9,7 +9,7 @@ typedef struct _symbol_class symbol_class;
 /* All atoms that appear in GCd vectors have a class pointer as first
    member.  The class struct contains the free() method. */
 struct _symbol {
-    symbol_class *type;
+    leaf_object base;
     const char* name;
 };
 

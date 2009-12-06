@@ -2,20 +2,25 @@ A ``primitive oriented'' scripting language core.
 
 Libprim is a collection of primitive objects and operations written in
 C, mostly intended for writing embedded audio/video applications.
-In addition it contains an approach to assemble these objects as
-building blocks of a dynamic scripting core (VM).  
 
-Libprim constists roughly of 3 layers:
+These objects are designed in such a way that they can be used
+stand-alone in a C application, but are easily ``lifted'' into a more
+expressive data/code model for prototyping and debugging.
+
+
+
+Libprim constists of 3 main layers:
 
   * LEAF: C objects (bytes, symbol, port, parser, tuple, ...) with
     manual memory management.
 
-  * EX: graph memory with automatic asynchronous GC.  Useful for
-    writing dynamically typed expressions in C.
+  * EX: graph memory with automatic asynchronous mark/sweep GC,
+    i.e. a Scheme memory model.
 
   * PF/SC: VMs implementing two execution models using the EX data
     structures.  SC is a standard Scheme tree-walking interpreter.  PF
-    is a linear stack language (a hybrid Scheme and Forth).
+    is a linear stack language (a Scheme/Forth hybrid).
+
 
 
 
@@ -24,9 +29,10 @@ Date: Tue Aug  4 11:14:36 CEST 2009
 
 From a practical day-to-day problem solving pov, C is not going
 anywhere because next to a programming language, it is also an
-interface standard.  Anything that tries to incorporate modern
-language techniques in an embedded programming project needs to play
-nice with C.
+interface standard, both for commodity machines and commodity
+programmers.  Anything that tries to incorporate modern language
+techniques in an embedded programming project needs to play nice with
+C.
 
 So, instead of focussing on building new languages, I think it is
 worthwhile to do some semantics engineering on subsets of C itself, by
@@ -6382,5 +6388,104 @@ straightforward way recording all LEAF api calls.  For looping code
 it's more involved.
 
 
+
+
+Entry: reflection on future
+Date: Sun Dec  6 10:22:22 CET 2009
+
+Recent developments have shifted the off-clock effort from making the
+Scheme VM faster to making the Scheme layer easier to eliminate,
+producing readable and editable C code.
+
+Things that seem to become more important:
+
+  - LEAF data structures with sharing
+  - Automatic wrapper generation
+  - Migration from Scheme to C/LEAF code
+  - Java JNI integration
+
+In short: it should be possible to peel the EX/SC layers off more
+easily, leaving just C code and the LEAF object library.
+
+For structures with sharing, but without dependency on an asynchronous
+GC, it's necessary to implement some form of reference counting.  This
+can either be done inside the base object, (taking a 2nd field), or as
+a subclass.
+
+Things that are hinted at:
+
+  - Polymorphy in LEAF
+  - Implementing ex/vector in terms of leaf/tuple
+  - Implementing PF's linear (data) core in terms of LEAF, with code
+    execution in terms of VECTOR.
+
+The more I think about this, the more it seems plausible to take a
+closer look at the object side of the COLA architecture.  Some missing
+links are it's object model, and bootstrap through the method table
+cache.  From another side, CLOS and implementations might also be a
+good source of information.
+
+
+Entry: Unification
+Date: Sun Dec  6 10:37:42 CET 2009
+
+To simplify compilation from Scheme -> C using only the LEAF object
+model and manual memory management, all objects need to become leaf
+objects (i'm looking at integers and characters), so at least there is
+a unified model for data and operations at a lower level.
+
+As became quite clear toying with the Java JNI, having to special case
+data items that are not objects is quite a pain.
+
+It's important not to forget the goal of the libprim project:  have
+low-level code and data models that can be _augmented_ with highlevel
+ones (data: EX GDd vectors, code: Scheme and PF interpreters).
+
+This is about the total elimination of _all_ Scheme and PF code in a
+final project, to get rid of the management requirement of not _using_
+any unknown or non-standard languages, so the resulting C code can be
+modified without needing any access to the higher level data and code
+models.
+
+
+
+Entry: Next
+Date: Sun Dec  6 11:02:46 CET 2009
+
+- Unified objects (integers as leaf objects)
+- Data sharing and reference counts
+
+RC: if there is a necessity to create circular data structures, it's
+probably prudent to contain those locally, i.e. wrap them in a
+non-circular structure.
+
+It's probably necessary to equip each object with a reference count
+and a `final' flag.  The latter is necessary because there is
+otherwise no guarantee that a multi-owned object will remain constant.
+
+
+Entry: Assumptions
+Date: Sun Dec  6 11:38:44 CET 2009
+
+What are the assumptions?
+
+  - Synchronous memory management will be necessary, i.e. the system
+    already contains open/close resources (code libraries / hardware
+    interfaces / remote connections / ...) that cannot be modified.
+
+  - Use of anything outside of plain C will be a liability and should
+    be removed (if possible).
+
+  - During prototyping and testing there is no constraint on the tools
+    used.
+
+
+Entry: Implementing RC
+Date: Sun Dec  6 11:44:13 CET 2009
+
+I'm probably going to add it to the base object.  This means that yes,
+all objects require an RC which will make them larger.  However, I
+intend to keep the interface abstract, so objects with RC=1 can be
+implemented simpler.
 
 

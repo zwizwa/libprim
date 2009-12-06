@@ -36,7 +36,7 @@ typedef struct {
 } port_methods;
 
 struct _port {
-    port_class *type;
+    leaf_object base;
     port_methods *m;
     char *name;
     union {
@@ -62,7 +62,7 @@ void port_flush(port *x);
 
 void port_free(port *x);
 int port_printf(port *p, const char *fmt, ...);
-port_class* port_type(void);
+leaf_class *port_type(void);
 port *port_file_new(FILE *f, const char *name);
 port *port_bytes_new(bytes *b);
 bytes *port_get_bytes(port *b); // for string ports

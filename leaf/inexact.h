@@ -12,12 +12,12 @@ typedef struct {
 } inexact_class;
 
 typedef struct {
-    inexact_class *type;
+    leaf_object base;
     double value;
 } inexact;
 
 inexact *inexact_new(double f);
-inexact_class *inexact_type(void);
+leaf_class *inexact_type(void);
 
 
 #define DEF_INEXACT_BINOP(name,op) static inline void inexact_##name \

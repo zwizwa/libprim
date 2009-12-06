@@ -28,7 +28,7 @@ LEAF_SIMPLE_TYPE(grid)
 
 static grid *grid_proto(int rank) {
     grid *x = malloc(sizeof(*x) + (rank * sizeof(int*)));
-    x->type = grid_type();
+    x->base.type = grid_type();
     x->rank = rank;
     x->buf = NULL;
     int i;
@@ -139,7 +139,7 @@ grid_proc *grid_proc_new(void *fn, int argc) {
     if (argc < 1) return NULL;
     
     grid_proc *x = calloc(1, sizeof(*x));
-    x->type = grid_proc_type();
+    x->base.type = grid_proc_type();
     x->fn = fn;
     x->argc = argc;
     return x;
