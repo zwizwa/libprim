@@ -6,7 +6,7 @@ typedef struct {
     // void *free;
 } prim_class;
 typedef struct {
-    void *type;
+    leaf_object base; // FIXME: implement leaf object api
     void *fn;
     long nargs;
     /* Note: in general it is not allowed to place objects in atom
@@ -16,8 +16,8 @@ typedef struct {
 } prim;
 
 /* FIXME: turn this into a proper class object. */
-static inline void* prim_type(void) {
-    return (void*)0xF001; // dummy class
+static inline leaf_class* prim_type(void) {
+    return (leaf_class*)0xF001; // dummy class
 }
 
 

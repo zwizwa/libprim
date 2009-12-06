@@ -34,6 +34,7 @@
 typedef struct _scanner scanner;
 typedef void (*eof_m)(scanner *x);
 struct _scanner {
+    leaf_object base; // FIXME: implement leaf object api
     port *p;
     bytes *b;
 

@@ -842,7 +842,7 @@ static void _sc_mark_roots(sc *sc, gc_finalize fin) {
 }
 static _ _sc_make_prim(sc *sc, void *fn, long nargs, _ var) {
     prim *p = malloc(sizeof(*p));
-    p->type = prim_type();
+    p->base.type = prim_type();
     p->fn = fn;
     p->nargs = nargs;
     p->var = var;

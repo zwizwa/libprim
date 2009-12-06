@@ -42,7 +42,13 @@ struct _leaf_class {
 // an object refers to its class
 struct _leaf_object {
     leaf_class *type;
+    int rc;
 };
+
+static inline void leaf_init(leaf_object *o, leaf_class *type) {
+    o->type = type;
+    o->rc = 1;
+}
 
 void leaf_free(leaf_object *x);
 int leaf_write(leaf_object *x, port *p);

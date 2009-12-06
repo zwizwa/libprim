@@ -1,12 +1,14 @@
 #ifndef _RC_H_
 #define _RC_H_
 
+#include <leaf/leaf.h>
+
 /* Ref management wrapper. */
 typedef void (*rc_free)(void *ctx);
 typedef struct {
 } rc_class;
 typedef struct {
-    rc_class *type;
+    leaf_object base;
     void *ctx;
     int rc;
     rc_free free;
