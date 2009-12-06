@@ -72,6 +72,8 @@ static inline void leaf_init(leaf_object *o, leaf_class *type) {
 static inline leaf_class *leaf_type(leaf_object *o) { return o->_type; }
 static inline int leaf_rc(leaf_object *o) { return o->_rc; }
 static inline leaf_object *leaf_dup(leaf_object *o) { o->_rc++; return o; }
+#define LEAF_DUP(ob) ((typeof(ob))(leaf_dup((leaf_object*)ob)))
+
 
 /* If RC=1 this will effectively call the free method. */
 void leaf_free(leaf_object *x);
