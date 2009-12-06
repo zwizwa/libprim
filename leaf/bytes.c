@@ -26,7 +26,7 @@ leaf_class *bytes_type(void) {
 // don't use this for strings!
 bytes *bytes_new(size_t bufsize) {
     bytes *x = malloc(sizeof(*x));
-    x->base.type = bytes_type();
+    leaf_init(&x->base, bytes_type());
     x->size = bufsize;
     x->bufsize = bufsize;
     x->bytes = malloc(bufsize);

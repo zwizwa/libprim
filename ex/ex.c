@@ -68,8 +68,9 @@ object _ex_write(ex *ex, object o) {
 
     /* If an aref object's class has a lowlevel write method defined, call it. */
     if ((l = ex->object_to_leaf(ex, o))) {
-        if (l->type->write) {
-            l->type->write(l, p);
+        leaf_class *t = leaf_type(l);
+        if (t->write) {
+            t->write(l, p);
             return VOID;
         }
     }
@@ -385,8 +386,9 @@ _ ex_bytes_length(ex *ex, _ ob) {
 _ ex_write_bytes(ex *ex, _ ob_bytes, _ ob_port) {
     port *p = CAST(port, ob_port);
     leaf_object *l = ex->object_to_leaf(ex, ob_bytes);
-    if (l && l->type->dump) {
-        l->type->dump(l, p);
+    leaf_class *t;
+    if (l && (t = leaf_type(l)) && t->dump) {
+        t->dump(l, p);
         return VOID;
     }
     return TYPE_ERROR(ob_bytes);
@@ -609,7 +611,7 @@ static leaf_object *read_chan_test(port *p) {
     return (leaf_object*)bytes_from_cstring("test");
 }
 static int write_chan_test(port *p, leaf_object *b) {
-    if (b->type == (leaf_class*)bytes_type()) {
+    if (leaf_type((leaf_object*)b) == bytes_type()) {
         fprintf(stderr, "GOT: %s\n", ((bytes*)b)->bytes);
     }
     leaf_free(b);
@@ -658,7 +660,7 @@ _ ex_channel_put(ex *ex, _ chan, _ ob) {
 /* Open a process, and collect its output in chunks. */
 static int write_chan_bytes(port *p, leaf_object *l) {
     if (l) { fprintf(stderr, "NULL!\n"); return 0; }
-    l->type->dump(l, p);
+    leaf_type(l)->dump(l, p);
     port_flush(p);
     leaf_free(l);
     return 0;

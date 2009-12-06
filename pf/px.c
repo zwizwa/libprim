@@ -63,8 +63,8 @@ _ px_error_underflow(pf *pf) {
 
 _ _px_make_rc(pf *pf, leaf_object *ob) {
     rc *rc = malloc(sizeof(*rc));
-    rc->base.type = rc_type();
-    rc->free = (rc_free)(ob->type->free);
+    leaf_init(&rc->base, rc_type());
+    rc->free = (rc_free)(leaf_type(ob)->free);
     rc->ctx = ob;
     rc->rc = 1;
     return const_to_object(rc);

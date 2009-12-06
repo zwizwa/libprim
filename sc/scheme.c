@@ -122,7 +122,8 @@ _ sc_make_k_seq(sc *sc, _ P, _ T)            {STRUCT(TAG_K_SEQ,    3, P,NIL,T);}
 _ _sc_make_aref(sc *sc, void *_x) {
     leaf_object *x = _x;
     if (!x) ERROR("aref", VOID);
-    fin *f = (fin*)((void*)(&x->type->free));
+    leaf_class *t = leaf_type(x);
+    fin *f = (fin*)((void*)(&t->free));
     return sc_make_aref(sc, fin_to_object(f), const_to_object(x));
 }
 
@@ -842,7 +843,7 @@ static void _sc_mark_roots(sc *sc, gc_finalize fin) {
 }
 static _ _sc_make_prim(sc *sc, void *fn, long nargs, _ var) {
     prim *p = malloc(sizeof(*p));
-    p->base.type = prim_type();
+    leaf_init(&p->base, prim_type());
     p->fn = fn;
     p->nargs = nargs;
     p->var = var;

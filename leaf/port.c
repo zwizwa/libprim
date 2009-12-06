@@ -238,7 +238,7 @@ leaf_class *port_type(void) {
 port *port_file_new(FILE *f, const char *name) {
     if (!f) return NULL;
     port *x = calloc(1, sizeof(*x));
-    x->base.type = port_type();
+    leaf_init(&x->base, port_type());
     x->m = methods_file;
     x->stream.f.file = f;
     x->stream.f.fd = fileno(f);
@@ -252,7 +252,7 @@ port *port_file_new(FILE *f, const char *name) {
 port *port_bytes_new(bytes *b) {
     if (!b) return NULL;
     port *x = calloc(1, sizeof(*x));
-    x->base.type = port_type();
+    leaf_init(&x->base, port_type());
     x->m = methods_bytes;
     x->stream.b.bytes = b;
     x->stream.b.read_index = 0;

@@ -41,13 +41,16 @@ struct _leaf_class {
 
 // an object refers to its class
 struct _leaf_object {
-    leaf_class *type;
-    int rc;
+    leaf_class *_type;
+    int _rc;
 };
 
 static inline void leaf_init(leaf_object *o, leaf_class *type) {
-    o->type = type;
-    o->rc = 1;
+    o->_type = type;
+    o->_rc = 1;
+}
+static inline leaf_class *leaf_type(leaf_object *o) {
+    return o->_type;
 }
 
 void leaf_free(leaf_object *x);

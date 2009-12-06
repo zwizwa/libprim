@@ -43,7 +43,7 @@ leaf_class *tuple_type(void) {
 
 tuple *tuple_new(int size) {
     tuple *t = calloc(1, sizeof(*t) + sizeof(leaf_object*) * size);
-    t->base.type = tuple_type();
+    leaf_init(&t->base, tuple_type());
     t->size = size;
     return t;
 }

@@ -37,7 +37,7 @@ symbol *symbol_from_cstring(const char *str){
     if (s->nb_syms == s->total) exit(1);
 
     symbol *sym = malloc(sizeof(*sym));
-    sym->base.type = (leaf_class*)s;
+    leaf_init(&sym->base, (leaf_class*)s);
     sym->name = malloc(1 + strlen(str));
     strcpy((char *)sym->name, str);
     s->syms[i] = sym;

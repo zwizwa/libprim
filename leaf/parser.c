@@ -192,7 +192,7 @@ parser *parser_new(port *prt) {
       lists to flat tuples.  */
 
 tuple *tuple_ctor(tuple *t, symbol *tag, int args) {
-    if ((t->base.type == tuple_type()) &&
+    if ((leaf_type(&t->base) == tuple_type()) &&
         (t->size == args+1) &&
         (t->slot[0] == (leaf_object*)tag)) {
         return t;

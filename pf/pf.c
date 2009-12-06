@@ -723,7 +723,7 @@ static void _px_mark_roots(pf *pf, gc_finalize fin) {
 
 static _ _px_prim(pf* pf, pf_prim fn, _ name) {
     prim *p = malloc(sizeof(*p));
-    p->base.type = prim_type();
+    leaf_init(&p->base, prim_type());
     p->fn = fn;
     p->nargs = 0;
     p->var = name;
