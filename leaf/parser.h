@@ -21,6 +21,7 @@ struct _parser {
     parser_ob     nil;
     parser_ob     eof;
 };
+typedef struct { leaf_class super; } parser_class;
 
 /* By default the parser produces symbol tagged tree instances.
    Override atom, cons and nil. */

@@ -53,7 +53,7 @@ static _ _atom(parser_ctx *x, const bytes *tok) {
 
 _ _ex_read(ex *ex, port *input_port) {
     parser_ctx x = {ex, NULL};
-    parser *p = parser_new(input_port);
+    parser *p = parser_new(leaf_dup((leaf_object*)input_port));
     p->ctx  = &x;
     p->cons = (parser_cons)_cons;
     p->atom = (parser_atom)_atom;
@@ -65,10 +65,12 @@ _ _ex_read(ex *ex, port *input_port) {
     if (!setjmp(x.jb)) {
         ob = (object)parser_read(p);
     }
+    leaf_free((leaf_object*)p);
     if (x.tok) {
         return ERROR("parse", SYMBOL(x.tok->bytes));
     }
-    // _ex_write(ex, ob);
-    return ob;
+    else {
+        return ob;
+    }
 }
 

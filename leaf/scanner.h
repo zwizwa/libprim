@@ -42,6 +42,7 @@ struct _scanner {
     int line;
     int col;
 };
+typedef struct { leaf_class super; } scanner_class;
 
 typedef bytes token;
 

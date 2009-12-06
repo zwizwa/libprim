@@ -38,7 +38,11 @@ struct _leaf_class {
     leaf_free_m free;
 
     /* Write out a human-readable and possible machine readable
-       representation. */
+       representation.  If the object cannot be serialized by the
+       standard Scheme parser, make sure this produces a string of the
+       form "#<...>" where the dots are replaced with any string that
+       contains an equal number of '<' and '>' characters.  This makes
+       sure the standard scanner can at least tokenize the data. */
     leaf_write_m write;
 
     /* Dump raw data without metadata. */
@@ -67,8 +71,7 @@ static inline void leaf_init(leaf_object *o, leaf_class *type) {
 }
 static inline leaf_class *leaf_type(leaf_object *o) { return o->_type; }
 static inline int leaf_rc(leaf_object *o) { return o->_rc; }
-static inline void leaf_dup(leaf_object *o) { o->_rc++; }
-
+static inline leaf_object *leaf_dup(leaf_object *o) { o->_rc++; return o; }
 
 /* If RC=1 this will effectively call the free method. */
 void leaf_free(leaf_object *x);

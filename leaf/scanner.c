@@ -8,7 +8,16 @@
 #include <ctype.h>
 #include <string.h>
 
+static int scanner_write(scanner *x, port *p) {
+    return port_printf(p, "#<scanner:%p>", x);
+}
+void scanner_free(scanner *x) {
+    leaf_free((leaf_object*)x->b);
+    leaf_free((leaf_object*)x->p);
+    free(x);
+}
 
+LEAF_SIMPLE_TYPE(scanner)
 
 static int next_getc(scanner *x) {
     int c = port_getc(x->p);
@@ -178,11 +187,7 @@ void scanner_read(scanner *x) {
     else return scanner_get_atom(x, TOK_SYMBOL);
 }
 
-void scanner_free(scanner *x) {
-    leaf_free((leaf_object*)x->b);
-    free(x);
-    // DON'T FREE PORT.
-}
+
 scanner *scanner_new(port *p) {
     scanner *x = calloc(1, sizeof(*x));
     x->p = p;

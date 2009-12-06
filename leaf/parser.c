@@ -164,6 +164,11 @@ void parser_free(parser *p) {
     scanner_free(p->s);
     free(p);
 }
+static int parser_write(parser *par, port *p) {
+    return port_printf(p, "#<parser:%p>", par);
+}
+LEAF_SIMPLE_TYPE(parser)
+
 parser *parser_new(port *prt) {
     parser *p = calloc(1,sizeof(*p));
     p->s = scanner_new(prt);
