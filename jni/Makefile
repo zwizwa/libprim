@@ -8,7 +8,7 @@ testnative.class: testnative.java
 	javac testnative.java
 
 libnativelib.so: nativelib.c testnative.h
-	gcc -o libnativelib.so -shared -Wl,-soname,libnative.so  \
+	gcc -o libnativelib.so -shared -Wl,-soname,libnativelib.so  \
 		$(JNI_CFLAGS) nativelib.c  -static -lc
 
 testnative.h: testnative.class
