@@ -6543,4 +6543,11 @@ like int,long ?
 I don't see anything of this sort, so it seems that the answer is yes:
 this only supports objects.
 
+It would be interesting to figure out if kawa can be used to perform
+this reflection task..
+
+Conclusion: java reflection API seems useful, but there are
+complications if arguments are not an Object subclass.
+
+
 [1] http://java.sun.com/j2se/1.3/docs/api/java/lang/Class.html
