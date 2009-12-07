@@ -37,7 +37,9 @@ public class adt {
             System.out.print((String)o);
         }
         else {
-            System.out.print("#<object:" + o.getClass().getName() + ">");
+            // String name = o.getClass().getName();
+            String name = o.toString();
+            System.out.print("#<object:" + name + ">");
         }
     }
     Object post(Object o) {
