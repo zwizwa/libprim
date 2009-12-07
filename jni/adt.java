@@ -6,14 +6,11 @@ import java.lang.reflect.*;
 
 public class adt {
 
-
-    Object ok = (Object)new Object[]{"ok"};
-    Object error = (Object)new Object[]{"error"};
-    // Object nul;
-
+    /* Globals & init */
+    final Object ok = (Object)new Object[]{"ok"};
+    final Object error = (Object)new Object[]{"error"};
     Class string_class;
     Class object_class;
-
     adt() {
         try {
             string_class = Class.forName("java.lang.String");
@@ -23,11 +20,11 @@ public class adt {
             System.err.println(e);
         }
     }
+
+    /* Prettyprinting */
     void _write(Object o) {
-        if (o.getClass() == string_class) {
-            System.out.print((String)o);
-        }
-        else {
+        Class c = o.getClass();
+        if (c.isArray()) {
             Object[] os = (Object[])o;
             System.out.print("(");
             for (int i = 0; i < os.length; i++) {
@@ -36,46 +33,45 @@ public class adt {
             }
             System.out.print(")");
         }
+        else if (c == string_class) {
+            System.out.print((String)o);
+        }
+        else {
+            System.out.print("#<object:" + o.getClass().getName() + ">");
+        }
     }
     Object post(Object o) {
-        try {
-            write(o);
-            System.out.print("\n");
-            return ok;
-        }
-        catch (Throwable e) {
-            System.err.println(e);
-            return error;
-        }
+        _write(o);
+        System.out.print("\n");
+        return ok;
     }
+
+
+    /* Reflection: string -> method lookup. */
+    Method find(String cmd) 
+        throws java.lang.NoSuchMethodException
+    {
+        return this.getClass().getDeclaredMethod(cmd, new Class[] {object_class});
+    }
+    Object eval(Object o) 
+        throws java.lang.NoSuchMethodException,
+               java.lang.IllegalAccessException,
+               java.lang.reflect.InvocationTargetException
+    {
+        Object[] a = (Object[])o;
+        String cmd = (String)a[0];
+        Object args = (String)a[1];
+        Method m = find(cmd);
+        return m.invoke(this, args);
+    }
+
     Object safe_apply(Method m, Object o) {
         try { 
             Object rv =  m.invoke(this, o);
             return (Object)new Object[]{"ok", rv};
         }
         catch (Throwable e) {
-            System.err.println("ERROR: " + e);
-            return error;
-        }
-    }
-    Method find(String cmd) {
-        try {
-            return this.getClass().getDeclaredMethod(cmd, new Class[] {object_class});
-        }
-        catch (Throwable e) {
-            System.err.println(e);
-            return null;
-        }
-    }
-    Object eval(Object o) {
-        try {
-            Object[] rec = (Object[])o;
-            String cmd = (String)rec[0];
-            Method m = find(cmd);
-            return m.invoke(this, rec[1]);
-        }
-        catch (Throwable e) {
-            System.err.println(e);
+            System.err.println("ERROR: " + e.toString());
             return error;
         }
     }
@@ -87,8 +83,9 @@ public class adt {
         post(o);
         post("foo");
         post(o1);
-        post(eval(o1));
-        post(safe_apply(find("eval"), o1));
+        try { post(eval(o1)); }                     catch (Throwable e) {};
+        //        try { post(safe_apply(find("eval"), o1)); } catch (Throwable e) {};
+        try { post(find("eval")); }                 catch (Throwable e) {};
     }
 
     public static void main(String[] args) {
