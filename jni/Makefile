@@ -2,7 +2,10 @@
 JNI_CFLAGS = -I/export/home/jdk1.2/include -I/export/home/jdk1.2/include/linux 
 JNI_LDFLAGS = 
 
-all: testnative.class libnativelib.so
+all: testnative.class libnativelib.so reflect.class
+
+%.class: %.java
+	javac $<
 
 testnative.class: testnative.java
 	javac testnative.java
