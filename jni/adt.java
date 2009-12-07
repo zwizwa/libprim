@@ -37,6 +37,16 @@ public class adt {
             System.out.print(")");
         }
     }
+    Object safe_apply(Method m, Object o) {
+        try { 
+            Object rv =  m.invoke(this, o);
+            return (Object)new Object[]{"ok", rv};
+        }
+        catch (Throwable e) {
+            System.err.println("ERROR: " + e);
+            return error;
+        }
+    }
 
     Object post(Object o) {
         try {
