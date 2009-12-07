@@ -29,6 +29,7 @@ public class adt {
 
     void go() {
         String[] s1 = new String[] {"a", "b", "c"};
+        Object o1 = new Object[]{"a", "b", new Object[]{"e", "f"}};
         Object o = (Object)s1;
         post(o);
         post("foo");
