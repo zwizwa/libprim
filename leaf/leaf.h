@@ -60,6 +60,21 @@ leaf_class_init(leaf_class *t,
 }
 
 
+/* Reference counts.  I've been debating whether each object should
+   have an RC, as it is not used in GCd languages.
+
+   The answer is yes for the following reasons:
+   
+     - explicitly wrapping objects in an RC struct is cumbersome
+
+     - linearity (RC always == 1) is too great a constraint on
+       composite leaf objects.
+
+     - an embedded RC allows data to travel between a RC-based memory
+       manager and a GC-based one (i.e. Scheme <-> PF) without extra
+       effort.
+*/
+
 struct _leaf_object {
     leaf_class *_type;  /* Behaviour */
     int _rc;            /* Nb. of users */

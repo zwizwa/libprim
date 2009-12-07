@@ -6493,7 +6493,7 @@ Date: Sun Dec  6 11:44:13 CET 2009
 
 I'm probably going to add it to the base object.  This means that yes,
 all objects require an RC which will make them larger.  However, I
-intend to keep the interface abstract, so objects with RC=1 can be
+intend to keep the interface abstract, so objects with RC=1 might be
 implemented simpler.
 
 One problem however: how can you tell whether a C function consumes an
@@ -6510,4 +6510,21 @@ _persistent assignment_ requires a duplication.  Assignments to local
 C stack variables are not a problem.
 
 
+
+Entry: LYSP
+Date: Sun Dec  6 18:41:40 CET 2009
+
+See here[1].  Before I try to do anything else I might better read the
+code.  One of the interesting tricks is to use dlsym for looking up
+native code.
+
+[1] http://www.piumarta.com/software/lysp/
+
+
+Entry: Memory and stack management questions
+Date: Sun Dec  6 18:44:42 CET 2009
+
+- how efficient is malloc?
+- does it make sense to have a separate pooling mechanism?
+- how non-portable is makecontext() ?
 
