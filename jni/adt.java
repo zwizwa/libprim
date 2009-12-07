@@ -9,6 +9,7 @@ public class adt {
 
     Object ok = (Object)new Object[]{"ok"};
     Object error = (Object)new Object[]{"error"};
+    // Object nul;
 
     Class string_class;
     Class object_class;
@@ -22,8 +23,7 @@ public class adt {
             System.err.println(e);
         }
     }
-
-    void write(Object o) {
+    void _write(Object o) {
         if (o.getClass() == string_class) {
             System.out.print((String)o);
         }
@@ -32,9 +32,20 @@ public class adt {
             System.out.print("(");
             for (int i = 0; i < os.length; i++) {
                 if (i != 0) System.out.print(" ");
-                write(os[i]);
+                _write(os[i]);
             }
             System.out.print(")");
+        }
+    }
+    Object post(Object o) {
+        try {
+            write(o);
+            System.out.print("\n");
+            return ok;
+        }
+        catch (Throwable e) {
+            System.err.println(e);
+            return error;
         }
     }
     Object safe_apply(Method m, Object o) {
@@ -47,23 +58,20 @@ public class adt {
             return error;
         }
     }
-
-    Object post(Object o) {
+    Method find(String cmd) {
         try {
-            write(o);
-            System.out.print("\n");
-            return ok;
+            return this.getClass().getDeclaredMethod(cmd, new Class[] {object_class});
         }
         catch (Throwable e) {
             System.err.println(e);
-            return error;
+            return null;
         }
     }
     Object eval(Object o) {
         try {
             Object[] rec = (Object[])o;
             String cmd = (String)rec[0];
-            Method m = this.getClass().getDeclaredMethod(cmd, new Class[] {object_class});
+            Method m = find(cmd);
             return m.invoke(this, rec[1]);
         }
         catch (Throwable e) {
@@ -79,7 +87,8 @@ public class adt {
         post(o);
         post("foo");
         post(o1);
-        eval(o1);
+        post(eval(o1));
+        post(safe_apply(find("eval"), o1));
     }
 
     public static void main(String[] args) {
