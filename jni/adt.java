@@ -3,6 +3,22 @@
 /* Simple string/array representation of ADTs */
 
 import java.lang.reflect.*;
+import java.util.Hashtable;
+
+
+class dummy {
+    String x;
+    dummy() {
+        x = "foo";
+    }
+    dummy(String init) {
+        x = init;
+    }
+}
+
+
+
+
 
 public class adt {
 
@@ -11,6 +27,7 @@ public class adt {
     final Object error = (Object)new Object[]{"error"};
     Class string_class;
     Class object_class;
+    final Hashtable store = new Hashtable();
     adt() {
         try {
             string_class = Class.forName("java.lang.String");
@@ -19,6 +36,35 @@ public class adt {
         catch (Throwable e) {
             System.err.println(e);
         }
+    }
+    Object arr(Object... a) { return (Object)a; }
+
+
+    /* Store access */
+    Object get (Object o) {
+        Object[] arg = (Object[])o;
+        return store.get(arg[0]);
+    }
+    Object put (Object o) {
+        Object[] arg = (Object[])o;
+        store.put(arg[0], arg[1]);
+        return null;
+    }
+
+
+    
+
+
+    /* Object Creation */
+    Object create (Object o) 
+    {
+        try {
+            Object[] arg = (Object[])o;
+            String classname = (String)arg[0];
+            Class cls = Class.forName(classname);
+            return (Object)cls.newInstance();
+        }
+        catch (Throwable e) { return null; }
     }
 
     /* Prettyprinting */
@@ -37,8 +83,10 @@ public class adt {
             System.out.print((String)o);
         }
         else {
-            // String name = o.getClass().getName();
-            String name = o.toString();
+            String name = 
+                o.getClass().getName() + ":" +
+                Integer.toHexString(o.hashCode());
+            // String name = o.toString();
             System.out.print("#<object:" + name + ">");
         }
     }
@@ -79,6 +127,13 @@ public class adt {
     }
 
     void go() {
+
+        Object report =
+        new Object[]{
+            new Object[] {"video", new Object[] {"quality", "0.1"}},
+            new Object[] {"audio", new Object[] {"quality", "1.2"}}
+        };
+
         String[] s1 = new String[] {"a", "b", "c"};
         Object o1 = new Object[]{"post", new Object[]{"foo", "bar"}};
         Object o = (Object)s1;
@@ -86,8 +141,16 @@ public class adt {
         post("foo");
         post(o1);
         try { post(eval(o1)); }                     catch (Throwable e) {};
-        //        try { post(safe_apply(find("eval"), o1)); } catch (Throwable e) {};
+        try { post(safe_apply(find("eval"), o1)); } catch (Throwable e) {};
         try { post(find("eval")); }                 catch (Throwable e) {};
+        post(report);
+
+        put(arr("dummy", create(arr("dummy"))));
+        post(get(arr("dummy")));
+
+
+        put(arr("dummy", "foo"));
+        post(get(arr("dummy")));
     }
 
     public static void main(String[] args) {

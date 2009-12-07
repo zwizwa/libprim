@@ -4,8 +4,10 @@ JNI_LDFLAGS =
 
 all: testnative.class libnativelib.so reflect.class
 
+# JAVA_FLAGS = -Xlint:unchecked
+
 %.class: %.java
-	javac $<
+	javac $(JAVA_FLAGS)$<
 
 testnative.class: testnative.java
 	javac testnative.java
