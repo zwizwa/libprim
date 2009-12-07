@@ -46,7 +46,7 @@ ck_class *ck_class_new(void) {
 }
 ck *ck_new(ck_class *ck_class) {
     ck *ck = malloc(sizeof*ck);
-    ck->type = ck_class;
+    ck->base.type = ck_class;
     return ck;
 }
 

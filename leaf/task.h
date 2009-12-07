@@ -2,6 +2,7 @@
 #define _PRIM_TASK_H_
 
 #include <setjmp.h>
+#include <leaf/leaf.h>
 
 /* One-shot and resumable tasks. */
 
