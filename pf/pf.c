@@ -42,35 +42,24 @@ void _px_run(pf *pf) {
     lin *l;
 
     pf_prim fn = NULL;
+    int ex_id;
 
-    /* Toplevel exceptions. */
-    EX->top_entries++;
-    while (setjmp(pf->m.top)) {
-        /* Restarts can only happen in primitives.  The rest of the
-           interpreter is linear.  We re-push the IP because it has
-           been popped right before execution. */
-        if (pf->m.r.prim) {
-            PUSH_K_NEXT(const_to_object(pf->m.r.prim));
-        }
-        else {
-            /* Exit condition. */
-            return;
-        }
+    EX->entries++;
 
-        /* Reset state. */
-        pf->m.r.prim = NULL;
-        pf->m.prim_entries = 0;
-    }
+  top_loop:
+    switch(ex_id = setjmp(pf->m.except)) {
+    case EXCEPT_TRY: 
+    inner_loop:
+    {
 
-  loop:
-    for(;;) {
         
         /* By default, run each step in LINEAR mode (GC allocation
            switched off).
-
-           A primitive is allowed to switch to PURE mode as long as
-           there are no side effects performed between this LINEAR()
-           call and the PURE() invocation in the primitive.
+           
+           A primitive is allowed to switch to PURE mode as long
+           as there are no side effects performed between this
+           LINEAR() call and the PURE() invocation in the
+           primitive.
         */
 
         /* Quote linear datum (Implement the `dip' continuation.) */
@@ -83,7 +72,7 @@ void _px_run(pf *pf) {
 
         /* Consume next instruction: pop K. */
         else {
-
+            
             rs = object_to_lnext(pf->k);
             if (unlikely(!rs)) goto halt;
             _ ip = rs->car;
@@ -99,32 +88,19 @@ void _px_run(pf *pf) {
                 /* Primitive */
                 if ((p = object_to_prim(ip))) {
                     DROP_K(); // (*)
-                    int ex;
                     fn = (pf_prim)p->fn;
-                    pf->m.r.prim = p;
-                    pf->m.prim_entries++;
-                    switch(ex = setjmp(pf->m.r.step)) {
-                    case 0:
-                        /* Check memory + allow restart */
-                        EX->stateful_context = 0;
-                        if (gc_available(EX->gc) < 20) gc_collect(EX->gc);
+                    pf->m.prim = p;
+
+                    /* Check memory + allow restart */
+                    EX->stateful_context = 0;
+                    if (gc_available(EX->gc) < 20) gc_collect(EX->gc);
                         
-                        /* Disallow restart by default for primitives.
-                           Non-bounded allocation needs to explictly
-                           re-enable restart. */
-                        EX->stateful_context = 1;
-                        fn(pf);
-                        fn = NULL;
-                        break;
-                    default:
-                        pf->m.error_tag = SYMBOL("unknown-primitive-exception");
-                        pf->m.error_arg = integer_to_object(ex);
-                    case EXCEPT_ABORT:
-                        PUSH_P(LINEARIZE_EXCEPTION(pf->m.error_arg));
-                        PUSH_P(LINEARIZE_EXCEPTION(pf->m.error_tag));
-                        PUSH_K_NEXT(pf->ip_abort);
-                    }
-                    pf->m.prim_entries--;
+                    /* Disallow restart by default for primitives.
+                       Non-bounded allocation needs to explictly
+                       re-enable restart. */
+                    EX->stateful_context = 1;
+                    fn(pf);
+                    fn = NULL;
                 }
                 /* Quoted object */
                 else if ((q = object_to_quote(ip))) {
@@ -159,9 +135,38 @@ void _px_run(pf *pf) {
             }
         }
     }
+    goto inner_loop;
+
+    case EXCEPT_GC:
+        /* Restarts can only happen in primitives.  The rest of the
+           interpreter is linear.  We re-push the IP because it has
+           been popped right before execution. */
+        if (pf->m.prim) {
+            PUSH_K_NEXT(const_to_object(pf->m.prim));
+        }
+        else {
+            /* Exit condition. */
+            return;
+        }
+        
+        /* Reset state. */
+        pf->m.prim = NULL;
+        goto top_loop;
+
+    default:
+        pf->m.error_tag = SYMBOL("unknown-primitive-exception");
+        pf->m.error_arg = integer_to_object(ex_id);
+    case EXCEPT_ABORT:
+        PUSH_P(LINEARIZE_EXCEPTION(pf->m.error_arg));
+        PUSH_P(LINEARIZE_EXCEPTION(pf->m.error_tag));
+        PUSH_K_NEXT(pf->ip_abort);
+        goto top_loop;
+
+    }
+
   halt:
     /* Return to caller. */
-    EX->top_entries--;
+    EX->entries--;
     return;
 }
 
@@ -325,7 +330,7 @@ void pf_nop(pf *pf) {}
 /* Since we have a non-rentrant interpreter with mutable state, this
    is a bit less problematic than the EX/SC case. */
 void pf_gc(pf *pf) {
-    pf->m.r.prim = object_to_prim(pf->ip_nop);  // don't restart pf_gc() !
+    pf->m.prim = object_to_prim(pf->ip_nop);  // don't restart pf_gc() !
     gc_collect(GC); // does not return
 }
 void pf_gc_test(pf *pf) {
@@ -686,7 +691,7 @@ void pf_bye(pf *pf) {
     pf->ip_nop   = HALT;
     pf->ip_map_next = HALT;
     pf->ip_each_next = HALT;
-    pf->m.r.prim = NULL; // after GC: exit VM instead of prim restart
+    pf->m.prim = NULL; // after GC: exit VM instead of prim restart
     gc_collect(GC); // does not return
 }
 
@@ -798,10 +803,7 @@ pf* _px_new(int argc, char **argv) {
     pf->k = NIL;
     pf->ip_abort = HALT;
     pf->ip_nop = HALT;
-
-    // Exceptions
-    pf->m.top_entries = 0;
-    pf->m.prim_entries = 0;
+    pf->m.entries = 0;
 
     // Stdout
     pf->output = _px_make_port(pf, stdout, "stdout");
