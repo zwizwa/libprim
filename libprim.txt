@@ -6616,3 +6616,18 @@ But, vararg arrays are enough to make at least the definition of
 dynamic methods a bit more straightforward.  Summarized in
 jni/eval.java
 
+
+
+Entry: Mapping tuples to method invocations
+Date: Tue Dec  8 14:08:09 CET 2009
+
+Main problems are strictness and argument agregation.  I.e. given the tuple:
+
+   t = tuple("doit", "foo");
+
+* Does eval(t) evaluate "foo"?
+* Does eval pass multiple arguments 1->... as an argument vector?
+
+It's probably best to deviated from lisp-style semantics here, and
+simply use method lookup and explicitly constructed argument lists.
+

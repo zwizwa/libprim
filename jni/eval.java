@@ -2,6 +2,8 @@
 
 import java.lang.reflect.*;
 
+
+
 public class eval {
 
     /* Cache & Init */
@@ -64,9 +66,11 @@ public class eval {
         return m.invoke(this, a[1]);
     }
 
-    /* A design decision here is to make evaluation strict (also eval
-       arguments) or lazy (pass unevaluated args to function.   We
-       pick the latter. */
+    /* Design decisions:
+
+       - strict vs. lazy (evaluate arguments before calling apply?)
+       - pack/unpack argument arrays. */
+
     Object eval(Object... a)
         throws java.lang.NoSuchMethodException,
                java.lang.IllegalAccessException,
@@ -88,18 +92,19 @@ public class eval {
         //}
     }
 
+
     void test() 
         throws java.lang.NoSuchMethodException,
                java.lang.IllegalAccessException,
                java.lang.reflect.InvocationTargetException
     {
+        int i = 123;
+        Object o = (Object)i;
+
         post(tuple("1", "2", "3"));
         post(eval(tuple("quote", tuple("abc", "123"))));
         post(apply(_find("write"), tuple(tuple("abc", "123"))));
-        
-            // tuple("write", tuple("a", "b"));
-            // eval(tuple("write", tuple("a", "b")));
-        // find("print_2").invoke(this, new Object[] {args});
+        post(eval(tuple("write", tuple("123"))));
     }
 
     public static void main(String[] args) {
