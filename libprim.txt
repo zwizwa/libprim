@@ -6573,3 +6573,46 @@ Date: Tue Dec  8 07:46:47 CET 2009
 This seems to work.  Both PF and SC interpreter loops are simpler now:
 jmp-buf is only set once per exception, instead of once per primitive
 invocation.
+
+
+Entry: More reflection
+Date: Tue Dec  8 13:28:55 CET 2009
+
+Varargs are expressed as this:
+
+    Object print_var(Object... a) {
+        System.out.println(((String)a[0]) + ", " + ((String)a[1]));
+        return _void;
+    }
+
+The method can then be resolved + invoked as in:
+
+    Method find(String cmd) 
+        throws java.lang.NoSuchMethodException
+    {
+        return this.getClass().getDeclaredMethod(cmd, new Class[] {object_array_class});
+    }
+    void test() 
+        throws java.lang.NoSuchMethodException,
+               java.lang.IllegalAccessException,
+               java.lang.reflect.InvocationTargetException
+    {
+        print_2("aaa", "bbb");
+        Object[] args = {"ccc", "ddd"};
+        find("print_var").invoke(this, new Object[] {args});
+    }
+
+Note that the vararg definition is essential.  The following method
+does not have the right signature and raises
+java.lang.NoSuchMethodException: eval.print_2([Ljava.lang.Object;)
+
+    Object print_2(Object a0, Object a1) {
+        System.out.println(((String)a0) + ", " + ((String)a1));
+        return _void;
+    }
+
+
+But, vararg arrays are enough to make at least the definition of
+dynamic methods a bit more straightforward.  Summarized in
+jni/eval.java
+
