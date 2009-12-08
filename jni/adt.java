@@ -27,7 +27,7 @@ public class adt {
     final Object error = (Object)new Object[]{"error"};
     Class string_class;
     Class object_class;
-    // Class object_array_class;
+    Class object_array_class;
     final Hashtable store = new Hashtable();
     adt() {
         try {
@@ -35,6 +35,7 @@ public class adt {
             object_class = Class.forName("java.lang.Object");
             // ????
             // object_array_class = (Array.newInstance(object_class, 0)).getClass();
+            object_array_class = Object[].class;
         }
         catch (Throwable e) {
             System.err.println(e);
@@ -106,6 +107,15 @@ public class adt {
     {
         return this.getClass().getDeclaredMethod(cmd, new Class[] {object_class});
     }
+    Method find_(String cmd) 
+        throws java.lang.NoSuchMethodException
+    {
+        return this.getClass().getDeclaredMethod(cmd, new Class[] {object_array_class});
+    }
+
+    Object foo1(Object... o) { return o[0]; }
+    Object foo2(Object o) { return o; }
+
     Object eval(Object o) 
         throws java.lang.NoSuchMethodException,
                java.lang.IllegalAccessException,
