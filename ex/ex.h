@@ -44,7 +44,9 @@ struct _ex {
     void *type;  // in case VM structs are wrapped as LEAF objects
     void *ctx;   // any other user context associated with VM (i.e. JNIEnv)
     
-    struct _gc *gc;   // garbage collected graph memory manager
+    struct _gc *gc;      // garbage collected graph memory manager
+    int gc_guard_cells;  // guard buffer for primitives
+
     long entries;     // multiple entry semaphore
     jmp_buf except;   // GC unwind + exceptions
     

@@ -6570,3 +6570,6 @@ good debugging tools.
 Entry: simplifying exceptions : no more multiple entries
 Date: Tue Dec  8 07:46:47 CET 2009
 
+This seems to work.  Both PF and SC interpreter loops are simpler now:
+jmp-buf is only set once per exception, instead of once per primitive
+invocation.

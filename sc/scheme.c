@@ -735,8 +735,11 @@ static void _sc_check_gc_size(sc *sc) {
 
 /* Toplevel eval.  This function captures the GC restart.
 
-     - This function is NOT re-entrant.  The primitive
-       sc_eval_step() however can be called recursively.
+     - This function is NOT re-entrant.  
+
+       Note that this would involve some C stack / Scheme continuation
+       synchronization.  Currently this is not supported: use Scheme
+       as the toplevel control.
 
      - It is allowed to use gc_alloc() outside this loop to create
        data (to pass to this function) as long as you can prove that
@@ -771,13 +774,11 @@ _ _sc_continue(sc *sc) {
                    primitive code, and will trigger collection here in
                    case there is not enough. */
                 EX->stateful_context = 0;
-                if (gc_available(EX->gc) < 40) gc_collect(EX->gc);
+                if (gc_available(EX->gc) < EX->gc_guard_cells) gc_collect(EX->gc);
 
-                /* Run until error.  The sc_eval_step function will
-                   perform a single state update.  If that function
-                   returns (i.e. it was not interrupted by a full unwind
-                   due to GC), it produces either a next state update or
-                   an error condition. */
+                /* The _sc_step() function will perform a single state
+                   update, or exit through sc->m.except in which case
+                   the sc_slot_state field is not updated. */
                 in_state = sc_global(sc, sc_slot_state);
                 sc_bang_set_global(sc, sc_slot_state, 
                                    _sc_step(sc, in_state));
@@ -904,6 +905,9 @@ sc *_sc_new(int argc, char **argv) {
     sc->m.gc = gc_new(20000, sc, 
                       (gc_mark_roots)_sc_mark_roots,
                       (gc_overflow)_ex_overflow);
+
+    /* Nb of cells guaranteed to be available to primitive. */
+    EX->gc_guard_cells = 40;
                     
     /* Atom classes. */
     base_types *types = NULL; // FIXME: configurable subclass?
