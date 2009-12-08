@@ -1,3 +1,5 @@
+/* A tuple-based expression evaluation engine. */
+
 import java.lang.reflect.*;
 
 public class eval {
@@ -22,7 +24,8 @@ public class eval {
     /* Util.  Methods that are prefixed with '_' (underscore) do not
        respect the Object[] -> Object type. */
 
-    Method _find(String cmd) throws java.lang.NoSuchMethodException {
+    Method _find(String cmd) 
+        throws java.lang.NoSuchMethodException {
         return this.getClass().getDeclaredMethod(cmd, new Class[] {object_array_class});
     }
     Object tuple(Object... a) { return (Object)a; }
@@ -53,12 +56,49 @@ public class eval {
     Object write(Object... a) { _write(a[0]); return _void; }
     Object post(Object... a) { _write(a[0]); System.out.print("\n"); return _void; };
     
+    Object apply(Object... a) 
+        throws java.lang.IllegalAccessException,
+               java.lang.reflect.InvocationTargetException
+    {
+        Method m = (Method)a[0];
+        return m.invoke(this, a[1]);
+    }
+
+    /* A design decision here is to make evaluation strict (also eval
+       arguments) or lazy (pass unevaluated args to function.   We
+       pick the latter. */
+    Object eval(Object... a)
+        throws java.lang.NoSuchMethodException,
+               java.lang.IllegalAccessException,
+               java.lang.reflect.InvocationTargetException
+    {
+        Object[] e = (Object[])a[0];
+        Class c = e[0].getClass();
+
+        if (c == string_class) {
+            String cmd = (String)e[0];
+            if (cmd.equals("quote")) { return e[1]; }
+            else {
+                Method m = _find(cmd);
+                return apply(m, e[1]);
+            }
+        }
+        // else if (c == Method.class) {
+        return apply((Method)e[0], e[1]);
+        //}
+    }
+
     void test() 
         throws java.lang.NoSuchMethodException,
                java.lang.IllegalAccessException,
                java.lang.reflect.InvocationTargetException
     {
-        write(tuple("1", "2", "3"));
+        post(tuple("1", "2", "3"));
+        post(eval(tuple("quote", tuple("abc", "123"))));
+        post(apply(_find("write"), tuple(tuple("abc", "123"))));
+        
+            // tuple("write", tuple("a", "b"));
+            // eval(tuple("write", tuple("a", "b")));
         // find("print_2").invoke(this, new Object[] {args});
     }
 
