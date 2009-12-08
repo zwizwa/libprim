@@ -388,7 +388,7 @@ _ _sc_step_value(sc *sc, _ v, _ k) {
             /* Application of primitive function results in C call. */
             if (TRUE==IS_PRIM(fn)) {
                 prim *p = object_to_prim(fn);
-                sc->m.r.prim = p; // for debug
+                sc->m.prim = p; // for debug
                 if (prim_nargs(p) != (n-1)) {
                     return ERROR("nargs", fn);
                 }
@@ -602,55 +602,50 @@ static _ _sc_step(sc *sc, _ o_state) {
 
 
 
-_ _sc_eval_step(sc *sc, _ state) {
-    int exception;
-    object rv = NIL;
-    ex_r save;
+/* _ _sc_eval_step(sc *sc, _ state) { */
+/*     int exception; */
+/*     object rv = NIL; */
 
-    memcpy(&save, &sc->m.r, sizeof(save));
-    sc->m.r.prim = NULL; // means error comes from step() itself
-    sc->m.prim_entries++;
+/*     /\* Allocate the error struct before the step() is entered to */
+/*        prevent GC restarts of imperative primitives. *\/  */
+/*     if (FALSE == sc->error) { */
+/*         sc->error = sc_make_error(sc, VOID, VOID, VOID, VOID); */
+/*     } */
 
-    /* Allocate the error struct before the step() is entered to
-       prevent GC restarts of imperative primitives. */ 
-    if (FALSE == sc->error) {
-        sc->error = sc_make_error(sc, VOID, VOID, VOID, VOID);
-    }
+/*     switch(exception = setjmp(sc->m.r.step)) { */
+/*         case EXCEPT_TRY: */
+/*             /\* From here to the invocation of primitive code it is OK */
+/*                to perform a restart when a garbage collection occurs. */
+/*                We guarantee a minimum amount of free cells to */
+/*                primitive code, and will trigger collection here in */
+/*                case there is not enough. *\/ */
+/*             EX->stateful_context = 0; */
+/*             if (gc_available(EX->gc) < 40) gc_collect(EX->gc); */
 
-    switch(exception = setjmp(sc->m.r.step)) {
-        case EXCEPT_TRY:
-            /* From here to the invocation of primitive code it is OK
-               to perform a restart when a garbage collection occurs.
-               We guarantee a minimum amount of free cells to
-               primitive code, and will trigger collection here in
-               case there is not enough. */
-            EX->stateful_context = 0;
-            if (gc_available(EX->gc) < 40) gc_collect(EX->gc);
+/*             rv = _sc_step(sc, state); */
+/*             break; */
+/*         case EXCEPT_ABORT:  */
+/*         { */
+/*             error *e = object_to_error(sc->error); */
+/*             if (unlikely(NULL == e)) { TRAP(); } */
+/*             e->tag = sc->m.error_tag; */
+/*             e->arg = sc->m.error_arg; */
+/*             e->state = state; // prim's _input_ state */
+/*             e->prim = const_to_object(sc->m.r.prim); */
+/*             sc->m.error_arg = NIL; */
+/*             sc->m.error_tag = NIL; */
+/*             rv = sc->error; */
+/*             sc->error = FALSE; */
+/*             break; */
+/*         } */
+/*         default: */
+/*             break; */
+/*     } */
 
-            rv = _sc_step(sc, state);
-            break;
-        case EXCEPT_ABORT: 
-        {
-            error *e = object_to_error(sc->error);
-            if (unlikely(NULL == e)) { TRAP(); }
-            e->tag = sc->m.error_tag;
-            e->arg = sc->m.error_arg;
-            e->state = state; // prim's _input_ state
-            e->prim = const_to_object(sc->m.r.prim);
-            sc->m.error_arg = NIL;
-            sc->m.error_tag = NIL;
-            rv = sc->error;
-            sc->error = FALSE;
-            break;
-        }
-        default:
-            break;
-    }
-
-    sc->m.prim_entries--;
-    memcpy(&sc->m.r, &save, sizeof(save));
-    return rv;
-}
+/*     sc->m.prim_entries--; */
+/*     memcpy(&sc->m.r, &save, sizeof(save)); */
+/*     return rv; */
+/* } */
 
 
 
@@ -752,45 +747,73 @@ static void _sc_check_gc_size(sc *sc) {
 
 
 _ _sc_continue(sc *sc) {
-    if (sc->m.top_entries) {
+    if (sc->m.entries) {
         _ex_printf(EX, "WARNING: multiple _sc_top() entries.\n");
         return NIL;
     }
-    sc->m.top_entries++;
+    sc->m.entries++;
     for(;;) {
-        if (setjmp(sc->m.top)){
-            sc->m.prim_entries = 0;  // full tower unwind
-            sc->m.r.prim = NULL;
-        }
-        // _sc_check_gc_size(sc);
-        for(;;) {
-            _ state;
-            /* Run until error.  The sc_eval_step function will
-               perform a single state update.  If that function
-               returns (i.e. it was not interrupted by a full unwind
-               due to GC), it produces either a next state update or
-               an error condition. */
 
-            state = sc_global(sc, sc_slot_state);  // get
-            state = _sc_eval_step(sc, state);      // update
+        _ in_state = FALSE;
 
-            if (likely(FALSE == sc_is_error(sc, state))) {
-                sc_bang_set_global(sc, sc_slot_state, state); // set
+        switch(setjmp(sc->m.except)) {
+        case EXCEPT_TRY:
+
+            /* Pre-allocate the error struct before the step() is
+               entered to prevent GC restarts. */ 
+            if (FALSE == sc->error) {
+                sc->error = sc_make_error(sc, VOID, VOID, VOID, VOID);
             }
-            else {
-                error *e = object_to_error(state);
-            
-                /* Halt */
-                if (e->tag == SYMBOL("halt")) {
-                    sc->m.top_entries--;
-                    return e->arg;
+            for(;;) {
+                /* From here to the invocation of primitive code it is OK
+                   to perform a restart when a garbage collection occurs.
+                   We guarantee a minimum amount of free cells to
+                   primitive code, and will trigger collection here in
+                   case there is not enough. */
+                EX->stateful_context = 0;
+                if (gc_available(EX->gc) < 40) gc_collect(EX->gc);
+
+                /* Run until error.  The sc_eval_step function will
+                   perform a single state update.  If that function
+                   returns (i.e. it was not interrupted by a full unwind
+                   due to GC), it produces either a next state update or
+                   an error condition. */
+                in_state = sc_global(sc, sc_slot_state);
+                sc_bang_set_global(sc, sc_slot_state, 
+                                   _sc_step(sc, in_state));
                 }
+        case EXCEPT_ABORT: {
+            error *e = object_to_error(sc->error);
+            if (unlikely(NULL == e)) { TRAP(); }
+            
+            /* Populate error struct (condition + state) */
+            e->tag = sc->m.error_tag;
+            e->arg = sc->m.error_arg;
+            e->state = in_state; 
+            e->prim = const_to_object(sc->m.prim);
 
-                /* Abort */
-                sc_bang_set_global(sc, sc_slot_state,
-                                   STATE(VALUE(state), 
-                                         sc_global(sc, sc_slot_abort_k)));
+            /* Reset VM error state. */
+            sc->m.error_arg = NIL;
+            sc->m.error_tag = NIL;
+            sc->m.prim = NULL;
+
+            /* Halt */
+            if (e->tag == SYMBOL("halt")) {
+                sc->m.entries--;
+                return e->arg;
             }
+                    
+            /* For other errors, invoke the global abort
+               continuation. */
+            sc_bang_set_global(sc, sc_slot_state,
+                               STATE(VALUE(sc->error), 
+                                     sc_global(sc, sc_slot_abort_k)));
+            
+        }
+
+        case EXCEPT_GC:
+            /* Continue with current state = restart step. */
+            sc->m.prim = NULL;
         }
     }
 }
@@ -859,8 +882,7 @@ void _sc_def_prim(sc *sc, const char *str, void *fn, long nargs) {
 #define SHIFT(n) {argv+=n;argc-=n;}
 sc *_sc_new(int argc, char **argv) {
     sc *sc = calloc(1, sizeof(*sc));
-    sc->m.top_entries = 0;
-    sc->m.prim_entries = 0;
+    sc->m.entries = 0;
 
     char *bootfile = NULL;
     _ args = NIL;

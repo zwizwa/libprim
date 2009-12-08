@@ -33,12 +33,6 @@ typedef struct {
     inexact_class *inexact_type;
 } base_types;
 
-// Re-entrant part of ex state.
-typedef struct {
-    jmp_buf step;  // current CEKS step abort
-    prim *prim;
-} ex_r;
-
 typedef struct _ex ex;
 typedef object (*ex_m_write)(ex *ex, object ob);
 typedef port*  (*_ex_m_port)(ex *ex);
@@ -50,17 +44,14 @@ struct _ex {
     void *type;  // in case VM structs are wrapped as LEAF objects
     void *ctx;   // any other user context associated with VM (i.e. JNIEnv)
     
-    struct _gc *gc; // garbage collected graph memory manager
-    long top_entries; // guard semaphore
-    jmp_buf top;  // GC unwind
+    struct _gc *gc;   // garbage collected graph memory manager
+    long entries;     // multiple entry semaphore
+    jmp_buf except;   // GC unwind + exceptions
     
-    /* Primitive exceptions. */
-    ex_r r;
-    long prim_entries;
+    prim *prim;            // current primitive
     long stateful_context; // if set, GC restarts are illegal
     _ error_tag;
     _ error_arg;
-
 
     /* VIRTUAL METHODS */
 
@@ -126,6 +117,7 @@ long _ex_unwrap_integer(ex *ex, object o);
 
 #define EXCEPT_TRY   0
 #define EXCEPT_ABORT 1 /* abort to default toplevel continuation. */
+#define EXCEPT_GC    2 /* garbage collection finished: restart primitive */
 
 _ _ex_make_bytes(ex *ex, int size);
 _ _ex_make_string(ex *ex, const char *str);

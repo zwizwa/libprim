@@ -6555,3 +6555,18 @@ Nope[2].  It is possible to represent primitive types as a Class object.
 
 [1] http://java.sun.com/j2se/1.3/docs/api/java/lang/Class.html
 [2] http://java.sun.com/j2se/1.4.2/docs/api/java/lang/Class.html#isPrimitive()
+
+
+Entry: prettyprinting
+Date: Tue Dec  8 07:25:06 CET 2009
+
+Don't underestimate the power of pure functional C code,
+prettyprinting and gdb.
+
+I'm developing for Android atm, and I'm quite surprised by the lack of
+good debugging tools.
+
+
+Entry: simplifying exceptions : no more multiple entries
+Date: Tue Dec  8 07:46:47 CET 2009
+

@@ -215,8 +215,8 @@ long _ex_unwrap_integer(ex *ex, object o) {
     return object_to_integer(o);
 }
 _ _ex_restart(ex *ex) {
-    if (ex->top_entries) {
-        longjmp(ex->top, 1);
+    if (ex->entries) {
+        longjmp(ex->except, EXCEPT_GC);
     }
     _ex_printf(ex, "ERROR: attempt restart outside of the main loop.\n");
     ex_trap(ex);
@@ -1121,7 +1121,7 @@ _ ex_raise_error(ex *ex, _ tag_o, _ arg_o) {
     ex->error_tag = tag_o;
     ex->error_arg = arg_o;
     // if (sym_o != SYMBOL("halt")) ex_trap(ex);
-    if (ex->prim_entries) longjmp(ex->r.step, EXCEPT_ABORT);
+    if (ex->entries) longjmp(ex->except, EXCEPT_ABORT);
     _ex_printf(ex, "ERROR (outside of VM): ");
     ex->write(ex, tag_o); _ex_printf(ex, ": ");
     ex->write(ex, arg_o); _ex_printf(ex, "\n");
