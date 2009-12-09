@@ -1,4 +1,4 @@
-
+/* Java JNI interface. */
 #include <string.h>
 #include <jni.h>
 
@@ -156,7 +156,7 @@ _ sc_java_methodID(sc *sc, _ cls, _ name, _ sig) {
    wrapper is collected. */
 _ sc_java_this(sc *sc) {
     return _ex_leaf_to_object(EX, java_jobject_new(_sc_java_ctx(sc)->this, NULL,
-                                                   symbol_from_cstring("Lcom/sony/smmts/scheme;")));
+                                                   symbol_from_cstring("Lsc;")));
 }
 /* FIXME: is this a local reference? */
 _ sc_java_string(sc *sc, _ ob) {
@@ -303,18 +303,15 @@ void METHOD(resume)(JNIEnv *env, jobject this, jlong lsc) {
     EX->ctx = NULL;
 }
 
-
-
-jstring METHOD(eval)(JNIEnv *env, jobject this, jstring command) {
-    const char *cmd_str;
+/* Send a command to a console and collect the reply. */
+jstring METHOD(consoleEvalString)(JNIEnv *env, jobject this, jlong lconsole, jstring command) {
+    console* sc_console = (console*)(long)lconsole;
+    const char *command_str = (*env)->GetStringUTFChars(env, command, NULL);
     jstring rv = NULL;
 
-    LOCK();
-    cmd_str = (*env)->GetStringUTFChars(env, command, NULL);
-    
-    LOGF("RPC: %s\n", cmd_str);
+    LOGF("RPC: %s\n", command_str);
     if (1) {
-        tuple *reply = (tuple*)console_rpc(sc_console, cmd_str);
+        tuple *reply = (tuple*)console_rpc(sc_console, command_str);
 
         /* Convert CONS-cell based s-expression AST wrapped in tuples
            to a vector/struct based ast wrapped in tuples.  This
@@ -333,14 +330,13 @@ jstring METHOD(eval)(JNIEnv *env, jobject this, jstring command) {
         leaf_free((leaf_object*)b);
     }
     else {
-        bytes *b = console_rpc_bytes(sc_console, cmd_str);
+        bytes *b = console_rpc_bytes(sc_console, command_str);
         rv = (*env)->NewStringUTF(env, b->bytes);
         leaf_free((leaf_object*)b);
     }
     LOGF("RPC OK\n");
-    (*env)->ReleaseStringUTFChars(env, command, cmd_str);
-
-    UNLOCK();
+    (*env)->ReleaseStringUTFChars(env, command, command_str);
     return rv;
 }
+
 
