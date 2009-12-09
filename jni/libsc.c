@@ -1,4 +1,17 @@
 /* Java JNI interface. */
+
+/*
+  TODO: keep a reference table.  The problem is that we can't know
+  whether an object gets wrapped twice, i.e. a method call might
+  return an object that's already wrapped as a SC object.  The problem
+  is then that we don't know when to "free" it.
+
+  Essentially: we need a map from java object -> wrapped scheme object
+  to prevent double wrapping.
+
+*/
+
+
 #include <string.h>
 #include <jni.h>
 
@@ -15,20 +28,6 @@ void _libsc_init(sc *sc) {
     _sc_def_prims(sc, android_prims);
 }
 
-
-// see sc.h (generated from sc.class by javah)
-#define METHOD(name) Java_sc_##name
-
-
-/* Globals */
-static console *sc_console = NULL;
-pthread_mutex_t sc_mutex;  // serialize access to console
-
-// #define LOCK()   pthread_mutex_lock(&sc_mutex)
-// #define UNLOCK() pthread_mutex_unlock(&sc_mutex)
-
-#define LOCK()
-#define UNLOCK()
 
 #define LOGF(...) fprintf(stderr, __VA_ARGS__)
 
@@ -80,8 +79,8 @@ _ libsc_log(sc *sc,  _ str) {
 
 /* Dynamic context (VM running in the dynamic extent of a java call) */
 typedef struct {
-    JNIEnv *env;   // current Java thread's environment
-    jobject this;  // the embedding scheme object
+    JNIEnv *env;      // current Java thread's environment
+    jclass sc_class;  // the embedding scheme class
 } java_ctx;
 static inline java_ctx *_sc_java_ctx(sc *sc) {
     java_ctx *ctx = (java_ctx*)(EX->ctx);
@@ -144,6 +143,8 @@ _ sc_java_class(sc *sc, _ name) {
     if (!class) { return _sc_java_check_error(sc, name, VOID); }
     return _ex_leaf_to_object(EX, java_jclass_new(class, sc, symbol_from_cstring(sname)));
 }
+
+/* For constructors use (java-methodID _class "<init>" "()V") */
 _ sc_java_methodID(sc *sc, _ cls, _ name, _ sig) {
     const char *ssig = CAST(cstring, sig);
     jmethodID method = (*JAVA_ENV)->GetMethodID(JAVA_ENV, CAST(java_jclass, cls)->jni_ref,
@@ -151,13 +152,7 @@ _ sc_java_methodID(sc *sc, _ cls, _ name, _ sig) {
     if (!method) return _sc_java_check_error(sc, name, VOID);
     return _ex_leaf_to_object(EX, java_jmethodID_new(method, sc, symbol_from_cstring(ssig)));
 }
-/* Create a wrapped reference to the this pointer.  Pass sc = NULL to
-   make sure the JNI reference doesn't get freed when the Scheme
-   wrapper is collected. */
-_ sc_java_this(sc *sc) {
-    return _ex_leaf_to_object(EX, java_jobject_new(_sc_java_ctx(sc)->this, NULL,
-                                                   symbol_from_cstring("Lsc;")));
-}
+
 /* FIXME: is this a local reference? */
 _ sc_java_string(sc *sc, _ ob) {
     return _ex_leaf_to_object
@@ -195,6 +190,16 @@ static int sig_nb_args(const char *c) {
         if (!c) return -1;
     }
 }
+
+/* For constructor (java-call _class _method #() "()V")  
+
+   A full example, instantiating an object from the `eval' class using
+   its default constructor:
+
+   (let* ((cls (java-class "eval")) 
+          (ctor (java-methodID cls "<init>" "()V")))
+       (java-call cls ctor #() "()V"))
+*/
 _ sc_java_call(sc *sc, _ ob, _ ID, _ args, _ signature) {
     const char *argtype = CAST(cstring, signature);
     if (argtype[0] != '(') return ERROR("signature", signature);
@@ -261,15 +266,15 @@ _ sc_java_call(sc *sc, _ ob, _ ID, _ args, _ signature) {
 
 /* Library init */
 jint JNI_OnLoad(JavaVM *vm, void *reserved) {
-    pthread_mutex_init(&sc_mutex, NULL); 
     return JNI_VERSION_1_2;
 }
 
 
+// see sc.h (generated from sc.class by javah)
+#define STATIC_METHOD(name) Java_sc_##name
+
 /* Initialize VM. */
-jlong METHOD(boot)(JNIEnv *env,
-                   jobject this,
-                   jstring bootfile) {
+jlong STATIC_METHOD(boot)(JNIEnv *env, jclass sc_class, jstring bootfile) {
     const char* bootfile_str = (*env)->GetStringUTFChars(env, bootfile, NULL);
 
     /* Boot from pre-expanded boot.scm */
@@ -283,10 +288,7 @@ jlong METHOD(boot)(JNIEnv *env,
 }
 
 
-jlong METHOD(prepareConsoleServer)(JNIEnv *env,
-                                   jobject this,
-                                   jlong lsc,
-                                   jstring usock) {
+jlong STATIC_METHOD(prepareConsoleServer)(JNIEnv *env, jclass sc_class, jlong lsc, jstring usock) {
     sc *sc = (void*)(long)lsc;
     const char* usock_str = (*env)->GetStringUTFChars(env, usock, NULL);
     LOGF("Starting console on %s\n", usock_str);
@@ -295,16 +297,16 @@ jlong METHOD(prepareConsoleServer)(JNIEnv *env,
     return (jlong)(long)c;
 }
 
-void METHOD(resume)(JNIEnv *env, jobject this, jlong lsc) { 
+void STATIC_METHOD(resume)(JNIEnv *env, jclass sc_class, jlong lsc) { 
     sc *sc = (void*)(long)lsc;
-    java_ctx ctx = {env, this};
+    java_ctx ctx = {env, sc_class};
     EX->ctx = &ctx;
     _sc_continue((void*)(long)lsc);
     EX->ctx = NULL;
 }
 
 /* Send a command to a console and collect the reply. */
-jstring METHOD(consoleEvalString)(JNIEnv *env, jobject this, jlong lconsole, jstring command) {
+jstring STATIC_METHOD(consoleEvalString)(JNIEnv *env, jclass sc_class, jlong lconsole, jstring command) {
     console* sc_console = (console*)(long)lconsole;
     const char *command_str = (*env)->GetStringUTFChars(env, command, NULL);
     jstring rv = NULL;
