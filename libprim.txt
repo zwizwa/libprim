@@ -6631,3 +6631,23 @@ Main problems are strictness and argument agregation.  I.e. given the tuple:
 It's probably best to deviated from lisp-style semantics here, and
 simply use method lookup and explicitly constructed argument lists.
 
+
+
+Entry: More java reflection
+Date: Wed Dec  9 08:10:19 CET 2009
+
+The missing element is a Scheme object -> java object interpreter.  Or
+even simply a string -> java object interpreter.
+
+Essentially, to quickly hack it, all primitive types really could be
+represented as strings, while all object types need to be somehow
+wrapped, or placed in a local store.
+
+This should make it possible to keep the interface between java and
+Scheme completely dumb.
+
+The problem is: an explicit distinction needs to be made between local
+variable references and other constructors.
+
+Doing this properly looks like a good weekend project.
+
