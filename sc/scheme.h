@@ -217,8 +217,6 @@ static inline void *prim_fn(prim *p)  { return p->fn; }
 /* ROOT OBJECTS */
 #define ROOT_ENV 0
 
-/* Setup */
-object _sc_top(sc *sc, object expr);
 
 /* Interpreter exceptions. */
 //#define SC_EX_TRY     0
@@ -277,18 +275,26 @@ void _sc_def_prims(sc *sc, prim_def *prims);
 
 void _sc_eval_cstring(sc *sc, const char *commands); // deprecated
 
- 
-_ _sc_continue(sc *sc);
+
+
+
+
 
 /* Coroutine yield to VM: exchange a string.  The returned string is
    only valid inbetween _sc_yield calls. */
 const char *_sc_yield(sc *sc, const char *msg);
 
 
-/* Start VM in background thread and return a console object for
-   interaction.  If `node' is non-NULL, this starts a console server
-   on the unix socket. */
-void _sc_start_console(sc *sc, const char *node, console **pcons, int detach);
+/* For these it is simpler to split a "start" operation into a
+   "prepare" and "continue" operation, where the former sets the VM
+   state and the latter simply resumes execution. */
+
+object _sc_continue(sc *sc);  // resume execution at current machine state
+void _sc_prepare(sc *sc, _ expr);  // current state = start to evaluate expr
+object _sc_top(sc *sc, object expr);  /* == set_redex + continue */
+
+console *_sc_prepare_console_server(sc *sc, const char *node);
+
 
 
 #endif

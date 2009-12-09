@@ -10,6 +10,8 @@ int main(int argc, char **argv) {
     /* A simple mechanism to detach the VM from the main C thread uses
        a 'console' object, which reads raw string s-expressions, and
        returns parsed tuple/symbol/bytes objects. */
+
+#if 0
     if (0) {
         port *p = port_file_new(stderr, "stderr");
         console *c = NULL;
@@ -34,7 +36,7 @@ int main(int argc, char **argv) {
             sleep(1);
         }
     }
-
+#endif
 
     /* The variable `init-script' is defined by _sc_new() based on
        command line arguments. Evaluating it will either start the
