@@ -108,4 +108,7 @@ int leaf_write(leaf_object *x, port *p);
 
 
 
+typedef int (*leaf_predicate)(leaf_object *o, void *ctx);
+
+
 #endif

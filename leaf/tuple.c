@@ -47,3 +47,43 @@ tuple *tuple_new(int size) {
     t->size = size;
     return t;
 }
+
+
+
+/* CONS-style stacks/lists using 2-component tuples. */
+
+tuple *tuple_stack_push(tuple *stack, leaf_object *x) {
+    tuple* rec = tuple_new(2);
+    rec->slot[0] = x;
+    rec->slot[1] = (leaf_object*)stack;
+    return rec;
+}
+tuple *tuple_stack_drop(tuple *stack) {
+    leaf_free(stack->slot[0]);
+    return (tuple*)(stack->slot[1]);
+}
+
+tuple *tuple_list_remove(tuple *list, leaf_predicate fn, void *ctx) {
+    if (!list) return NULL;
+    else if (fn(list->slot[0], ctx)) return tuple_stack_drop(list);
+    else {
+        tuple *head = list;
+        tuple *parent = list;
+        while(list) {
+            if (fn(list->slot[0], ctx)) {
+                parent->slot[1] = (leaf_object*)tuple_stack_drop(list);
+                return head;
+            }
+            parent = list;
+            list = (tuple*)(list->slot[1]);
+        }
+        return head;
+    }
+}
+leaf_object *tuple_list_find(tuple *list, leaf_predicate fn, void *ctx) {
+    while (list) {
+        if (fn(list->slot[0], ctx)) return list->slot[0];
+        list = (tuple*)(list->slot[1]);
+    }
+    return NULL;
+}

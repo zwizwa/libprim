@@ -30,3 +30,10 @@ tuple *tuple_new(int size);
 leaf_class *tuple_type(void);
 
 #endif
+
+
+/* CONS-style stacks/lists using 2-component tuples. */
+tuple *tuple_stack_push(tuple *stack, leaf_object *x);
+tuple *tuple_stack_drop(tuple *stack);
+tuple *tuple_list_remove(tuple *list, leaf_predicate fn, void *ctx);
+leaf_object *tuple_list_find(tuple *list, leaf_predicate fn, void *ctx);
