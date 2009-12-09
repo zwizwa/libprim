@@ -266,6 +266,55 @@ jint JNI_OnLoad(JavaVM *vm, void *reserved) {
 }
 
 
+/* Initialize VM. */
+jlong METHOD(boot)(JNIEnv *env,
+                   jobject this,
+                   jstring bootfile) {
+    const char* bootfile_str = (*env)->GetStringUTFChars(env, bootfile, NULL);
+
+    /* Boot from pre-expanded boot.scm */
+    LOGF("Booting Scheme from %s\n", bootfile_str);
+    char *argv[] = {"sc", "--boot", (char*)bootfile_str};  // FIXME: path (resource?)
+    sc *sc = _sc_new(3, argv);
+    _libsc_init(sc);
+    (*env)->ReleaseStringUTFChars(env, bootfile, bootfile_str);
+    LOGF("Scheme VM: %p\n", sc);
+    return (jlong)(long)sc;
+}
+
+
+void METHOD(console)(JNIEnv *env,
+                     jobject this,
+                     jlong lsc,
+                     jstring usock,
+                     jint detach) {
+
+    sc *sc = (void*)(long)lsc;
+
+    const char* usock_str    = (*env)->GetStringUTFChars(env, usock, NULL);
+
+    /* Start synchronous console. */
+    java_ctx ctx = {env, this};
+    EX->ctx = &ctx;
+
+    LOGF("Starting console on %s\n", usock_str);
+
+    _sc_start_console(sc, usock_str, &sc_console, detach);
+
+    /* Kill reference to Java environment before returning to the Java
+       caller.  This prevents any Scheme calls made otherwise to
+       access the context.  To keep the Java context accessible, call
+       the startvm() function in a Java thread and don't detach the VM
+       mainloop, in which the previous function call does not
+       return. */
+    EX->ctx = NULL;
+    (*env)->ReleaseStringUTFChars(env, usock, usock_str);
+
+    LOGF("Scheme VM returned");
+}
+
+
+
 /* Evaluate Scheme string */
 jstring METHOD(startvm)(JNIEnv *env, 
                         jobject this, 

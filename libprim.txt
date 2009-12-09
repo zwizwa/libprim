@@ -6651,3 +6651,12 @@ variable references and other constructors.
 
 Doing this properly looks like a good weekend project.
 
+
+
+Entry: sc in Java on linux
+Date: Wed Dec  9 17:49:04 CET 2009
+
+Moved code from the external project side into the libprim side, so
+the interface can be made simpler.
+
+Next: how to wrap a C pointer as a java object?
