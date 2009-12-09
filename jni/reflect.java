@@ -41,8 +41,16 @@ public class reflect {
         try {
             Class c = Class.forName(name);
             Method m[] = c.getDeclaredMethods();
-            for (int i = 0; i < m.length; i++)
-                System.out.println(m[i].toString());
+            for (int i = 0; i < m.length; i++) {
+                // System.out.println(m[i].toString());
+                System.out.println(m[i].getName());
+                Class[] cs = m[i].getParameterTypes();
+                for (int j = 0; j < cs.length; j++) {
+                    System.out.println("   " + cs[j].getName());
+                }
+                System.out.println("-> " + m[i].getReturnType().getName());
+                System.out.println("");
+            }
         }
         catch (Throwable e) {
             System.err.println(e);
