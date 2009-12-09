@@ -6,10 +6,15 @@ JNI_CFLAGS = \
 	-I/usr/lib/jvm/java-1.5.0-sun-1.5.0.17/include/linux \
 
 SC_CFLAGS = -I../
-SC_A = -L../sc -L../ex -L../leaf -lprim_sc -lprim_ex -lprim_leaf
+SC_LDFLAGS = -L../sc -L../ex -L../leaf -lprim_sc -lprim_ex -lprim_leaf
 
 
-all: testnative.class libnativelib.so reflect.class
+# all: testnative.class libnativelib.so reflect.class
+all: libsc.so sc.class
+
+
+test: all
+	LD_LIBRARY_PATH=. java sc
 
 # JAVA_FLAGS = -Xlint:unchecked
 
@@ -29,12 +34,12 @@ sc.h: sc.class
 allclean:
 	rm -f *~ *.o *.so *.class testnative.h
 
-test: all
+__test: all
 	LD_LIBRARY_PATH=`pwd` java testnative
 
 
-%.so: %.c
-	gcc -fPIC -o $@ -shared -Wl,-soname,$@ $(JNI_CFLAGS) $(SC_CFLAGS) $< $(SC_A)
+%.so: %.c %.d
+	gcc -fPIC -o $@ -shared -Wl,-soname,$@ $(JNI_CFLAGS) $(SC_CFLAGS) $< $(SC_LDFLAGS)
 
 %.h_sc_prims: %.c ../sc/sc_prims.ss ../prim-tools.ss
 	$(MZSCHEME) ../sc/sc_prims.ss $< >$@

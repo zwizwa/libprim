@@ -7,6 +7,8 @@
 #include <sc/scheme.h>
 #include <leaf/tuple.h>
 
+
+/* javah */
 #include "libsc.h_sc_prims"
 static prim_def android_prims[] = libsc_table_init;
 void _libsc_init(sc *sc) {
@@ -14,8 +16,8 @@ void _libsc_init(sc *sc) {
 }
 
 
-/* JNI names: Java_<package>_<class>_<method> with all dots replaced by '_' */
-#define METHOD(name) Java_com_sony_smmts_scheme_##name
+// see sc.h (generated from sc.class by javah)
+#define METHOD(name) Java_sc_##name
 
 
 /* Globals */
@@ -265,21 +267,36 @@ jint JNI_OnLoad(JavaVM *vm, void *reserved) {
 
 
 /* Evaluate Scheme string */
-jstring METHOD(startvm)(JNIEnv *env, jobject this, jint detach) {
+jstring METHOD(startvm)(JNIEnv *env, 
+                        jobject this, 
+                        jstring bootfile, 
+                        jstring usock,
+                        jint detach) {
+
+
+    const char* bootfile_str = (*env)->GetStringUTFChars(env, bootfile, NULL);
+    const char* usock_str    = (*env)->GetStringUTFChars(env, usock, NULL);
+
 
     if (sc_console) return (*env)->NewStringUTF(env, "VM already running");
 
     /* Boot from pre-expanded boot.scm */
-    LOGF("Booting Scheme.");
-    char *argv[] = {"sc", "--boot", "/data/bin/boot-expanded.scm"};  // FIXME: path (resource?)
+    LOGF("Booting Scheme from %s\n", bootfile_str);
+    char *argv[] = {"sc", "--boot", (char*)bootfile_str};  // FIXME: path (resource?)
     sc *sc = _sc_new(3, argv);
     _libsc_init(sc);
+
+    (*env)->ReleaseStringUTFChars(env, bootfile, bootfile_str);
+
     LOGF("Scheme VM: %p\n", sc);
     
     /* Start synchronous console. */
     java_ctx ctx = {env, this};
     EX->ctx = &ctx;
-    _sc_start_console(sc, "/data/uclibc/tmp/sc-console", &sc_console, detach);
+
+    LOGF("Starting console on %s\n", usock_str);
+
+    _sc_start_console(sc, usock_str, &sc_console, detach);
 
     /* Kill reference to Java environment before returning to the Java
        caller.  This prevents any Scheme calls made otherwise to
@@ -288,6 +305,8 @@ jstring METHOD(startvm)(JNIEnv *env, jobject this, jint detach) {
        mainloop, in which the previous function call does not
        return. */
     EX->ctx = NULL;
+    (*env)->ReleaseStringUTFChars(env, usock, usock_str);
+
     LOGF("Scheme VM returned");
     return (*env)->NewStringUTF(env, "VM returned");
 }
