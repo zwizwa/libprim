@@ -6659,4 +6659,14 @@ Date: Wed Dec  9 17:49:04 CET 2009
 Moved code from the external project side into the libprim side, so
 the interface can be made simpler.
 
-Next: how to wrap a C pointer as a java object?
+Next: how to wrap a C pointer as a java object?  -> use long
+
+Next: hash table for java<->aref wrapper management.
+
+such a hash table needs a simple linked list anyway for collisions, so
+maybe start with a linked dictionary first.  Can this be done with
+tuples?  Keys then need to be leaf objects.
+
+Actually yes.  The ref list is really just a list.
+
+

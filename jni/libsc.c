@@ -42,7 +42,6 @@ _ libsc_log(sc *sc,  _ str) {
 
 
 
-
 /* JAVA JNI */
 
 /* Except for memory management and some non-orthogonality of the API
