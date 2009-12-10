@@ -97,22 +97,30 @@ static void _sc_java_free(sc *sc, jobject obj) {
 /* This macro defines standard LEAF object behaviour for wrapped Java
    JNI objects, and unwrappers for AREF representation. */
 
+typedef struct {
+    leaf_object base;
+    sc *sc;  // for JNIEnv*
+    symbol *desc;
+    _ wrapper;
+} j_object;
+
 #define DEF_JAVA(typename) \
     typedef struct { leaf_class super; } java_##typename##_class; \
-    typedef struct { leaf_object base; sc *sc; typename jni_ref; symbol *desc;} java_##typename; \
+    typedef struct { j_object jo; typename jni_ref; } java_##typename; \
     void java_##typename##_free(java_##typename *x) { \
-        _sc_java_free(x->sc, x->jni_ref); \
+        _sc_java_free(x->jo.sc, (jobject)x->jni_ref);    \
         free(x); \
     } \
     int java_##typename##_write(java_##typename *x, port *p) { \
-        return port_printf(p, "#<" #typename ":%p:%s>", x->jni_ref, x->desc->name);       \
+        return port_printf(p, "#<" #typename ":%p:%s>", x->jni_ref, x->jo.desc->name);       \
     } \
     LEAF_SIMPLE_TYPE(java_##typename) \
     java_##typename *java_##typename##_new(typename jni_ref, sc* sc, symbol *desc) {     \
         java_##typename *x = calloc(1, sizeof(*x)); \
         leaf_init((leaf_object*)x, java_##typename##_type());   \
-        x->sc = sc; \
-        x->desc = desc; \
+        x->jo.sc = sc; \
+        x->jo.desc = desc; \
+        x->jo.wrapper = NIL; \
         x->jni_ref = jni_ref; \
         return x; \
     }\
@@ -121,6 +129,25 @@ static void _sc_java_free(sc *sc, jobject obj) {
 DEF_JAVA(jclass)
 DEF_JAVA(jobject)
 DEF_JAVA(jmethodID)
+
+
+/* To support 1-1 wrapping (to avoid double wrapping which causes
+   double release) we need to keep track of the Java objects. */
+static tuple *java_pool = NULL;
+
+static object _sc_java_wrap(sc *sc, void *vx) {
+    return _ex_leaf_to_object(EX, vx);
+    j_object *x = (j_object*)vx;
+    j_object *w;
+    if ((w = (j_object*)tuple_list_find_object(java_pool, (leaf_object*)x))) {
+        return w->wrapper;
+    }
+    _ wrapper = _ex_leaf_to_object(EX, x);
+    w = (j_object*)object_to_vector(wrapper);
+    w->wrapper = wrapper;
+    return wrapper;
+}
+
 
 /* Exceptions. 
 
@@ -140,7 +167,7 @@ _ sc_java_class(sc *sc, _ name) {
     const char *sname = CAST(cstring, name);
     jclass class = (*JAVA_ENV)->FindClass(JAVA_ENV, sname);
     if (!class) { return _sc_java_check_error(sc, name, VOID); }
-    return _ex_leaf_to_object(EX, java_jclass_new(class, sc, symbol_from_cstring(sname)));
+    return _sc_java_wrap(sc, java_jclass_new(class, sc, symbol_from_cstring(sname)));
 }
 
 /* For constructors use (java-methodID _class "<init>" "()V") */
@@ -149,7 +176,7 @@ _ sc_java_methodID(sc *sc, _ cls, _ name, _ sig) {
     jmethodID method = (*JAVA_ENV)->GetMethodID(JAVA_ENV, CAST(java_jclass, cls)->jni_ref,
                                                 CAST(cstring, name), ssig);
     if (!method) return _sc_java_check_error(sc, name, VOID);
-    return _ex_leaf_to_object(EX, java_jmethodID_new(method, sc, symbol_from_cstring(ssig)));
+    return _sc_java_wrap(sc, java_jmethodID_new(method, sc, symbol_from_cstring(ssig)));
 }
 
 /* FIXME: is this a local reference? */
@@ -235,7 +262,7 @@ _ sc_java_call(sc *sc, _ ob, _ ID, _ args, _ signature) {
     jobject rv;
     if (cls) {
         rv = (*JAVA_ENV)->NewObject(JAVA_ENV, cls->jni_ref, method->jni_ref, jargs);
-        return _sc_java_check_error(sc, args, _ex_leaf_to_object(EX, java_jobject_new(rv, sc, srtype)));
+        return _sc_java_check_error(sc, args, _sc_java_wrap(sc, java_jobject_new(rv, sc, srtype)));
     }
     else if (obj) {
         jobject o = obj->jni_ref;
@@ -244,7 +271,7 @@ _ sc_java_call(sc *sc, _ ob, _ ID, _ args, _ signature) {
         switch(rtype) {
         case 'L': 
             rv = (*JAVA_ENV)->CallObjectMethodA (JAVA_ENV, o, ID, jargs); 
-             return _sc_java_check_error(sc, args, _ex_leaf_to_object(EX, java_jobject_new(rv, sc, srtype)));
+             return _sc_java_check_error(sc, args, _sc_java_wrap(sc, java_jobject_new(rv, sc, srtype)));
         case 'V': 
             (*JAVA_ENV)->CallVoidMethodA (JAVA_ENV, o, ID, jargs); 
             return _sc_java_check_error(sc, args, VOID); // check : no return value to signal error

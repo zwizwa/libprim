@@ -87,3 +87,7 @@ leaf_object *tuple_list_find(tuple *list, leaf_predicate fn, void *ctx) {
     }
     return NULL;
 }
+static int equal(void* a, void *b) { return a == b; }
+leaf_object *tuple_list_find_object(tuple *list, leaf_object *x) {
+    return tuple_list_find(list, (leaf_predicate)equal, x);
+}

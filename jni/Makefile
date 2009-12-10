@@ -15,8 +15,8 @@ CPPFLAGS += -I/usr/lib/jvm/java-1.5.0-sun-1.5.0.17/include/linux
 all: libsc.so sc.class
 
 
-test: all
-	LD_LIBRARY_PATH=. java sc
+test: all testsc.class
+	LD_LIBRARY_PATH=. java testsc
 
 # JAVA_FLAGS = -Xlint:unchecked
 
