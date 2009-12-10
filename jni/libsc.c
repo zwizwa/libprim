@@ -136,16 +136,19 @@ DEF_JAVA(jmethodID)
 static tuple *java_pool = NULL;
 
 static object _sc_java_wrap(sc *sc, void *vx) {
-    return _ex_leaf_to_object(EX, vx);
     j_object *x = (j_object*)vx;
     j_object *w;
-    if ((w = (j_object*)tuple_list_find_object(java_pool, (leaf_object*)x))) {
+    if ((w = (j_object*)tuple_list_find_object(java_pool,  (leaf_object*)x))) {
+        // fprintf(stderr, "already wrapped: %p\n", vx);
         return w->wrapper;
     }
-    _ wrapper = _ex_leaf_to_object(EX, x);
-    w = (j_object*)object_to_vector(wrapper);
-    w->wrapper = wrapper;
-    return wrapper;
+    else {
+        // fprintf(stderr, "new wrapper: %p\n", vx);
+        _ wrapper = _ex_leaf_to_object(EX, x);
+        java_pool = tuple_stack_push(java_pool, (leaf_object*)vx);
+        x->wrapper = wrapper;
+        return wrapper;
+    }
 }
 
 
@@ -167,7 +170,9 @@ _ sc_java_class(sc *sc, _ name) {
     const char *sname = CAST(cstring, name);
     jclass class = (*JAVA_ENV)->FindClass(JAVA_ENV, sname);
     if (!class) { return _sc_java_check_error(sc, name, VOID); }
-    return _sc_java_wrap(sc, java_jclass_new(class, sc, symbol_from_cstring(sname)));
+    java_jclass *jc = java_jclass_new(class, sc, symbol_from_cstring(sname));
+    _sc_java_wrap(sc, jc);
+    return _sc_java_wrap(sc, jc);
 }
 
 /* For constructors use (java-methodID _class "<init>" "()V") */
