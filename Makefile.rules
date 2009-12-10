@@ -48,9 +48,10 @@ gen: $(GEN)
 
 # The `clean' target leaves the generated files intact.  Distribution
 # tarball is independent of mzscheme code generation.
+JUNK=*.o *.d *.d.* *.a *~ */*~ *.class *.so
 .PHONY: clean
 clean:
-	rm -f *.a *.so *.o *.d *.d.* *~ $(APP) $(TEST)
+	rm -f $(JUNK) $(APP) $(TEST)
 
 # The `mrproper' target also cleans the generated files.
 mrproper: clean

@@ -10,7 +10,6 @@ rec_clean:
 	for dir in $(DIRS); do make -C $$dir clean; done
 
 # This doesn't trigger .h code generation.
-JUNK=*.o *.d *.a *~ */*~ *.class *.so
 clean:
 	rm -f *~
 	cd leaf   ; rm -f $(JUNK)
