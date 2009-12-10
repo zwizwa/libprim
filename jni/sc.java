@@ -1,6 +1,9 @@
 /* A collection of static functions to interact with a Scheme vm. */
 
 public class sc {
+
+    /** CLASS METHODS **/
+
     /* Native methods */
     public native static String consoleEvalString(long console, String commands);
 
@@ -16,6 +19,19 @@ public class sc {
     public native static long prepareConsoleServer(long vm, String node);
 
 
+    /* Constructor wraps C pointers in a Java object. */
+    sc(long vm, long console) {
+        _vm = vm;
+        _console = console;
+    }
+    /* Factory */
+    public static sc spawnConsole(String bootfile, String node) {
+        long vm = boot(bootfile);
+        long console = prepareConsoleServer(vm, node);
+        spawnResume(vm);
+        return new sc(vm, console);
+    }
+
     /* Spawn vm in thread */
     public static Thread spawnResume(final long vm) {
         Thread t = new Thread() { public void run() { sc.resume(vm); }};
@@ -29,19 +45,21 @@ public class sc {
         System.loadLibrary("sc");
     }
 
-    public static void main(String[] arg) {
-        long vm = boot("../sc/boot-expanded.scm");
-        long console = prepareConsoleServer(vm, "/tmp/sc");
 
-        if (false) {
-            resume(vm);
-        }
-        else {
-            spawnResume(vm);
-            String rv = consoleEvalString(console, "(+ 1 2)");
-            System.out.println("RV: " + rv);
-            // consoleEvalString(console, "(exit)");
-        }
+    /** INSTANCE METHODS **/
+
+    long _vm = 0;
+    long _console = 0;
+    public String evalString(String commands) { 
+        return consoleEvalString(_console, commands);
+    }
+
+
+    public static void main(String[] arg) {
+        sc x = spawnConsole("../sc/boot.scm", "/tmp/sc");
+        String rv = x.evalString("(+ 1 2)");
+        System.out.println("RV: " + rv);
+        // x.evalString("(exit)");
         System.out.println("main() exit.");
     }
 }
