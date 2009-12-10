@@ -1,6 +1,6 @@
 include Makefile.defs
 
-DIRS = leaf $(MEDIA) $(EX) $(SC) $(PF)
+DIRS = leaf $(MEDIA) $(EX) $(SC) $(PF) jni
 
 all: 
 	for dir in $(DIRS); do make -C $$dir; done
@@ -10,12 +10,14 @@ rec_clean:
 	for dir in $(DIRS); do make -C $$dir clean; done
 
 # This doesn't trigger .h code generation.
+JUNK=*.o *.d *.a *~ */*~ *.class *.so
 clean:
 	rm -f *~
-	cd leaf ; rm -f *.o *.d *.a *~
-	cd ex   ; rm -f *.o *.d *.a *~
-	cd sc   ; rm -f *.o *.d *.a *~ */*~ sc
-	cd pf   ; rm -f *.o *.d *.a *~ pf
+	cd leaf   ; rm -f $(JUNK)
+	cd ex     ; rm -f $(JUNK)
+	cd sc     ; rm -f $(JUNK) sc
+	cd jni    ; rm -f $(JUNK) 
+	cd pf     ; rm -f $(JUNK) pf
 
 
 mrproper:

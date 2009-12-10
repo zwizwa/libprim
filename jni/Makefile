@@ -12,7 +12,7 @@ CPPFLAGS += -I/usr/lib/jvm/java-1.5.0-sun-1.5.0.17/include
 CPPFLAGS += -I/usr/lib/jvm/java-1.5.0-sun-1.5.0.17/include/linux
 
 # all: testnative.class libnativelib.so reflect.class
-all: libsc.so sc.class
+all: libsc.so sc.class testsc.class
 
 
 test: all testsc.class
@@ -41,7 +41,7 @@ __test: all
 
 
 %.so: %.c %.d
-	gcc -fPIC -o $@ -shared -Wl,-soname,$@ $(CPPFLAGS) $(JNI_CFLAGS) $(SC_CFLAGS) $< $(SC_LDFLAGS)
+	$(CC) -fPIC -o $@ -shared -Wl,-soname,$@ $(CPPFLAGS)  $(CFLAGS) $(OPTI_CFLAGS) $(DEBUG_CFLAGS) $(JNI_CFLAGS) $(SC_CFLAGS) $< $(SC_LDFLAGS)
 
 %.h_sc_prims: %.c ../sc/sc_prims.ss ../prim-tools.ss
 	$(MZSCHEME) ../sc/sc_prims.ss $< >$@

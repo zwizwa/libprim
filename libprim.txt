@@ -6670,3 +6670,16 @@ tuples?  Keys then need to be leaf objects.
 Actually yes.  The ref list is really just a list.
 
 
+
+Entry: JNI object -> class
+Date: Thu Dec 10 11:04:24 CET 2009
+
+I changed some methods from object to class context (static methods).
+At the same time some problems started occuring: sc_java_class doesn't
+resolve any more.
+
+Next:
+  - print exceptions
+  - maybe re-instate object context?
+
+

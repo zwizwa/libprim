@@ -1,7 +1,8 @@
 
+
 public class testsc {
     public static void main(String[] arg) {
-        sc x = sc.spawnConsole("../sc/boot.scm", "/tmp/sc");
+        sc x = new sc("../sc/boot.scm", "/tmp/sc");
         String rv = x.evalString("(+ 1 2)");
         System.out.println("RV: " + rv);
         // x.evalString("(exit)");
