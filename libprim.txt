@@ -6683,3 +6683,24 @@ Next:
   - maybe re-instate object context?
 
 
+
+Entry: Reflection
+Date: Thu Dec 10 13:41:20 CET 2009
+
+So, there's a SC/C <-> Java connection.  Link this then to the
+eval.java and reflect.java classes.
+
+Different strategy:
+
+Instead of going through a large amount of red tape in C to be able to
+call different constructors / class methods / methods, it might be
+simpler to move most of the dispatch logic to the Java side and use
+the reflection API, but keep a single interface through some static
+method interface from C->Java.
+
+
+On the C side, things need to be simplified such that there are 3
+different routines:  constructors / static / methods
+
+FIXME: constructors with arguments dont work.  w.o. ok
+

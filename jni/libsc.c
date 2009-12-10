@@ -188,12 +188,22 @@ _ sc_java_methodID(sc *sc, _ cls, _ name, _ sig) {
     if (!method) return _sc_java_check_error(sc, name, VOID);
     return _sc_java_wrap(sc, java_jmethodID_new(method, sc, symbol_from_cstring(ssig)));
 }
+_ sc_java_static_methodID(sc *sc, _ cls, _ name, _ sig) {
+    const char *ssig = CAST(cstring, sig);
+    jmethodID method = (*JAVA_ENV)->GetStaticMethodID(JAVA_ENV, CAST(java_jclass, cls)->jni_ref,
+                                                      CAST(cstring, name), ssig);
+    if (!method) return _sc_java_check_error(sc, name, VOID);
+    return _sc_java_wrap(sc, java_jmethodID_new(method, sc, symbol_from_cstring(ssig)));
+}
 
 /* FIXME: is this a local reference? */
 _ sc_java_string(sc *sc, _ ob) {
-    return _ex_leaf_to_object
-        (EX, java_jobject_new((*JAVA_ENV)->NewStringUTF(JAVA_ENV, CAST(cstring, ob)), sc,
-                              symbol_from_cstring("Ljava/lang/String;")));
+    const char *str = CAST(cstring, ob);
+    fprintf(stderr, "str: %s\n", str);
+    return _sc_java_wrap
+        (sc, java_jobject_new
+         ((*JAVA_ENV)->NewStringUTF(JAVA_ENV, str),
+          sc, symbol_from_cstring("Ljava/lang/String;")));
 }
 
 
@@ -236,17 +246,24 @@ static int sig_nb_args(const char *c) {
           (ctor (java-methodID cls "<init>" "()V")))
        (java-call cls ctor #() "()V"))
 */
-_ sc_java_call(sc *sc, _ ob, _ ID, _ args, _ signature) {
+
+static int _sc_jvalue_nargs(sc *sc, _ args) {
+    return vector_size(CAST(vector, args));
+}
+
+static symbol *_sc_jvalue_args(sc *sc, _ args, _ signature, jvalue *jargs) {
     const char *argtype = CAST(cstring, signature);
-    if (argtype[0] != '(') return ERROR("signature", signature);
+    if (argtype[0] != '(') { ERROR("signature", signature); /* NR */ return NULL; }
     argtype++;
 
     vector *v = CAST(vector, args);
     int i = 0, n = vector_size(v);
-    jvalue jargs[n];
+
+    memset(jargs, 0, sizeof(jvalue)*n);
+
     for (i=0; i<n; i++) {
         _ so = v->slot[i];
-        if (!argtype) return ERROR("nargs", ID);
+        if (!argtype) { ERROR("nargs", args); /* NR */ return NULL; }
         switch(argtype[0]) {
         case 'Z': jargs[i].z = (so == FALSE) ? 0 : 1; break;
         case 'B': jargs[i].b = CAST_INTEGER(so); break;
@@ -258,42 +275,68 @@ _ sc_java_call(sc *sc, _ ob, _ ID, _ args, _ signature) {
         case 'D': jargs[i].d = object_to_double(so); break;
         case 'L': jargs[i].l = CAST(java_jobject, so)->jni_ref; break;
         default:
-            return TYPE_ERROR(so);
+            TYPE_ERROR(so);  /* NR */ return NULL;
         }
         argtype = sig_next(argtype);
     }
-    if (argtype[0] != ')') return ERROR("signature", signature);
+    if (argtype[0] != ')') { ERROR("signature", signature); /* NR */ return NULL; }
     argtype++;
     symbol *srtype = symbol_from_cstring(argtype);
+    return srtype;
+}
+
+_ sc_java_new(sc *sc, _ jcls, _ ID, _ args, _ signature) {
+    jvalue jargs[_sc_jvalue_nargs(sc, args)];
+    symbol *srtype = _sc_jvalue_args(sc, args, signature, jargs);
+    java_jclass  *cls = CAST(java_jclass, jcls);
+    java_jmethodID *method = CAST(java_jmethodID, ID);
+    jobject rv = (*JAVA_ENV)->NewObject(JAVA_ENV, cls->jni_ref, method->jni_ref, jargs);
+    return _sc_java_check_error(sc, args, _sc_java_wrap(sc, java_jobject_new(rv, sc, srtype))); 
+}
+_ sc_java_static_call(sc *sc, _ jcls, _ ID, _ args, _ signature) {
+    jvalue jargs[_sc_jvalue_nargs(sc, args)];
+    symbol *srtype = _sc_jvalue_args(sc, args, signature, jargs);
+    java_jclass  *cls = CAST(java_jclass, jcls);
+    java_jmethodID *method = CAST(java_jmethodID, ID);
+    char rtype = srtype->name[0];
+    jmethodID mid = method->jni_ref;
+    jobject rv;
+    switch(rtype) {
+    case 'L': 
+        rv = (*JAVA_ENV)->CallStaticObjectMethodA (JAVA_ENV, cls, mid, jargs); 
+        return _sc_java_check_error(sc, args, _sc_java_wrap(sc, java_jobject_new(rv, sc, srtype)));
+    case 'V': 
+        (*JAVA_ENV)->CallStaticVoidMethodA (JAVA_ENV, cls, mid, jargs); 
+        return _sc_java_check_error(sc, args, VOID); // check : no return value to signal error
+    default:
+        return ERROR("return-type", signature);
+    }    
+}
+_ sc_java_call(sc *sc, _ ob, _ ID, _ args, _ signature) {
+    jvalue jargs[_sc_jvalue_nargs(sc, args)];
+    symbol *srtype = _sc_jvalue_args(sc, args, signature, jargs);
 
     java_jmethodID *method = CAST(java_jmethodID, ID);
-    java_jclass  *cls = object_to_java_jclass(ob);
-    java_jobject *obj = object_to_java_jobject(ob);
+    java_jobject *obj = CAST(java_jobject, ob);
     jobject rv;
-    if (cls) {
-        rv = (*JAVA_ENV)->NewObject(JAVA_ENV, cls->jni_ref, method->jni_ref, jargs);
+
+    jobject o = obj->jni_ref;
+    jmethodID mid = method->jni_ref;
+    char rtype = srtype->name[0];
+    switch(rtype) {
+    case 'L': 
+        rv = (*JAVA_ENV)->CallObjectMethodA (JAVA_ENV, o, mid, jargs); 
         return _sc_java_check_error(sc, args, _sc_java_wrap(sc, java_jobject_new(rv, sc, srtype)));
-    }
-    else if (obj) {
-        jobject o = obj->jni_ref;
-        jmethodID ID = method->jni_ref;
-        char rtype = argtype[0];
-        switch(rtype) {
-        case 'L': 
-            rv = (*JAVA_ENV)->CallObjectMethodA (JAVA_ENV, o, ID, jargs); 
-             return _sc_java_check_error(sc, args, _sc_java_wrap(sc, java_jobject_new(rv, sc, srtype)));
-        case 'V': 
-            (*JAVA_ENV)->CallVoidMethodA (JAVA_ENV, o, ID, jargs); 
-            return _sc_java_check_error(sc, args, VOID); // check : no return value to signal error
-        default:
-            return ERROR("return-type", signature);
-        }
-    }
-    else {
-        return TYPE_ERROR(ob);
+    case 'V': 
+        (*JAVA_ENV)->CallVoidMethodA (JAVA_ENV, o, mid, jargs); 
+        return _sc_java_check_error(sc, args, VOID); // check : no return value to signal error
+    default:
+        return ERROR("return-type", signature);
     }
 }
 
+
+/* Alternative: call a sc.java helper method. */
 
 
 

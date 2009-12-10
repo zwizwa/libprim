@@ -36,7 +36,7 @@ public class reflect {
         }
     }
 
-    void dump(String name)
+    static void dumpMethods(String name)
     {
         try {
             Class c = Class.forName(name);
@@ -57,11 +57,10 @@ public class reflect {
         }
     }
 
-    public static void main(String[] args) {
-        reflect tn = new reflect();
-        tn.dump(args[0]);
-        tn.call1();
-
+    // public static void main(String[] args) { test(args); }
+    public static void test(String[] args) {
+        reflect.dumpMethods(args[0]);
+        // tn.call1();
         // tn.test1(1, 2);
         // Integer a = 1;
         // Integer b = 2;
