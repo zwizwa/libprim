@@ -35,7 +35,7 @@ typedef int (*leaf_write_m)(leaf_object *, port *);
 
 struct _leaf_class {
     /* Recursively free resources that belong to this instance. */
-    leaf_free_m free;
+    leaf_free_m _free;
 
     /* Write out a human-readable and possible machine readable
        representation.  If the object cannot be serialized by the
@@ -43,7 +43,7 @@ struct _leaf_class {
        form "#<...>" where the dots are replaced with any string that
        contains an equal number of '<' and '>' characters.  This makes
        sure the standard scanner can at least tokenize the data. */
-    leaf_write_m write;
+    leaf_write_m _write;
 
     /* Dump raw data without metadata. */
     leaf_write_m dump;
@@ -54,8 +54,9 @@ static inline void
 leaf_class_init(leaf_class *t,
                 leaf_free_m free,
                 leaf_write_m write) {
-    t->free = free;
-    t->write = write;
+    t->_free = free;
+    t->_write = write;
+
     t->dump = NULL;
 }
 
@@ -76,16 +77,17 @@ leaf_class_init(leaf_class *t,
 */
 
 struct _leaf_object {
-    leaf_class *_type;  /* Behaviour */
+    leaf_class *__type;  /* Behaviour */
     int _rc;            /* Nb. of users */
 };
 
 static inline void leaf_init(leaf_object *o, leaf_class *type) {
-    o->_type = type;
+    o->__type = type;
     o->_rc = 1;
 }
-static inline leaf_class *leaf_type(leaf_object *o) { return o->_type; }
+static inline leaf_class *leaf_type(leaf_object *o) { return o->__type; }
 static inline int leaf_rc(leaf_object *o) { return o->_rc; }
+static inline void leaf_rc_dec(leaf_object *o) { o->_rc--; }
 static inline leaf_object *leaf_dup(leaf_object *o) { o->_rc++; return o; }
 #define LEAF_DUP(ob) ((typeof(ob))(leaf_dup((leaf_object*)ob)))
 

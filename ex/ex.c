@@ -68,11 +68,8 @@ object _ex_write(ex *ex, object o) {
 
     /* If an aref object's class has a lowlevel write method defined, call it. */
     if ((l = ex->object_to_leaf(ex, o))) {
-        leaf_class *t = leaf_type(l);
-        if (t->write) {
-            t->write(l, p);
-            return VOID;
-        }
+        leaf_write(l, p);
+        return VOID;
     }
 
     if (TRUE  == o) { port_printf(p, "#t"); return VOID; }

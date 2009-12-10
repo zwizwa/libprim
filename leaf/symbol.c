@@ -15,8 +15,7 @@ static void symbol_free(symbol *s) {
 static symbol_class *type = NULL;
 static symbol_class *symbol_class_new(int total) {
     symbol_class *s = calloc(1, sizeof(*s));
-    s->super.write = (leaf_write_m)symbol_write;
-    s->super.free  = (leaf_free_m)symbol_free;
+    leaf_class_init((leaf_class*)s, (leaf_free_m)symbol_free, (leaf_write_m)symbol_write);
     s->nb_syms = 0;
     s->total = total;
     s->syms = malloc(sizeof(symbol) * total);

@@ -92,67 +92,61 @@ static inline java_ctx *_sc_java_ctx(sc *sc) {
    double release) we need to keep track of the Java objects. */
 static tuple *java_pool = NULL;
 
-/* The sc struct contains a reference to the currently active Java context. */
-static void _sc_java_free(sc *sc, jobject obj, void *lobj) {
-    // LOGF("DeleteLocalRef(%p)", obj);
-    if (sc) {
-        (*JAVA_ENV)->DeleteLocalRef(JAVA_ENV, obj);
-        java_pool = tuple_list_remove_object(java_pool, (leaf_object*)obj, 1);
-    }
-    free(lobj);
-}
 
-/* This macro defines standard LEAF object behaviour for wrapped Java
-   JNI objects, and unwrappers for AREF representation. */
-
+typedef struct { leaf_class super; } jniref_class;
 typedef struct {
     leaf_object base;
     sc *sc;  // for JNIEnv*
-    symbol *desc;
-    _ wrapper;
-} j_object;
+    void *jni_ref;
+} jniref;
 
-#define DEF_JAVA(typename) \
-    typedef struct { leaf_class super; } java_##typename##_class; \
-    typedef struct { j_object jo; typename jni_ref; } java_##typename; \
-    void java_##typename##_free(java_##typename *x) { \
-        _sc_java_free(x->jo.sc, (jobject)x->jni_ref, x);  \
-    } \
-    int java_##typename##_write(java_##typename *x, port *p) { \
-        return port_printf(p, "#<" #typename ":%p:%s>", x->jni_ref, x->jo.desc->name);       \
-    } \
-    LEAF_SIMPLE_TYPE(java_##typename) \
-    java_##typename *java_##typename##_new(typename jni_ref, sc* sc, symbol *desc) {     \
-        java_##typename *x = calloc(1, sizeof(*x)); \
-        leaf_init((leaf_object*)x, java_##typename##_type());   \
-        x->jo.sc = sc; \
-        x->jo.desc = desc; \
-        x->jo.wrapper = NIL; \
-        x->jni_ref = jni_ref; \
-        return x; \
-    }\
-    DEF_AREF_TYPE(java_##typename)
+/* The sc struct contains a reference to the currently active Java context. */
+static void jniref_free(jniref *x) {
+    LOGF("DeleteLocalRef(%p) RC=%d\n", x->jni_ref, x->base._rc);
+    sc *sc = x->sc;
+    if (sc) {
+        java_pool = tuple_list_remove_object(java_pool, (leaf_object*)x, 1);
+        (*JAVA_ENV)->DeleteLocalRef(JAVA_ENV, x->jni_ref);
+    }
+    free(x);
+}
+static int jniref_write(jniref *x, port *p) {
+    return port_printf(p, "#<jniref:%p>", x->jni_ref);
+}
+LEAF_SIMPLE_TYPE(jniref)
+DEF_AREF_TYPE(jniref)
 
-DEF_JAVA(jclass)
-DEF_JAVA(jobject)
-DEF_JAVA(jmethodID)
+static int jobject_equal(jniref *x, void *jni_ref) { return x->jni_ref == jni_ref; }
 
+/* 1st level wrapping makes a 1-1 map between leaf objects and jni references */
+static jniref *new_jobject(sc *sc, void *jni_ref) {
+    jniref *x;
 
-static object _sc_java_wrap(sc *sc, void *vx) {
-    j_object *x = (j_object*)vx;
-    j_object *w;
-    if ((w = (j_object*)tuple_list_find_object(java_pool,  (leaf_object*)x))) {
-        // fprintf(stderr, "already wrapped: %p %p\n", vx, (void*)(w->wrapper));
-        return w->wrapper;
+    /* If it's already wrapped as jobject, return it with RC++.  */
+    if ((x = (jniref*)tuple_list_find(java_pool, (leaf_predicate)jobject_equal, jni_ref))) {
+        LOGF("reuse %p\n", jni_ref);
+        return LEAF_DUP(x);
     }
     else {
-        _ wrapper = _ex_leaf_to_object(EX, x);
-        java_pool = tuple_stack_push(java_pool, (leaf_object*)vx);
-        x->wrapper = wrapper;
-        // fprintf(stderr, "new wrapper: %p %p\n", vx, (void*)wrapper);
-        return wrapper;
+        LOGF("wrap %p\n", jni_ref);
+        x = calloc(1, sizeof(*x));
+        leaf_init(&x->base, jniref_type());
+        x->sc = sc;
+        x->jni_ref = jni_ref;
+        java_pool = tuple_stack_push(java_pool, (leaf_object*)x);        
+        return x;
     }
 }
+
+/* 2nd level wrapping: this can't be avoided as these pointers are not
+   stable due to GC moves, and there's no way to map jni_ref -> CS
+   object. */
+static _ _sc_jniref(sc *sc, void *jni_ref) {
+    return _sc_make_aref(sc, new_jobject(sc, jni_ref));
+}
+
+
+
 
 
 
@@ -168,7 +162,6 @@ _ _sc_java_check_error(sc *sc, _ err_ob, _ rv) {
         (*JAVA_ENV)->ExceptionDescribe(JAVA_ENV); // prints to stderr
         
         // jthrowable *e = (*JAVA_ENV)->ExceptionOccurred(JAVA_ENV);
-        // _ _e = _sc_java_wrap(sc, e);  WRONG TYPE!
 
         (*JAVA_ENV)->ExceptionClear(JAVA_ENV);
         return ERROR("java", err_ob);
@@ -179,34 +172,30 @@ _ sc_java_class(sc *sc, _ name) {
     const char *sname = CAST(cstring, name);
     jclass class = (*JAVA_ENV)->FindClass(JAVA_ENV, sname);
     if (!class) { return _sc_java_check_error(sc, name, VOID); }
-    java_jclass *jc = java_jclass_new(class, sc, symbol_from_cstring(sname));
-    return _sc_java_wrap(sc, jc);
+    return _sc_jniref(sc, class);
 }
 
 /* For constructors use (java-methodID _class "<init>" "()V") */
 _ sc_java_methodID(sc *sc, _ cls, _ name, _ sig) {
     const char *ssig = CAST(cstring, sig);
-    jmethodID method = (*JAVA_ENV)->GetMethodID(JAVA_ENV, CAST(java_jclass, cls)->jni_ref,
+    jmethodID method = (*JAVA_ENV)->GetMethodID(JAVA_ENV, CAST(jniref, cls)->jni_ref,
                                                 CAST(cstring, name), ssig);
     if (!method) return _sc_java_check_error(sc, name, VOID);
-    return _sc_java_wrap(sc, java_jmethodID_new(method, sc, symbol_from_cstring(ssig)));
+    return _sc_jniref(sc, method);
 }
 _ sc_java_static_methodID(sc *sc, _ cls, _ name, _ sig) {
     const char *ssig = CAST(cstring, sig);
-    jmethodID method = (*JAVA_ENV)->GetStaticMethodID(JAVA_ENV, CAST(java_jclass, cls)->jni_ref,
+    jmethodID method = (*JAVA_ENV)->GetStaticMethodID(JAVA_ENV, CAST(jniref, cls)->jni_ref,
                                                       CAST(cstring, name), ssig);
     if (!method) return _sc_java_check_error(sc, name, VOID);
-    return _sc_java_wrap(sc, java_jmethodID_new(method, sc, symbol_from_cstring(ssig)));
+    return _sc_jniref(sc, method);
 }
 
 /* FIXME: is this a local reference? */
 _ sc_java_string(sc *sc, _ ob) {
     const char *str = CAST(cstring, ob);
     fprintf(stderr, "str: %s\n", str);
-    return _sc_java_wrap
-        (sc, java_jobject_new
-         ((*JAVA_ENV)->NewStringUTF(JAVA_ENV, str),
-          sc, symbol_from_cstring("Ljava/lang/String;")));
+    return _sc_jniref(sc, (*JAVA_ENV)->NewStringUTF(JAVA_ENV, str));
 }
 
 
@@ -276,7 +265,7 @@ static symbol *_sc_jvalue_args(sc *sc, _ args, _ signature, jvalue *jargs) {
         case 'J': jargs[i].j = CAST_INTEGER(so); break;
         case 'F': jargs[i].f = object_to_double(so); break;
         case 'D': jargs[i].d = object_to_double(so); break;
-        case 'L': jargs[i].l = CAST(java_jobject, so)->jni_ref; break;
+        case 'L': jargs[i].l = CAST(jniref, so)->jni_ref; break;
         default:
             TYPE_ERROR(so);  /* NR */ return NULL;
         }
@@ -291,23 +280,23 @@ static symbol *_sc_jvalue_args(sc *sc, _ args, _ signature, jvalue *jargs) {
 _ sc_java_new(sc *sc, _ jcls, _ ID, _ args, _ signature) {
     jvalue jargs[_sc_jvalue_nargs(sc, args)];
     symbol *srtype = _sc_jvalue_args(sc, args, signature, jargs);
-    java_jclass  *cls = CAST(java_jclass, jcls);
-    java_jmethodID *method = CAST(java_jmethodID, ID);
+    jniref  *cls = CAST(jniref, jcls);
+    jniref *method = CAST(jniref, ID);
     jobject rv = (*JAVA_ENV)->NewObject(JAVA_ENV, cls->jni_ref, method->jni_ref, jargs);
-    return _sc_java_check_error(sc, args, _sc_java_wrap(sc, java_jobject_new(rv, sc, srtype))); 
+    return _sc_java_check_error(sc, args, _sc_jniref(sc, rv));
 }
 _ sc_java_static_call(sc *sc, _ jcls, _ ID, _ args, _ signature) {
     jvalue jargs[_sc_jvalue_nargs(sc, args)];
     symbol *srtype = _sc_jvalue_args(sc, args, signature, jargs);
-    java_jclass  *cls = CAST(java_jclass, jcls);
-    java_jmethodID *method = CAST(java_jmethodID, ID);
+    jniref  *cls = CAST(jniref, jcls);
+    jniref *method = CAST(jniref, ID);
     char rtype = srtype->name[0];
     jmethodID mid = method->jni_ref;
     jobject rv;
     switch(rtype) {
     case 'L': 
         rv = (*JAVA_ENV)->CallStaticObjectMethodA (JAVA_ENV, cls, mid, jargs); 
-        return _sc_java_check_error(sc, args, _sc_java_wrap(sc, java_jobject_new(rv, sc, srtype)));
+        return _sc_java_check_error(sc, args, _sc_jniref(sc, rv));
     case 'V': 
         (*JAVA_ENV)->CallStaticVoidMethodA (JAVA_ENV, cls, mid, jargs); 
         return _sc_java_check_error(sc, args, VOID); // check : no return value to signal error
@@ -319,8 +308,8 @@ _ sc_java_call(sc *sc, _ ob, _ ID, _ args, _ signature) {
     jvalue jargs[_sc_jvalue_nargs(sc, args)];
     symbol *srtype = _sc_jvalue_args(sc, args, signature, jargs);
 
-    java_jmethodID *method = CAST(java_jmethodID, ID);
-    java_jobject *obj = CAST(java_jobject, ob);
+    jniref *method = CAST(jniref, ID);
+    jniref *obj = CAST(jniref, ob);
     jobject rv;
 
     jobject o = obj->jni_ref;
@@ -329,7 +318,7 @@ _ sc_java_call(sc *sc, _ ob, _ ID, _ args, _ signature) {
     switch(rtype) {
     case 'L': 
         rv = (*JAVA_ENV)->CallObjectMethodA (JAVA_ENV, o, mid, jargs); 
-        return _sc_java_check_error(sc, args, _sc_java_wrap(sc, java_jobject_new(rv, sc, srtype)));
+        return _sc_java_check_error(sc, args, _sc_jniref(sc, rv));
     case 'V': 
         (*JAVA_ENV)->CallVoidMethodA (JAVA_ENV, o, mid, jargs); 
         return _sc_java_check_error(sc, args, VOID); // check : no return value to signal error

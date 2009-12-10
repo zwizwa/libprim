@@ -1,3 +1,4 @@
+include ../Makefile.defs
 
 # JNI_CFLAGS = -I/export/home/jdk1.2/include -I/export/home/jdk1.2/include/linux 
 JNI_LDFLAGS = 
@@ -41,11 +42,10 @@ __test: all
 
 
 %.so: %.c %.d
-	$(CC) -fPIC -o $@ -shared -Wl,-soname,$@ $(CPPFLAGS)  $(CFLAGS) $(OPTI_CFLAGS) $(DEBUG_CFLAGS) $(JNI_CFLAGS) $(SC_CFLAGS) $< $(SC_LDFLAGS)
+	$(CC) -fPIC -o $@ -shared -Wl,-soname,$@ -Wall $(CPPFLAGS)  $(CFLAGS) $(OPTI_CFLAGS) $(DEBUG_CFLAGS) $(JNI_CFLAGS) $(SC_CFLAGS) $< $(SC_LDFLAGS)
 
 %.h_sc_prims: %.c ../sc/sc_prims.ss ../prim-tools.ss
 	$(MZSCHEME) ../sc/sc_prims.ss $< >$@
 
 GEN = libscheme.h_sc_prims
 include ../Makefile.rules
-include ../Makefile.defs

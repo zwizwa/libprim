@@ -119,11 +119,13 @@ _ sc_make_k_seq(sc *sc, _ P, _ T)            {STRUCT(TAG_K_SEQ,    3, P,NIL,T);}
    function pointers (this is because function pointers themselves
    might not be aligned, and thus have no space for bit tags. */
 
+
 _ _sc_make_aref(sc *sc, void *_x) {
+    static fin leaf_free_ptr = (fin)leaf_free;
     leaf_object *x = _x;
     if (!x) ERROR("aref", VOID);
     leaf_class *t = leaf_type(x);
-    fin *f = (fin*)((void*)(&t->free));
+    fin *f = &leaf_free_ptr;
     return sc_make_aref(sc, fin_to_object(f), const_to_object(x));
 }
 

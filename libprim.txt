@@ -6704,3 +6704,11 @@ different routines:  constructors / static / methods
 
 FIXME: constructors with arguments dont work.  w.o. ok
 
+FIXME: create an object pool based on the java object pointer, not the
+local wrapper.
+
+this is a mess.. solve it properly.
+
+
+it's not possible to map leaf -> aref due to moving GC, so each leaf
+needs to be _dupped.
