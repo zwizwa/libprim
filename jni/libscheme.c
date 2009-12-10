@@ -160,9 +160,7 @@ static _ _sc_jniref(sc *sc, void *jni_ref) {
 _ _sc_java_check_error(sc *sc, _ err_ob, _ rv) {
     if ((*JAVA_ENV)->ExceptionCheck(JAVA_ENV)) {
         (*JAVA_ENV)->ExceptionDescribe(JAVA_ENV); // prints to stderr
-        
         // jthrowable *e = (*JAVA_ENV)->ExceptionOccurred(JAVA_ENV);
-
         (*JAVA_ENV)->ExceptionClear(JAVA_ENV);
         return ERROR("java", err_ob);
     }
