@@ -161,6 +161,11 @@ static object _sc_java_wrap(sc *sc, void *vx) {
 */
 _ _sc_java_check_error(sc *sc, _ err_ob, _ rv) {
     if ((*JAVA_ENV)->ExceptionCheck(JAVA_ENV)) {
+        (*JAVA_ENV)->ExceptionDescribe(JAVA_ENV); // prints to stderr
+        
+        // jthrowable *e = (*JAVA_ENV)->ExceptionOccurred(JAVA_ENV);
+        // _ _e = _sc_java_wrap(sc, e);  WRONG TYPE!
+
         (*JAVA_ENV)->ExceptionClear(JAVA_ENV);
         return ERROR("java", err_ob);
     }
@@ -315,6 +320,10 @@ jlong STATIC_METHOD(boot)(JNIEnv *env, jclass sc_class, jstring bootfile) {
     _libsc_init(sc);
     (*env)->ReleaseStringUTFChars(env, bootfile, bootfile_str);
     LOGF("Scheme VM: %p\n", sc);
+
+    /* If resume follows after this, we run the init script.  Override
+       with different prepare for other behaviour. */
+    _sc_prepare(sc, CONS(SYMBOL("eval"), CONS(SYMBOL("init-script"), NIL)));
     return (jlong)(long)sc;
 }
 

@@ -20,16 +20,29 @@ public class sc {
 
 
     /* Constructor wraps C pointers in a Java object. */
+    long _vm = 0;
+    long _console = 0;
     sc(long vm, long console) {
         _vm = vm;
         _console = console;
     }
-    /* Factory */
-    public static sc spawnConsole(String bootfile, String node) {
+    /* Factory methods */
+
+    /* Create a VM instance wrapped in a java object.  Its main loop
+       runs in a Java thread, and handles console connections on the
+       Unix socket `node', and interprets commands passed in by the
+       evalString method.  */
+    public static sc spawnConsoleServer(String bootfile, String node) {
         long vm = boot(bootfile);
         long console = prepareConsoleServer(vm, node);
         spawnResume(vm);
         return new sc(vm, console);
+    }
+
+    /* Run blocking console on stdin. */
+    public static void startConsole(String bootfile) {
+        long vm = boot(bootfile);
+        resume(vm);
     }
 
     /* Spawn vm in thread */
@@ -47,12 +60,7 @@ public class sc {
 
 
     /** INSTANCE METHODS **/
-
-    long _vm = 0;
-    long _console = 0;
     public String evalString(String commands) { 
         return consoleEvalString(_console, commands);
     }
-
-
 }

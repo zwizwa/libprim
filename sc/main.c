@@ -40,7 +40,13 @@ int main(int argc, char **argv) {
 
     /* The variable `init-script' is defined by _sc_new() based on
        command line arguments. Evaluating it will either start the
-       REPL or load a script. */
+       REPL or load a script. 
+
+       Note that the expression passed into the VM is a _raw_
+       expression (without macros).  If you want macros, wrap it in
+       `eval'.
+
+    */
     _sc_top(sc, CONS(SYMBOL("eval"), CONS(SYMBOL("init-script"), NIL)));
     return 0;
 }

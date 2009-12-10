@@ -123,7 +123,7 @@
 (define-macro define (make-definer 'def-toplevel!))
 (define-macro define-macro (make-definer 'def-toplevel-macro!))
 
-(define (procedures) (map1 car (toplevel)))
+(define (vars) (map1 car (toplevel)))
 (define (macros) (map1 car (toplevel-macro)))
 
 (define (with-letform-transpose bindings_body fn)

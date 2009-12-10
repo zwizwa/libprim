@@ -16,7 +16,7 @@ all: libsc.so sc.class testsc.class eval.class
 
 
 test: all testsc.class
-	LD_LIBRARY_PATH=. java testsc
+	CLASSPATH=. LD_LIBRARY_PATH=. java testsc
 
 # JAVA_FLAGS = -Xlint:unchecked
 
