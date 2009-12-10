@@ -24,3 +24,5 @@
 
 (define dummy-foo (java-static-methodID dummy-class "foo" "()V"))
 
+(define dummy-str (java-static-methodID dummy-class "str" "(Ljava/lang/String;)V"))
+(java-static-call dummy-class dummy-str (vector (java-string "asdf"))  "(Ljava/lang/String;)V")

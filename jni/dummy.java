@@ -1,7 +1,10 @@
 public class dummy {
 
-    static void foo () {
+    public static void foo () {
         System.out.println("foo...");
+    }
+    public static void str (String s) {
+        System.out.println(s);
     }
     
     dummy() {
