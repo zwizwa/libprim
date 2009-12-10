@@ -190,6 +190,7 @@ void scanner_read(scanner *x) {
 
 scanner *scanner_new(port *p) {
     scanner *x = calloc(1, sizeof(*x));
+    leaf_init((leaf_object*)x, scanner_type());
     x->p = p;
     x->b = bytes_new(100);
     return x;

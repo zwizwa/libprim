@@ -171,6 +171,7 @@ LEAF_SIMPLE_TYPE(parser)
 
 parser *parser_new(port *prt) {
     parser *p = calloc(1,sizeof(*p));
+    leaf_init((leaf_object*)p, parser_type());
     p->s = scanner_new(prt);
     p->ctx = NULL;
     p->atom = dflt_atom;
