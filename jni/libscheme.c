@@ -350,10 +350,10 @@ jint JNI_OnLoad(JavaVM *vm, void *reserved) {
 
 
 // see sc.h (generated from sc.class by javah)
-#define STATIC_METHOD(name) Java_sc_##name
+#define METHOD(name) Java_zwizwa_libprim_sc_##name
 
 /* Initialize VM. */
-jlong STATIC_METHOD(boot)(JNIEnv *env, jclass sc_class, jstring bootfile) {
+jlong METHOD(boot)(JNIEnv *env, jclass sc_class, jstring bootfile) {
     const char* bootfile_str = (*env)->GetStringUTFChars(env, bootfile, NULL);
 
     /* Boot from pre-expanded boot.scm */
@@ -371,7 +371,7 @@ jlong STATIC_METHOD(boot)(JNIEnv *env, jclass sc_class, jstring bootfile) {
 }
 
 
-jlong STATIC_METHOD(prepareConsoleServer)(JNIEnv *env, jclass sc_class, jlong lsc, jstring usock) {
+jlong METHOD(prepareConsoleServer)(JNIEnv *env, jclass sc_class, jlong lsc, jstring usock) {
     sc *sc = (void*)(long)lsc;
     const char* usock_str = (*env)->GetStringUTFChars(env, usock, NULL);
     LOGF("Starting console on %s\n", usock_str);
@@ -380,7 +380,7 @@ jlong STATIC_METHOD(prepareConsoleServer)(JNIEnv *env, jclass sc_class, jlong ls
     return (jlong)(long)c;
 }
 
-void STATIC_METHOD(resume)(JNIEnv *env, jclass sc_class, jlong lsc) { 
+void METHOD(resume)(JNIEnv *env, jclass sc_class, jlong lsc) { 
     sc *sc = (void*)(long)lsc;
     java_ctx ctx = {env, sc_class};
     EX->ctx = &ctx;
@@ -389,7 +389,7 @@ void STATIC_METHOD(resume)(JNIEnv *env, jclass sc_class, jlong lsc) {
 }
 
 /* Send a command to a console and collect the reply. */
-jstring STATIC_METHOD(consoleEvalString)(JNIEnv *env, jclass sc_class, jlong lconsole, jstring command) {
+jstring METHOD(consoleEvalString)(JNIEnv *env, jclass sc_class, jlong lconsole, jstring command) {
     console* sc_console = (console*)(long)lconsole;
     const char *command_str = (*env)->GetStringUTFChars(env, command, NULL);
     jstring rv = NULL;

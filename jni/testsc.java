@@ -1,7 +1,10 @@
 
+// package zwizwa.libprim;
+import zwizwa.libprim.sc;
+
 public class testsc {
 
-    static void spawntConsoleServer() {
+    static void spawnConsoleServer() {
         sc x = sc.spawnConsoleServer("../sc/boot.scm", "/tmp/sc");
         String rv = x.evalString("(+ 1 2)");
         System.out.println("RV: " + rv);

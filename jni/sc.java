@@ -1,4 +1,9 @@
+
+
 /* A collection of static functions to interact with a Scheme vm. */
+
+// Package names are necessary, as these are hard-coded in the C symbols.
+package zwizwa.libprim;
 
 public class sc {
 
@@ -55,7 +60,7 @@ public class sc {
 
     /* Load the binary lib on application startup. */
     static {
-        System.loadLibrary("sc");
+        System.loadLibrary("scheme");
     }
 
 

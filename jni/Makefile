@@ -12,7 +12,7 @@ CPPFLAGS += -I/usr/lib/jvm/java-1.5.0-sun-1.5.0.17/include
 CPPFLAGS += -I/usr/lib/jvm/java-1.5.0-sun-1.5.0.17/include/linux
 
 # all: testnative.class libnativelib.so reflect.class
-all: libsc.so sc.class testsc.class eval.class reflect.class dummy.class
+all: libscheme.so sc.class testsc.class eval.class reflect.class dummy.class
 
 
 test: all testsc.class
@@ -46,6 +46,6 @@ __test: all
 %.h_sc_prims: %.c ../sc/sc_prims.ss ../prim-tools.ss
 	$(MZSCHEME) ../sc/sc_prims.ss $< >$@
 
-GEN = libsc.h_sc_prims
+GEN = libscheme.h_sc_prims
 include ../Makefile.rules
 include ../Makefile.defs
