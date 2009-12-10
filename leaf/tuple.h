@@ -34,7 +34,10 @@ leaf_class *tuple_type(void);
 
 /* CONS-style stacks/lists using 2-component tuples. */
 tuple *tuple_stack_push(tuple *stack, leaf_object *x);
-tuple *tuple_stack_drop(tuple *stack);
-tuple *tuple_list_remove(tuple *list, leaf_predicate fn, void *ctx);
+tuple *tuple_stack_drop(tuple *stack, int weak);
+
+tuple *tuple_list_remove(tuple *list, leaf_predicate fn, void *ctx, int weak);
+tuple *tuple_list_remove_object(tuple *list, leaf_object *x, int weak);
+
 leaf_object *tuple_list_find(tuple *list, leaf_predicate fn, void *ctx);
 leaf_object *tuple_list_find_object(tuple *list, leaf_object *x);

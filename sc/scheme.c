@@ -1078,6 +1078,7 @@ console *_sc_prepare_console_server(sc *sc, const char *node) {
 /* DEBUG */
 
 
+#if 0
 
 /* Reflist.  In order to properly wrap Java objects, they need to be
    mapped to Scheme objects in a 1-1 fashon. */
@@ -1086,8 +1087,7 @@ console *_sc_prepare_console_server(sc *sc, const char *node) {
 #define PS() {leaf_write((leaf_object*)stack, p); port_printf(p, "\n");}
 
 int is_el(symbol* a, symbol *b) { return a == b; }
-
-_ sc_foo(sc *sc) {
+_ __sc_foo(sc *sc) {
     tuple *stack = 0;
     port *p = port_file_new(stderr, "<stderr>");
     
@@ -1111,3 +1111,5 @@ _ sc_foo(sc *sc) {
 
     return VOID;
 }
+
+#endif

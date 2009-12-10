@@ -88,10 +88,18 @@ static inline java_ctx *_sc_java_ctx(sc *sc) {
 #define JAVA_ENV (_sc_java_ctx(sc)->env)
 
 
+/* To support 1-1 wrapping (to avoid double wrapping which causes
+   double release) we need to keep track of the Java objects. */
+static tuple *java_pool = NULL;
+
 /* The sc struct contains a reference to the currently active Java context. */
-static void _sc_java_free(sc *sc, jobject obj) {
+static void _sc_java_free(sc *sc, jobject obj, void *lobj) {
     // LOGF("DeleteLocalRef(%p)", obj);
-    // if (sc) (*JAVA_ENV)->DeleteLocalRef(JAVA_ENV, obj);
+    if (sc) {
+        (*JAVA_ENV)->DeleteLocalRef(JAVA_ENV, obj);
+        java_pool = tuple_list_remove_object(java_pool, (leaf_object*)obj, 1);
+    }
+    free(lobj);
 }
 
 /* This macro defines standard LEAF object behaviour for wrapped Java
@@ -108,8 +116,7 @@ typedef struct {
     typedef struct { leaf_class super; } java_##typename##_class; \
     typedef struct { j_object jo; typename jni_ref; } java_##typename; \
     void java_##typename##_free(java_##typename *x) { \
-        _sc_java_free(x->jo.sc, (jobject)x->jni_ref);    \
-        free(x); \
+        _sc_java_free(x->jo.sc, (jobject)x->jni_ref, x);  \
     } \
     int java_##typename##_write(java_##typename *x, port *p) { \
         return port_printf(p, "#<" #typename ":%p:%s>", x->jni_ref, x->jo.desc->name);       \
@@ -131,25 +138,22 @@ DEF_JAVA(jobject)
 DEF_JAVA(jmethodID)
 
 
-/* To support 1-1 wrapping (to avoid double wrapping which causes
-   double release) we need to keep track of the Java objects. */
-static tuple *java_pool = NULL;
-
 static object _sc_java_wrap(sc *sc, void *vx) {
     j_object *x = (j_object*)vx;
     j_object *w;
     if ((w = (j_object*)tuple_list_find_object(java_pool,  (leaf_object*)x))) {
-        // fprintf(stderr, "already wrapped: %p\n", vx);
+        // fprintf(stderr, "already wrapped: %p %p\n", vx, (void*)(w->wrapper));
         return w->wrapper;
     }
     else {
-        // fprintf(stderr, "new wrapper: %p\n", vx);
         _ wrapper = _ex_leaf_to_object(EX, x);
         java_pool = tuple_stack_push(java_pool, (leaf_object*)vx);
         x->wrapper = wrapper;
+        // fprintf(stderr, "new wrapper: %p %p\n", vx, (void*)wrapper);
         return wrapper;
     }
 }
+
 
 
 /* Exceptions. 
@@ -176,7 +180,6 @@ _ sc_java_class(sc *sc, _ name) {
     jclass class = (*JAVA_ENV)->FindClass(JAVA_ENV, sname);
     if (!class) { return _sc_java_check_error(sc, name, VOID); }
     java_jclass *jc = java_jclass_new(class, sc, symbol_from_cstring(sname));
-    _sc_java_wrap(sc, jc);
     return _sc_java_wrap(sc, jc);
 }
 

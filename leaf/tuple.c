@@ -58,20 +58,23 @@ tuple *tuple_stack_push(tuple *stack, leaf_object *x) {
     rec->slot[1] = (leaf_object*)stack;
     return rec;
 }
-tuple *tuple_stack_drop(tuple *stack) {
-    leaf_free(stack->slot[0]);
-    return (tuple*)(stack->slot[1]);
+tuple *tuple_stack_drop(tuple *stack, int weak) {
+    if (weak) stack->slot[0] = NULL; // don't free the object
+    tuple *rest = (tuple*)(stack->slot[1]); // keep tail
+    stack->slot[1] = NULL; // detach
+    leaf_free((leaf_object*)stack);
+    return (tuple*)rest;
 }
 
-tuple *tuple_list_remove(tuple *list, leaf_predicate fn, void *ctx) {
+tuple *tuple_list_remove(tuple *list, leaf_predicate fn, void *ctx, int weak) {
     if (!list) return NULL;
-    else if (fn(list->slot[0], ctx)) return tuple_stack_drop(list);
+    else if (fn(list->slot[0], ctx)) return tuple_stack_drop(list, weak);
     else {
         tuple *head = list;
         tuple *parent = list;
         while(list) {
             if (fn(list->slot[0], ctx)) {
-                parent->slot[1] = (leaf_object*)tuple_stack_drop(list);
+                parent->slot[1] = (leaf_object*)tuple_stack_drop(list, weak);
                 return head;
             }
             parent = list;
@@ -90,4 +93,7 @@ leaf_object *tuple_list_find(tuple *list, leaf_predicate fn, void *ctx) {
 static int equal(void* a, void *b) { return a == b; }
 leaf_object *tuple_list_find_object(tuple *list, leaf_object *x) {
     return tuple_list_find(list, (leaf_predicate)equal, x);
+}
+tuple *tuple_list_remove_object(tuple *list, leaf_object *x, int weak) {
+    return tuple_list_remove(list, (leaf_predicate)equal, x, weak);
 }
