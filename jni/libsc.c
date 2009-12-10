@@ -79,7 +79,7 @@ _ libsc_log(sc *sc,  _ str) {
 /* Dynamic context (VM running in the dynamic extent of a java call) */
 typedef struct {
     JNIEnv *env;      // current Java thread's environment
-    jobject this;     // containing object
+    jclass sc_class;  // the embedding scheme class
 } java_ctx;
 static inline java_ctx *_sc_java_ctx(sc *sc) {
     java_ctx *ctx = (java_ctx*)(EX->ctx);
@@ -158,7 +158,6 @@ static object _sc_java_wrap(sc *sc, void *vx) {
 */
 _ _sc_java_check_error(sc *sc, _ err_ob, _ rv) {
     if ((*JAVA_ENV)->ExceptionCheck(JAVA_ENV)) {
-        (*JAVA_ENV)->ExceptionDescribe(JAVA_ENV); // prints to stderr
         (*JAVA_ENV)->ExceptionClear(JAVA_ENV);
         return ERROR("java", err_ob);
     }
@@ -167,7 +166,6 @@ _ _sc_java_check_error(sc *sc, _ err_ob, _ rv) {
 _ sc_java_class(sc *sc, _ name) {
     const char *sname = CAST(cstring, name);
     jclass class = (*JAVA_ENV)->FindClass(JAVA_ENV, sname);
-    fprintf(stderr, "jclass %s %p %p %p\n", sname, class, JAVA_ENV, (*JAVA_ENV));
     if (!class) { return _sc_java_check_error(sc, name, VOID); }
     return _sc_java_wrap(sc, java_jclass_new(class, sc, symbol_from_cstring(sname)));
 }
@@ -299,10 +297,10 @@ jint JNI_OnLoad(JavaVM *vm, void *reserved) {
 
 
 // see sc.h (generated from sc.class by javah)
-#define METHOD(name) Java_sc_##name
+#define STATIC_METHOD(name) Java_sc_##name
 
 /* Initialize VM. */
-jlong METHOD(boot)(JNIEnv *env, jobject this, jstring bootfile) {
+jlong STATIC_METHOD(boot)(JNIEnv *env, jclass sc_class, jstring bootfile) {
     const char* bootfile_str = (*env)->GetStringUTFChars(env, bootfile, NULL);
 
     /* Boot from pre-expanded boot.scm */
@@ -316,7 +314,7 @@ jlong METHOD(boot)(JNIEnv *env, jobject this, jstring bootfile) {
 }
 
 
-jlong METHOD(prepareConsoleServer)(JNIEnv *env, jobject this, jlong lsc, jstring usock) {
+jlong STATIC_METHOD(prepareConsoleServer)(JNIEnv *env, jclass sc_class, jlong lsc, jstring usock) {
     sc *sc = (void*)(long)lsc;
     const char* usock_str = (*env)->GetStringUTFChars(env, usock, NULL);
     LOGF("Starting console on %s\n", usock_str);
@@ -325,16 +323,16 @@ jlong METHOD(prepareConsoleServer)(JNIEnv *env, jobject this, jlong lsc, jstring
     return (jlong)(long)c;
 }
 
-void METHOD(resume)(JNIEnv *env, jobject this, jlong lsc) { 
+void STATIC_METHOD(resume)(JNIEnv *env, jclass sc_class, jlong lsc) { 
     sc *sc = (void*)(long)lsc;
-    java_ctx ctx = {env, this};
+    java_ctx ctx = {env, sc_class};
     EX->ctx = &ctx;
     _sc_continue((void*)(long)lsc);
     EX->ctx = NULL;
 }
 
 /* Send a command to a console and collect the reply. */
-jstring METHOD(consoleEvalString)(JNIEnv *env, jobject this, jlong lconsole, jstring command) {
+jstring STATIC_METHOD(consoleEvalString)(JNIEnv *env, jclass sc_class, jlong lconsole, jstring command) {
     console* sc_console = (console*)(long)lconsole;
     const char *command_str = (*env)->GetStringUTFChars(env, command, NULL);
     jstring rv = NULL;
