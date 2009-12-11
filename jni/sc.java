@@ -5,9 +5,29 @@
 // Package names are necessary, as these are hard-coded in the C symbols.
 package zwizwa.libprim;
 
+import java.lang.reflect.*;
+
 public class sc {
 
+
     /** CLASS METHODS **/
+
+
+    /* C->Java utility functions.  Instead of using the JNI for
+       everything, use a minimal JNI interface to call this class's
+       static methods, and use Java reflection from there. */
+    public static Object apply(Object... a) { return null; }
+
+    public static Object findClass(String name) { 
+        try {
+            return Class.forName(name);
+        }
+        catch (Throwable e) {
+            System.err.println(e);
+            return null;
+        }
+    }
+
 
     /* Native methods */
     public native static String consoleEvalString(long console, String commands);
