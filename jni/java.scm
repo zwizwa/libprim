@@ -35,7 +35,7 @@
 (define dummy-1 (java-new dummy-class dummy-ctor-1 #() "()V"))
 
 (define dummy-ctor-2 (java-methodID dummy-class "<init>" "(Ljava/lang/String;)V"))
-; (define dummy-2 (java-new dummy-class dummy-ctor-2 (vector (java-string "foo")) "(Ljava/lang/String;)V"))
+(define dummy-2 (java-new dummy-class dummy-ctor-2 (vector (java-string "foo")) "(Ljava/lang/String;)V"))
 
 (define dummy-foo (java-static-methodID dummy-class "foo" "()V"))
 

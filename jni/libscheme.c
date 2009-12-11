@@ -86,23 +86,40 @@ static tuple *java_pool = NULL;
 
 
 typedef struct { leaf_class super; } jniref_class;
-typedef struct {
+
+struct _jniref;
+typedef struct _jniref jniref;
+typedef void (*jni_delete)(jniref *x);
+
+struct _jniref {
     leaf_object base;
+    jni_delete delete;
     sc *sc;  // for JNIEnv*
     void *jni_ref;
-} jniref;
+};
 
 
 /* The sc struct contains a reference to the currently active Java context. */
 static void jniref_free(jniref *x) {
     // LOGF("DeleteLocalRef(%p) RC=%d\n", x->jni_ref, leaf_rc(x->base));
-    sc *sc = x->sc;
-    if (sc) {
-        java_pool = tuple_list_remove_object(java_pool, (leaf_object*)x, 1);
-        (*JAVA_ENV)->DeleteLocalRef(JAVA_ENV, x->jni_ref);
-    }
+    x->delete(x);
+}
+
+static void jniref_free_wrapper(jniref *x) {
+    java_pool = tuple_list_remove_object(java_pool, (leaf_object*)x, 1);
     free(x);
 }
+static void jniref_free_global(jniref *x) {
+    sc *sc = x->sc;
+    (*JAVA_ENV)->DeleteGlobalRef(JAVA_ENV, x->jni_ref);
+    jniref_free_wrapper(x);
+}
+static void jniref_free_local(jniref *x) {
+    sc *sc = x->sc;
+    (*JAVA_ENV)->DeleteLocalRef(JAVA_ENV, x->jni_ref);
+    jniref_free_wrapper(x);
+}
+
 static int jniref_write(jniref *x, port *p) {
     return port_printf(p, "#<jniref:%p>", x->jni_ref);
 }
@@ -112,11 +129,12 @@ DEF_AREF_TYPE(jniref)
 static int jobject_equal(jniref *x, void *jni_ref) { return x->jni_ref == jni_ref; }
 
 
-static jniref *_new_jobject(sc *sc, void *jni_ref) {
+static jniref *_new_jobject(sc *sc, void *jni_ref, jni_delete delete) {
     jniref *x = calloc(1, sizeof(*x));
     leaf_init(&x->base, jniref_type());
     x->sc = sc;
     x->jni_ref = jni_ref;
+    x->delete = delete;
     java_pool = tuple_stack_push(java_pool, (leaf_object*)x);        
     return x;
 }
@@ -124,15 +142,22 @@ static jniref *_new_jobject(sc *sc, void *jni_ref) {
 /* 1st level wrapping makes a 1-1 map between leaf objects and jni references */
 static jniref *new_jobject(sc *sc, void *jni_ref) {
     jniref *x;
-
+        
     /* If it's already wrapped as jobject, return it with RC++.  */
     if ((x = (jniref*)tuple_list_find(java_pool, (leaf_predicate)jobject_equal, jni_ref))) {
-        // LOGF("reuse %p\n", jni_ref);
+        LOGF("reuse %p\n", jni_ref);
         return LEAF_DUP(x);
     }
     else {
-        // LOGF("wrap %p\n", jni_ref);
-        return _new_jobject(sc, jni_ref);
+        LOGF("wrap %p\n", jni_ref);
+#if 0
+        void *global_jni_ref =  (*JAVA_ENV)->NewGlobalRef(JAVA_ENV, jni_ref);
+        // fprintf(stderr, "ref: %p %p\n", global_jni_ref, jni_ref);
+        (*JAVA_ENV)->DeleteLocalRef(JAVA_ENV, jni_ref);
+        return _new_jobject(sc, global_jni_ref, jniref_free_global);
+#else
+        return _new_jobject(sc, jni_ref, jniref_free_local);
+#endif
     }
 }
 
@@ -140,7 +165,8 @@ static jniref *new_jobject(sc *sc, void *jni_ref) {
    stable due to GC moves, and there's no way to map jni_ref -> CS
    object. */
 static _ _sc_jniref(sc *sc, void *jni_ref) {
-    return _sc_make_aref(sc, new_jobject(sc, jni_ref));
+    if (!jni_ref) return VOID;
+    else return _sc_make_aref(sc, new_jobject(sc, jni_ref));
 }
 
 
@@ -191,7 +217,9 @@ _ sc_java_static_methodID(sc *sc, _ cls, _ name, _ sig) {
 _ sc_java_string(sc *sc, _ ob) {
     const char *str = CAST(cstring, ob);
     fprintf(stderr, "str: %s\n", str);
-    return _sc_jniref(sc, (*JAVA_ENV)->NewStringUTF(JAVA_ENV, str));
+    _ strob = _sc_jniref(sc, (*JAVA_ENV)->NewStringUTF(JAVA_ENV, str));
+    object_to_jniref(strob)->delete = jniref_free_wrapper;
+    return strob;
 }
 
 
@@ -329,10 +357,18 @@ _ sc_java_object_to_class(sc *sc, _ ob) {
     return _sc_java_check_error(sc, ob, _sc_jniref(sc, cls));
 }
 
-/* Alternative: call a sc.java helper method. */
 
 
 
+
+
+/* Alternative: call a sc.java helper method. 
+
+   This is the only place where java objects are created, so we get
+   better control over the wrapping.  Essentially, delegate everything
+   to the java side, with a "find" and "apply" style function
+
+*/
 
 
 
@@ -389,7 +425,7 @@ void METHOD(setToplevel)(JNIEnv *env, jclass sc_class, jlong lsc,
     _ name_sym = SYMBOL(name_str);
     (*env)->ReleaseStringUTFChars(env, name, name_str);
     fprintf(stderr, "setToplevel() needs global refs\n");
-    // sc_bang_def_toplevel(sc, name_sym, _sc_jniref(sc, value));
+    sc_bang_def_toplevel(sc, name_sym, _sc_jniref(sc, value));
 }
 
 /* Send a command to a console and collect the reply. */

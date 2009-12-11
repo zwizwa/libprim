@@ -6833,3 +6833,15 @@ Date: Fri Dec 11 16:00:56 CET 2009
 Probably because the string created in java-string isn't a local ref
 and can't be freed as such?
 
+
+I need to do this differently...  The current design is not very
+controllable.  Maybe it's best to make sure nowhere in the C code
+there is ever any local reference visible, then see how far that gets.
+
+A mix of java and C code is probably going to be best.  C side only
+sees global refs and only objects, then use the reflection API on the
+Java side to do all the work.
+
+
+
+
