@@ -6826,3 +6826,10 @@ static jniref *new_jobject(sc *sc, void *jni_ref) {
 #endif
 }
 
+
+Entry: Other problem
+Date: Fri Dec 11 16:00:56 CET 2009
+
+Probably because the string created in java-string isn't a local ref
+and can't be freed as such?
+

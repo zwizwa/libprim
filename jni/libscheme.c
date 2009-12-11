@@ -92,6 +92,7 @@ typedef struct {
     void *jni_ref;
 } jniref;
 
+
 /* The sc struct contains a reference to the currently active Java context. */
 static void jniref_free(jniref *x) {
     // LOGF("DeleteLocalRef(%p) RC=%d\n", x->jni_ref, leaf_rc(x->base));
@@ -110,6 +111,16 @@ DEF_AREF_TYPE(jniref)
 
 static int jobject_equal(jniref *x, void *jni_ref) { return x->jni_ref == jni_ref; }
 
+
+static jniref *_new_jobject(sc *sc, void *jni_ref) {
+    jniref *x = calloc(1, sizeof(*x));
+    leaf_init(&x->base, jniref_type());
+    x->sc = sc;
+    x->jni_ref = jni_ref;
+    java_pool = tuple_stack_push(java_pool, (leaf_object*)x);        
+    return x;
+}
+
 /* 1st level wrapping makes a 1-1 map between leaf objects and jni references */
 static jniref *new_jobject(sc *sc, void *jni_ref) {
     jniref *x;
@@ -121,12 +132,7 @@ static jniref *new_jobject(sc *sc, void *jni_ref) {
     }
     else {
         // LOGF("wrap %p\n", jni_ref);
-        x = calloc(1, sizeof(*x));
-        leaf_init(&x->base, jniref_type());
-        x->sc = sc;
-        x->jni_ref = jni_ref;
-        java_pool = tuple_stack_push(java_pool, (leaf_object*)x);        
-        return x;
+        return _new_jobject(sc, jni_ref);
     }
 }
 
