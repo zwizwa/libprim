@@ -382,7 +382,8 @@ void METHOD(setToplevel)(JNIEnv *env, jclass sc_class, jlong lsc,
     const char *name_str = (*env)->GetStringUTFChars(env, name, NULL);
     _ name_sym = SYMBOL(name_str);
     (*env)->ReleaseStringUTFChars(env, name, name_str);
-    sc_bang_def_toplevel(sc, name_sym, _sc_jniref(sc, value));
+    fprintf(stderr, "setToplevel() needs global refs\n");
+    // sc_bang_def_toplevel(sc, name_sym, _sc_jniref(sc, value));
 }
 
 /* Send a command to a console and collect the reply. */
