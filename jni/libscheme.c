@@ -370,6 +370,16 @@ void METHOD(resume)(JNIEnv *env, jclass sc_class, jlong lsc) {
     EX->ctx = NULL;
 }
 
+_ sc_bang_def_toplevel(sc*, _, _);
+void METHOD(setToplevel)(JNIEnv *env, jclass sc_class, jlong lsc,
+                         jstring name, jobject value) {
+    sc *sc = (void*)(long)lsc;
+    const char *name_str = (*env)->GetStringUTFChars(env, name, NULL);
+    _ name_sym = SYMBOL(name_str);
+    (*env)->ReleaseStringUTFChars(env, name, name_str);
+    sc_bang_def_toplevel(sc, name_sym, _sc_jniref(sc, value));
+}
+
 /* Send a command to a console and collect the reply. */
 jstring METHOD(consoleEvalString)(JNIEnv *env, jclass sc_class, jlong lconsole, jstring command) {
     console* sc_console = (console*)(long)lconsole;
@@ -385,6 +395,7 @@ jstring METHOD(consoleEvalString)(JNIEnv *env, jclass sc_class, jlong lconsole, 
            cannot represent Scheme vectors #(a b c) and improper lists
            (a b . c), only proper lists (a b c) */
         reply = tuple_ast_flatten_lin(reply);
+
 
         /* TODO: This gives symbol-tagged tuples that can be readily
            unpacked.  The first level wrapp is ok/error.  Based on the

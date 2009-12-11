@@ -24,6 +24,10 @@ public class sc {
     public native static long prepareConsoleServer(long vm, String node);
 
 
+    /* Add name.value bindings to the toplevel env. */
+    public native static void setToplevel(long vm, String name, Object value);
+
+
     /* Constructor wraps C pointers in a Java object. */
     long _vm = 0;
     long _console = 0;
@@ -68,4 +72,9 @@ public class sc {
     public String evalString(String commands) { 
         return consoleEvalString(_console, commands);
     }
+    public void setToplevel(String name, Object value) {
+        setToplevel(_vm, name, value);
+    }
+
+
 }

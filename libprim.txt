@@ -6717,3 +6717,12 @@ this is a mess.. solve it properly.
 
 it's not possible to map leaf -> aref due to moving GC, so each leaf
 needs to be _dupped.
+
+
+Entry: Java JNI fixed
+Date: Fri Dec 11 10:10:09 CET 2009
+
+Fixed most of the bugs in the JNI <-> LEAF/EX bridge, except for
+invoking constructors.
+
+
