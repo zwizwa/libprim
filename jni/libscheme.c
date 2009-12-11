@@ -269,7 +269,8 @@ static symbol *_sc_jvalue_args(sc *sc, _ args, _ signature, jvalue *jargs) {
 
 _ sc_java_new(sc *sc, _ jcls, _ ID, _ args, _ signature) {
     jvalue jargs[_sc_jvalue_nargs(sc, args)];
-    symbol *srtype = _sc_jvalue_args(sc, args, signature, jargs);
+    // symbol *srtype = 
+    _sc_jvalue_args(sc, args, signature, jargs);
     jniref  *cls = CAST(jniref, jcls);
     jniref *method = CAST(jniref, ID);
     jobject rv = (*JAVA_ENV)->NewObject(JAVA_ENV, cls->jni_ref, method->jni_ref, jargs);
@@ -317,6 +318,10 @@ _ sc_java_call(sc *sc, _ ob, _ ID, _ args, _ signature) {
     }
 }
 
+_ sc_java_object_to_class(sc *sc, _ ob) {
+    jclass cls = (*JAVA_ENV)->GetObjectClass(JAVA_ENV, CAST(jniref, ob)->jni_ref);
+    return _sc_java_check_error(sc, ob, _sc_jniref(sc, cls));
+}
 
 /* Alternative: call a sc.java helper method. */
 
@@ -416,5 +421,6 @@ jstring METHOD(consoleEvalString)(JNIEnv *env, jclass sc_class, jlong lconsole, 
     (*env)->ReleaseStringUTFChars(env, command, command_str);
     return rv;
 }
+
 
 

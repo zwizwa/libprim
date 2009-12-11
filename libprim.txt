@@ -6726,3 +6726,103 @@ Fixed most of the bugs in the JNI <-> LEAF/EX bridge, except for
 invoking constructors.
 
 
+Entry: JNI w/o type signatures
+Date: Fri Dec 11 11:33:01 CET 2009
+
+It would be handy to be able to get rid of the type signatures when
+looking up methods.  Could be done in two steps:
+
+  - map object -> class -> methods list
+  - find method with correct type, or simply try them one by one
+
+
+Entry: JAVA calls -> running VM loop
+Date: Fri Dec 11 11:53:18 CET 2009
+
+This needs some locking.  The simplest place to release the lock is
+during the select() wait period.
+
+
+Entry: global instead of local refs
+Date: Fri Dec 11 14:59:46 CET 2009
+
+Need to change the ref rep to global, so they survive across JNI
+calls.
+
+         /* Create a global reference */
+         stringClass = (*env)->NewGlobalRef(env, localRefCls);
+ 
+         /* The local reference is no longer useful */
+         (*env)->DeleteLocalRef(env, localRefCls);
+
+
+
+Apparently, this gives a unique object.  Looks like the object mapper
+isn't necessary.  But let's leave it in for now in case it is.
+
+No: it still is, but in less cases (i.e. objects passed through
+functions?).  Or are these also local refs that get re-wrapped?
+
+Confusing..
+
+
+Looks like I introduced a problem that wasn't there before.  Revert.
+
+
+
+/* The sc struct contains a reference to the currently active Java context. */
+
+/* For some reason the global refs cause crashes..  */
+#define GLOBAL_REFS 0
+
+static void jniref_free(jniref *x) {
+    // LOGF("DeleteRef(%p) RC=%d\n", x->jni_ref, leaf_rc(&x->base));
+    sc *sc = x->sc;
+    if (sc) {
+        java_pool = tuple_list_remove_object(java_pool, (leaf_object*)x, 1);
+#if GLOBAL_REFS        
+        (*JAVA_ENV)->DeleteGlobalRef(JAVA_ENV, x->jni_ref);
+#else
+        (*JAVA_ENV)->DeleteLocalRef(JAVA_ENV, x->jni_ref);
+#endif
+    }
+    free(x);
+}
+static int jniref_write(jniref *x, port *p) {
+    return port_printf(p, "#<jniref:%p>", x->jni_ref);
+}
+LEAF_SIMPLE_TYPE(jniref)
+DEF_AREF_TYPE(jniref)
+
+static int jobject_equal(jniref *x, void *jni_ref) { return x->jni_ref == jni_ref; }
+
+
+static jniref *new_jniref(sc *sc, void *jni_ref) {
+    jniref *x = calloc(1, sizeof(*x));
+    leaf_init(&x->base, jniref_type());
+    x->sc = sc;
+    x->jni_ref = jni_ref;
+    java_pool = tuple_stack_push(java_pool, (leaf_object*)x); 
+    return x;
+}
+
+/* 1st level wrapping makes a 1-1 map between leaf objects and jni references */
+static jniref *new_jobject(sc *sc, void *jni_ref) {
+#if GLOBAL_REFS
+    void *global_jni_ref =  (*JAVA_ENV)->NewGlobalRef(JAVA_ENV, jni_ref);
+    (*JAVA_ENV)->DeleteLocalRef(JAVA_ENV, jni_ref);
+    return new_jniref(sc, global_jni_ref);
+#else
+    jniref *x;
+    /* If it's already wrapped as jobject, return it with RC++.  */
+    if ((x = (jniref*)tuple_list_find(java_pool, (leaf_predicate)jobject_equal, jni_ref))) {
+        LOGF("reuse %p\n", jni_ref);
+        return LEAF_DUP(x);
+    }
+    else {
+        // LOGF("wrap %p\n", jni_ref);
+        return new_jniref(sc, jni_ref);
+    }
+#endif
+}
+

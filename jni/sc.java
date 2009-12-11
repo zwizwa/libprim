@@ -45,7 +45,9 @@ public class sc {
         long vm = boot(bootfile);
         long console = prepareConsoleServer(vm, node);
         spawnResume(vm);
-        return new sc(vm, console);
+        sc x = new sc(vm, console);
+        x.setThis();
+        return x;
     }
 
     /* Run blocking console on stdin. */
@@ -75,6 +77,7 @@ public class sc {
     public void setToplevel(String name, Object value) {
         setToplevel(_vm, name, value);
     }
-
-
+    public void setThis() {
+        setToplevel("this", this);
+    }
 }

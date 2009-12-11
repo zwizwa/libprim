@@ -36,11 +36,11 @@ public class reflect {
         }
     }
 
-    static void dumpMethods(String name) 
+    public static void dumpMethods(String name) 
         throws java.lang.ClassNotFoundException {
         dumpMethods(Class.forName(name)); 
     }
-    static void dumpMethods(Class c) 
+    public static void dumpMethods(Class c) 
     {
         try {
             Method m[] = c.getDeclaredMethods();
