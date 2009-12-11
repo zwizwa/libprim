@@ -27,15 +27,16 @@ Libprim constists of 3 main layers:
 Entry: A bit less cryptic
 Date: Tue Aug  4 11:14:36 CEST 2009
 
-From a practical day-to-day problem solving pov, C is not going
-anywhere because next to a programming language, it is also an
-interface standard, both for commodity machines and commodity
-programmers.  Anything that tries to incorporate modern language
-techniques in an embedded programming project needs to play nice with
-C.
+Practically, this project is about giving ideas implicit in Packet
+Forth[1] a new home.
 
-So, instead of focussing on building new languages, I think it is
-worthwhile to do some semantics engineering on subsets of C itself, by
+For day-to-day problem solving in embedded software projects, C is not
+going anywhere because next to a programming language, it is also an
+interface standard, both for commodity machines and commodity
+programmers.
+
+Instead of focussing on building new languages, I think it is
+worthwhile to do some engineering on with subsets of C itself, by
 providing an infrastructure that makes it easier to bootstrap
 ``functional, concurrency oriented C code''.
 
@@ -57,9 +58,13 @@ The goal is this:
    * Write a compiler for static memory allocation and scheduling to
      optimize away the scripting layer.
 
+   * Use a data-flow architecture (inspired by Oz).
+
 Static types?  Given that the goal of the project is _prototyping_
 which is mainly _evolving specification_ I think it's better to stick
 to a simpler dynamically typed approach.
+
+[1] http://zwizwa.be/packetforth
 
 
 Entry: CEKS machine
