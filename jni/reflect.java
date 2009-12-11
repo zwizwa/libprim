@@ -1,4 +1,4 @@
-// package foo.bar;
+package zwizwa.libprim;
 
 import java.lang.reflect.*;
 
@@ -36,10 +36,13 @@ public class reflect {
         }
     }
 
-    static void dumpMethods(String name)
+    static void dumpMethods(String name) 
+        throws java.lang.ClassNotFoundException {
+        dumpMethods(Class.forName(name)); 
+    }
+    static void dumpMethods(Class c) 
     {
         try {
-            Class c = Class.forName(name);
             Method m[] = c.getDeclaredMethods();
             for (int i = 0; i < m.length; i++) {
                 // System.out.println(m[i].toString());
@@ -59,7 +62,11 @@ public class reflect {
 
     // public static void main(String[] args) { test(args); }
     public static void test(String[] args) {
-        reflect.dumpMethods(args[0]);
+        try {
+            reflect.dumpMethods(args[0]);
+        }
+        catch (Throwable e) {
+        }
         // tn.call1();
         // tn.test1(1, 2);
         // Integer a = 1;

@@ -18,8 +18,7 @@ codec_class *codec_type(void) {
     static codec_class *x = NULL;
     if (!x) {
         codec_class *x = calloc(1, sizeof(*x)); 
-        x->super.free  = (leaf_free_m)free; 
-        x->super.write = (leaf_write_m)codec_write;
+        leaf_class_init((leaf_class*)x, (leaf_free_m)free, (leaf_write_m)codec_write);
     }
     return x; 
 }
@@ -46,8 +45,9 @@ codec_context_class *codec_context_type(void) {
     static codec_context_class *x = NULL;
     if (!x) {
         x = calloc(1, sizeof(*x));
-        x->super.free  = (leaf_free_m)codec_context_free;
-        x->super.write = (leaf_write_m)codec_context_write;
+        leaf_class_init((leaf_class*)x,
+                        (leaf_free_m)codec_context_free,
+                        (leaf_write_m)codec_context_write);
     }
     return x; 
 }
@@ -94,8 +94,9 @@ vframe_class *vframe_type(void) {
     static vframe_class *x = NULL;
     if (!x) {
         x = calloc(1, sizeof(*x)); 
-        x->super.free  = (leaf_free_m)vframe_free;
-        x->super.write = (leaf_write_m)vframe_write;
+        leaf_class_init((leaf_class*)x,
+                        (leaf_free_m)vframe_free,
+                        (leaf_write_m)vframe_write);
     }
     return x; 
 }
@@ -133,8 +134,9 @@ aframe_class *aframe_type(void) {
     static aframe_class *x = NULL;
     if (!x) {
         x = calloc(1, sizeof(*x)); 
-        x->super.free  = (leaf_free_m)aframe_free;
-        x->super.write = (leaf_write_m)aframe_write;
+        leaf_class_init((leaf_class*)x,
+                        (leaf_free_m)aframe_free,
+                        (leaf_write_m)aframe_write);
     }
     return x; 
 }

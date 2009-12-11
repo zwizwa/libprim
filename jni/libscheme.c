@@ -1,15 +1,7 @@
 /* Java JNI interface. */
 
-/*
-  TODO: keep a reference table.  The problem is that we can't know
-  whether an object gets wrapped twice, i.e. a method call might
-  return an object that's already wrapped as a SC object.  The problem
-  is then that we don't know when to "free" it.
 
-  Essentially: we need a map from java object -> wrapped scheme object
-  to prevent double wrapping.
-
-*/
+/* Todo: separate LEAF and SC code */
 
 
 #include <string.h>
@@ -22,9 +14,9 @@
 
 
 /* javah */
-#include "libsc.h_sc_prims"
-static prim_def android_prims[] = libsc_table_init;
-void _libsc_init(sc *sc) {
+#include "libscheme.h_sc_prims"
+static prim_def android_prims[] = libscheme_table_init;
+void _libscheme_init(sc *sc) {
     _sc_def_prims(sc, android_prims);
 }
 
@@ -102,7 +94,7 @@ typedef struct {
 
 /* The sc struct contains a reference to the currently active Java context. */
 static void jniref_free(jniref *x) {
-    LOGF("DeleteLocalRef(%p) RC=%d\n", x->jni_ref, x->base._rc);
+    // LOGF("DeleteLocalRef(%p) RC=%d\n", x->jni_ref, leaf_rc(x->base));
     sc *sc = x->sc;
     if (sc) {
         java_pool = tuple_list_remove_object(java_pool, (leaf_object*)x, 1);
@@ -124,11 +116,11 @@ static jniref *new_jobject(sc *sc, void *jni_ref) {
 
     /* If it's already wrapped as jobject, return it with RC++.  */
     if ((x = (jniref*)tuple_list_find(java_pool, (leaf_predicate)jobject_equal, jni_ref))) {
-        LOGF("reuse %p\n", jni_ref);
+        // LOGF("reuse %p\n", jni_ref);
         return LEAF_DUP(x);
     }
     else {
-        LOGF("wrap %p\n", jni_ref);
+        // LOGF("wrap %p\n", jni_ref);
         x = calloc(1, sizeof(*x));
         leaf_init(&x->base, jniref_type());
         x->sc = sc;
@@ -350,7 +342,7 @@ jlong METHOD(boot)(JNIEnv *env, jclass sc_class, jstring bootfile) {
     LOGF("Booting Scheme from %s\n", bootfile_str);
     char *argv[] = {"sc", "--boot", (char*)bootfile_str};  // FIXME: path (resource?)
     sc *sc = _sc_new(3, argv);
-    _libsc_init(sc);
+    _libscheme_init(sc);
     (*env)->ReleaseStringUTFChars(env, bootfile, bootfile_str);
     LOGF("Scheme VM: %p\n", sc);
 

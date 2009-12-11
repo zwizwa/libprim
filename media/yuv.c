@@ -19,8 +19,9 @@ yuv_class *yuv_type(void) {
     static yuv_class *x = NULL;
     if (!x) {
         x = calloc(1, sizeof(*x));
-        x->super.free  = (leaf_free_m)yuv_free;
-        x->super.write = (leaf_write_m)yuv_write;
+        leaf_class_init((leaf_class*)x,
+                        (leaf_free_m)yuv_free,
+                        (leaf_write_m)yuv_write);
         x->super.dump  = (leaf_write_m)yuv_dump;
     }
     return x;

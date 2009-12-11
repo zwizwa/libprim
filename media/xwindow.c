@@ -57,8 +57,9 @@ xdisplay_class *xdisplay_type(void) {
     static xdisplay_class *type = NULL;
     if (!type) {
         type = calloc(1, sizeof(*type));
-        type->super.free  = (leaf_free_m)xdisplay_free;
-        type->super.write = (leaf_write_m)xdisplay_write;
+        leaf_class_init((leaf_class*)type,
+                        (leaf_free_m)xdisplay_free,
+                        (leaf_write_m)xdisplay_write);
     }
     return type;
 }
@@ -442,8 +443,9 @@ xwindow_class *xwindow_type(void) {
     static xwindow_class *type = NULL;
     if (!type) {
         type = calloc(1, sizeof(*type));
-        type->super.free  = (leaf_free_m)xwindow_free;
-        type->super.write = (leaf_write_m)xwindow_write;
+        leaf_class_init((leaf_class*)type,
+                        (leaf_free_m)xwindow_free,
+                        (leaf_write_m)xwindow_write);
     }
     return type;
 }
