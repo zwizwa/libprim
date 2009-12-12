@@ -32,6 +32,7 @@ typedef struct {
     jclass type_string;
     jclass type_object;
     jclass type_object_array;
+
 } java_ctx;
 static inline java_ctx *_sc_java_ctx(sc *sc) {
     java_ctx *ctx = (java_ctx*)(EX->ctx);
@@ -143,9 +144,9 @@ void METHOD(resume)(JNIEnv *env, jclass cls, jlong lsc) {
     ctx.cls = cls;
     ctx.type_string = (*env)->FindClass(env, "java/lang/String");
     ctx.type_object = (*env)->FindClass(env, "java/lang/Object");
-    ctx.type_object_array = (*env)->FindClass(env, "[java/lang/Object");
+    ctx.type_object_array = (*env)->FindClass(env, "[Ljava/lang/Object;");
 
-    LOGF("String:%p, Object:%p, Object[]:%p\n",
+    LOGF("String:%p, Object:%p, Object[]:%p\n" ,
          ctx.type_string, ctx.type_object, ctx.type_object_array);
 
     ctx.call = 
@@ -185,12 +186,13 @@ jarray _sc_vector_to_jarray(sc *sc, vector *v) {
 _ _sc_jarray_to_object(sc *sc, jarray a_j);
 _ _sc_jobject_to_object(sc *sc, jobject o_j) {
     jclass cls = (*CTX->env)->GetObjectClass(CTX->env, o_j);
-    if (CTX->type_object_array == cls) \
+    LOGF("cls = %p\n", cls);
+    if (cls == CTX->type_object_array) 
         return _sc_jarray_to_object(sc, (jarray)o_j);
-    if (CTX->type_string == cls) {
+    if (cls == CTX->type_string) {
         _ ob;
         const char* str = (*CTX->env)->GetStringUTFChars(CTX->env, o_j, NULL);
-        ob = SYMBOL(str);
+        ob = STRING(str);
         (*CTX->env)->GetStringUTFChars(CTX->env, o_j, NULL);
         (*CTX->env)->ReleaseStringUTFChars(CTX->env, o_j, str);
         return ob;

@@ -32,7 +32,9 @@ public class sc {
         return (Object)a;
     }
     public static Object _test (Object ... a) {
+        // return new Object[] {"foo", "bar"};
         return _tuple("foo", "bar");
+        // return "foo";
     }
 
     /* Generic C->Java delegation method. */
