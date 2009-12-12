@@ -160,5 +160,9 @@ public class reflect {
 
     /* The C bridge doesn't support numbers (yet), so tunnel them
        through strings. */
-    static Object integer(Object... a) { return new Integer((String)a[0]); }
+    static Object Long   (Object... a) { return new Long   ((String)a[0]); }
+    static Object Integer(Object... a) { return new Integer((String)a[0]); }
+    static Object Float  (Object... a) { return new Float  ((String)a[0]); }
+    static Object Double (Object... a) { return new Double ((String)a[0]); }
+    static Object Short  (Object... a) { return new Short  ((String)a[0]); }
 }

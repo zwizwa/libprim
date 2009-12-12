@@ -6868,3 +6868,9 @@ Date: Sat Dec 12 14:03:11 CET 2009
 
 In other words: make method lookup simpler (no fussing with specifying
 types: automate as much as possible).
+
+Done, but I didn't make special number convertors.  Structured strings
+are enough for now.
+
+
+
