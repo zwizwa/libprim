@@ -69,23 +69,45 @@ public class reflect {
         }
         return null;
     }
+    /* Convert Object[] array to Class[] array (Does java have
+       recursive casts?)*/
+    static private Class[] _types(Object o) {
+        Object[] types = (Object[])o;
+        Class[] ts = new Class[types.length];
+        for (int i = 0; i<types.length; i++) ts[i] = (Class)types[i];
+        return ts;
+    }
     static Object lookup(Object... a) 
         throws java.lang.NoSuchMethodException
     {
         Class cls = (Class)a[0];
         String name = (String)a[1];
-        Object[] types = (Object[])a[2];
-        Class[] ts = new Class[types.length];
-        for (int i = 0; i<types.length; i++) ts[i] = (Class)types[i];
+        Class[] ts = _types(a[2]);
         return cls.getDeclaredMethod(name, ts);
+    }
+    static Object constructor(Object... a)
+        throws java.lang.NoSuchMethodException
+    {
+        Class cls = (Class)a[0];
+        Class[] ts = _types(a[1]);
+        return cls.getConstructor(ts);
+    }
+    static Object create(Object... a) 
+        throws  java.lang.InstantiationException,
+                java.lang.IllegalAccessException,
+                java.lang.reflect.InvocationTargetException
+    {
+        Constructor ct = (Constructor)a[0];
+        Object[] args = (Object[])a[1];
+        return ct.newInstance(args);
     }
     static Object invoke(Object... a)
         throws java.lang.IllegalAccessException,
                java.lang.reflect.InvocationTargetException
     {
-        Method m = (Method)a[0];
+        Method m = (Method)a[1];
         Object[] args = (Object[])a[2];
-        return m.invoke(a[1], args);
+        return m.invoke(a[0], args);
     }
     static Object toString(Object... a) {
         Object o = a[0];

@@ -13,13 +13,12 @@ public class tests {
         System.out.println("static make() // method called");
         return new tests(); 
     }
-    
-    tests() {
+    public tests() {
         state = "default";
         System.out.println("tests() // constructor called");
     }
     private String state;
-    tests(String s) {
+    public tests(String s) {
         state = s;
         System.out.println("tests(" + s + ") constructor called");
     }

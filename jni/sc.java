@@ -22,9 +22,13 @@ public class sc {
             Method m = reflect.class.getDeclaredMethod(cmd, new Class[] { Object[].class });
             return m.invoke(null, new Object[] { args });
         }
+        /* We don't propagate errors to C/Scheme (yet).  Just
+           print them to the console. */
+        catch (java.lang.reflect.InvocationTargetException e) {
+            System.err.println(e.toString());
+            System.err.println(e.getCause().toString());
+        }
         catch (Throwable e) {
-            /* We don't propagate errors to C/Scheme (yet).  Just
-               print them to the console. */
             System.err.println(e.toString());
         }
         return null;

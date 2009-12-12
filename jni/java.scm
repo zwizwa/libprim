@@ -13,8 +13,11 @@
 (define foo   (java lookup tests "foo" #()))
 (define make  (java lookup tests "make" #()))
 
-(java invoke foo (void) #())
-(define x (java invoke make (void) #())) ;; a static factory method
+(java invoke (void) foo #())
+(define x (java invoke (void) make #())) ;; a static factory method
 
 (define state (java lookup tests "state" #()))
-(java invoke state x #())
+(java invoke x state #())
+
+(define ctor  (java constructor tests (vector (java type "java.lang.String"))))
+(java create ctor #("blah"))
