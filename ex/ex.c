@@ -32,12 +32,20 @@ char *object_to_cstring(_ ob) {
 object _ex_write_vector(ex *ex, const char *type, vector *v) {
     port *p = ex->port(ex);
     long i,n = vector_size(v);
-    port_printf(p, "#<%s:", type);
+    const char *close = NULL;
+    if (type) {
+        port_printf(p, "#<%s:", type);
+        close = ">";
+    }
+    else {
+        port_printf(p, "#(", type);
+        close = ")";
+    }
     for(i=0;i<n;i++){
         ex->write(ex, v->slot[i]);
         if (i != n-1) port_printf(p, " ");
     }
-    port_printf(p, ">");
+    port_printf(p, "%s", close);
     return VOID;
 }
 
@@ -88,7 +96,7 @@ object _ex_write(ex *ex, object o) {
         object_to is_obj;
         long flags = object_get_vector_flags(o);
         if (TAG_VECTOR == flags) { 
-            return _ex_write_vector(ex, "", v);
+            return _ex_write_vector(ex, NULL, v);
         }
 
         // FIXME: handle one type consed to another!
