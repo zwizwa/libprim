@@ -12,17 +12,38 @@ public class sc {
 
     /** CLASS METHODS **/
 
+    /* Methods prefixed with "_" are all vararg Object methods that
+       produce a single Object.  This encodes a run-time typed
+       representation of structured data (with Object[] as basic
+       structure type) which maps better to Scheme. */
+
+    public static Object _class (Object ... a) 
+        throws java.lang.ClassNotFoundException
+    {
+        String name = (String)a[0];
+        /* Is there a textual representation of primitive types? */
+        if (name.equals("int"))  return Integer.TYPE;
+        if (name.equals("long")) return Long.TYPE;
+        if (name.equals("void")) return Void.TYPE;
+        /* A proper class: access through global namespace. */
+        return Class.forName(name);
+    }
+
     /* Generic C->Java delegation method. */
-    public static Object call (Object ... a) {
+    public static Object _call (Object ... a) {
         try {
             Class c = a[0].getClass();
+            /* Late-bound command. */
             if (c == String.class) {
-                /* Late-bound command. */
                 String cmd = (String)a[0];
-                if (cmd.equals("class")) return Class.forName((String)a[1]); 
+                if (cmd.equals("class")) return _class(a[1]);
                 return null;
             }
+            /* Class method */
             else if (c == Class.class) {
+            }
+            /* Object method */
+            else {
             }
         }
         catch (Throwable e) {

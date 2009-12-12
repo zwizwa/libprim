@@ -138,32 +138,45 @@ void METHOD(resume)(JNIEnv *env, jclass cls, jlong lsc) {
     ctx.env = env;
     ctx.cls = cls;
     ctx.call = (*env)->GetStaticMethodID
-        (env, cls, "call", "([Ljava/lang/Object;)Ljava/lang/Object;");
+        (env, cls, "_call", "([Ljava/lang/Object;)Ljava/lang/Object;");
                                          
     EX->ctx = &ctx;
     _sc_continue((void*)(long)lsc);
     EX->ctx = NULL;
 }
 
-/* Tunnel everything through a single C -> Java call, and perform
-   interpretation on the Java side. */
-_ sc_java_call(sc* sc, _ cmd) {
-    vector *v = CAST(vector, cmd);
+/* Recursive EX -> Java data conversion. */
+jarray _sc_vector_to_jarray(sc *sc, vector *v);
+jobject _sc_object_to_jobject(sc *sc, _ ob) {
+    const char *str;
+    vector *vv;
+    if ((str = object_to_cstring(ob))) 
+        return (*CTX->env)->NewStringUTF(CTX->env, str);
+    if ((vv = object_to_vector(ob))) 
+        return (jobject)_sc_vector_to_jarray(sc, vv);
+    else
+        return (jobject)CAST(jniref, ob);
+}
+jarray _sc_vector_to_jarray(sc *sc, vector *v) {
     int i,n = vector_size(v);
     jclass type_j = (*CTX->env)->FindClass(CTX->env, "java/lang/Object");
     jarray a_j = (*CTX->env)->NewObjectArray(CTX->env, n, type_j, NULL);
     for (i=0; i<n; i++) {
-        jobject o_j = NULL;
-        const char *str;
-        if ((str = object_to_cstring(v->slot[i]))) { 
-            o_j = (*CTX->env)->NewStringUTF(CTX->env, str);
-            // delete local ref?
-        }
-        else {
-            o_j = (jobject)CAST(jniref, v->slot[i]);
-        }
+        jobject o_j = _sc_object_to_jobject(sc, v->slot[i]);
         (*CTX->env)->SetObjectArrayElement(CTX->env, a_j, i, o_j);
+        (*CTX->env)->DeleteLocalRef(CTX->env, o_j);
     }
+    return a_j;
+}
+
+
+
+
+/* Tunnel everything through a single C -> Java call, and perform
+   interpretation on the Java side. */
+_ sc_java_call(sc* sc, _ cmd) {
+    vector *v = CAST(vector, cmd);
+    jarray a_j = _sc_vector_to_jarray(sc, v);
     jobject rv = (*CTX->env)->CallStaticObjectMethod
         (CTX->env, CTX->cls, CTX->call, a_j);
     return _sc_jniref(sc, rv);
