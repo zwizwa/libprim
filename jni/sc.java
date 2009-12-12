@@ -31,29 +31,38 @@ public class sc {
     public static Object _tuple (Object ... a) {
         return (Object)a;
     }
+    // (java-call #("_test" #()))
     public static Object _test (Object ... a) {
-        // return new Object[] {"foo", "bar"};
         return _tuple("foo", "bar");
-        // return "foo";
+    }
+    /* Unpack any kind of array into a nested Object[] structure.
+       This is not called automatically to avoid GC restarts on large
+       data structures.  Once you have a reference to a wrapped array,
+       call unpack manually. */
+    public static Object _unpack(Object ... a) {
+        Class cls = a[0].getClass();
+        if (!cls.isArray()) return cls;
+        else {
+            Object[] in = (Object[])a[0];
+            Object[] out = new Object[in.length]; 
+            for (int i = 0; i < in.length; i++) { 
+                out[i] = _unpack(in[i]); 
+            }
+            return out;
+        }
+    }
+    public static Object _methods(Object ... a) {
+        Class cls = (Class)a[0];
+        return cls.getDeclaredMethods();
     }
 
     /* Generic C->Java delegation method. */
-    public static Object _call (Object ... a) {
+    public static Object _call (Object... a) {
         try {
-            Class c = a[0].getClass();
-            /* Late-bound command. */
-            if (c == String.class) {
-                String cmd = (String)a[0];
-                if (cmd.equals("class")) return _class(a[1]);
-                if (cmd.equals("test")) return _test();
-                return null;
-            }
-            /* Class method */
-            else if (c == Class.class) {
-            }
-            /* Object method */
-            else {
-            }
+            String cmd = (String)a[0];
+            Object[] args = (Object[])a[1];
+            Method m = sc.class.getDeclaredMethod(cmd, new Class[] { Object[].class });
+            return m.invoke(null, new Object[] { args });
         }
         catch (Throwable e) {
             /* We don't propagate errors to C (yet).  Just print them

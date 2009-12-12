@@ -13,7 +13,6 @@
 #include <leaf/tuple.h>
 
 
-/* javah */
 #include "libscheme.h_sc_prims"
 static prim_def android_prims[] = libscheme_table_init;
 void _libscheme_init(sc *sc) {
@@ -146,8 +145,8 @@ void METHOD(resume)(JNIEnv *env, jclass cls, jlong lsc) {
     ctx.type_object = (*env)->FindClass(env, "java/lang/Object");
     ctx.type_object_array = (*env)->FindClass(env, "[Ljava/lang/Object;");
 
-    LOGF("String:%p, Object:%p, Object[]:%p\n" ,
-         ctx.type_string, ctx.type_object, ctx.type_object_array);
+    // LOGF("String:%p, Object:%p, Object[]:%p\n" ,
+    //     ctx.type_string, ctx.type_object, ctx.type_object_array);
 
     ctx.call = 
         (*env)->GetStaticMethodID
@@ -165,14 +164,14 @@ jobject _sc_object_to_jobject(sc *sc, _ ob) {
     vector *vv;
     if ((str = object_to_cstring(ob))) 
         return (*CTX->env)->NewStringUTF(CTX->env, str);
-    if ((vv = object_to_vector(ob))) 
+    if ((vv = object_to_vector(ob)) &&
+        (TAG_VECTOR == vector_to_flags(vv)))
         return (jobject)_sc_vector_to_jarray(sc, vv);
     else
-        return (jobject)CAST(jniref, ob);
+        return (jobject)(CAST(jniref, ob)->jni_ref);
 }
 jarray _sc_vector_to_jarray(sc *sc, vector *v) {
     int i,n = vector_size(v);
-    
     jarray a_j = (*CTX->env)->NewObjectArray(CTX->env, n, CTX->type_object, NULL);
     for (i=0; i<n; i++) {
         jobject o_j = _sc_object_to_jobject(sc, v->slot[i]);
@@ -186,7 +185,7 @@ jarray _sc_vector_to_jarray(sc *sc, vector *v) {
 _ _sc_jarray_to_object(sc *sc, jarray a_j);
 _ _sc_jobject_to_object(sc *sc, jobject o_j) {
     jclass cls = (*CTX->env)->GetObjectClass(CTX->env, o_j);
-    LOGF("cls = %p\n", cls);
+    // LOGF("cls = %p\n", cls);
     if (cls == CTX->type_object_array) 
         return _sc_jarray_to_object(sc, (jarray)o_j);
     if (cls == CTX->type_string) {
@@ -219,7 +218,7 @@ _ sc_java_call(sc* sc, _ cmd) {
     jobject rv = (*CTX->env)->CallStaticObjectMethod
         (CTX->env, CTX->cls, CTX->call, a_j);
     // return _sc_jniref(sc, rv);
-    return _sc_jobject_to_object(sc, rv);
+    return rv ? _sc_jobject_to_object(sc, rv) : VOID;
 }
 
 
