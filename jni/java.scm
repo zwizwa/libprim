@@ -7,17 +7,3 @@
             (vector ,@(cddr form)))))
 
 
-;;; TEST
-
-(define tests (java type "zwizwa.libprim.tests"))
-(define foo   (java lookup tests "foo" #()))
-(define make  (java lookup tests "make" #()))
-
-(java invoke (void) foo #())
-(define x (java invoke (void) make #())) ;; a static factory method
-
-(define state (java lookup tests "state" #()))
-(java invoke x state #())
-
-(define ctor  (java constructor tests (vector (java type "java.lang.String"))))
-(java create ctor #("blah"))

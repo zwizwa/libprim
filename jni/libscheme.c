@@ -29,8 +29,10 @@ typedef struct {
     jmethodID call;  // C -> Java call delegation
     
     jclass type_string;
+    jclass type_integer;
     jclass type_object;
     jclass type_object_array;
+
 
 } java_ctx;
 static inline java_ctx *_sc_java_ctx(sc *sc) {
@@ -142,8 +144,10 @@ void METHOD(resume)(JNIEnv *env, jclass cls, jlong lsc) {
     ctx.env = env;
     ctx.cls = cls;
     ctx.type_string = (*env)->FindClass(env, "java/lang/String");
+    ctx.type_integer = (*env)->FindClass(env, "java/lang/Integer");
     ctx.type_object = (*env)->FindClass(env, "java/lang/Object");
     ctx.type_object_array = (*env)->FindClass(env, "[Ljava/lang/Object;");
+    
 
     // LOGF("String:%p, Object:%p, Object[]:%p\n" ,
     //     ctx.type_string, ctx.type_object, ctx.type_object_array);

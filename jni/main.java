@@ -2,7 +2,7 @@
 // package zwizwa.libprim;
 import zwizwa.libprim.sc;
 
-public class testsc {
+public class main {
 
     static void spawnConsoleServer() {
         sc x = sc.spawnConsoleServer("../sc/boot.scm", "/tmp/sc");

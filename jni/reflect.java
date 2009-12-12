@@ -121,6 +121,9 @@ public class reflect {
             String name = ((Class)o).getName();
             return "#<class:" + name + ">";
         }
+        else if (c == Integer.class) {
+            return ((Integer)o).toString();
+        }
         else {
             String name = 
                 o.getClass().getName() + ":" +
@@ -143,6 +146,19 @@ public class reflect {
             System.out.print((String)toString(o));
         }
     }
-    static Object write(Object... a) { _write(a[0]); return null; }
-    static Object post(Object... a) { _write(a[0]); System.out.print("\n"); return null; };
+    static Object write(Object... a) { 
+        _write(a[0]); 
+        return null; 
+    }
+    static Object post(Object... a) { 
+        System.out.print("-> "); 
+        _write(a[0]); 
+        System.out.print("\n"); 
+        return null; 
+    };
+
+
+    /* The C bridge doesn't support numbers (yet), so tunnel them
+       through strings. */
+    static Object integer(Object... a) { return new Integer((String)a[0]); }
 }

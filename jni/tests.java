@@ -9,6 +9,7 @@ public class tests {
         System.out.println("state() -> " + state + " // object method called");
         return state;
     }
+    public static int addint (int a, int b) { return a + b; }
     public static tests make () { 
         System.out.println("static make() // method called");
         return new tests(); 
@@ -20,6 +21,6 @@ public class tests {
     private String state;
     public tests(String s) {
         state = s;
-        System.out.println("tests(" + s + ") constructor called");
+        System.out.println("tests(" + s + ") // constructor called");
     }
 }

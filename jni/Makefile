@@ -13,16 +13,16 @@ CPPFLAGS += -I/usr/lib/jvm/java-1.5.0-sun-1.5.0.17/include
 CPPFLAGS += -I/usr/lib/jvm/java-1.5.0-sun-1.5.0.17/include/linux
 
 # all: testnative.class libnativelib.so reflect.class
-all: libscheme.so sc.class testsc.class eval.class reflect.class tests.class
+all: libscheme.so sc.class main.class eval.class reflect.class tests.class
 
 links:
 	ln -s . libprim
 	ln -s . zwizwa
 
-gdbtest: all testsc.class
-	CLASSPATH=. LD_LIBRARY_PATH=. gdb --args java testsc
-test: all testsc.class
-	CLASSPATH=. LD_LIBRARY_PATH=. java testsc
+gdbtest: all main.class
+	CLASSPATH=. LD_LIBRARY_PATH=. gdb --args java main
+test: all main.class
+	CLASSPATH=. LD_LIBRARY_PATH=. java main
 
 # JAVA_FLAGS = -Xlint:unchecked
 
