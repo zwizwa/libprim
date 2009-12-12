@@ -3,6 +3,7 @@
 
 #include <ctype.h>
 #include <setjmp.h>
+#include <pthread.h>
 
 /* Basic memory model for the Scheme and PF scripting languages.  This
    includes GCd vectors, and opaque primitive leaf types and
@@ -41,16 +42,15 @@ typedef leaf_object *(*_ex_m_object_to_leaf)(ex *ex, object);
 typedef void (*_ex_m_object_erase_leaf)(ex *ex, object);
 typedef object (*ex_m_make_pair)(ex *ex, object car, object cdr); // reader
 struct _ex {
-    void *type;  // in case VM structs are wrapped as LEAF objects
-    void *ctx;   // any other user context associated with VM (i.e. JNIEnv)
-    
     struct _gc *gc;      // garbage collected graph memory manager
     int gc_guard_cells;  // guard buffer for primitives
+    prim *prim;          // current primitive
+    void *ctx;           // any other user context associated with VM (i.e. JNIEnv)
 
-    long entries;     // multiple entry semaphore
-    jmp_buf except;   // GC unwind + exceptions
+    long entries;                 // multiple entry semaphore
+    jmp_buf except;               // GC unwind + exceptions
+    pthread_mutex_t machine_lock; // unlock machine struct during select() call
     
-    prim *prim;            // current primitive
     long stateful_context; // if set, GC restarts are illegal
     _ error_tag;
     _ error_arg;

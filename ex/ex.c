@@ -601,8 +601,10 @@ _ ex_bang_select(ex *ex, _ actions, _ timeout) {
     struct timeval tv = {(int)seconds,
                          (int)((seconds - (int)seconds) * 1000000.)};
 
+    pthread_mutex_unlock(&ex->machine_lock);
     int rv = select(max + 1, sets+0, sets+1, sets+2, 
                     (timeout == FALSE) ? NULL : &tv );
+    pthread_mutex_lock(&ex->machine_lock);
 
     if (-1 == rv) return ERROR("select", actions);
     for_actions(ex, actions, sets, PORTS_GET);

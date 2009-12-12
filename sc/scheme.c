@@ -756,6 +756,7 @@ _ _sc_continue(sc *sc) {
         _ex_printf(EX, "WARNING: multiple _sc_top() entries.\n");
         return NIL;
     }
+    pthread_mutex_lock(&EX->machine_lock);
     sc->m.entries++;
     for(;;) {
 
@@ -803,6 +804,7 @@ _ _sc_continue(sc *sc) {
             /* Halt */
             if (e->tag == SYMBOL("halt")) {
                 sc->m.entries--;
+                pthread_mutex_unlock(&EX->machine_lock);
                 return e->arg;
             }
                     
@@ -908,6 +910,9 @@ sc *_sc_new(int argc, char **argv) {
             return NULL;
         }
     }
+
+    /* This is taken during resume() and freed during select() */
+    pthread_mutex_init(&EX->machine_lock, NULL);
 
     /* Garbage collector. */
     sc->m.gc = gc_new(20000, sc, 
