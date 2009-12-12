@@ -1,77 +1,73 @@
+
+
+/* A collection of static functions for Java reflection. */
+
+// Package names are necessary, as these are hard-coded in the C symbols.
 package zwizwa.libprim;
 
 import java.lang.reflect.*;
 
-
-
 public class reflect {
 
-    String foo() { return "foo()"; }
 
-    int test1(int a, int b) { return a + b; }
-    // void test1(int a, int b) { }
+    /** CLASS METHODS **/
 
-    Integer test2(Integer a, Integer b) { return a + b; }
+    /* Methods prefixed with "_" are all vararg Object methods that
+       produce a single Object.  This encodes a run-time typed
+       representation of structured data (with Object[] as basic
+       structure type) which maps better to Scheme. */
 
-    void call1 ()
+    public static Object type (Object ... a) 
+        throws java.lang.ClassNotFoundException
     {
-        try {
-            Class int_class = Class.forName("java.lang.Integer");
-            Class this_class = this.getClass(); //Class.forName("reflect");
-
-            // Class[] types = new Class[] {int_class, int_class};
-            // Method m = this_class.getDeclaredMethod("test2", types);
-            
-            Class[] types = new Class[] {Integer.TYPE, Integer.TYPE};
-            Method m = this_class.getDeclaredMethod("test1", types);
-            
-
-
-            Object[] args = new Object[] {1, 2};
-            Object result = m.invoke(this, args);
-            System.out.println((Integer)result);
-        }
-        catch (Throwable e) {
-            System.err.println(e);
-        }
+        String name = (String)a[0];
+        /* Is there a textual representation of primitive types? */
+        if (name.equals("int"))  return Integer.TYPE;
+        if (name.equals("long")) return Long.TYPE;
+        if (name.equals("void")) return Void.TYPE;
+        /* A proper class: access through global namespace. */
+        return Class.forName(name);
     }
-
-    public static void dumpMethods(String name) 
-        throws java.lang.ClassNotFoundException {
-        dumpMethods(Class.forName(name)); 
+    public static Object tuple (Object ... a) {
+        return (Object)a;
     }
-    public static void dumpMethods(Class c) 
-    {
-        try {
-            Method m[] = c.getDeclaredMethods();
-            for (int i = 0; i < m.length; i++) {
-                // System.out.println(m[i].toString());
-                System.out.println(m[i].getName());
-                Class[] cs = m[i].getParameterTypes();
-                for (int j = 0; j < cs.length; j++) {
-                    System.out.println("   " + cs[j].getName());
-                }
-                System.out.println("-> " + m[i].getReturnType().getName());
-                System.out.println("");
+    // (java-call #("test" #()))
+    public static Object test (Object ... a) {
+        return tuple("foo", "bar");
+    }
+    /* Unpack any kind of array into a nested Object[] structure.
+       This is not called automatically to avoid GC restarts on large
+       data structures.  Once you have a reference to a wrapped array,
+       call unpack manually. */
+    public static Object unpack(Object ... a) {
+        Class cls = a[0].getClass();
+        if (!cls.isArray()) return cls;
+        else {
+            Object[] in = (Object[])a[0];
+            Object[] out = new Object[in.length]; 
+            for (int i = 0; i < in.length; i++) { 
+                out[i] = unpack(in[i]); 
             }
+            return out;
         }
-        catch (Throwable e) {
-            System.err.println(e);
+    }
+    public static Object methods(Object ... a) {
+        Class cls = (Class)a[0];
+        return cls.getDeclaredMethods();
+    }
+    public static Object info(Object... a) {
+        Method m[] = ((Class)a[0]).getDeclaredMethods();
+        for (int i = 0; i < m.length; i++) {
+            // System.out.println(m[i].toString());
+            System.out.println(m[i].getName());
+            Class[] cs = m[i].getParameterTypes();
+            for (int j = 0; j < cs.length; j++) {
+                System.out.println("   " + cs[j].getName());
+            }
+            System.out.println("-> " + m[i].getReturnType().getName());
+            System.out.println("");
         }
+        return null;
     }
 
-    // public static void main(String[] args) { test(args); }
-    public static void test(String[] args) {
-        try {
-            reflect.dumpMethods(args[0]);
-        }
-        catch (Throwable e) {
-        }
-        // tn.call1();
-        // tn.test1(1, 2);
-        // Integer a = 1;
-        // Integer b = 2;
-        // tn.test2(a, b);
-        // tn.test1(a, b);
-    }
 }
