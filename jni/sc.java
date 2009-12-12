@@ -28,6 +28,12 @@ public class sc {
         /* A proper class: access through global namespace. */
         return Class.forName(name);
     }
+    public static Object _tuple (Object ... a) {
+        return (Object)a;
+    }
+    public static Object _test (Object ... a) {
+        return _tuple("foo", "bar");
+    }
 
     /* Generic C->Java delegation method. */
     public static Object _call (Object ... a) {
@@ -37,6 +43,7 @@ public class sc {
             if (c == String.class) {
                 String cmd = (String)a[0];
                 if (cmd.equals("class")) return _class(a[1]);
+                if (cmd.equals("test")) return _test();
                 return null;
             }
             /* Class method */

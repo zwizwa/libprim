@@ -28,6 +28,10 @@ typedef struct {
     JNIEnv *env;     // current Java thread's environment
     jclass cls;      // the embedding scheme class
     jmethodID call;  // C -> Java call delegation
+    
+    jclass type_string;
+    jclass type_object;
+    jclass type_object_array;
 } java_ctx;
 static inline java_ctx *_sc_java_ctx(sc *sc) {
     java_ctx *ctx = (java_ctx*)(EX->ctx);
@@ -137,7 +141,15 @@ void METHOD(resume)(JNIEnv *env, jclass cls, jlong lsc) {
     java_ctx ctx;
     ctx.env = env;
     ctx.cls = cls;
-    ctx.call = (*env)->GetStaticMethodID
+    ctx.type_string = (*env)->FindClass(env, "java/lang/String");
+    ctx.type_object = (*env)->FindClass(env, "java/lang/Object");
+    ctx.type_object_array = (*env)->FindClass(env, "[java/lang/Object");
+
+    LOGF("String:%p, Object:%p, Object[]:%p\n",
+         ctx.type_string, ctx.type_object, ctx.type_object_array);
+
+    ctx.call = 
+        (*env)->GetStaticMethodID
         (env, cls, "_call", "([Ljava/lang/Object;)Ljava/lang/Object;");
                                          
     EX->ctx = &ctx;
@@ -159,8 +171,8 @@ jobject _sc_object_to_jobject(sc *sc, _ ob) {
 }
 jarray _sc_vector_to_jarray(sc *sc, vector *v) {
     int i,n = vector_size(v);
-    jclass type_j = (*CTX->env)->FindClass(CTX->env, "java/lang/Object");
-    jarray a_j = (*CTX->env)->NewObjectArray(CTX->env, n, type_j, NULL);
+    
+    jarray a_j = (*CTX->env)->NewObjectArray(CTX->env, n, CTX->type_object, NULL);
     for (i=0; i<n; i++) {
         jobject o_j = _sc_object_to_jobject(sc, v->slot[i]);
         (*CTX->env)->SetObjectArrayElement(CTX->env, a_j, i, o_j);
@@ -169,6 +181,31 @@ jarray _sc_vector_to_jarray(sc *sc, vector *v) {
     return a_j;
 }
 
+/* Recursive Java -> EX data conversion. */
+_ _sc_jarray_to_object(sc *sc, jarray a_j);
+_ _sc_jobject_to_object(sc *sc, jobject o_j) {
+    jclass cls = (*CTX->env)->GetObjectClass(CTX->env, o_j);
+    if (CTX->type_object_array == cls) \
+        return _sc_jarray_to_object(sc, (jarray)o_j);
+    if (CTX->type_string == cls) {
+        _ ob;
+        const char* str = (*CTX->env)->GetStringUTFChars(CTX->env, o_j, NULL);
+        ob = SYMBOL(str);
+        (*CTX->env)->GetStringUTFChars(CTX->env, o_j, NULL);
+        (*CTX->env)->ReleaseStringUTFChars(CTX->env, o_j, str);
+        return ob;
+    }
+    return _sc_jniref(sc, o_j);
+}
+_ _sc_jarray_to_object(sc *sc, jarray a_j) {
+    int i,n = (*CTX->env)->GetArrayLength(CTX->env, a_j);
+    vector *v = gc_alloc(EX->gc, n);
+    for(i=0; i<n; i++) {
+        v->slot[i] = _sc_jobject_to_object
+            (sc, (*CTX->env)->GetObjectArrayElement(CTX->env, a_j, i));
+    }
+    return vector_to_object(v);
+}
 
 
 
@@ -179,7 +216,8 @@ _ sc_java_call(sc* sc, _ cmd) {
     jarray a_j = _sc_vector_to_jarray(sc, v);
     jobject rv = (*CTX->env)->CallStaticObjectMethod
         (CTX->env, CTX->cls, CTX->call, a_j);
-    return _sc_jniref(sc, rv);
+    // return _sc_jniref(sc, rv);
+    return _sc_jobject_to_object(sc, rv);
 }
 
 
