@@ -6860,3 +6860,11 @@ Date: Sat Dec 12 09:02:48 CET 2009
 Currently using a single delegate static method which is passed an
 array of objects.  Next: make this recursive tuples.
 
+Ok.  Most code seems to be connected properly now.
+
+
+Entry: Testing: call arbitrary methods + send/return integers
+Date: Sat Dec 12 14:03:11 CET 2009
+
+In other words: make method lookup simpler (no fussing with specifying
+types: automate as much as possible).

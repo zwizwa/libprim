@@ -1,9 +1,14 @@
 
-/* A collection of static functions for Java reflection. */
+/* A collection of static functions for Java reflection. 
+   
+   When in Rome...  The functionality in this file is intended for
+   simplifying the libscheme.c JNI code.  A previous (failed) attempt
+   proves that reflection and type casting are best done in Java, not
+   in C using the JNI.
+*/
 
-// Package names are necessary, as these are hard-coded in the C symbols.
+
 package zwizwa.libprim;
-
 import java.lang.reflect.*;
 
 public class reflect {
@@ -64,6 +69,43 @@ public class reflect {
         }
         return null;
     }
+    static Object lookup(Object... a) 
+        throws java.lang.NoSuchMethodException
+    {
+        Class cls = (Class)a[0];
+        String name = (String)a[1];
+        Object[] types = (Object[])a[2];
+        Class[] ts = new Class[types.length];
+        for (int i = 0; i<types.length; i++) ts[i] = (Class)types[i];
+        return cls.getDeclaredMethod(name, ts);
+    }
+    static Object invoke(Object... a)
+        throws java.lang.IllegalAccessException,
+               java.lang.reflect.InvocationTargetException
+    {
+        Method m = (Method)a[0];
+        Object[] args = (Object[])a[2];
+        return m.invoke(a[1], args);
+    }
+    static Object toString(Object... a) {
+        Object o = a[0];
+        Class c = o.getClass();
+        if (c == String.class) return o;
+        else if (c == Method.class) {
+            String name = ((Method)o).getName();
+            return "#<method:" + name + ">";
+        }
+        else if (c == Class.class) {
+            String name = ((Class)o).getName();
+            return "#<class:" + name + ">";
+        }
+        else {
+            String name = 
+                o.getClass().getName() + ":" +
+                Integer.toHexString(o.hashCode());
+            return "#<object:" + name + ">";
+        }
+    }
     private static void _write(Object o) {
         Class c = o.getClass();
         if (c.isArray()) {
@@ -75,15 +117,8 @@ public class reflect {
             }
             System.out.print(")");
         }
-        else if (c == String.class) {
-            System.out.print((String)o);
-        }
         else {
-            String name = 
-                o.getClass().getName() + ":" +
-                Integer.toHexString(o.hashCode());
-            // String name = o.toString();
-            System.out.print("#<object:" + name + ">");
+            System.out.print((String)toString(o));
         }
     }
     static Object write(Object... a) { _write(a[0]); return null; }

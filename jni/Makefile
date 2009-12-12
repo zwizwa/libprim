@@ -13,7 +13,7 @@ CPPFLAGS += -I/usr/lib/jvm/java-1.5.0-sun-1.5.0.17/include
 CPPFLAGS += -I/usr/lib/jvm/java-1.5.0-sun-1.5.0.17/include/linux
 
 # all: testnative.class libnativelib.so reflect.class
-all: libscheme.so sc.class testsc.class eval.class reflect.class dummy.class
+all: libscheme.so sc.class testsc.class eval.class reflect.class tests.class
 
 links:
 	ln -s . libprim

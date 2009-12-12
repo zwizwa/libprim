@@ -162,6 +162,7 @@ jarray _sc_vector_to_jarray(sc *sc, vector *v);
 jobject _sc_object_to_jobject(sc *sc, _ ob) {
     const char *str;
     vector *vv;
+    if (VOID == ob) return NULL;
     if ((str = object_to_cstring(ob))) 
         return (*CTX->env)->NewStringUTF(CTX->env, str);
     if ((vv = object_to_vector(ob)) &&
