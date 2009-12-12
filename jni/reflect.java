@@ -1,5 +1,4 @@
 
-
 /* A collection of static functions for Java reflection. */
 
 // Package names are necessary, as these are hard-coded in the C symbols.
@@ -9,13 +8,10 @@ import java.lang.reflect.*;
 
 public class reflect {
 
-
-    /** CLASS METHODS **/
-
-    /* Methods prefixed with "_" are all vararg Object methods that
-       produce a single Object.  This encodes a run-time typed
-       representation of structured data (with Object[] as basic
-       structure type) which maps better to Scheme. */
+    /* Vararg Object methods that produce a single Object.  This
+       encodes a run-time typed representation of structured data
+       (with Object[] as basic structure type) which maps better to
+       Scheme. */
 
     public static Object type (Object ... a) 
         throws java.lang.ClassNotFoundException
@@ -32,13 +28,12 @@ public class reflect {
         return (Object)a;
     }
     // (java-call #("test" #()))
+    // (java test)
     public static Object test (Object ... a) {
         return tuple("foo", "bar");
     }
-    /* Unpack any kind of array into a nested Object[] structure.
-       This is not called automatically to avoid GC restarts on large
-       data structures.  Once you have a reference to a wrapped array,
-       call unpack manually. */
+    /* Unpack any kind of nested array into a nested Object array
+       structure.  */
     public static Object unpack(Object ... a) {
         Class cls = a[0].getClass();
         if (!cls.isArray()) return cls;
@@ -69,5 +64,28 @@ public class reflect {
         }
         return null;
     }
-
+    private static void _write(Object o) {
+        Class c = o.getClass();
+        if (c.isArray()) {
+            Object[] os = (Object[])o;
+            System.out.print("(");
+            for (int i = 0; i < os.length; i++) {
+                if (i != 0) System.out.print(" ");
+                _write(os[i]);
+            }
+            System.out.print(")");
+        }
+        else if (c == String.class) {
+            System.out.print((String)o);
+        }
+        else {
+            String name = 
+                o.getClass().getName() + ":" +
+                Integer.toHexString(o.hashCode());
+            // String name = o.toString();
+            System.out.print("#<object:" + name + ">");
+        }
+    }
+    static Object write(Object... a) { _write(a[0]); return null; }
+    static Object post(Object... a) { _write(a[0]); System.out.print("\n"); return null; };
 }

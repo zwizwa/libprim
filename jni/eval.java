@@ -11,26 +11,13 @@ public class eval {
     /* Cache & Init */
     final Object _void = (Object)new Object[]{"void"};
     final Object _error = (Object)new Object[]{"error"};
-    Class string_class;
-    Class object_class;
-    Class object_array_class;
-    eval () {
-        try {
-            string_class = Class.forName("java.lang.String");
-            object_class = Class.forName("java.lang.Object");
-            object_array_class = Object[].class;
-        }
-        catch (Throwable e) {
-            System.err.println(e);
-        }
-    }
 
     /* Util.  Methods that are prefixed with '_' (underscore) do not
        respect the Object[] -> Object type. */
 
     Method _find(String cmd) 
         throws java.lang.NoSuchMethodException {
-        return this.getClass().getDeclaredMethod(cmd, new Class[] {object_array_class});
+        return this.getClass().getDeclaredMethod(cmd, new Class[] {Object[].class});
     }
     Object tuple(Object... a) { return (Object)a; }
 
@@ -45,7 +32,7 @@ public class eval {
             }
             System.out.print(")");
         }
-        else if (c == string_class) {
+        else if (c == String.class) {
             System.out.print((String)o);
         }
         else {
@@ -81,7 +68,7 @@ public class eval {
         Object[] e = (Object[])a[0];
         Class c = e[0].getClass();
 
-        if (c == string_class) {
+        if (c == String.class) {
             String cmd = (String)e[0];
             if (cmd.equals("quote")) { return e[1]; }
             else {
