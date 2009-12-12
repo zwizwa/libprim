@@ -55,8 +55,23 @@ public class sc {
         Class cls = (Class)a[0];
         return cls.getDeclaredMethods();
     }
+    public static Object _info(Object... a) {
+        Method m[] = ((Class)a[0]).getDeclaredMethods();
+        for (int i = 0; i < m.length; i++) {
+            // System.out.println(m[i].toString());
+            System.out.println(m[i].getName());
+            Class[] cs = m[i].getParameterTypes();
+            for (int j = 0; j < cs.length; j++) {
+                System.out.println("   " + cs[j].getName());
+            }
+            System.out.println("-> " + m[i].getReturnType().getName());
+            System.out.println("");
+        }
+        return null;
+    }
 
-    /* Generic C->Java delegation method. */
+    /* Generic C->Java delegation method.  This gives access to this
+       class's static Object[] -> Object methods. */
     public static Object _call (Object... a) {
         try {
             String cmd = (String)a[0];
@@ -65,8 +80,8 @@ public class sc {
             return m.invoke(null, new Object[] { args });
         }
         catch (Throwable e) {
-            /* We don't propagate errors to C (yet).  Just print them
-               to the console. */
+            /* We don't propagate errors to C/Scheme (yet).  Just
+               print them to the console. */
             System.err.println(e.toString());
         }
         return null;
