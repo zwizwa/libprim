@@ -79,6 +79,8 @@ public class sc {
     /* Run blocking console on stdin. */
     public static void startConsole(String bootfile) {
         long vm = boot(bootfile);
+        sc x = new sc(vm, 0);
+        x.setToplevel("this", x);
         resume(vm);
     }
 

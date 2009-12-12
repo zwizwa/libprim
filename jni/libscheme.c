@@ -73,10 +73,10 @@ DEF_AREF_TYPE(jniref)
    FIXME: there is a dependency on the JNIEnv pointer, which is
    currently stored in a struct referenced by sc->ctx
  */
-static jniref *jniref_new(void *jni_ref, sc *sc) {
-    void *global_jni_ref =  (*JAVA_ENV)->NewGlobalRef(JAVA_ENV, jni_ref);
+static jniref *jniref_new(void *jni_ref, sc *sc, JNIEnv *env) {
+    void *global_jni_ref =  (*env)->NewGlobalRef(env, jni_ref);
     // LOGF("local:%p, global:%p\n", jni_ref, global_jni_ref);
-    (*JAVA_ENV)->DeleteLocalRef(JAVA_ENV, jni_ref);
+    (*env)->DeleteLocalRef(env, jni_ref);
 
     jniref *x = calloc(1, sizeof(*x));
     leaf_init(&x->base, jniref_type());
@@ -88,7 +88,7 @@ static jniref *jniref_new(void *jni_ref, sc *sc) {
 /* 2nd level wrapping */
 static _ _sc_jniref(sc *sc, void *jni_ref) {
     if (!jni_ref) return VOID;
-    else return _sc_make_aref(sc, jniref_new(jni_ref, sc));
+    else return _sc_make_aref(sc, jniref_new(jni_ref, sc, JAVA_ENV));
 }
 
 
@@ -226,7 +226,6 @@ _ sc_java_call(sc* sc, _ cmd) {
     return rv ? _sc_jobject_to_object(sc, rv) : VOID;
 }
 
-
 _ sc_bang_def_toplevel(sc*, _, _);
 void METHOD(setToplevel)(JNIEnv *env, jclass sc_class, jlong lsc,
                          jstring name, jobject value) {
@@ -234,8 +233,13 @@ void METHOD(setToplevel)(JNIEnv *env, jclass sc_class, jlong lsc,
     const char *name_str = (*env)->GetStringUTFChars(env, name, NULL);
     _ name_sym = SYMBOL(name_str);
     (*env)->ReleaseStringUTFChars(env, name, name_str);
-    fprintf(stderr, "setToplevel() needs global refs\n");
-    sc_bang_def_toplevel(sc, name_sym, _sc_jniref(sc, value));
+    pthread_mutex_lock(&EX->machine_lock);
+    _ rv = sc_bang_def_toplevel
+        (sc, name_sym, 
+         /* Construct manually (can't use the CTX here, as it might
+            belong to a different thread. */
+         _sc_make_aref(sc, jniref_new(value, sc, env)));
+    pthread_mutex_unlock(&EX->machine_lock);
 }
 
 /* Send a command to a console and collect the reply. */
