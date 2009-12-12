@@ -14,31 +14,23 @@ public class sc {
 
     /* Generic C->Java delegation method. */
     public static Object call (Object ... a) {
-        System.err.println(((String)a[0]));
-        return null;
-    }
-
-
-    /* C->Java utility functions.  Instead of using the JNI for
-       everything, use a minimal JNI interface to call this class's
-       static methods, and use Java reflection from there. */
-    public static Object apply(Object... a) { return null; }
-
-
-    public static Object find(Object type, String name) { 
-        Class c = type.getClass();
         try {
+            Class c = a[0].getClass();
             if (c == String.class) {
-                String stype = (String)type;
-                if (stype.equals("class")) return Class.forName(name); 
+                /* Late-bound command. */
+                String cmd = (String)a[0];
+                if (cmd.equals("class")) return Class.forName((String)a[1]); 
+                return null;
             }
-            System.err.println("Wrong type");
-            return null;
+            else if (c == Class.class) {
+            }
         }
         catch (Throwable e) {
+            /* We don't propagate errors to C (yet).  Just print them
+               to the console. */
             System.err.println(e.toString());
-            return null;
         }
+        return null;
     }
 
 
