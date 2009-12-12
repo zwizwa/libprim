@@ -12,18 +12,31 @@ public class sc {
 
     /** CLASS METHODS **/
 
+    /* Generic C->Java delegation method. */
+    public static Object call (Object ... a) {
+        System.err.println(((String)a[0]));
+        return null;
+    }
+
 
     /* C->Java utility functions.  Instead of using the JNI for
        everything, use a minimal JNI interface to call this class's
        static methods, and use Java reflection from there. */
     public static Object apply(Object... a) { return null; }
 
-    public static Object findClass(String name) { 
+
+    public static Object find(Object type, String name) { 
+        Class c = type.getClass();
         try {
-            return Class.forName(name);
+            if (c == String.class) {
+                String stype = (String)type;
+                if (stype.equals("class")) return Class.forName(name); 
+            }
+            System.err.println("Wrong type");
+            return null;
         }
         catch (Throwable e) {
-            System.err.println(e);
+            System.err.println(e.toString());
             return null;
         }
     }

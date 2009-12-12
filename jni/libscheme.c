@@ -25,10 +25,9 @@ void _libscheme_init(sc *sc) {
 
 /* Dynamic context (VM running in the dynamic extent of a java call) */
 typedef struct {
-    JNIEnv *env;         // current Java thread's environment
-    jclass cls;          // the embedding scheme class
-    jmethodID apply;     // delegate apply method
-    jmethodID findClass; // delegate lookup method
+    JNIEnv *env;     // current Java thread's environment
+    jclass cls;      // the embedding scheme class
+    jmethodID call;  // C -> Java call delegation
 } java_ctx;
 static inline java_ctx *_sc_java_ctx(sc *sc) {
     java_ctx *ctx = (java_ctx*)(EX->ctx);
@@ -52,9 +51,9 @@ struct _jniref {
 
 /* The sc struct contains a reference to the currently active Java context. */
 static void jniref_free(jniref *x) {
-    LOGF("DeleteRef(%p) RC=%d\n", x->jni_ref, leaf_rc((leaf_object*)x));
+    // LOGF("DeleteRef(%p) RC=%d\n", x->jni_ref, leaf_rc((leaf_object*)x));
     sc *sc = x->sc;
-    // (*JAVA_ENV)->DeleteGlobalRef(JAVA_ENV, x->jni_ref);
+    (*JAVA_ENV)->DeleteGlobalRef(JAVA_ENV, x->jni_ref);
     free(x);
 }
 static int jniref_write(jniref *x, port *p) {
@@ -70,14 +69,14 @@ DEF_AREF_TYPE(jniref)
  */
 static jniref *jniref_new(void *jni_ref, sc *sc) {
     void *global_jni_ref =  (*JAVA_ENV)->NewGlobalRef(JAVA_ENV, jni_ref);
-    LOGF("local:%p, global:%p\n", jni_ref, global_jni_ref);
-    if (global_jni_ref != jni_ref) {
-        // (*JAVA_ENV)->DeleteLocalRef(JAVA_ENV, jni_ref);
-    }
+    // LOGF("local:%p, global:%p\n", jni_ref, global_jni_ref);
+    (*JAVA_ENV)->DeleteLocalRef(JAVA_ENV, jni_ref);
+
     jniref *x = calloc(1, sizeof(*x));
     leaf_init(&x->base, jniref_type());
     x->sc = sc;
     x->jni_ref = global_jni_ref;
+    // LOGF("jniref_free = %p\n", x->base.__type->_free);
     return x;
 }
 /* 2nd level wrapping */
@@ -133,28 +132,40 @@ jlong METHOD(prepareConsoleServer)(JNIEnv *env, jclass sc_class, jlong lsc, jstr
     return (jlong)(long)c;
 }
 
-/* To simplify, use a single generic method signature to interface
-   with the wrapper class's static java methods. */
-const char *generic_sig = "([Ljava/lang/Object;)Ljava/lang/Object;";
-const char *string_sig  = "(Ljava/lang/String;)Ljava/lang/Object;";
-
 void METHOD(resume)(JNIEnv *env, jclass cls, jlong lsc) { 
     sc *sc = (void*)(long)lsc;
     java_ctx ctx;
     ctx.env = env;
     ctx.cls = cls;
-    ctx.apply = (*env)->GetStaticMethodID(env, cls, "apply", generic_sig);
-    ctx.findClass  = (*env)->GetStaticMethodID(env, cls, "findClass",  string_sig);
+    ctx.call = (*env)->GetStaticMethodID
+        (env, cls, "call", "([Ljava/lang/Object;)Ljava/lang/Object;");
+                                         
     EX->ctx = &ctx;
     _sc_continue((void*)(long)lsc);
     EX->ctx = NULL;
 }
 
-_ sc_java_findClass(sc *sc, _ ob) {
-    const char *name = CAST(cstring, ob);
-    jstring name_j = (*CTX->env)->NewStringUTF(CTX->env, name);
-    jobject rv = (*CTX->env)->CallStaticObjectMethod(CTX->env, CTX->cls, CTX->findClass, name_j);
-    (*CTX->env)->ReleaseStringUTFChars(CTX->env, name_j, name);
+/* Tunnel everything through a single C -> Java call, and perform
+   interpretation on the Java side. */
+_ sc_java_call(sc* sc, _ cmd) {
+    vector *v = CAST(vector, cmd);
+    int i,n = vector_size(v);
+    jclass type_j = (*CTX->env)->FindClass(CTX->env, "java/lang/Object");
+    jarray a_j = (*CTX->env)->NewObjectArray(CTX->env, n, type_j, NULL);
+    for (i=0; i<n; i++) {
+        jobject o_j = NULL;
+        const char *str;
+        if ((str = object_to_cstring(v->slot[i]))) { 
+            o_j = (*CTX->env)->NewStringUTF(CTX->env, str);
+            // delete local ref?
+        }
+        else {
+            o_j = (jobject)CAST(jniref, v->slot[i]);
+        }
+        (*CTX->env)->SetObjectArrayElement(CTX->env, a_j, i, o_j);
+    }
+    jobject rv = (*CTX->env)->CallStaticObjectMethod
+        (CTX->env, CTX->cls, CTX->call, a_j);
     return _sc_jniref(sc, rv);
 }
 

@@ -6845,3 +6845,10 @@ Java side to do all the work.
 
 
 
+Entry: ReleaseStringUTF
+Date: Sat Dec 12 07:57:01 CET 2009
+
+
+ReleaseStringUTF is for freeing the resources allocated by
+GetStringUTF.  I had it coupled with NewStringUTF8 which creates a
+java object, not a C-readable UTF-8 string.
