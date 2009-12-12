@@ -109,7 +109,7 @@ public class reflect {
         Object[] args = (Object[])a[2];
         return m.invoke(a[0], args);
     }
-    static Object toString(Object... a) {
+    static Object string(Object... a) {
         Object o = a[0];
         Class c = o.getClass();
         if (c == String.class) return o;
@@ -143,7 +143,7 @@ public class reflect {
             System.out.print(")");
         }
         else {
-            System.out.print((String)toString(o));
+            System.out.print((String)string(o));
         }
     }
     static Object write(Object... a) { 

@@ -29,22 +29,11 @@ test: all main.class
 %.class: %.java
 	javac $(JAVA_FLAGS)$<
 
-testnative.class: testnative.java
-	javac testnative.java
-
-
-testnative.h: testnative.class
-	javah -jni testnative
-
 sc.h: sc.class
 	javah -jni sc
 
 allclean:
-	rm -f *~ *.o *.so *.class testnative.h
-
-__test: all
-	LD_LIBRARY_PATH=`pwd` java testnative
-
+	rm -f *~ *.o *.so *.class
 
 %.so: %.c %.d
 	$(CC) -fPIC -o $@ -shared -Wl,-soname,$@ -Wall $(CPPFLAGS)  $(CFLAGS) $(OPTI_CFLAGS) $(DEBUG_CFLAGS) $(JNI_CFLAGS) $(SC_CFLAGS) $< $(SC_LDFLAGS)

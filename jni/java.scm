@@ -1,9 +1,11 @@
 ;; Utilities for Scheme<->Java interaction.
 
-;; Convenient syntax for calls to the libprim.reflect static methods.
-(define-macro (java form)
+;; The `j' form is a convenient syntax for calls to the
+;; zwizwa.libprim.reflect static methods defined in reflect.java
+
+;; Usage:  (j <method-name> <arg> ...)
+
+(define-macro (j form)
   `(java-call
     (vector ,(symbol->string (cadr form))
             (vector ,@(cddr form)))))
-
-
