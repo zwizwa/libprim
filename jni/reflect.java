@@ -29,6 +29,9 @@ public class reflect {
         /* A proper class: access through global namespace. */
         return Class.forName(name);
     }
+    public static Object typeof (Object ... a) {
+        return a[0].getClass();
+    }
     public static Object tuple (Object ... a) {
         return (Object)a;
     }
