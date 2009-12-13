@@ -6873,4 +6873,16 @@ Done, but I didn't make special number convertors.  Structured strings
 are enough for now.
 
 
+Entry: Mapping numbers
+Date: Sun Dec 13 12:28:12 CET 2009
+
+Calling the constructors is straightforward.  However, automaticly
+converting numbers will not suffice, as Java distinguishes between
+different types.  Also, invoking a specific constructor/convertor and
+then automatically converting Java->Scheme rep also causes problems.
+
+So, let's _not_ automatically convert back to Scheme rep, but make
+this a 2nd operation.
+
+This would also eliminate GC restart problems.
 

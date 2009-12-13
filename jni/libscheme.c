@@ -176,7 +176,18 @@ jarray _sc_vector_to_jarray(sc *sc, vector *v);
 jobject _sc_object_to_jobject(sc *sc, _ ob) {
     const char *str;
     vector *vv;
+    inexact *ft;
     if (VOID == ob) return NULL;
+    if (TRUE == IS_INTEGER(ob)) {
+        jmethodID ctor = (*CTX->env)->GetMethodID(CTX->env, CTX->type_integer, "<init>", "(I)V");
+        // LOGF("ctor = %p\n", ctor);
+        return (*CTX->env)->NewObject(CTX->env, CTX->type_integer, ctor, object_to_integer(ob));
+    }
+    if ((ft = (object_to_inexact(ob)))) {
+        jmethodID ctor = (*CTX->env)->GetMethodID(CTX->env, CTX->type_double, "<init>", "(D)V");
+        // LOGF("ctor = %p\n", ctor);
+        return (*CTX->env)->NewObject(CTX->env, CTX->type_double, ctor, ft->value);
+    }
     if ((str = object_to_cstring(ob))) 
         return (*CTX->env)->NewStringUTF(CTX->env, str);
     if ((vv = object_to_vector(ob)) &&
