@@ -11,7 +11,7 @@
 package zwizwa.libprim;
 import java.lang.reflect.*;
 
-public class reflect {
+public class j {
 
     /* Vararg Object methods that produce a single Object.  This
        encodes a run-time typed representation of structured data
@@ -168,4 +168,5 @@ public class reflect {
     static Object Float  (Object... a) { return new Float  ((String)a[0]); }
     static Object Double (Object... a) { return new Double ((String)a[0]); }
     static Object Short  (Object... a) { return new Short  ((String)a[0]); }
+    static Object Byte   (Object... a) { return new Byte   ((String)a[0]); }
 }

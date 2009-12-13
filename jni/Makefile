@@ -12,7 +12,7 @@ SC_LDFLAGS = -L../sc -L../ex -L../leaf -lprim_sc -lprim_ex -lprim_leaf
 CPPFLAGS += -I/usr/lib/jvm/java-1.5.0-sun-1.5.0.17/include
 CPPFLAGS += -I/usr/lib/jvm/java-1.5.0-sun-1.5.0.17/include/linux
 
-all: libscheme.so sc.class main.class reflect.class tests.class
+all: libscheme.so sc.class main.class j.class tests.class
 
 links:
 	ln -s . libprim

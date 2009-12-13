@@ -6,7 +6,7 @@
 package zwizwa.libprim;
 
 import java.lang.reflect.*;
-import zwizwa.libprim.reflect;
+import zwizwa.libprim.j;
 
 public class sc {
 
@@ -19,7 +19,7 @@ public class sc {
         try {
             String cmd = (String)a[0];
             Object[] args = (Object[])a[1];
-            Method m = reflect.class.getDeclaredMethod(cmd, new Class[] { Object[].class });
+            Method m = j.class.getDeclaredMethod(cmd, new Class[] { Object[].class });
             return m.invoke(null, new Object[] { args });
         }
         /* We don't propagate errors to C/Scheme (yet).  Just

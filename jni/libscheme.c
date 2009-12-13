@@ -28,11 +28,16 @@ typedef struct {
     jclass cls;      // the embedding scheme class
     jmethodID call;  // C -> Java call delegation
     
+    // class identifiers for type conversion
     jclass type_string;
+    jclass type_long;
     jclass type_integer;
+    jclass type_short;
+    jclass type_byte;
+    jclass type_double;
+    jclass type_float;
     jclass type_object;
     jclass type_object_array;
-
 
 } java_ctx;
 static inline java_ctx *_sc_java_ctx(sc *sc) {
@@ -143,9 +148,14 @@ void METHOD(resume)(JNIEnv *env, jclass cls, jlong lsc) {
     java_ctx ctx;
     ctx.env = env;
     ctx.cls = cls;
-    ctx.type_string = (*env)->FindClass(env, "java/lang/String");
+    ctx.type_string  = (*env)->FindClass(env, "java/lang/String");
+    ctx.type_long    = (*env)->FindClass(env, "java/lang/Long");
     ctx.type_integer = (*env)->FindClass(env, "java/lang/Integer");
-    ctx.type_object = (*env)->FindClass(env, "java/lang/Object");
+    ctx.type_short   = (*env)->FindClass(env, "java/lang/Short");
+    ctx.type_byte    = (*env)->FindClass(env, "java/lang/Byte");
+    ctx.type_float   = (*env)->FindClass(env, "java/lang/Float");
+    ctx.type_double  = (*env)->FindClass(env, "java/lang/Double");
+    ctx.type_object  = (*env)->FindClass(env, "java/lang/Object");
     ctx.type_object_array = (*env)->FindClass(env, "[Ljava/lang/Object;");
     
 
@@ -200,6 +210,18 @@ _ _sc_jobject_to_object(sc *sc, jobject o_j) {
         (*CTX->env)->GetStringUTFChars(CTX->env, o_j, NULL);
         (*CTX->env)->ReleaseStringUTFChars(CTX->env, o_j, str);
         return ob;
+    }
+    if ((cls == CTX->type_long) ||
+        (cls == CTX->type_integer) ||
+        (cls == CTX->type_short) ||
+        (cls == CTX->type_byte)) {
+        jmethodID m = (*CTX->env)->GetMethodID(CTX->env, cls, "intValue", "()I");
+        return integer_to_object((*CTX->env)->CallIntMethod(CTX->env, o_j, m));
+    }
+    if ((cls == CTX->type_float) ||
+        (cls == CTX->type_double)) {
+        jmethodID m = (*CTX->env)->GetMethodID(CTX->env, cls, "doubleValue", "()D");
+        return INEXACT((*CTX->env)->CallDoubleMethod(CTX->env, o_j, m));
     }
     return _sc_jniref(sc, o_j);
 }
