@@ -36,6 +36,7 @@ typedef struct {
     jclass type_byte;
     jclass type_double;
     jclass type_float;
+    jclass type_boolean;
     jclass type_object;
     jclass type_object_array;
 
@@ -153,6 +154,7 @@ void METHOD(resume)(JNIEnv *env, jclass cls, jlong lsc) {
     ctx.type_integer = (*env)->FindClass(env, "java/lang/Integer");
     ctx.type_short   = (*env)->FindClass(env, "java/lang/Short");
     ctx.type_byte    = (*env)->FindClass(env, "java/lang/Byte");
+    ctx.type_boolean = (*env)->FindClass(env, "java/lang/Boolean");
     ctx.type_float   = (*env)->FindClass(env, "java/lang/Float");
     ctx.type_double  = (*env)->FindClass(env, "java/lang/Double");
     ctx.type_object  = (*env)->FindClass(env, "java/lang/Object");
@@ -234,6 +236,11 @@ _ _sc_jobject_to_object(sc *sc, jobject o_j) {
         jmethodID m = (*CTX->env)->GetMethodID(CTX->env, cls, "doubleValue", "()D");
         return INEXACT((*CTX->env)->CallDoubleMethod(CTX->env, o_j, m));
     }
+    if ((cls == CTX->type_boolean)) {
+        jmethodID m = (*CTX->env)->GetMethodID(CTX->env, cls, "booleanValue", "()Z");
+        return (*CTX->env)->CallBooleanMethod(CTX->env, o_j, m) ? TRUE : FALSE;
+    }
+
     return _sc_jniref(sc, o_j);
 }
 _ _sc_jarray_to_object(sc *sc, jarray a_j) {

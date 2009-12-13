@@ -124,8 +124,11 @@ public class j {
             String name = ((Class)o).getName();
             return "#<class:" + name + ">";
         }
-        else if (c == Integer.class) {
-            return ((Integer)o).toString();
+        else if (Number.class.isAssignableFrom(c)) {
+            return ((Number)o).toString();
+        }
+        else if (c == Boolean.class) {
+            return ((Boolean)o).toString();
         }
         else {
             String name = 
@@ -169,4 +172,7 @@ public class j {
     static Object Double (Object... a) { return new Double ((String)a[0]); }
     static Object Short  (Object... a) { return new Short  ((String)a[0]); }
     static Object Byte   (Object... a) { return new Byte   ((String)a[0]); }
+    static Object Boolean(Object... a) { return new Boolean((String)a[0]); }
+
+    static Object id (Object... a) { return a[0];}
 }
