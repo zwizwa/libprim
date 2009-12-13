@@ -255,9 +255,15 @@ _ sc_java_call(sc* sc, _ cmd) {
     jarray a_j = _sc_vector_to_jarray(sc, v);
     jobject rv = (*CTX->env)->CallStaticObjectMethod
         (CTX->env, CTX->cls, CTX->call, a_j);
-    // return _sc_jniref(sc, rv);
-    return rv ? _sc_jobject_to_object(sc, rv) : VOID;
+    return rv ? _sc_jniref(sc, rv) : VOID;
 }
+/* Unpack java value to structured Scheme values.  This isn't done
+   automatically to prevent problems with different (number) types. */
+_ sc_java_unpack(sc *sc, _ ob) {
+    ENABLE_RESTART();
+    return _sc_jobject_to_object(sc, CAST(jniref, ob)->jni_ref);
+}
+
 
 _ sc_bang_def_toplevel(sc*, _, _);
 void METHOD(setToplevel)(JNIEnv *env, jclass sc_class, jlong lsc,
