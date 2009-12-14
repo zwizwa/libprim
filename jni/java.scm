@@ -9,9 +9,18 @@
   `(java-call
     (vector ,(symbol->string (cadr form))
             (vector ,@(cddr form)))))
+
+;; Look up a method ID based on object, method name and method type
+;; signature expressed as strings.
 (define (jmethod obj name . args)
   (j method (j typeof vv) name
      (list->vector
       (map (lambda (typename) (j type typename)) args))))
+
+;; Simpler syntax for method invocation
 (define (jinvoke obj method . args)
   (j invoke obj method (list->vector args)))
+
+;; Jim, your friendly all-in one method lookup and invocation hof.
+(define (jim obj . types)
+  (lambda args (apply jinvoke obj (apply jmethod obj types) args)))
