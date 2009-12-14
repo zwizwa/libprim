@@ -217,8 +217,10 @@ _ _sc_jarray_to_object(sc *sc, jarray a_j, int recursive);
 _ _sc_jobject_to_object(sc *sc, jobject o_j, int recursive) {
     jclass cls = (*CTX->env)->GetObjectClass(CTX->env, o_j);
     // LOGF("cls = %p\n", cls);
-    if (SAME_OBJECT(cls, CTX->type_object_array))
-        return _sc_jarray_to_object(sc, (jarray)o_j, recursive);
+    if (recursive) {
+        if (SAME_OBJECT(cls, CTX->type_object_array))
+            return _sc_jarray_to_object(sc, (jarray)o_j, recursive);
+    }
     if (SAME_OBJECT(cls, CTX->type_string)) {
         _ ob;
         const char* str = (*CTX->env)->GetStringUTFChars(CTX->env, o_j, NULL);
@@ -251,9 +253,7 @@ _ _sc_jarray_to_object(sc *sc, jarray a_j, int recursive) {
     vector *v = gc_alloc(EX->gc, n);
     for(i=0; i<n; i++) {
         jobject o = (*CTX->env)->GetObjectArrayElement(CTX->env, a_j, i);
-        v->slot[i] = recursive ? 
-            _sc_jobject_to_object(sc, o, recursive) :
-            _sc_jniref(sc, o);
+        v->slot[i] = _sc_jobject_to_object(sc, o, recursive);
     }
     return vector_to_object(v);
 }
@@ -265,8 +265,15 @@ _ _sc_jarray_to_object(sc *sc, jarray a_j, int recursive) {
 _ sc_java_call(sc* sc, _ cmd) {
     vector *v = CAST(vector, cmd);
     jarray a_j = _sc_vector_to_jarray(sc, v);
-    jobject rv = (*CTX->env)->CallStaticObjectMethod(CTX->env, CTX->cls, CTX->call, a_j);
-    return rv ? _sc_jniref(sc, rv) : VOID;
+    jarray tagged_rv = (jarray)(*CTX->env)->CallStaticObjectMethod(CTX->env, CTX->cls, CTX->call, a_j);
+
+    jobject success = (*CTX->env)->GetObjectArrayElement(CTX->env, tagged_rv, 0);
+    jobject value   = (*CTX->env)->GetObjectArrayElement(CTX->env, tagged_rv, 1);
+
+    _ rv = _sc_jniref(sc, value);
+    jmethodID m = (*CTX->env)->GetMethodID(CTX->env, CTX->type_boolean, "booleanValue", "()Z");
+    if ((*CTX->env)->CallBooleanMethod(CTX->env, success, m)) { return rv; }
+    else { return ERROR("java", rv); }
 }
 /* Unpack java value to structured Scheme values.  This isn't done
    automatically to prevent problems with different (number) types. */

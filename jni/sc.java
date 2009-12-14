@@ -22,8 +22,8 @@ public class sc {
             Object[] args = (Object[])a[1];
             Method m = j.class.getDeclaredMethod(cmd, new Class[] { Object[].class });
             Object rv = m.invoke(null, new Object[] { args });
-            // return (Object) new Object[] {"ok", rv};
-            return rv;
+            return (Object) new Object[] {new Boolean(true), rv};
+            // return rv;
         }
         /* We don't propagate errors to C/Scheme (yet).  Just
            print them to the console. */
@@ -36,8 +36,8 @@ public class sc {
             System.err.println(e.toString());
             erv = e;
         }
-        // return (Object) new Object[] {"error", erv};
-        return null;
+        return (Object) new Object[] {new Boolean(false), erv};
+        // return null;
     }
 
 
