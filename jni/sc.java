@@ -55,11 +55,12 @@ public class sc {
 
 
     /* Constructor wraps C pointers in a Java object. */
-    long _vm = 0;
-    long _console = 0;
+    public long _vm = 0;
+    public long _console = 0;
     sc(long vm, long console) {
         _vm = vm;
         _console = console;
+        setToplevel("this", this);
     }
     /* Factory methods */
 
@@ -72,7 +73,6 @@ public class sc {
         long console = prepareConsoleServer(vm, node);
         spawnResume(vm);
         sc x = new sc(vm, console);
-        x.setThis();
         return x;
     }
 
@@ -80,7 +80,6 @@ public class sc {
     public static void startConsole(String bootfile) {
         long vm = boot(bootfile);
         sc x = new sc(vm, 0);
-        x.setToplevel("this", x);
         resume(vm);
     }
 
@@ -104,8 +103,5 @@ public class sc {
     }
     public void setToplevel(String name, Object value) {
         setToplevel(_vm, name, value);
-    }
-    public void setThis() {
-        setToplevel("this", this);
     }
 }

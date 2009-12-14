@@ -740,5 +740,14 @@
    (list io)
    void))
 
+
+;; FIXME: move this to a separate file.
+;;; JAVA 
+;(define-macro (j form)
+;  `(java-call
+;    (vector ,(symbol->string (cadr form))
+;            (vector ,@(cddr form)))))
+
+
 (gc))))
 

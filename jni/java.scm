@@ -9,3 +9,9 @@
   `(java-call
     (vector ,(symbol->string (cadr form))
             (vector ,@(cddr form)))))
+(define (jmethod obj name . args)
+  (j method (j typeof vv) name
+     (list->vector
+      (map (lambda (typename) (j type typename)) args))))
+(define (jinvoke obj method . args)
+  (j invoke obj method (list->vector args)))

@@ -58,11 +58,13 @@ public class j {
         Class cls = (Class)a[0];
         return cls.getDeclaredMethods();
     }
-    public static Object info_fields(Object... a) {
-        Field fs[] = ((Class)a[0]).getDeclaredFields();
+    public static Object infoFields(Object... a) {
+        for (Field f : ((Class)a[0]).getDeclaredFields()) {
+            System.out.println(f.getName());
+        }
         return null;
     }
-    public static Object info_methods(Object... a) {
+    public static Object infoMethods(Object... a) {
         for (Method m : ((Class)a[0]).getDeclaredMethods()) {
             System.out.println(m.getName());
             for (Class c : m.getParameterTypes()) {
@@ -74,8 +76,8 @@ public class j {
         return null;
     }
     public static Object info(Object... a) {
-        info_fields(a[0]);
-        info_methods(a[0]);
+        infoFields(a[0]);
+        infoMethods(a[0]);
         return null;
     }
     /* Convert Object[] array to Class[] array (Does java have
@@ -86,13 +88,40 @@ public class j {
         for (int i = 0; i<types.length; i++) ts[i] = (Class)types[i];
         return ts;
     }
-    static Object lookup(Object... a) 
+    static Object method(Object... a) 
         throws java.lang.NoSuchMethodException
     {
         Class cls = (Class)a[0];
         String name = (String)a[1];
         Class[] ts = _types(a[2]);
         return cls.getDeclaredMethod(name, ts);
+    }
+    static Object field(Object... a) 
+        throws java.lang.NoSuchFieldException
+    {
+        Class cls = (Class)a[0];
+        String name = (String)a[1];
+        return cls.getDeclaredField(name);
+    }
+    static Object get(Object... a) 
+        throws java.lang.IllegalAccessException
+    {
+        Field fld = (Field)a[0];
+        return fld.get(a[1]);
+    }
+    static Object getmember(Object... a) 
+        throws java.lang.IllegalAccessException,
+               java.lang.NoSuchFieldException
+    {
+        Class cls = a[0].getClass();
+        return cls.getDeclaredField((String)a[1]).get(a[0]);
+    }
+    static Object set(Object... a) 
+        throws java.lang.IllegalAccessException
+    {
+        Field fld = (Field)a[0];
+        fld.set(a[1], a[2]);
+        return null;
     }
     static Object constructor(Object... a)
         throws java.lang.NoSuchMethodException

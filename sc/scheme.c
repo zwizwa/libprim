@@ -158,7 +158,8 @@ _ sc_bang_def_global(sc* sc, _ slot, _ var, _ val) {
     if (!(s=object_to_symbol(var))) TYPE_ERROR(var);
     // _ex_printf(EX, "DEF %s: \n",s->name); // sc_write(EX, val);
     sc_bang_set_global(sc, slot, ENV_DEF(env, var, val));
-    return VOID;
+    // return VOID;
+    return val; // emacs-like behaviour - simpler when debugging
 }
 _ sc_bang_def_toplevel(sc* sc, _ var, _ val) {
     return sc_bang_def_global(sc, sc_slot_toplevel, var, val);

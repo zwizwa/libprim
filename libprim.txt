@@ -6898,3 +6898,12 @@ Maybe there is some double wrapping going on?
 
 It does work on Android though..  Good.
 
+
+
+Entry: getDeclaredField
+Date: Mon Dec 14 11:35:09 CET 2009
+
+Any method that accesses a field doesn't work when it's invoked a
+second time.  This stuff is quite full of pitfalls..
+
+
