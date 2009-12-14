@@ -209,14 +209,17 @@ jarray _sc_vector_to_jarray(sc *sc, vector *v) {
     return a_j;
 }
 
+// #define SAME_OBJECT(a, b) (a == b)
+#define SAME_OBJECT(a, b) ((*CTX->env)->IsSameObject(CTX->env, a, b))
+
 /* Recursive Java -> EX data conversion. */
-_ _sc_jarray_to_object(sc *sc, jarray a_j);
-_ _sc_jobject_to_object(sc *sc, jobject o_j) {
+_ _sc_jarray_to_object(sc *sc, jarray a_j, int recursive);
+_ _sc_jobject_to_object(sc *sc, jobject o_j, int recursive) {
     jclass cls = (*CTX->env)->GetObjectClass(CTX->env, o_j);
     // LOGF("cls = %p\n", cls);
-    if (cls == CTX->type_object_array) 
-        return _sc_jarray_to_object(sc, (jarray)o_j);
-    if (cls == CTX->type_string) {
+    if (SAME_OBJECT(cls, CTX->type_object_array))
+        return _sc_jarray_to_object(sc, (jarray)o_j, recursive);
+    if (SAME_OBJECT(cls, CTX->type_string)) {
         _ ob;
         const char* str = (*CTX->env)->GetStringUTFChars(CTX->env, o_j, NULL);
         ob = STRING(str);
@@ -224,31 +227,33 @@ _ _sc_jobject_to_object(sc *sc, jobject o_j) {
         (*CTX->env)->ReleaseStringUTFChars(CTX->env, o_j, str);
         return ob;
     }
-    if ((cls == CTX->type_long) ||
-        (cls == CTX->type_integer) ||
-        (cls == CTX->type_short) ||
-        (cls == CTX->type_byte)) {
+    if (SAME_OBJECT(cls, CTX->type_long)    ||
+        SAME_OBJECT(cls, CTX->type_integer) ||
+        SAME_OBJECT(cls, CTX->type_short)   ||
+        SAME_OBJECT(cls, CTX->type_byte)) {
         jmethodID m = (*CTX->env)->GetMethodID(CTX->env, cls, "intValue", "()I");
         return integer_to_object((*CTX->env)->CallIntMethod(CTX->env, o_j, m));
     }
-    if ((cls == CTX->type_float) ||
-        (cls == CTX->type_double)) {
+    if (SAME_OBJECT(cls, CTX->type_float) ||
+        SAME_OBJECT(cls, CTX->type_double)) {
         jmethodID m = (*CTX->env)->GetMethodID(CTX->env, cls, "doubleValue", "()D");
         return INEXACT((*CTX->env)->CallDoubleMethod(CTX->env, o_j, m));
     }
-    if ((cls == CTX->type_boolean)) {
+    if (SAME_OBJECT(cls, CTX->type_boolean)) {
         jmethodID m = (*CTX->env)->GetMethodID(CTX->env, cls, "booleanValue", "()Z");
         return (*CTX->env)->CallBooleanMethod(CTX->env, o_j, m) ? TRUE : FALSE;
     }
 
     return _sc_jniref(sc, o_j);
 }
-_ _sc_jarray_to_object(sc *sc, jarray a_j) {
+_ _sc_jarray_to_object(sc *sc, jarray a_j, int recursive) {
     int i,n = (*CTX->env)->GetArrayLength(CTX->env, a_j);
     vector *v = gc_alloc(EX->gc, n);
     for(i=0; i<n; i++) {
-        v->slot[i] = _sc_jobject_to_object
-            (sc, (*CTX->env)->GetObjectArrayElement(CTX->env, a_j, i));
+        jobject o = (*CTX->env)->GetObjectArrayElement(CTX->env, a_j, i);
+        v->slot[i] = recursive ? 
+            _sc_jobject_to_object(sc, o, recursive) :
+            _sc_jniref(sc, o);
     }
     return vector_to_object(v);
 }
@@ -260,15 +265,14 @@ _ _sc_jarray_to_object(sc *sc, jarray a_j) {
 _ sc_java_call(sc* sc, _ cmd) {
     vector *v = CAST(vector, cmd);
     jarray a_j = _sc_vector_to_jarray(sc, v);
-    jobject rv = (*CTX->env)->CallStaticObjectMethod
-        (CTX->env, CTX->cls, CTX->call, a_j);
+    jobject rv = (*CTX->env)->CallStaticObjectMethod(CTX->env, CTX->cls, CTX->call, a_j);
     return rv ? _sc_jniref(sc, rv) : VOID;
 }
 /* Unpack java value to structured Scheme values.  This isn't done
    automatically to prevent problems with different (number) types. */
 _ sc_java_unpack(sc *sc, _ ob) {
     ENABLE_RESTART();
-    return _sc_jobject_to_object(sc, CAST(jniref, ob)->jni_ref);
+    return _sc_jobject_to_object(sc, CAST(jniref, ob)->jni_ref, 1);
 }
 
 
@@ -280,7 +284,7 @@ void METHOD(setToplevel)(JNIEnv *env, jclass sc_class, jlong lsc,
     _ name_sym = SYMBOL(name_str);
     (*env)->ReleaseStringUTFChars(env, name, name_str);
     pthread_mutex_lock(&EX->machine_lock);
-    _ rv = sc_bang_def_toplevel
+    sc_bang_def_toplevel
         (sc, name_sym, 
          /* Construct manually (can't use the CTX here, as it might
             belong to a different thread. */

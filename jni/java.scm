@@ -23,4 +23,8 @@
 
 ;; Jim, your friendly all-in one method lookup and invocation hof.
 (define (jim obj . types)
-  (lambda args (apply jinvoke obj (apply jmethod obj types) args)))
+  (let ((m (apply jmethod obj types))) ;; resolve once
+    (lambda args (apply jinvoke obj m args))))
+
+
+(define unj java-unpack)

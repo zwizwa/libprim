@@ -16,21 +16,27 @@ public class sc {
     /* Generic C->Java delegation method.  This gives access to the
        libprim.reflect class's static Object[] -> Object methods. */
     public static Object _call (Object... a) {
+        Throwable erv;
         try {
             String cmd = (String)a[0];
             Object[] args = (Object[])a[1];
             Method m = j.class.getDeclaredMethod(cmd, new Class[] { Object[].class });
-            return m.invoke(null, new Object[] { args });
+            Object rv = m.invoke(null, new Object[] { args });
+            // return (Object) new Object[] {"ok", rv};
+            return rv;
         }
         /* We don't propagate errors to C/Scheme (yet).  Just
            print them to the console. */
         catch (java.lang.reflect.InvocationTargetException e) {
             System.err.println(e.toString());
             System.err.println(e.getCause().toString());
+            erv = e;
         }
         catch (Throwable e) {
             System.err.println(e.toString());
+            erv = e;
         }
+        // return (Object) new Object[] {"error", erv};
         return null;
     }
 
