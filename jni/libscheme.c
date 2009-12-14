@@ -272,7 +272,12 @@ _ sc_java_call(sc* sc, _ cmd) {
 
     _ rv = _sc_jniref(sc, value);
     jmethodID m = (*CTX->env)->GetMethodID(CTX->env, CTX->type_boolean, "booleanValue", "()Z");
-    if ((*CTX->env)->CallBooleanMethod(CTX->env, success, m)) { return rv; }
+    int success_bool = (*CTX->env)->CallBooleanMethod(CTX->env, success, m);
+
+    (*CTX->env)->DeleteLocalRef(CTX->env, tagged_rv);
+    (*CTX->env)->DeleteLocalRef(CTX->env, success);
+
+    if (success_bool) { return rv; }
     else { return ERROR("java", rv); }
 }
 /* Unpack java value to structured Scheme values.  This isn't done

@@ -13,7 +13,7 @@
 ;; Look up a method ID based on object, method name and method type
 ;; signature expressed as strings.
 (define (jmethod obj name . args)
-  (j method (j typeof vv) name
+  (j method (j typeof obj) name
      (list->vector
       (map (lambda (typename) (j type typename)) args))))
 
@@ -28,3 +28,6 @@
 
 
 (define unj java-unpack)
+
+
+(define String (j type "java.lang.String"))
