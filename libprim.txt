@@ -6894,3 +6894,7 @@ It worked just fine this weekend in isolation, however now the class
 instances don't seem to be the same for the sc_java_unpack() function.
 Maybe there is some double wrapping going on?
 
+  -> could be this then needs isSameObject() 
+
+It does work on Android though..  Good.
+

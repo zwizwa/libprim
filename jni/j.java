@@ -58,18 +58,24 @@ public class j {
         Class cls = (Class)a[0];
         return cls.getDeclaredMethods();
     }
-    public static Object info(Object... a) {
-        Method m[] = ((Class)a[0]).getDeclaredMethods();
-        for (int i = 0; i < m.length; i++) {
-            // System.out.println(m[i].toString());
-            System.out.println(m[i].getName());
-            Class[] cs = m[i].getParameterTypes();
-            for (int j = 0; j < cs.length; j++) {
-                System.out.println("   " + cs[j].getName());
+    public static Object info_fields(Object... a) {
+        Field fs[] = ((Class)a[0]).getDeclaredFields();
+        return null;
+    }
+    public static Object info_methods(Object... a) {
+        for (Method m : ((Class)a[0]).getDeclaredMethods()) {
+            System.out.println(m.getName());
+            for (Class c : m.getParameterTypes()) {
+                System.out.println("   " + c.getName());
             }
-            System.out.println("-> " + m[i].getReturnType().getName());
+            System.out.println("-> " + m.getReturnType().getName());
             System.out.println("");
         }
+        return null;
+    }
+    public static Object info(Object... a) {
+        info_fields(a[0]);
+        info_methods(a[0]);
         return null;
     }
     /* Convert Object[] array to Class[] array (Does java have
