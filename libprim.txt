@@ -6886,3 +6886,11 @@ this a 2nd operation.
 
 This would also eliminate GC restart problems.
 
+
+Entry: Re-integration
+Date: Mon Dec 14 10:01:44 CET 2009
+
+It worked just fine this weekend in isolation, however now the class
+instances don't seem to be the same for the sc_java_unpack() function.
+Maybe there is some double wrapping going on?
+
