@@ -32,9 +32,9 @@
 
 
 ;; Method lookup:       <class>    <name>  <argtypes>
-(define foo   (j lookup tests.type "foo"   #()))      ;; static
-(define make  (j lookup tests.type "make"  #()))      ;; static
-(define state (j lookup tests.type "state" #()))
+(define foo   (j method tests.type "foo"   #()))      ;; static
+(define make  (j method tests.type "make"  #()))      ;; static
+(define state (j method tests.type "state" #()))
 ;; Same for class (static) and object methods.
 
 ;; Static method invocation
@@ -46,7 +46,7 @@
 (post     (j invoke y        state    #()))
 
 ;; Static method lookup with primitive types
-(define addint (j lookup tests.type "addint" (vector int.type int.type)))
+(define addint (j method tests.type "addint" (vector int.type int.type)))
 
 ;; Primitive type invocation + Number Java->Scheme conversion
 (post 
