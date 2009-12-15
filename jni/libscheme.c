@@ -204,7 +204,8 @@ jarray _sc_vector_to_jarray(sc *sc, vector *v) {
     for (i=0; i<n; i++) {
         jobject o_j = _sc_object_to_jobject(sc, v->slot[i]);
         (*CTX->env)->SetObjectArrayElement(CTX->env, a_j, i, o_j);
-        (*CTX->env)->DeleteLocalRef(CTX->env, o_j);
+        // FIXME: apperently this is an error?
+        // (*CTX->env)->DeleteLocalRef(CTX->env, o_j);
     }
     return a_j;
 }
