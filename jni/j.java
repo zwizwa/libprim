@@ -23,9 +23,11 @@ public class j {
     {
         String name = (String)a[0];
         /* Is there a textual representation of primitive types? */
-        if (name.equals("int"))  return Integer.TYPE;
-        if (name.equals("long")) return Long.TYPE;
-        if (name.equals("void")) return Void.TYPE;
+        if (name.equals("int"))    return Integer.TYPE;
+        if (name.equals("long"))   return Long.TYPE;
+        if (name.equals("float"))  return Float.TYPE;
+        if (name.equals("double")) return Double.TYPE;
+        if (name.equals("void"))   return Void.TYPE;
         /* A proper class: access through global namespace. */
         return Class.forName(name);
     }
@@ -166,10 +168,7 @@ public class j {
             return ((Boolean)o).toString();
         }
         else {
-            String name = 
-                o.getClass().getName() + ":" +
-                Integer.toHexString(o.hashCode());
-            return "#<object:" + name + ">";
+            return "#<object:" + o.toString() + ">";
         }
     }
     private static void _write(Object o) {

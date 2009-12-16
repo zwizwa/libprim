@@ -6907,3 +6907,14 @@ Any method that accesses a field doesn't work when it's invoked a
 second time.  This stuff is quite full of pitfalls..
 
 
+Entry: separate build dirs
+Date: Tue Dec 15 11:16:18 CET 2009
+
+Necessary for cross-compilation.
+
+
+Entry: --eval or --load options + java pass-through
+Date: Wed Dec 16 15:01:47 CET 2009
+
+For running java debugcode this is necessary.
+

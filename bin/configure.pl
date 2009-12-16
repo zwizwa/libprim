@@ -127,6 +127,13 @@ while ($a = shift) {
 # all options parsed: start config
 
 
+if ($var{builddir} eq $var{srcdir}) {
+    print "Building in source directory: " . $var{builddir} . "\n";
+}
+else {
+    # mkdir "test"; cp $var{srcdir}
+}
+
 
 # create config files
 chdir $var{builddir};

@@ -899,12 +899,14 @@ sc *_sc_new(int argc, char **argv) {
     char *bootfile = NULL;
     _ args = NIL;
     int verbose = 0;
+    char *evalstr = NULL;
 
     /* Read command line interpreter options options. */
     SHIFT(1); // skip program name
     while ((argc > 0) && ('-' == argv[0][0])) {
         if (!strcmp("--boot", argv[0])) { bootfile = argv[1]; SHIFT(2); }
         else if (!strcmp("--verbose", argv[0])) { SHIFT(1); verbose = 1; }
+        else if (!strcmp("--eval", argv[0])) { evalstring = argv[1]; SHIFT(2); }
         else if (!strcmp("--", argv[0])) { SHIFT(1); break; }
         else {
             fprintf(stderr, "option `%s' not recognized\n", argv[0]);

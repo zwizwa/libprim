@@ -18,11 +18,13 @@ links:
 	ln -s . libprim
 	ln -s . zwizwa
 
+ENVVARS = CLASSPATH=.:$$CLASSPATH LD_LIBRARY_PATH=.:$$LD_LIBRARY_PATH gdb --args java main
+
 gdbtest: all main.class
-	CLASSPATH=. LD_LIBRARY_PATH=. gdb --args java main
+	$(ENVVARS) gdb --args java main
 
 test: all main.class
-	CLASSPATH=. LD_LIBRARY_PATH=. java main
+	$(ENVVARS) java main
 
 
 
