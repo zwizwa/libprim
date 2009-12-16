@@ -116,23 +116,35 @@ jint JNI_OnLoad(JavaVM *vm, void *reserved) {
 // see sc.h (generated from sc.class by javah)
 #define METHOD(name) Java_zwizwa_libprim_sc_##name
 
-/* Initialize VM. */
-jlong METHOD(boot)(JNIEnv *env, jclass sc_class, jstring bootfile) {
-    const char* bootfile_str = (*env)->GetStringUTFChars(env, bootfile, NULL);
 
-    /* Boot from pre-expanded boot.scm */
-    LOGF("Booting Scheme from %s\n", bootfile_str);
-    char *argv[] = {"sc", "--boot", (char*)bootfile_str};  // FIXME: path (resource?)
-    sc *sc = _sc_new(3, argv);
+jlong METHOD(bootArgs)(JNIEnv *env, jclass sc_class, jarray a_j) {
+
+    /* Wrap arguments */
+    int i,n = 1 + (*env)->GetArrayLength(env, a_j);
+    const char *argv[n];
+    jobject *jargv[n];
+    argv[0] = "sc"; // program name
+    for (i=1; i<n; i++) {
+        jargv[i] = (*env)->GetObjectArrayElement(env, a_j, i-1);
+        argv[i]  = (*env)->GetStringUTFChars(env, jargv[i], NULL);
+    }
+
+    /* Init */
+    sc *sc = _sc_new(n, argv);
     _libscheme_init(sc);
-    (*env)->ReleaseStringUTFChars(env, bootfile, bootfile_str);
-    LOGF("Scheme VM: %p\n", sc);
+    // LOGF("Scheme VM: %p\n", sc);
+
+    /* Free wrappers. */
+    for (i=1; i<n; i++) {
+        (*env)->ReleaseStringUTFChars(env, jargv[i], argv[i]);
+    }
 
     /* If resume follows after this, we run the init script.  Override
        with different prepare for other behaviour. */
     _sc_prepare(sc, CONS(SYMBOL("eval"), CONS(SYMBOL("init-script"), NIL)));
     return (jlong)(long)sc;
 }
+
 
 
 jlong METHOD(prepareConsoleServer)(JNIEnv *env, jclass sc_class, jlong lsc, jstring usock) {

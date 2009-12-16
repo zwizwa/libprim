@@ -45,7 +45,11 @@ public class sc {
     public native static String consoleEvalString(long console, String commands);
 
     /* Initialize the VM.  Returns a pointer cast as a long. */
-    public native static long boot(String bootfile);
+    public static long boot(String bootfile) {
+        return bootArgs(new String[] {"--eval", "foo", "--boot", bootfile});
+    }
+    public native static long bootArgs(String[] args);
+
 
     /* Resume the VM in its current state (which can be set by a
        "prepare" method. */

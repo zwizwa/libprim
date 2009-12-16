@@ -11,6 +11,10 @@
 package zwizwa.libprim;
 import java.lang.reflect.*;
 
+// Serialization through JSON format
+// Get it here: http://www.json.org/java/json.zip
+import org.json.*;
+
 public class j {
 
     /* Vararg Object methods that produce a single Object.  This
@@ -46,8 +50,7 @@ public class j {
        structure.  */
     public static Object unpack(Object ... a) {
         Class cls = a[0].getClass();
-        if (!cls.isArray()) return cls;
-        else {
+        if (cls.isArray()) {
             Object[] in = (Object[])a[0];
             Object[] out = new Object[in.length]; 
             for (int i = 0; i < in.length; i++) { 
@@ -55,6 +58,16 @@ public class j {
             }
             return out;
         }
+        else if (cls == JSONArray.class) {
+            JSONArray in = (JSONArray)a[0];
+            Object[] out = new Object[in.length()]; 
+            for (int i = 0; i < in.length(); i++) { 
+                try { out[i] = unpack(in.get(i)); }
+                catch (JSONException e) {}
+            }
+            return out;
+        }
+        else return a[0];
     }
     public static Object methods(Object ... a) {
         Class cls = (Class)a[0];
@@ -209,4 +222,13 @@ public class j {
     static Object Boolean(Object... a) { return new Boolean((String)a[0]); }
 
     static Object id (Object... a) { return a[0];}
+
+
+    static Object json (Object ... a) 
+        throws org.json.JSONException
+    {
+        String in = (String)a[0];
+        Object out = new JSONTokener(in).nextValue();
+        return unpack(out);  // JSONArray -> Object[]
+    }
 }
