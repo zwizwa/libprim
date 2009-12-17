@@ -10,6 +10,8 @@
 
 package zwizwa.libprim;
 import java.lang.reflect.*;
+import java.io.BufferedReader;
+import java.io.FileReader;
 
 // Serialization through JSON format
 // Get it here: http://www.json.org/java/json.zip
@@ -210,7 +212,6 @@ public class j {
         return null; 
     };
 
-
     /* The C bridge doesn't support numbers (yet), so tunnel them
        through strings. */
     static Object Long   (Object... a) { return new Long   ((String)a[0]); }
@@ -231,4 +232,21 @@ public class j {
         Object out = new JSONTokener(in).nextValue();
         return unpack(out);  // JSONArray -> Object[]
     }
+
+    /* Read a file into a string. */
+    static Object readfile (Object... a) 
+        throws java.io.IOException 
+    {
+        String filename = (String)a[0];
+        FileReader fr = new FileReader(filename);
+        BufferedReader in = new BufferedReader(fr);
+        String str;
+        String out = "";
+        while ((str = in.readLine()) != null) {
+            out = out + " " + str;
+        }
+        in.close();
+        return out;
+    }
+
 }

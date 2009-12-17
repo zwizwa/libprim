@@ -46,7 +46,9 @@ public class sc {
 
     /* Initialize the VM.  Returns a pointer cast as a long. */
     public static long boot(String bootfile) {
-        return bootArgs(new String[] {"--eval", "foo", "--boot", bootfile});
+        return bootArgs(new String[] {
+                // "--eval", "(load \"java.scm\")", 
+                "--boot", bootfile});
     }
     public native static long bootArgs(String[] args);
 

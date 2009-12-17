@@ -892,21 +892,21 @@ void _sc_def_prim(sc *sc, const char *str, void *fn, long nargs) {
 
 
 #define SHIFT(n) {argv+=n;argc-=n;}
-sc *_sc_new(int argc, char **argv) {
+sc *_sc_new(int argc, const char **argv) {
     sc *sc = calloc(1, sizeof(*sc));
     sc->m.entries = 0;
 
-    char *bootfile = NULL;
+    const char *bootfile = NULL;
     _ args = NIL;
     int verbose = 0;
-    char *evalstr = NULL;
+    const char *evalstr = NULL;
 
     /* Read command line interpreter options options. */
     SHIFT(1); // skip program name
     while ((argc > 0) && ('-' == argv[0][0])) {
         if (!strcmp("--boot", argv[0])) { bootfile = argv[1]; SHIFT(2); }
         else if (!strcmp("--verbose", argv[0])) { SHIFT(1); verbose = 1; }
-        else if (!strcmp("--eval", argv[0])) { evalstring = argv[1]; SHIFT(2); }
+        else if (!strcmp("--eval", argv[0])) { evalstr = argv[1]; SHIFT(2);  printf("eval: %s\n", evalstr);}
         else if (!strcmp("--", argv[0])) { SHIFT(1); break; }
         else {
             fprintf(stderr, "option `%s' not recognized\n", argv[0]);

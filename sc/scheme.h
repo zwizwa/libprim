@@ -270,7 +270,7 @@ port *_sc_port(sc *sc);
 const char *_sc_repl_cstring(sc *sc, const char *commands);
 
 /* INIT */
-sc *_sc_new(int argc, char **argv);
+sc *_sc_new(int argc, const char **argv);
 void _sc_def_prims(sc *sc, prim_def *prims);
 
 void _sc_eval_cstring(sc *sc, const char *commands); // deprecated
