@@ -1,4 +1,4 @@
-
+MODULE=sc
 APP=sc
 SRC=scheme.c main.c
 # lib.c
@@ -59,9 +59,12 @@ GEN = scheme.h_sc_prims test.h_load
 include ../Makefile.defs
 include ../Makefile.rules
 
-boot-expanded.scm: boot.scm sc expand.scm
-	./sc --boot boot.scm expand.scm
+EXPAND= $(SRCDIR)/$(MODULE)/expand.scm
+BOOT=   $(SRCDIR)/$(MODULE)/boot.scm
+BOOTE=  boot-expanded.scm
 
+$(BOOTE): sc $(BOOT) $(EXPAND)
+	./sc --boot $(BOOT) $(EXPAND) $(BOOT) $(BOOTE)
 
-test: boot-expanded.scm
-	./sc --boot boot-expanded.scm
+test: $(BOOTE)
+	gdb --args ./sc --boot $(BOOTE)

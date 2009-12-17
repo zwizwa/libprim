@@ -2,6 +2,8 @@
 SRC=port.c bytes.c symbol.c scanner.c parser.c tuple.c leaf.c grid.c \
 	inexact.c channel.c console.c
 
+MODULE=leaf
+
 OBJ=$(SRC:.c=.o)
 DEBUG_CFLAGS=-Wall -g
 # OPTI_CFLAGS=-Os

@@ -1,3 +1,4 @@
+MODULE=jni
 include ../Makefile.defs
 
 # JNI_CFLAGS = -I/export/home/jdk1.2/include -I/export/home/jdk1.2/include/linux 
@@ -30,8 +31,8 @@ test: all main.class
 
 # JAVA_FLAGS = -Xlint:unchecked
 
-%.class: %.java
-	CLASSPATH=.:$$CLASSPATH javac $(JAVA_FLAGS)$<
+%.class: $(SRCDIR)/$(MODULE)/%.java
+	CLASSPATH=.:$$CLASSPATH javac $(JAVA_FLAGS) $<
 
 sc.h: sc.class
 	javah -jni sc
@@ -39,11 +40,11 @@ sc.h: sc.class
 allclean:
 	rm -f *~ *.o *.so *.class
 
-%.so: %.c %.d
+%.so: $(SRCDIR)/$(MODULE)/%.c %.d
 	$(CC) -fPIC -o $@ -shared -Wl,-soname,$@ -Wall $(CPPFLAGS)  $(CFLAGS) $(OPTI_CFLAGS) $(DEBUG_CFLAGS) $(JNI_CFLAGS) $(SC_CFLAGS) $< $(SC_LDFLAGS)
 
-%.h_sc_prims: %.c ../sc/sc_prims.ss ../prim-tools.ss
-	$(MZSCHEME) ../sc/sc_prims.ss $< >$@
+%.h_sc_prims: %.c $(SRCDIR)/sc/sc_prims.ss ../prim-tools.ss
+	$(MZSCHEME) $(SRCDIR)/sc/sc_prims.ss $< >$@
 
 GEN = libscheme.h_sc_prims
 include ../Makefile.rules

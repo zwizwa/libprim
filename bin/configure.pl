@@ -409,6 +409,7 @@ if ($var{media} eq "yes") { makefile "MEDIA = media" };
 if ($var{pf} eq "yes")    { makefile "PF = pf" }; 
 if ($var{sc} eq "yes")    { makefile "SC = sc" }; 
 if ($var{ex} eq "yes")    { makefile "EX = ex" }; 
+if ($var{jni} eq "yes")   { makefile "JNI = jni" };
 
 
 

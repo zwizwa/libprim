@@ -1,7 +1,6 @@
 # -*- makefile -*-
 
 
-
 CPPFLAGS += -I../ -DTASK_DEBUG=0
 # Note that GCC needs "-x c" if you don't use a ".c" extension.
 CFLAGS += -x c
@@ -18,7 +17,8 @@ APP_LDFLAGS +=
 # Make deps from .c file.  This needs the .h_* files before it can
 # parse, so we make those deps explicit.
 
-%.d: %.c Makefile $(GEN)
+%.d: $(SRCDIR)/$(MODULE)/%.c Makefile $(GEN)
+	echo "$(MODULE)/$@"
 	set -e; rm -f $@; \
 		$(CC) -M $(CPPFLAGS) $< > $@.$$$$; \
 		sed 's,\($*\)\.o[ :]*,\1.o $@ : ,g' < $@.$$$$ > $@; \
@@ -26,7 +26,8 @@ APP_LDFLAGS +=
 
 -include $(SRC:.c=.d)
 
-%.o: %.c Makefile
+%.o:  $(SRCDIR)/$(MODULE)/%.c Makefile
+	echo "$(MODULE)/$@"
 	$(COMPILE) -o $@ -c $<
 
 $(APP): $(OBJ) $(DEP_OBJ)

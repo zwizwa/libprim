@@ -1,3 +1,4 @@
+MODULE=pf
 APP=pf
 SRC=pf.c px.c
 DEP_OBJ=../ex/libprim_ex.a ../leaf/libprim_leaf.a 

@@ -1,7 +1,11 @@
 
+(define in  (list-ref args 0))
+(define out (list-ref args 1))
+
+
 ;; Pre-expand the bootfile for faster load.
-(define flat
-  (let ((exp (read (open-input-file "boot.scm"))))
+(define (flat in)
+  (let ((exp (read (open-input-file in))))
     (let ((head (reverse (cdr (reverse exp))))
           (tail (cadr (cadr (assq 'eval-list (cdr exp))))))
       (append head tail))))
@@ -13,6 +17,6 @@
     (display ")\n" port)
     (close-port port)))
 
-(save-expr "boot-expanded.scm" (expand flat))
+(save-expr out (expand (flat in)))
 
 

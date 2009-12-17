@@ -5,7 +5,7 @@
 
 
 int main(int argc, char **argv) {
-    sc *sc = _sc_new(argc, argv);
+    sc *sc = _sc_new(argc, (const char**)argv);
 
     /* A simple mechanism to detach the VM from the main C thread uses
        a 'console' object, which reads raw string s-expressions, and

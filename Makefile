@@ -1,6 +1,6 @@
 include Makefile.defs
 
-DIRS = leaf $(MEDIA) $(EX) $(SC) $(PF) jni
+DIRS = leaf $(MEDIA) $(EX) $(SC) $(PF) $(JNI)
 
 all: 
 	for dir in $(DIRS); do make -C $$dir; done
