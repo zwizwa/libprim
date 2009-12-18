@@ -15,7 +15,7 @@ import java.io.FileReader;
 
 // Serialization through JSON format
 // Get it here: http://www.json.org/java/json.zip
-import org.json.*;
+// import org.json.*;
 
 public class j {
 
@@ -60,15 +60,15 @@ public class j {
             }
             return out;
         }
-        else if (cls == JSONArray.class) {
-            JSONArray in = (JSONArray)a[0];
-            Object[] out = new Object[in.length()]; 
-            for (int i = 0; i < in.length(); i++) { 
-                try { out[i] = unpack(in.get(i)); }
-                catch (JSONException e) {}
-            }
-            return out;
-        }
+//         else if (cls == JSONArray.class) {
+//             JSONArray in = (JSONArray)a[0];
+//             Object[] out = new Object[in.length()]; 
+//             for (int i = 0; i < in.length(); i++) { 
+//                 try { out[i] = unpack(in.get(i)); }
+//                 catch (JSONException e) {}
+//             }
+//             return out;
+//         }
         else return a[0];
     }
     public static Object methods(Object ... a) {
@@ -225,13 +225,13 @@ public class j {
     static Object id (Object... a) { return a[0];}
 
 
-    static Object json (Object ... a) 
-        throws org.json.JSONException
-    {
-        String in = (String)a[0];
-        Object out = new JSONTokener(in).nextValue();
-        return unpack(out);  // JSONArray -> Object[]
-    }
+//     static Object json (Object ... a) 
+//         throws org.json.JSONException
+//     {
+//         String in = (String)a[0];
+//         Object out = new JSONTokener(in).nextValue();
+//         return unpack(out);  // JSONArray -> Object[]
+//     }
 
     /* Read a file into a string. */
     static Object readfile (Object... a) 

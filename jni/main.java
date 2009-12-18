@@ -13,7 +13,7 @@ public class main {
     }
 
     static void startConsole() {
-        sc.startConsole("../sc/boot-expanded.scm");
+        sc.startConsole("../sc/boot.scm");
     }
 
     public static void main(String[] arg) {

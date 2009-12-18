@@ -16,8 +16,8 @@ CPPFLAGS += -I/usr/lib/jvm/java-1.5.0-sun-1.5.0.17/include/linux
 all: libscheme.so j.class sc.class main.class tests.class
 
 links:
-	ln -s . libprim
-	ln -s . zwizwa
+	rm -f libprim ; ln -s . libprim
+	rm -f zwizwa  ; ln -s . zwizwa
 
 ENVVARS = CLASSPATH=.:$$CLASSPATH LD_LIBRARY_PATH=.:$$LD_LIBRARY_PATH 
 
@@ -31,8 +31,8 @@ test: all main.class
 
 # JAVA_FLAGS = -Xlint:unchecked
 
-%.class: $(SRCDIR)/$(MODULE)/%.java
-	CLASSPATH=.:$$CLASSPATH javac $(JAVA_FLAGS) $<
+%.class: $(SRCDIR)/$(MODULE)/%.java links
+	CLASSPATH=.:$(SRCDIR)/jni/:$$CLASSPATH javac -d . $(JAVA_FLAGS) $<
 
 sc.h: sc.class
 	javah -jni sc
@@ -43,7 +43,7 @@ allclean:
 %.so: $(SRCDIR)/$(MODULE)/%.c %.d
 	$(CC) -fPIC -o $@ -shared -Wl,-soname,$@ -Wall $(CPPFLAGS)  $(CFLAGS) $(OPTI_CFLAGS) $(DEBUG_CFLAGS) $(JNI_CFLAGS) $(SC_CFLAGS) $< $(SC_LDFLAGS)
 
-%.h_sc_prims: %.c $(SRCDIR)/sc/sc_prims.ss ../prim-tools.ss
+%.h_sc_prims: $(SRCDIR)/$(MODULE)/%.c $(SRCDIR)/sc/sc_prims.ss $(SRCDIR)/prim-tools.ss
 	$(MZSCHEME) $(SRCDIR)/sc/sc_prims.ss $< >$@
 
 GEN = libscheme.h_sc_prims
