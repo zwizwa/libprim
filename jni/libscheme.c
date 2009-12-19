@@ -141,7 +141,7 @@ jlong METHOD(bootArgs)(JNIEnv *env, jclass sc_class, jarray a_j) {
 
     /* If resume follows after this, we run the init script.  Override
        with different prepare for other behaviour. */
-    _sc_prepare(sc, CONS(SYMBOL("eval"), CONS(SYMBOL("init-script"), NIL)));
+    _sc_continue(sc);
     return (jlong)(long)sc;
 }
 

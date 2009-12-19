@@ -614,8 +614,11 @@
 
          
            
-             
-
+(define (script)
+  (let ((file (car args)))
+    (set! args (cdr args)) ;; necessary?  maybe leave script name?
+    (load file)))
+    
 (define (repl)
   ;; (display "libprim/SC") (newline)
   (let loop ()

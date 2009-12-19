@@ -906,7 +906,7 @@ sc *_sc_new(int argc, const char **argv) {
     while ((argc > 0) && ('-' == argv[0][0])) {
         if (!strcmp("--boot", argv[0])) { bootfile = argv[1]; SHIFT(2); }
         else if (!strcmp("--verbose", argv[0])) { SHIFT(1); verbose = 1; }
-        else if (!strcmp("--eval", argv[0])) { evalstr = argv[1]; SHIFT(2);  printf("eval: %s\n", evalstr);}
+        else if (!strcmp("--eval", argv[0])) { evalstr = argv[1]; SHIFT(2); }
         else if (!strcmp("--", argv[0])) { SHIFT(1); break; }
         else {
             fprintf(stderr, "option `%s' not recognized\n", argv[0]);
@@ -982,25 +982,21 @@ sc *_sc_new(int argc, const char **argv) {
     /* Pass command line arguments to scheme. */
     while ((argc > 0)) { args = CONS(STRING(argv[0]), args); SHIFT(1); }
     args = BANG_REVERSE(args);
-
-
-    _ init;
-    if (NIL == args) {
-        init = CONS(SYMBOL("repl"), NIL);
-    }
-    else {
-        init = CONS(SYMBOL("load"), CONS(CAR(args), NIL));
-        args = CDR(args);
-    }
-    
     sc_bang_def_toplevel(sc, SYMBOL("args"), args);
-    sc_bang_def_toplevel(sc, SYMBOL("init-script"), init);
 
     /* Highlevel bootstrap. */
     if (!bootfile) bootfile = getenv("PRIM_BOOT_SCM");
     if (!bootfile) bootfile = PRIM_HOME "boot.scm";
     if (verbose) _ex_printf(EX, "SC: %s\n", bootfile);
     _sc_top(sc, _ex_boot_load(EX, bootfile));
+
+    /* Set the continuation to continue booting in Scheme when the vm
+       is started using _sc_continue() */
+    if (!evalstr) evalstr = "(repl)"; 
+    _sc_prepare(sc, CONS(SYMBOL("eval-string"),
+                    CONS(STRING(evalstr),
+                    NIL)));
+
     return sc;
 }
 

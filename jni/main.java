@@ -12,12 +12,12 @@ public class main {
         System.out.println("main() exit.");
     }
 
-    static void startConsole() {
-        sc.startConsole("boot.scm");
+    static void startConsole(String[] args) {
+        sc.startConsole(args);
     }
 
-    public static void main(String[] arg) {
+    public static void main(String[] args) {
         // spawnConsoleServer();
-        startConsole();
+        startConsole(args);
     }
 }

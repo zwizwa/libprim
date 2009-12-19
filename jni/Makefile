@@ -25,7 +25,8 @@ gdbtest: all main.class
 	$(ENVVARS) gdb --args java main
 
 test: all main.class
-	$(ENVVARS) java main
+	$(ENVVARS) java main --boot $(SRCDIR)/sc/boot-expanded.scm \
+		--eval "(begin (load \"$(SRCDIR)/jni/java.scm\")(repl))"
 
 
 

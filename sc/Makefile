@@ -63,7 +63,7 @@ BOOT=   $(SRCDIR)/$(MODULE)/boot.scm
 BOOTE=  boot-expanded.scm
 
 $(BOOTE): sc $(BOOT) $(EXPAND)
-	./sc --boot $(BOOT) $(EXPAND) $(BOOT) $(BOOTE)
+	./sc --boot $(BOOT) --eval '(script)' $(EXPAND) $(BOOT) $(BOOTE)
 
 test: $(BOOTE)
 	gdb --args ./sc --boot $(BOOTE)

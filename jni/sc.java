@@ -89,8 +89,8 @@ public class sc {
     }
 
     /* Run blocking console on stdin. */
-    public static void startConsole(String bootfile) {
-        long vm = boot(bootfile);
+    public static void startConsole(String[] args) {
+        long vm = bootArgs(args);
         sc x = new sc(vm, 0);
         resume(vm);
     }
