@@ -1,6 +1,6 @@
 #include <stdio.h>
 #include <stdlib.h>
-#include "scheme.h"
+#include <sc/scheme.h>
 
 
 

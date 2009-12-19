@@ -32,8 +32,8 @@
 #include <unistd.h>
 #include <signal.h>
 
-#include "pf.h"
-#include "px.h"
+#include <pf/pf.h>
+#include <pf/px.h>
 
 /* Leaf object wrappers. */
 DEF_RC_TYPE(port)

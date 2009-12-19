@@ -4,7 +4,7 @@
 #include <setjmp.h>
 #include <leaf/leaf.h>
 #include <ex/ex.h>
-#include <ex/ex.h_ex_prims>
+#include <ex/ex.h_prims>
 #include <leaf/console.h>
 typedef struct _scheme sc;
 
