@@ -122,7 +122,7 @@ jlong METHOD(bootArgs)(JNIEnv *env, jclass sc_class, jarray a_j) {
     /* Wrap arguments */
     int i,n = 1 + (*env)->GetArrayLength(env, a_j);
     const char *argv[n];
-    jobject *jargv[n];
+    jobject jargv[n];
     argv[0] = "sc"; // program name
     for (i=1; i<n; i++) {
         jargv[i] = (*env)->GetObjectArrayElement(env, a_j, i-1);
@@ -132,16 +132,13 @@ jlong METHOD(bootArgs)(JNIEnv *env, jclass sc_class, jarray a_j) {
     /* Init */
     sc *sc = _sc_new(n, argv);
     _libscheme_init(sc);
+
     // LOGF("Scheme VM: %p\n", sc);
 
     /* Free wrappers. */
     for (i=1; i<n; i++) {
         (*env)->ReleaseStringUTFChars(env, jargv[i], argv[i]);
     }
-
-    /* If resume follows after this, we run the init script.  Override
-       with different prepare for other behaviour. */
-    _sc_continue(sc);
     return (jlong)(long)sc;
 }
 
@@ -156,21 +153,28 @@ jlong METHOD(prepareConsoleServer)(JNIEnv *env, jclass sc_class, jlong lsc, jstr
     return (jlong)(long)c;
 }
 
+static jclass findclass(JNIEnv *env, const char *name) {
+    jclass c = (*env)->FindClass(env, name);
+    if (!c) { fprintf(stderr, "WARNING: class %s not found\n", name); }
+    // else { fprintf(stderr, "class %p %s\n", c, name); }
+    return c;
+}
+
 void METHOD(resume)(JNIEnv *env, jclass cls, jlong lsc) { 
     sc *sc = (void*)(long)lsc;
     java_ctx ctx;
     ctx.env = env;
     ctx.cls = cls;
-    ctx.type_string  = (*env)->FindClass(env, "java/lang/String");
-    ctx.type_long    = (*env)->FindClass(env, "java/lang/Long");
-    ctx.type_integer = (*env)->FindClass(env, "java/lang/Integer");
-    ctx.type_short   = (*env)->FindClass(env, "java/lang/Short");
-    ctx.type_byte    = (*env)->FindClass(env, "java/lang/Byte");
-    ctx.type_boolean = (*env)->FindClass(env, "java/lang/Boolean");
-    ctx.type_float   = (*env)->FindClass(env, "java/lang/Float");
-    ctx.type_double  = (*env)->FindClass(env, "java/lang/Double");
-    ctx.type_object  = (*env)->FindClass(env, "java/lang/Object");
-    ctx.type_object_array = (*env)->FindClass(env, "[Ljava/lang/Object;");
+    ctx.type_string  = findclass(env, "java/lang/String");
+    ctx.type_long    = findclass(env, "java/lang/Long");
+    ctx.type_integer = findclass(env, "java/lang/Integer");
+    ctx.type_short   = findclass(env, "java/lang/Short");
+    ctx.type_byte    = findclass(env, "java/lang/Byte");
+    ctx.type_boolean = findclass(env, "java/lang/Boolean");
+    ctx.type_float   = findclass(env, "java/lang/Float");
+    ctx.type_double  = findclass(env, "java/lang/Double");
+    ctx.type_object  = findclass(env, "java/lang/Object");
+    ctx.type_object_array = findclass(env, "[Ljava/lang/Object;");
     
 
     // LOGF("String:%p, Object:%p, Object[]:%p\n" ,
