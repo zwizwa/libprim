@@ -11,12 +11,10 @@ DEBUG_CFLAGS=-Wall -g
 
 # CC = gcc -m32
 
-%.h_ex_prims: $(SRCDIR)/$(MODULE)/%.c $(SRCDIR)/$(MODULE)/ex_prims.ss $(SRCDIR)/prim-tools.ss
-	$(MZSCHEME) $(SRCDIR)/$(MODULE)/ex_prims.ss $< >$@
-%.h_leg: %.leg
-	leg <$< >$@
+# %.h_leg: %.leg
+# 	leg <$< >$@
 
-GEN = ex.h_ex_prims
+GEN = ex.h_prims
 # sexp.h_leg
 
 all: $(GEN) libprim_ex.a

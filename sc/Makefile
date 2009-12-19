@@ -48,12 +48,11 @@ libprim_sc.a: $(SC_LIB_OBJ)
 
 
 # generated files
-%.h_load: %.scm ../load.ss
-	$(MZSCHEME) ../load.ss $< >$@
-%.h_sc_prims: %.c sc_prims.ss ../prim-tools.ss
-	$(MZSCHEME) sc_prims.ss $< >$@
+# %.h_load: %.scm ../load.ss
+#	$(MZSCHEME) ../load.ss $< >$@
 
-GEN = scheme.h_sc_prims test.h_load
+GEN = scheme.h_prims 
+# test.h_load
 # boot.h_load 
 
 include ../Makefile.defs

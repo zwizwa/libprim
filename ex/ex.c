@@ -17,10 +17,10 @@
 
 #include <leaf/port.h>
 #include <leaf/channel.h>
-#include "object.h"
-#include "pair.h"
-#include "ex.h"
-#include "ex.h_ex_prims"
+#include <ex/object.h>
+#include <ex/pair.h>
+#include <ex/ex.h>
+#include <ex/ex.h_ex_prims>
 
 
 char *object_to_cstring(_ ob) {

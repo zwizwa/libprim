@@ -110,13 +110,15 @@
   (format "~a~a" (car (regexp-split #rx"\\." f)) postfix))
 
 (define (gen)
-  (let ((filename (arg0)))
-    ;; (printf "F:~a\n" filename)
-    (gen-header
-     (mprefix (filename->name filename "_table_init"))
-     (mprefix (string-upcase (filename->name filename "")))
-     (scan filename)
-     (ctx))))
+  (let ((file-path (arg0)))
+    (let-values (((dir filename-p _) (split-path file-path)))
+      (let ((filename (path->string filename-p)))
+        ;; (printf "F:~a\n" filename)
+        (gen-header
+         (mprefix (filename->name filename "_table_init"))
+         (mprefix (string-upcase (filename->name filename "")))
+         (scan file-path)
+         (ctx))))))
 
 (define (gen-header init guard ds ctx)
   (let ((dict (declarations->dict ds)))

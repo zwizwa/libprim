@@ -13,7 +13,7 @@
 #include <leaf/tuple.h>
 
 
-#include "libscheme.h_sc_prims"
+#include "libscheme.h_prims"
 static prim_def android_prims[] = libscheme_table_init;
 void _libscheme_init(sc *sc) {
     _sc_def_prims(sc, android_prims);

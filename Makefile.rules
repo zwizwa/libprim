@@ -1,7 +1,7 @@
 # -*- makefile -*-
 
 
-CPPFLAGS += -I../ -DTASK_DEBUG=0
+CPPFLAGS += -DTASK_DEBUG=0
 # Note that GCC needs "-x c" if you don't use a ".c" extension.
 CFLAGS += -x c
 COMPILE = $(CC) $(CPPFLAGS) $(CFLAGS) $(OPTI_CFLAGS) $(DEBUG_CFLAGS) 
@@ -29,6 +29,11 @@ APP_LDFLAGS +=
 %.o:  $(SRCDIR)/$(MODULE)/%.c Makefile
 	echo "$(MODULE)/$@"
 	$(COMPILE) -o $@ -c $<
+
+# Generated header files
+%.h_prims: $(SRCDIR)/$(MODULE)/%.c $(SRCDIR)/$(MODULE)/gen_prims.ss $(SRCDIR)/prim-tools.ss
+	$(MZSCHEME) $(SRCDIR)/$(MODULE)/gen_prims.ss $< >$@
+
 
 $(APP): $(OBJ) $(DEP_OBJ)
 	$(CC) -o $(APP) $(APP_DEBUG_LDFLAGS) $(OBJ) $(DEP_OBJ) $(LIBS) $(APP_LDFLAGS) $(LDFLAGS)

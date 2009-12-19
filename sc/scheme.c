@@ -4,12 +4,12 @@
 #include <unistd.h>
 #include <string.h>
 
-#include "scheme.h"
-#include "../config.h"
+#include <sc/scheme.h>
+#include <config.h>
 
 // generated
-#include "scheme.h_sc_prims"
-#include "../ex/ex.h_ex_prims"
+#include <sc/scheme.h_prims>
+#include <ex/ex.h_prims>
 
 
 /* --- PRIMITIVES --- */

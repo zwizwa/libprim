@@ -43,8 +43,6 @@ allclean:
 %.so: $(SRCDIR)/$(MODULE)/%.c %.d
 	$(CC) -fPIC -o $@ -shared -Wl,-soname,$@ -Wall $(CPPFLAGS)  $(CFLAGS) $(OPTI_CFLAGS) $(DEBUG_CFLAGS) $(JNI_CFLAGS) $(SC_CFLAGS) $< $(SC_LDFLAGS)
 
-%.h_sc_prims: $(SRCDIR)/$(MODULE)/%.c $(SRCDIR)/sc/sc_prims.ss $(SRCDIR)/prim-tools.ss
-	$(MZSCHEME) $(SRCDIR)/sc/sc_prims.ss $< >$@
 
-GEN = libscheme.h_sc_prims
+GEN = libscheme.h_prims
 include ../Makefile.rules

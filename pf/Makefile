@@ -1,3 +1,5 @@
+include ../Makefile.defs
+
 MODULE=pf
 APP=pf
 SRC=pf.c px.c
@@ -13,15 +15,17 @@ DEBUG_CFLAGS=-Wall -g -Wno-unused
 all: pf $(DEP_OBJ)
 
 # generated files
-%.h_pf_prims: %.c pf_prims.ss ../prim-tools.ss
-	$(MZSCHEME) pf_prims.ss $< >$@
-%.h_px_prims: %.c px_prims.ss ../prim-tools.ss
-	$(MZSCHEME) px_prims.ss $< >$@
-%.h_load: %.pf ../load.ss
-	$(MZSCHEME) ../load.ss $< >$@
+
+SD = $(SRCDIR)/$(MODULE)
+
+%.h_pf_prims: $(SD)/%.c $(SD)/pf_prims.ss $(SRCDIR)/prim-tools.ss
+	$(MZSCHEME) $(SD)/pf_prims.ss $< >$@
+%.h_px_prims: $(SD)/%.c $(SD)/px_prims.ss $(SRCDIR)/prim-tools.ss
+	$(MZSCHEME) $(SD)/px_prims.ss $< >$@
+%.h_load: $(SD)/%.pf $(SRCDIR)/load.ss
+	$(MZSCHEME) $(SRCDIR)/load.ss $< >$@
 
 GEN = pf.h_pf_prims px.h_px_prims
 # boot.h_load
 
-include ../Makefile.defs
 include ../Makefile.rules

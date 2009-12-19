@@ -3,11 +3,11 @@
 #include <unistd.h>
 #include <signal.h>
 
-#include "pf.h"
-#include "px.h"
-#include "pf.h_pf_prims"
-#include "px.h_px_prims"
-#include "../config.h"
+#include <pf/pf.h>
+#include <pf/px.h>
+#include <pf/pf.h_pf_prims>
+#include <pf/px.h_px_prims>
+#include <config.h>
 
 /* 
    PF: VM interpreter and Stack primitive functions.
