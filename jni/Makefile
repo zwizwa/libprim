@@ -13,7 +13,7 @@ SC_LDFLAGS = -L../sc -L../ex -L../leaf -lprim_sc -lprim_ex -lprim_leaf
 CPPFLAGS += -I/usr/lib/jvm/java-1.5.0-sun-1.5.0.17/include
 CPPFLAGS += -I/usr/lib/jvm/java-1.5.0-sun-1.5.0.17/include/linux
 
-all: libscheme.so j.class sc.class main.class tests.class
+all: libscheme.so j.class sc.class main.class tests.class 
 
 links:
 	rm -f libprim ; ln -s . libprim
@@ -32,7 +32,7 @@ test: all main.class
 
 # JAVA_FLAGS = -Xlint:unchecked
 
-%.class: $(SRCDIR)/$(MODULE)/%.java links
+%.class: $(SRCDIR)/$(MODULE)/%.java
 	CLASSPATH=.:$(SRCDIR)/jni/:$$CLASSPATH javac -d . $(JAVA_FLAGS) $<
 
 sc.h: sc.class
