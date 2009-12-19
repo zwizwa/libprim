@@ -228,12 +228,7 @@ _ sc_write_stderr(sc *sc,  _ o) {
 }
 
 
-// FIXME: factor this out to incorportate high level errors
 
-//_ __sc_error_to_list(sc *sc, _ err) {
-//    error *e = CAST(error, err);
-//    return CONS(e->state, CONS(e->prim, tag, CONS(e->arg, CONS(e->state, CONS(
-//}
 
 _ sc_print_error(sc *sc, _ err) {
     if (TRUE == sc_is_error(sc, err)) {
@@ -605,52 +600,6 @@ static _ _sc_step(sc *sc, _ o_state) {
 
 
 
-/* _ _sc_eval_step(sc *sc, _ state) { */
-/*     int exception; */
-/*     object rv = NIL; */
-
-/*     /\* Allocate the error struct before the step() is entered to */
-/*        prevent GC restarts of imperative primitives. *\/  */
-/*     if (FALSE == sc->error) { */
-/*         sc->error = sc_make_error(sc, VOID, VOID, VOID, VOID); */
-/*     } */
-
-/*     switch(exception = setjmp(sc->m.r.step)) { */
-/*         case EXCEPT_TRY: */
-/*             /\* From here to the invocation of primitive code it is OK */
-/*                to perform a restart when a garbage collection occurs. */
-/*                We guarantee a minimum amount of free cells to */
-/*                primitive code, and will trigger collection here in */
-/*                case there is not enough. *\/ */
-/*             EX->stateful_context = 0; */
-/*             if (gc_available(EX->gc) < 40) gc_collect(EX->gc); */
-
-/*             rv = _sc_step(sc, state); */
-/*             break; */
-/*         case EXCEPT_ABORT:  */
-/*         { */
-/*             error *e = object_to_error(sc->error); */
-/*             if (unlikely(NULL == e)) { TRAP(); } */
-/*             e->tag = sc->m.error_tag; */
-/*             e->arg = sc->m.error_arg; */
-/*             e->state = state; // prim's _input_ state */
-/*             e->prim = const_to_object(sc->m.r.prim); */
-/*             sc->m.error_arg = NIL; */
-/*             sc->m.error_tag = NIL; */
-/*             rv = sc->error; */
-/*             sc->error = FALSE; */
-/*             break; */
-/*         } */
-/*         default: */
-/*             break; */
-/*     } */
-
-/*     sc->m.prim_entries--; */
-/*     memcpy(&sc->m.r, &save, sizeof(save)); */
-/*     return rv; */
-/* } */
-
-
 
 void _sc_pop_k(sc *sc, _ value) {
     state *s = CAST(state, sc_global(sc, sc_slot_state));
@@ -927,14 +876,6 @@ sc *_sc_new(int argc, const char **argv) {
                     
     /* Atom classes. */
     base_types *types = NULL; // FIXME: configurable subclass?
-    // if (!types) types = malloc(sizeof(*(sc->m.p)));
-    // sc->m.p = types;
-    // TYPES->ck_type = ck_type();
-    // TYPES->symbol_type = symbol_type();
-    // TYPES->prim_type = (void*)0xF001; // dummy class
-    // TYPES->port_type = port_type();
-    // TYPES->bytes_type = bytes_type();
-    // TYPES->inexact_type = inexact_type();
 
     /* EX virtual methods */
     sc->m.port = (_ex_m_port)_sc_port;
@@ -1081,41 +1022,3 @@ console *_sc_prepare_console_server(sc *sc, const char *node) {
 
 
 
-/* DEBUG */
-
-
-#if 0
-
-/* Reflist.  In order to properly wrap Java objects, they need to be
-   mapped to Scheme objects in a 1-1 fashon. */
-
-
-#define PS() {leaf_write((leaf_object*)stack, p); port_printf(p, "\n");}
-
-int is_el(symbol* a, symbol *b) { return a == b; }
-_ __sc_foo(sc *sc) {
-    tuple *stack = 0;
-    port *p = port_file_new(stderr, "<stderr>");
-    
-    PS();
-    stack = tuple_stack_push(stack, (leaf_object*)symbol_from_cstring("a"));
-    stack = tuple_stack_push(stack, (leaf_object*)symbol_from_cstring("b"));
-    stack = tuple_stack_push(stack, (leaf_object*)symbol_from_cstring("c"));
-    PS();
-    stack = tuple_list_remove(stack, 
-                              (leaf_predicate)is_el,
-                              symbol_from_cstring("b"));
-    PS();
-    port_printf(p, "%p\n", tuple_list_find(stack,
-                                           (leaf_predicate)is_el,
-                                           symbol_from_cstring("b")));
-    port_printf(p, "%p\n", tuple_list_find(stack,
-                                           (leaf_predicate)is_el,
-                                           symbol_from_cstring("a")));
-    
-        
-
-    return VOID;
-}
-
-#endif
