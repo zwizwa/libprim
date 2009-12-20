@@ -6948,3 +6948,8 @@ However, this requires quite some surgery as the concrete
 representation is used in a lot of places.  I attempted it once and
 failed, then reverted.
 
+
+OK, it seems to work after hunting bugs.  Code is simpler now, but
+there might still be subtle problems where order of argument
+evaluation is used.
+

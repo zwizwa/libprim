@@ -75,13 +75,19 @@
   (lambda (fn lsts)
     (if (null? (car lsts)) ;; assume all same length
         '()
-        ((lambda (head) ;; assure left->right order of evaluation
+        ((lambda (head) ;; (*)
            (cons head (mapn fn (map1-prim cdr lsts))))
          (apply1 fn (map1-prim car lsts))))))
+
+;; (*) to implement `for-each' in terms of `map', it's simplest to
+;; make sure that `fn' in `mapn' is applied from left to right.  Note
+;; that all application forms (like `cons' above) evaluate from right
+;; to left.
 
 (define map
   (lambda (fn . lsts)
     (mapn fn lsts)))
+
 
 
 (define list* (lambda (a . rest)
@@ -381,7 +387,10 @@
 (define char? integer?)
 (define number? integer?)
 (define string? bytes?)
+
+;; This relies on the order of map.
 (define (for-each . args) (void (apply map args)))
+
 
 (define string=? string-equal?)
 (define string-length bytes-length)
