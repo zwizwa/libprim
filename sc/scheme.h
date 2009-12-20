@@ -103,9 +103,9 @@ typedef struct {
    to use k_apply continuations for other purposes. */
 typedef struct {
     k_frame k;
-    _ done;   // reversed list of values
-    _ todo;   // list of redexes
-} k_apply;
+    _ done;   // list of values
+    _ todo;   // reversed list of redexes
+} k_args;
 
 typedef struct {
     k_frame k;
@@ -135,7 +135,7 @@ DEF_STRUCT(redex,  TAG_REDEX)
 DEF_STRUCT(error,  TAG_ERROR)
 DEF_STRUCT(value,  TAG_VALUE)
 
-DEF_STRUCT(k_apply, TAG_K_APPLY)
+DEF_STRUCT(k_args,  TAG_K_ARGS)
 DEF_STRUCT(k_if,    TAG_K_IF)
 DEF_STRUCT(k_set,   TAG_K_SET)
 DEF_STRUCT(k_seq,   TAG_K_SEQ)

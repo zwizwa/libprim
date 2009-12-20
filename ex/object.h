@@ -101,7 +101,7 @@ static inline long flags_is_linear_pair(long flag) {
 /* Scheme continuation tags: 24-31 */
 #define TAG_K_IF      VECTOR_TAG(24)
 #define TAG_K_SET     VECTOR_TAG(25)
-#define TAG_K_APPLY   VECTOR_TAG(26)
+#define TAG_K_ARGS    VECTOR_TAG(26)
 #define TAG_K_SEQ     VECTOR_TAG(27)
 
 static inline long flags_is_k(long flag) {

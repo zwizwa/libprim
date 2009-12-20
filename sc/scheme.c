@@ -62,7 +62,7 @@ _ sc_is_error(sc *sc, _ o)   { return _is_vector_type(o, TAG_ERROR); }
 _ sc_is_aref(sc *sc, _ o)    { return _is_vector_type(o, TAG_AREF); }
 
 _ sc_is_k_if(sc *sc, _ o)    { return _is_vector_type(o, TAG_K_IF); }
-_ sc_is_k_apply(sc *sc, _ o) { return _is_vector_type(o, TAG_K_APPLY); }
+_ sc_is_k_args(sc *sc, _ o)  { return _is_vector_type(o, TAG_K_ARGS); }
 _ sc_is_k_seq(sc *sc, _ o)   { return _is_vector_type(o, TAG_K_SEQ); }
 _ sc_is_k_set(sc *sc, _ o)   { return _is_vector_type(o, TAG_K_SET); }
 
@@ -108,7 +108,7 @@ _ sc_make_aref(sc *sc, _ F, _ O)                  {STRUCT(TAG_AREF,    2, F,O);}
 
 // 'P' is in slot 0
 // continuations are created with an empty mark list
-_ sc_make_k_apply(sc *sc, _ P, _ D, _ T)     {STRUCT(TAG_K_APPLY,  4, P,NIL,D,T);}
+_ sc_make_k_args(sc *sc, _ P, _ D, _ T)      {STRUCT(TAG_K_ARGS,   4, P,NIL,D,T);}
 _ sc_make_k_if(sc *sc, _ P, _ Y, _ N)        {STRUCT(TAG_K_IF,     4, P,NIL,Y,N);}
 _ sc_make_k_set(sc *sc, _ P, _ V, _ E, _ Et) {STRUCT(TAG_K_SET,    5, P,NIL,V,E,Et);}
 _ sc_make_k_seq(sc *sc, _ P, _ T)            {STRUCT(TAG_K_SEQ,    3, P,NIL,T);}
@@ -210,7 +210,7 @@ _ sc_write_stderr(sc *sc,  _ o) {
     if (TRUE == sc_is_error(sc, o))   return _ex_write_vector(EX, "error", v);
     // if (TRUE == sc_is_aref(sc, o))    return _ex_write_vector(EX, "aref", o);
 
-    if (TRUE == sc_is_k_apply(sc, o)) return _ex_write_vector(EX, "k_apply", v);
+    if (TRUE == sc_is_k_args(sc, o))  return _ex_write_vector(EX, "k_args", v);
     if (TRUE == sc_is_k_if(sc, o))    return _ex_write_vector(EX, "k_if", v);
     if (TRUE == sc_is_k_seq(sc, o))   return _ex_write_vector(EX, "k_seq", v);
     if (TRUE == sc_is_k_set(sc, o))   return _ex_write_vector(EX, "k_set", v);
@@ -288,18 +288,16 @@ _ sc_print_error(sc *sc, _ err) {
    what to do next with the recently reduced closure.
 */
 
-
-static inline _ _sc_call(sc *sc, void *p, int nargs, _ ra) {
-    switch(nargs) {
-    case 0: return ((ex_0)p)(EX);
-    case 1: return ((ex_1)p)(EX, _CAR(ra));
-    case 2: return ((ex_2)p)(EX, _CADR(ra), _CAR(ra));
-    case 3: return ((ex_3)p)(EX, _CADDR(ra), _CADR(ra), _CAR(ra));
-    case 4: return ((ex_4)p)(EX, _CADDDR(ra), _CADDR(ra), _CADR(ra), _CAR(ra));
-    case 5: return ((ex_5)p)(EX, _CADDDDR(ra), _CADDDR(ra), _CADDR(ra), _CADR(ra), _CAR(ra));
-    default:
-        return ERROR("prim", integer_to_object(nargs));
-    }
+#define A(n) a[n] = CAR(args); args = _CDR(args)
+static inline _ _sc_call(sc *sc, void *p, int nargs, _ args) {
+    _ a[5];                     
+          if (0 == nargs) return ((ex_0)p)(EX);
+    A(0); if (1 == nargs) return ((ex_1)p)(EX, a[0]);    
+    A(1); if (2 == nargs) return ((ex_2)p)(EX, a[0], a[1]);    
+    A(2); if (3 == nargs) return ((ex_3)p)(EX, a[0], a[1], a[2]);    
+    A(3); if (4 == nargs) return ((ex_4)p)(EX, a[0], a[1], a[2], a[3]);    
+    A(4); if (5 == nargs) return ((ex_5)p)(EX, a[0], a[1], a[2], a[3], a[4]);    
+    return ERROR("prim", integer_to_object(nargs));
 }
 
 /* Propagate environment during reduction. */
@@ -307,13 +305,6 @@ _ sc_close_args(sc *sc, _ lst, _ E) {
     if ((TRUE==IS_NULL(lst))) return NIL;
     else return CONS(REDEX(CAR(lst), E),
                      sc_close_args(sc, CDR(lst), E)); 
-}
-
-static inline void length_and_last(sc *sc, _ p, long* n, _*last) {
-    *n = 0;
-    while (TRUE==IS_PAIR(p)) {
-        (*n)++; (*last) = CAR(p); p = CDR(p);
-    }
 }
 
 _ sc_error_undefined(sc *sc, _ o) { return ERROR("undefined", o); }
@@ -363,33 +354,29 @@ _ _sc_step_value(sc *sc, _ v, _ k) {
         if (NIL == top->cdr) return STATE(top->car, kx->k.parent);
         return STATE(top->car, sc_make_k_seq(sc, kx->k.parent, top->cdr));
     }
-    if (TRUE == sc_is_k_apply(sc, k)) {
+    if (TRUE == sc_is_k_args(sc, k)) {
         /* If there are remaining closures to evaluate, push the value
            to the update value list and pop the next closure. */
-        k_apply *kx = object_to_k_apply(k);
+        k_args *kx = object_to_k_args(k);
         if (TRUE==IS_PAIR(kx->todo)) {
             return STATE(CAR(kx->todo),
-                         sc_make_k_apply(sc, kx->k.parent,
-                                         CONS(value, kx->done),
-                                         CDR(kx->todo)));
+                         sc_make_k_args(sc, kx->k.parent,
+                                        CONS(value, kx->done),
+                                        CDR(kx->todo)));
         }
         /* No more expressions to be reduced in the current k_apply:
            perform application. */
         else {
-            _ rev_args = CONS(value, kx->done);
-            _ fn=NIL;
-            long n;
-            length_and_last(sc, rev_args, &n, &fn);
-            // n  == 1 + nb_args
+            _ fn   = value;
+            _ args = kx->done; 
+
             // fn == primitive | lambda | continuation
 
             /* Application of primitive function results in C call. */
             if (TRUE==IS_PRIM(fn)) {
                 prim *p = object_to_prim(fn);
                 sc->m.prim = p; // for debug
-                if (prim_nargs(p) != (n-1)) {
-                    return ERROR("nargs", fn);
-                }
+
                 /* Before entering primitive code, make GC restarts
                    illegal.  Code that allocates a large amount of
                    cells needs to re-enable restarts explicitly.  A
@@ -397,7 +384,7 @@ _ _sc_step_value(sc *sc, _ v, _ k) {
                 _ value = VALUE(VOID);
                 _ state = STATE(value, kx->k.parent);
                 EX->stateful_context = 1;
-                _ rv = _sc_call(sc, prim_fn(p), n-1, rev_args);
+                _ rv = _sc_call(sc, prim_fn(p), prim_nargs(p), args);
                 object_to_value(value)->datum = rv;
                 return state;
             }
@@ -406,31 +393,20 @@ _ _sc_step_value(sc *sc, _ v, _ k) {
             if (TRUE==sc_is_lambda(sc, fn)) {
                 lambda *l = CAST(lambda, fn);
                 vector *v = CAST(vector, l->formals);
-                _ fn_env = l->env;
+                long    n = vector_size(v);
+                _  fn_env = l->env;
 
-                long nb_named_args    = vector_size(v);
-                long nb_received_args = n - 1;
-                long nb_rest_args     = nb_received_args - nb_named_args;
-
-                if ((nb_rest_args < 0) 
-                    || ((NIL == l->rest) &&
-                        (nb_rest_args != 0))) return ERROR("nargs", fn);
-
-                /* If any, add the rest arguments accumulated in a list. */
-                _ rest_args = NIL;
-                if (NIL != l->rest) {
-                    while (nb_rest_args--) {
-                        rest_args = CONS(CAR(rev_args), rest_args);
-                        rev_args = CDR(rev_args);
-                    }
-                    fn_env = CONS(CONS(l->rest, rest_args), fn_env);
+                /* Extend environment */
+                int i;
+                for (i = 0; i < n; i ++) {
+                    fn_env = CONS(CONS(v->slot[i], CAR(args)), fn_env);
+                    args = CDR(args);
                 }
-
-                /* Add the named arguments. */
-                long i;
-                for (i=nb_named_args-1; i>=0; i--) {
-                    fn_env = CONS(CONS(v->slot[i], CAR(rev_args)), fn_env);
-                    rev_args = CDR(rev_args);
+                if (NIL != l->rest) {
+                    fn_env = CONS(CONS(l->rest, args), fn_env);
+                }
+                else {
+                    if (args != NIL) return ERROR("nargs", fn);
                 }
                 return STATE(REDEX(l->term, fn_env),  // close term
                              kx->k.parent);           // drop frame
@@ -438,9 +414,15 @@ _ _sc_step_value(sc *sc, _ v, _ k) {
 
             /* Continuation */
             if (TRUE==sc_is_k(sc, fn)) {
-                _ arg = VOID; // no args to k -> inserts void.
-                if (n > 2) ERROR("nargs", fn);
-                if (n == 2) arg = CAR(rev_args);
+                _ arg;
+                pair *p = object_to_pair(args);
+                if (!p) { 
+                    arg = VOID; // no args to k -> inserts void.
+                }
+                else {
+                    arg = p->car;
+                    if (p->cdr != NIL) ERROR("nargs", fn);
+                }
                 return STATE(VALUE(arg), fn);
             }
 
@@ -587,12 +569,16 @@ static _ _sc_step(sc *sc, _ o_state) {
 
     /* Application */
 
-    /* Extend the continuation with a new frame by collecting
-       all (open) subterms, and binding them to the current
-       environment. */
-    _ closed_args = sc_close_args(sc, term_args, env);
-    return STATE(REDEX(term_f, env),
-                 sc_make_k_apply(sc, k, NIL, closed_args));
+    /* Extend the continuation with a new frame by collecting all
+       (open) subterms, and binding them to the current environment.
+       The terms are stored in reverse order: evaluation is right to
+       left, which leads to simpler data structures. */
+
+    
+    _ closed = sc_close_args(sc, REVERSE(term), env);
+    return STATE(CAR(closed),
+                 sc_make_k_args(sc, k, NIL, 
+                                CDR(closed)));
   syntax_error:
     return ERROR("syntax",term);
 }
@@ -631,37 +617,13 @@ _ sc_yield(sc *sc, _ ob) {
 
 
 
-/* Continuation transformer for apply.  
-
-   This uses k_seq to ignore the value passed to the continuation, and
-   pass a value to a k_apply continuation.  It would be simpler if
-   k_apply evaluated from right to left (which I don't want), so the
-   awkwardness here is due to implementation. */
+/* Continuation transformer for apply. */
 _ sc_apply_ktx(sc* sc, _ k, _ fn, _ args) {
-    object done;
-    object value;
-    if (NIL == args) {
-        done = NIL;
-        value = VALUE(fn);
-    }
-    else {
-        done = CONS(fn, NIL);
-        pair *p;
-        while ((p = CAST(pair,args)) && (NIL != p->cdr)) {
-            done = CONS(p->car, done);
-            args = p->cdr;
-        }
-        value = VALUE(p->car);
-    }
-    object app = sc_make_k_apply(sc, k, done, NIL); // all but last
-    object seq = sc_make_k_seq(sc, app, CONS(value, NIL));
-    return seq;
+    return sc_make_k_args(sc, k, CONS(fn, args), NIL);
 }
-
 _ sc_eval_ktx(sc *sc, _ k, _ expr) {
     return sc_make_k_seq(sc, k, CONS(REDEX(expr, NIL),NIL));
 }
-
 _ sc_bang_abort_k(sc *sc, _ k) {
     return sc_bang_set_global(sc, sc_slot_abort_k, k);
 }
@@ -916,7 +878,7 @@ sc *_sc_new(int argc, const char **argv) {
 
     /* Toplevel abort continuation */
     _ done = CONS(FIND(TOPLEVEL(),SYMBOL("print-error")),NIL);
-    _ abort_k = sc_make_k_apply(sc, MT, done, NIL);
+    _ abort_k = sc_make_k_args(sc, MT, done, NIL);
 
     sc_bang_abort_k(sc, abort_k);
 

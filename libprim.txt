@@ -6898,7 +6898,7 @@ Maybe there is some double wrapping going on?
 
 It does work on Android though..  Good.
 
-FIXED: needed isSameObject()
+FIXED: needed  isSameObject()
 
 
 Entry: getDeclaredField
@@ -6935,4 +6935,16 @@ To run a script, use:
 'eval' can use anything defined in the boot script, which can still be
 set using the --boot option.
 
+
+Entry: evaluation last to first
+Date: Sun Dec 20 09:11:21 CET 2009
+
+The reason for this is that the result of an evaluation is then a
+simple CONS list: no reverse is necessary.  Reversing of the
+expressions to evaluate (CPS or ANF) can be performed at compile
+time.
+
+However, this requires quite some surgery as the concrete
+representation is used in a lot of places.  I attempted it once and
+failed, then reverted.
 
