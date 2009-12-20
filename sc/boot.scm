@@ -75,8 +75,10 @@
   (lambda (fn lsts)
     (if (null? (car lsts)) ;; assume all same length
         '()
-        (cons (apply fn (map1-prim car lsts))
-              (mapn fn (map1-prim cdr lsts))))))
+        ((lambda (head) ;; assure left->right order of evaluation
+           (cons head (mapn fn (map1-prim cdr lsts))))
+         (apply1 fn (map1-prim car lsts))))))
+
 (define map
   (lambda (fn . lsts)
     (mapn fn lsts)))

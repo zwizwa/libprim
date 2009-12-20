@@ -65,5 +65,5 @@ BOOTE=  boot-expanded.scm
 $(BOOTE): sc $(BOOT) $(EXPAND)
 	./sc --boot $(BOOT) --eval '(script)' $(EXPAND) $(BOOT) $(BOOTE)
 
-test: $(BOOT)
-	gdb --args ./sc --boot $(BOOT)
+test: $(BOOTE)
+	gdb --args ./sc --boot $(BOOTE)
