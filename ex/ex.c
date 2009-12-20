@@ -1127,7 +1127,6 @@ _ ex_trap(ex *ex) {
 _ ex_raise_error(ex *ex, _ tag_o, _ arg_o) {
     ex->error_tag = tag_o;
     ex->error_arg = arg_o;
-    // if (sym_o != SYMBOL("halt")) ex_trap(ex);
     if (ex->entries) longjmp(ex->except, EXCEPT_ABORT);
     _ex_printf(ex, "ERROR (outside of VM): ");
     ex->write(ex, tag_o); _ex_printf(ex, ": ");

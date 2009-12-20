@@ -618,8 +618,9 @@ _ sc_yield(sc *sc, _ ob) {
 
 
 /* Continuation transformer for apply. */
-_ sc_apply_ktx(sc* sc, _ k, _ fn, _ args) {
-    return sc_make_k_args(sc, k, CONS(fn, args), NIL);
+_ sc_apply_ktx(sc* sc, _ k, _ args) {
+    // POST(SYMBOL("apply-ktx"));
+    return sc_make_k_args(sc, k, args, NIL);
 }
 _ sc_eval_ktx(sc *sc, _ k, _ expr) {
     return sc_make_k_seq(sc, k, CONS(REDEX(expr, NIL),NIL));
