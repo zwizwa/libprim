@@ -6898,6 +6898,7 @@ Maybe there is some double wrapping going on?
 
 It does work on Android though..  Good.
 
+FIXED: needed isSameObject()
 
 
 Entry: getDeclaredField
@@ -6906,11 +6907,16 @@ Date: Mon Dec 14 11:35:09 CET 2009
 Any method that accesses a field doesn't work when it's invoked a
 second time.  This stuff is quite full of pitfalls..
 
+FIXED? seems to have been a release() error.
 
 Entry: separate build dirs
 Date: Tue Dec 15 11:16:18 CET 2009
 
 Necessary for cross-compilation.
+
+Seems to work.  This was mostly adding the $(SRCDIR)/$(MODULE)
+prefixes for all source files, and copying the Makefiles into the
+build dir.
 
 
 Entry: --eval or --load options + java pass-through
@@ -6918,4 +6924,15 @@ Date: Wed Dec 16 15:01:47 CET 2009
 
 For running java debugcode this is necessary.
 
--> mostly works, except for the java code
+Done: the sc/sc.c code now uses an --eval option that will pass its
+string argument to the `eval-string' function after loading the boot
+script.  The default value is '(repl)'.
+
+To run a script, use: 
+
+   --eval '(script)' <script> <arg> ...
+   
+'eval' can use anything defined in the boot script, which can still be
+set using the --boot option.
+
+

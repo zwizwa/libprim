@@ -17,6 +17,8 @@
 (define (jmethod obj name . args)
   (j method (j typeof obj) name
      (list->vector (map jtype args))))
+(define (jfield obj name)
+  (j get (j field (j typeof obj) name) obj))
 
 ;; Simpler syntax for method invocation
 (define (jinvoke obj method . args)
