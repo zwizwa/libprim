@@ -617,9 +617,10 @@ _ sc_yield(sc *sc, _ ob) {
 
 
 
-/* Continuation transformer for apply. */
+/* A ktx allows modification of a continuation frame.  The result can
+   be invoked as a continuation.  FIXME: change these to primitives
+   that update VM state. */
 _ sc_apply_ktx(sc* sc, _ k, _ args) {
-    // POST(SYMBOL("apply-ktx"));
     return sc_make_k_args(sc, k, args, NIL);
 }
 _ sc_eval_ktx(sc *sc, _ k, _ expr) {
