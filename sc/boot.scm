@@ -749,6 +749,7 @@
    void))
 
 (define (init-console io node)
+  (write node) (newline)
   (console-dispatch
    (if (list? node)
        (apply tcp-bind node)

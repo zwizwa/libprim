@@ -17,7 +17,7 @@ public class main {
 
     public static void main(String[] args) {
         // consoleTest(sc.spawnConsoleServer("/tmp/sc", 0, args));
-        consoleTest(sc.spawnConsoleServer("0.0.0.0", 12345, args));
-        // startConsole(args);
+        // consoleTest(sc.spawnConsoleServer("0.0.0.0", 12345, args));
+        startConsole(args);
     }
 }
