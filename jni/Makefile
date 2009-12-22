@@ -13,11 +13,16 @@ SC_LDFLAGS = -L../sc -L../ex -L../leaf -lprim_sc -lprim_ex -lprim_leaf
 CPPFLAGS += -I/usr/lib/jvm/java-1.5.0-sun-1.5.0.17/include
 CPPFLAGS += -I/usr/lib/jvm/java-1.5.0-sun-1.5.0.17/include/linux
 
-all: libscheme.so j.class sc.class main.class tests.class 
 
-links:
-	rm -f libprim ; ln -s . libprim
-	rm -f zwizwa  ; ln -s . zwizwa
+all: srclinks .links libscheme.so j.class sc.class main.class tests.class 
+
+.links:
+	ln -s . libprim
+	ln -s . zwizwa
+	touch .links
+
+srclinks: $(SRCDIR)/jni/.links 
+	make -C $(SRCDIR)/jni .links
 
 ENVVARS = CLASSPATH=.:$$CLASSPATH LD_LIBRARY_PATH=.:$$LD_LIBRARY_PATH 
 
