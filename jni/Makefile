@@ -27,7 +27,7 @@ srclinks: $(SRCDIR)/jni/.links
 ENVVARS = CLASSPATH=.:$$CLASSPATH LD_LIBRARY_PATH=.:$$LD_LIBRARY_PATH 
 
 gdbtest: all main.class
-	$(ENVVARS) gdb --args java main
+	$(ENVVARS) gdb --args java main --boot $(SRCDIR)/sc/boot-expanded.scm
 
 test: all main.class
 	$(ENVVARS) java main --boot $(SRCDIR)/sc/boot-expanded.scm \

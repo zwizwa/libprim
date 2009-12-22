@@ -4,8 +4,7 @@ import zwizwa.libprim.sc;
 
 public class main {
 
-    static void spawnConsoleServer() {
-        sc x = sc.spawnConsoleServer("boot.scm", "/tmp/sc");
+    static void consoleTest(sc x) {
         String rv = x.evalString("(+ 1 2)");
         System.out.println("RV: " + rv);
         // x.evalString("(exit)");
@@ -17,7 +16,8 @@ public class main {
     }
 
     public static void main(String[] args) {
-        // spawnConsoleServer();
-        startConsole(args);
+        // consoleTest(sc.spawnConsoleServer("/tmp/sc", 0, args));
+        consoleTest(sc.spawnConsoleServer("0.0.0.0", 12345, args));
+        // startConsole(args);
     }
 }

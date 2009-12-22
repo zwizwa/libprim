@@ -965,7 +965,7 @@ const char *_sc_yield(sc *sc, const char *msg) {
 
 #define QUOTE(x) CONS(SYMBOL("quote"), CONS(x, NIL))
 
-console *_sc_prepare_console_server(sc *sc, const char *node) {
+console *_sc_prepare_console_server(sc *sc, const char *node, int port) {
 
     /* Create bi-directional pipe objects. */
     int to_vm[2];    // 0 = READ, 1 = WRITE
@@ -978,11 +978,17 @@ console *_sc_prepare_console_server(sc *sc, const char *node) {
                 _ex_make_file_port(EX, fdopen(from_vm[1], "w"), "to-console"));
 
     /* Set continuation.  Call _sc_resume() to invoke. */
+
+    _ addr = (port == 0) 
+        ? STRING(node)  // Unix socket
+        : CONS(STRING(node), CONS(integer_to_object(port), NIL)); // TCP socket
+
     _sc_prepare(sc, CONS(SYMBOL("init-console"), 
                     CONS(QUOTE(io),
-                    CONS(node ? STRING(node) : FALSE, NIL))));
+                    CONS(addr,
+                    NIL))));
+
     return c;
 }
-
 
 

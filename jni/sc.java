@@ -59,8 +59,7 @@ public class sc {
 
     /* Prepare for starting a multi-head console server, and connect
        one pipe to a console object usable with consoleEvalString(). */
-    public native static long prepareConsoleServer(long vm, String node);
-
+    public native static long prepareConsoleServer(long vm, String node, int port);
 
     /* Add name.value bindings to the toplevel env. */
     public native static void setToplevel(long vm, String name, Object value);
@@ -80,9 +79,9 @@ public class sc {
        runs in a Java thread, and handles console connections on the
        Unix socket `node', and interprets commands passed in by the
        evalString method.  */
-    public static sc spawnConsoleServer(String bootfile, String node) {
-        long vm = boot(bootfile);
-        long console = prepareConsoleServer(vm, node);
+    public static sc spawnConsoleServer(String node, int port, String[] args) {
+        long vm = bootArgs(args);
+        long console = prepareConsoleServer(vm, node, port);
         spawnResume(vm);
         sc x = new sc(vm, console);
         return x;

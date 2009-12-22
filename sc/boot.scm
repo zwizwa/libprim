@@ -750,7 +750,9 @@
 
 (define (init-console io node)
   (console-dispatch
-   (unix-bind (or node "/tmp/sc") #t)
+   (if (list? node)
+       (apply tcp-bind node)
+       (unix-bind (or node "/tmp/sc") #t))
    (list io)
    void))
 

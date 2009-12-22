@@ -144,15 +144,14 @@ jlong METHOD(bootArgs)(JNIEnv *env, jclass sc_class, jarray a_j) {
 
 
 
-jlong METHOD(prepareConsoleServer)(JNIEnv *env, jclass sc_class, jlong lsc, jstring usock) {
+jlong METHOD(prepareConsoleServer)(JNIEnv *env, jclass sc_class, jlong lsc, jstring usock, jint port) {
     sc *sc = (void*)(long)lsc;
     const char* usock_str = (*env)->GetStringUTFChars(env, usock, NULL);
-    LOGF("Starting console on %s\n", usock_str);
-    console *c = _sc_prepare_console_server(sc, usock_str);
+    LOGF("Starting console on %s:%d\n", usock_str, port);
+    console *c = _sc_prepare_console_server(sc, usock_str, port);
     (*env)->ReleaseStringUTFChars(env, usock, usock_str);
     return (jlong)(long)c;
 }
-
 static jclass findclass(JNIEnv *env, const char *name) {
     jclass c = (*env)->FindClass(env, name);
     if (!c) { fprintf(stderr, "WARNING: class %s not found\n", name); }

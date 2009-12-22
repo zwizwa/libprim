@@ -293,7 +293,7 @@ object _sc_continue(sc *sc);  // resume execution at current machine state
 void _sc_prepare(sc *sc, _ expr);  // current state = start to evaluate expr
 object _sc_top(sc *sc, object expr);  /* == set_redex + continue */
 
-console *_sc_prepare_console_server(sc *sc, const char *node);
+console *_sc_prepare_console_server(sc *sc, const char *node, int port);
 
 
 
