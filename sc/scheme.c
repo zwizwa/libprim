@@ -979,14 +979,17 @@ console *_sc_prepare_console_server(sc *sc, const char *node, int port) {
 
     /* Set continuation.  Call _sc_resume() to invoke. */
 
+
     _ addr = (port == 0) 
         ? STRING(node)  // Unix socket
         : CONS(STRING(node), CONS(integer_to_object(port), NIL)); // TCP socket
 
     _sc_prepare(sc, CONS(SYMBOL("init-console"), 
                     CONS(QUOTE(io),
-                    CONS(addr,
+                    CONS(QUOTE(addr),
                     NIL))));
+
+    fprintf(stderr, "prepared console %s:%d\n", node, port);
 
     return c;
 }

@@ -6953,3 +6953,28 @@ OK, it seems to work after hunting bugs.  Code is simpler now, but
 there might still be subtle problems where order of argument
 evaluation is used.
 
+
+Entry: insidious TCP console bug
+Date: Wed Dec 23 08:37:04 CET 2009
+
+in sc/scheme.c : 
+console *_sc_prepare_console_server(sc *sc, const char *node, int port)
+
+    _ addr = (port == 0) 
+        ? STRING(node)  // Unix socket
+        : CONS(STRING(node), CONS(integer_to_object(port), NIL)); // TCP socket
+
+    _sc_prepare(sc, CONS(SYMBOL("init-console"), 
+                    CONS(QUOTE(io),
+                    CONS(QUOTE(addr),   // (*)
+                    NIL))));
+
+The (*) marked part wasn't quoted.  This was ok for a unix socket
+(strings are self-quoting) but of course not for a list.  The
+subsequent error did not get handled.
+
+Why?
+
+It looks like the resume() call needs an error handling mechanism.
+
+

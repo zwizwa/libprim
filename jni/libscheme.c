@@ -329,23 +329,28 @@ jstring METHOD(consoleEvalString)(JNIEnv *env, jclass sc_class, jlong lconsole, 
     LOGF("RPC: %s\n", command_str);
     if (1) {
         tuple *reply = (tuple*)console_rpc(sc_console, command_str);
+        if (reply) {
 
-        /* Convert CONS-cell based s-expression AST wrapped in tuples
-           to a vector/struct based ast wrapped in tuples.  This
-           cannot represent Scheme vectors #(a b c) and improper lists
-           (a b . c), only proper lists (a b c) */
-        reply = tuple_ast_flatten_lin(reply);
+            /* Convert CONS-cell based s-expression AST wrapped in
+               tuples to a vector/struct based ast wrapped in tuples.
+               This cannot represent Scheme vectors #(a b c) and
+               improper lists (a b . c), only proper lists (a b c) */
+            reply = tuple_ast_flatten_lin(reply);
 
 
-        /* TODO: This gives symbol-tagged tuples that can be readily
-           unpacked.  The first level wrapp is ok/error.  Based on the
-           java side requirements mapping is done here.
-         */
+            /* TODO: This gives symbol-tagged tuples that can be readily
+               unpacked.  The first level wrapp is ok/error.  Based on the
+               java side requirements mapping is done here.
+            */
 
-        bytes *b = leaf_to_string((leaf_object*)reply);
-        rv = (*env)->NewStringUTF(env, b->bytes);
-        leaf_free((leaf_object*)reply);
-        leaf_free((leaf_object*)b);
+            bytes *b = leaf_to_string((leaf_object*)reply);
+            rv = (*env)->NewStringUTF(env, b->bytes);
+            leaf_free((leaf_object*)reply);
+            leaf_free((leaf_object*)b);
+        }
+        else {
+            rv = NULL;
+        }
     }
     else {
         bytes *b = console_rpc_bytes(sc_console, command_str);
