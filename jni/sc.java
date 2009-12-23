@@ -82,6 +82,11 @@ public class sc {
     public static sc spawnConsoleServer(String node, int port, String[] args) {
         long vm = bootArgs(args);
         long console = prepareConsoleServer(vm, node, port);
+
+        if (console == 0) {
+            System.err.println("Error creating console.");
+        }
+
         spawnResume(vm);
         sc x = new sc(vm, console);
         return x;
