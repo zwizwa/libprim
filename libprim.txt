@@ -6978,3 +6978,14 @@ Why?
 It looks like the resume() call needs an error handling mechanism.
 
 
+
+Entry: Interpreter replacement
+Date: Thu Dec 24 10:49:54 CET 2009
+
+Back to the more abitious project: replace the interpreter by
+something a bit faster.  I'd like to write the machine itself in
+Scheme, and find a translation to EX.
+
+I'd like this VM and the current treewalker to use the same data
+structures.  Maybe it's time to flatten the struct a bit.
+
