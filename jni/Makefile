@@ -14,14 +14,16 @@ CPPFLAGS += -I/usr/lib/jvm/java-1.5.0-sun-1.5.0.17/include
 CPPFLAGS += -I/usr/lib/jvm/java-1.5.0-sun-1.5.0.17/include/linux
 
 
-all: srclinks .links libscheme.so j.class sc.class main.class tests.class 
+SRCLINKS = $(SRCDIR)/jni/.links
+
+all: $(SRCLINKS) .links libscheme.so j.class sc.class main.class tests.class 
 
 .links:
 	ln -s . libprim
 	ln -s . zwizwa
 	touch .links
 
-srclinks: $(SRCDIR)/jni/.links 
+$(SRCLINKS):
 	make -C $(SRCDIR)/jni .links
 
 ENVVARS = CLASSPATH=.:$$CLASSPATH LD_LIBRARY_PATH=.:$$LD_LIBRARY_PATH 

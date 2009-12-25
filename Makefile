@@ -48,18 +48,18 @@ install: all
 	install -m 644 libprim.pc $(PREFIX)/lib/pkgconfig
 
 	install -d $(PREFIX)/share/prim/
-	install -m 644 sc/*.scm $(PREFIX)/share/prim/
-	install -m 644 pf/*.pf $(PREFIX)/share/prim/
+	install -m 644 $(SRCDIR)/sc/*.scm $(PREFIX)/share/prim/
+	install -m 644 $(SRCDIR)/pf/*.pf $(PREFIX)/share/prim/
 
 	install -d $(PREFIX)/include/prim/ex
 	install -d $(PREFIX)/include/prim/leaf
 	install -d $(PREFIX)/include/prim/sc
 	install -d $(PREFIX)/include/prim/media
 
-	install -m 644 ex/*.h* $(PREFIX)/include/prim/ex/
-	install -m 644 sc/*.h* $(PREFIX)/include/prim/sc/
-	install -m 644 leaf/*.h* $(PREFIX)/include/prim/leaf/
-	install -m 644 media/*.h* $(PREFIX)/include/prim/media/
+	install -m 644 $(SRCDIR)/ex/*.h* $(PREFIX)/include/prim/ex/
+	install -m 644 $(SRCDIR)/sc/*.h* $(PREFIX)/include/prim/sc/
+	install -m 644 $(SRCDIR)/leaf/*.h* $(PREFIX)/include/prim/leaf/
+	install -m 644 $(SRCDIR)/media/*.h* $(PREFIX)/include/prim/media/
 
 	install -m 755 */libprim_*.a $(PREFIX)/lib/
 

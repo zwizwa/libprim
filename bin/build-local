@@ -1,5 +1,8 @@
-make clean
-./configure --enable-media --prefix=`pwd`/local && make && make install
+cd `basename $0`/..
+rm -rf build-local
+mkdir build-local
+cd build-local
+../configure --prefix=`pwd` && make && make install
 
 
 
