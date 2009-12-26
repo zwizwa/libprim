@@ -94,42 +94,60 @@
     . body))
 
 (define (emit-expression expr)
+  (define N pp-enter)
+  (define D pp-display)
+  (define D/ pp-display-add-indent)
+  (define E emit-expression)
   (pp-save
     (match
      expr
+
+     (#f (D "FALSE"))
+     (#t (D "TRUE"))
+
+     (('if cond yes no)
+      (D "(FALSE != ") (E cond) (D ") ?")
+      (pp-start-indent
+       (lambda ()
+         (D "(") (E yes) (D ") :") (N)
+         (D "(") (E no)  (D ")"))))
+         
+     (('if cond yes)
+      (E `(if ,cond ,yes, (void))))
+
      (('let* bindings . body)
       (begin
-        (pp-display-add-indent "({ ")
+        (D/ "({ ")
         (for ((b bindings))
-          (apply emit-binding b)
-          (pp-enter))
+          (apply emit-binding b) (N))
         (let loop ((e body))
           (if (null? e)
-              (pp-display "})")
+              (D "})")
               (begin
-                (emit-expression (car e))
-                (pp-display ";")
-                (unless (null? (cdr e)) (pp-enter))
+                (E (car e))
+                (D ";")
+                (unless (null? (cdr e)) (N))
                 (loop (cdr e)))))))
+
      ((fn . args)
-      (pp-display-add-indent
-       (format "~a(" (map-name fn)))
+      (D/ (format "~a(" (map-name fn)))
+       
       (let loop ((a (map-app args)))
         (if (null? a)
-            (pp-display ")")
+            (D ")")
             (begin
-              (emit-expression (car a))
+              (E (car a))
               (unless (null? (cdr a))
-                (pp-display ", ")
-                ;; Do this contitionally, using backtracking?
+                (D ", ")
+                ;; Do this conditionally, using backtracking?
                 ;; I.e. fail when a subexpression contains multiple
                 ;; lines, or when it wraps over the edge.
 
-                ;; (pp-enter)
+                ;; (N)
                 )
               (loop (cdr a))))))
      (else
-      (pp-display (format "~a" expr))))))
+      (D (format "~a" expr))))))
 
 (define (emit-binding var expr)
   (pp-save
@@ -148,3 +166,8 @@
             (emit-definition expr)
             (pp-enter)
             (loop)))))))
+
+
+(emit-definition
+ '(define (f x) (if (even? x) x #f)))
+(pp-enter)
