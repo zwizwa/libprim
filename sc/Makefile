@@ -67,3 +67,6 @@ $(BOOTE): sc $(BOOT) $(EXPAND)
 
 test: $(BOOTE)
 	gdb --args ./sc --boot $(BOOTE)
+
+tcptest: $(BOOTE)
+	./sc --boot $(BOOTE) --eval '(tcp-console-server 12345)'

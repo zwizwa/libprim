@@ -388,8 +388,16 @@ int fd_socket(const char *sockname,  // hostname | filesystem node
 	    if (setsockopt(sockfd, IPPROTO_TCP, TCP_NODELAY,
 			   &intarg, sizeof(intarg)) < 0){
 		close(sockfd);
-		ERROR("setsockopt error");
+		ERROR("setsockopt TCP_NODELAY error");
 	    }
+            /* Allow bind() when socket is in TIME_WAIT, which happens
+               when server dies when clients are still connected. */
+	    if (setsockopt(sockfd, SOL_SOCKET, SO_REUSEADDR,
+			   &intarg, sizeof(intarg)) < 0){
+		close(sockfd);
+		ERROR("setsockopt SO_REUSEADDR error");
+	    }
+
 	}
 	addrlen = sizeof(address.in);
     }

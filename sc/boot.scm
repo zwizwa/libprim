@@ -741,12 +741,15 @@
 
 
 ;; Start a unix socket server + stdio dispatcher.
-(define (unix-server node)
-  (console-dispatch
-   (unix-bind node #t)
-   (list (cons (current-input-port)
-               (current-output-port)))
-   void))
+(define (console-socket fd)
+  (console-dispatch fd
+                    (list (cons (current-input-port)
+                                (current-output-port)))
+                    void))
+
+(define (unix-console-server node) (console-socket (unix-bind node #t)))
+(define (tcp-console-server prt)   (console-socket (tcp-bind "0.0.0.0" prt)))
+
 
 (define (init-console io node)
   (write node) (newline)
