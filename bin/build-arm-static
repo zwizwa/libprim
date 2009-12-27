@@ -1,7 +1,8 @@
 cd `basename $0`/../
-mkdir build-arm
-cd build-arm
-make clean
+DIR=build-arm-static
+rm -rf $DIR
+mkdir $DIR
+cd $DIR
 ../configure --cc=arm-linux-uclibcgnueabi-gcc --enable-static --prefix=`pwd` && make && make install
 
 
