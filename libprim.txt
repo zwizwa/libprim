@@ -6989,3 +6989,37 @@ Scheme, and find a translation to EX.
 I'd like this VM and the current treewalker to use the same data
 structures.  Maybe it's time to flatten the struct a bit.
 
+
+
+Entry: Onwards
+Date: Sun Dec 27 19:00:05 CET 2009
+
+As the pressiure is a bit off the kettle from the side of the
+commercial application, where can I go next?  Let's try to summarize.
+
+- Need some form of byte-code representation to make at least
+  variable reference a bit cheaper, and eliminate some of the
+  redundant allocations of intermediate interpretation state.
+
+- Need some kind of scheme -> C compilation (ala pre-scheme) to
+  eliminate tedious debugging of C code, and reduce code size.
+
+Both can be done at once.  Compiling some core Scheme forms to EX
+(without HOFs and proper tail calls) doesn't seem very difficult.
+
+So, how can this be made practical?  Where to start?
+
+It seems simplest to gradually move parts of the current C
+implementation to Scheme, and write a bootstrap compiler for it.
+Essentially this is an exercise in bootstrapping: how to organize the
+code in such a way that most of it is in Scheme and duplication in the
+compiler is minimal.
+
+When using a VM, part of the compiler needs to be implemented in C (or
+compiled to C from Scheme).
+
+
+Entry: LLVM
+Date: Sun Dec 27 19:10:53 CET 2009
+
+[1] http://www.ida.liu.se/~tobnu/scheme2llvm/
