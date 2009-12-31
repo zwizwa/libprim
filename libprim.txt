@@ -7074,6 +7074,16 @@ Scheme on top of the EX primitives, completely independent of the sc/ approach.
 Once this works, the same can be done for pf/ which is simpler.
 
 
+Entry: EX code generator working
+Date: Thu Dec 31 14:04:12 CET 2009
+
+Using only these forms:
+  - (if) conditionals
+  - (let*) lexical scope + sequential code blocks
+  - first order function application using the ex_ C namespace
+  - constants + immediates
+
+  
 
 
 

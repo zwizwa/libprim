@@ -12,7 +12,7 @@
          "mangle.ss")
 (provide (all-defined-out))
 
-;; SIMPLE PRETTY PRINTER
+;; SIMPLE INDENTING PRETTY PRINTER
 
 ;; State
 (define pp-column (make-parameter 0))  ;; current column
@@ -20,7 +20,7 @@
 
 ;; Configurable behaviour
 (define _pp-display (make-parameter display)) ;; text output function
-(define pp-indent-amount (make-parameter 2))
+(define pp-indent-amount (make-parameter 4))
 
 (define (pp-add-to-margin n)
   (pp-margin (+ n (pp-margin))))
@@ -39,7 +39,8 @@
   (parameterize ((pp-margin (+ (pp-indent-amount) (pp-margin))))
     (pp-enter)
     (thunk))
-  (pp-enter))
+  ;; (pp-enter)
+  )
 
 (define (pp-make-spaces n)
   (string-append* (for/list ((_ (in-range n))) " ")))
@@ -94,9 +95,17 @@
   (pp-display ";"))
 
 (define (pp-comment expr)
-  (display "/*\n")
-  (pretty-print expr)
-  (display "*/\n"))
+  (let ((lines 
+         (for/list ((l (in-lines
+                        (open-input-string
+                         (pretty-format expr 60))))) l)))
+    (display "/* ")
+    (display (car lines))
+    (for ((l (cdr lines)))
+      (display "\n   ")
+      (display l))
+    (display " */\n")))
+
 
 (define (emit-definition expr)
   (match expr
@@ -110,10 +119,11 @@
               (map-def
                (map (add-type "_")
                     (map symbol->string formals))))))
-    (pp-enter)
-    (pp-display "{")
+    ;; (pp-enter)
+    (pp-display " {")
     (pp-start-indent
-     (lambda () (emit-return (expand expr))))
+     (lambda () (emit-return (ex-expand expr))))
+    (pp-enter)
     (pp-display "}"))))
 
 
@@ -150,7 +160,7 @@
          (D "(") (E yes) (D ") :") (N)
          (D "(") (E no)  (D ")"))))
      (('if cond yes)
-      (E `(if ,cond ,yes ,(void))))
+      (E `(if ,cond ,yes (cref "VOID"))))
      (('if . _) (err))
 
      ;; BLOCK (VARIABLE BINDING + SEQUENTIAL EXECUTION)
@@ -169,6 +179,8 @@
                 (loop (cdr e)))))))
      (('let* . _) (err))
 
+     (('cref name)  (D (format "~a" name)))
+     
      ;; FUNCTION APPLICATION
      ((fn . args)
       (D/ (format "~a(" (map-name fn)))
@@ -198,19 +210,19 @@
   (make-parameter
    `((begin . ,(lambda (form) `(let* () ,@(cdr form)))))))
 
-(define (expand expr [macros (pp-macros)])
+(define (ex-expand expr [macros (pp-macros)])
   (match expr
          ;; Expand through core forms.
          (('if . forms)
-          `(if ,@(map expand forms)))
+          `(if ,@(map ex-expand forms)))
          (('let* bindings . forms)
           `(let* ,(for/list ((b bindings))
-                    (match b ((name expr) `(name ,(expand expr)))))
-             ,@(map expand forms)))
+                    (match b ((name expr) `(,name ,(ex-expand expr)))))
+             ,@(map ex-expand forms)))
          ;; Expand a macro or expand through application.
          ((tag . _)
           (cond ((dict-ref macros tag #f) => (lambda (m) (m expr)))
-                (else (map expand expr))))
+                (else (map ex-expand expr))))
          ;; Leaf nodes (varref or immediate)
          (else expr)))
            
@@ -228,21 +240,24 @@
             (emit-definition expr)
             (pp-enter)
             (loop)))))))
+;; (parameterize
+;;     ((current-output-port
+;;       (open-output-file "/tmp/out.c" #:exists 'append)))
 
-
-(emit-definition
- '(define (f x) (if (even? x) x #f)))
-
-(emit-definition
- '(define (f x) (let* ((a (add x x))
-                       (b (mul y y)))
-                  (post a)
-                  (post b)
-                  (post b)
-                  (post b)
-                  (post b)
-                  (post (+ a b))
-                  (div a b))))
+  (emit-definition
+   '(define (f x) (if (even? x) x #f)))
+  
+  (emit-definition
+   '(define (f x) (let* ((a (add x x))
+                         (b (mul y y)))
+                    (post a)
+                    (post b)
+                    (if (not (zero? a)) (post a)
+                        (if b (post b)))
+                    (if b (post b))
+                    (div a b))))
+  ;;)
+  
 
 (pp-enter)
 
