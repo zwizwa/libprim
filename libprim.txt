@@ -7083,7 +7083,74 @@ Using only these forms:
   - first order function application using the ex_ C namespace
   - constants + immediates
 
-  
+
+
+
+Entry: VM primitives
+Date: Thu Dec 31 15:10:41 CET 2009
+
+Representation:
+
+- value store with explicit boxes (set! and mutable varrefs are transformed)
+
+- all global variables are boxed.  code can be optionally "frozen"
+  when compiled, to give a poor man's module system.
+
+- environment is a list of vectors.  use GC integers to index frame+var
+
+- continuations frames (data structure) are tagged with functions that
+  take a single input argument and update the machine state, and with
+  a dictionary of continuation marks.
+
+Questions:
+
+ * I wonder if the PF VM and the Schem VM can be unified.  I guess..
+   If the current environment is equated to the data stack?  Yes let's
+   do that.
+
+ * A value store allows (partial) elimination of the environment at
+   run time: variables that have known bindings can be substituted.
+
+ * How to properly distinguish un-evaluated code from values = result
+   of evaluation?
+
+ * What is a continuation frame for an application?  Can this directly
+   construct the environment?  I.e. always first evaluate the function
+   closure, and then simply concatenate.
+
+ * The question is really: what is a closure, thinking of PF?  
+
+   It's something that takes arguments, and works like this:
+     - replace the current data stack with the one embedded in the closure
+     - evaluate arguments and push them on the data stack
+     - jump to the closure's code
+
+   I.e. it's a PF function that _replaces_ the data stack before it is
+   executed.
+
+   Translating the above to a machine instruction sequence:
+     - make a continuation frame that restores the current environment
+
+
+
+Let's try to build this.  This seems to be an interplay between
+instructions and continuations, which can both be represented as
+primitive (C) functions.
+
+Code is an expression tree (no sequential VM), represented by cons
+cells:
+
+(prim . args)
+
+All highlevel function closures are defunctionalized, and passed to an
+apply primitive.
+
+The machine primitives are CPS: they do not return, but instead update
+the machine state.
+
+
+
+
 
 
 

@@ -20,5 +20,9 @@ static inline leaf_class* prim_type(void) {
     return (leaf_class*)0xF001; // dummy class
 }
 
+static inline long prim_nargs(prim *p){ return p->nargs; }
+static inline void *prim_fn(prim *p)  { return p->fn; }
+
+
 
 #endif
