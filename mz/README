@@ -1,0 +1,23 @@
+Goal: write a (tethered) Scheme VM on top of EX without writing a
+single line of C code.  This includes:
+
+* A Scheme -> EX (C) converter.
+
+* A Scheme VM implemented in Scheme.
+
+* A Scheme -> VM compiler implemented in Scheme.
+
+
+The different dialects of Scheme should be mostly compatible.  However
+as this is a bootstrapped system there is going to be some form of
+duplication.  Keep that minimal (a simple source -> source
+transformation).
+
+The architecture:
+
+    libprim_mz.so:  generated EX code that can be loaded into MZ using FFI
+    *.ss:           MZ-only scaffolding code
+    *.scm:          self-hosted R5RS subset running on VM + MZ.
+
+
+

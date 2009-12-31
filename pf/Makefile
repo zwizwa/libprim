@@ -3,14 +3,9 @@ include ../Makefile.defs
 MODULE=pf
 APP=pf
 SRC=pf.c px.c
-DEP_OBJ=../ex/libprim_ex.a ../leaf/libprim_leaf.a 
+DEP_OBJ=$(BUILDDIR)/ex/libprim_ex.a $(BUILDDIR)/leaf/libprim_leaf.a 
 
 LIBS += -lpthread
-
-OBJ=$(SRC:.c=.o)
-DEBUG_CFLAGS=-Wall -g -Wno-unused
-# OPTI_CFLAGS=-Os
-# CC = gcc -m32
 
 all: pf $(DEP_OBJ)
 

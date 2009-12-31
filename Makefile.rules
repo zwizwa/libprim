@@ -26,7 +26,7 @@ APP_LDFLAGS +=
 
 -include $(SRC:.c=.d)
 
-%.o:  $(SRCDIR)/$(MODULE)/%.c Makefile
+%.o: $(SRCDIR)/$(MODULE)/%.c Makefile
 	echo "$(MODULE)/$@"
 	$(COMPILE) -o $@ -c $<
 
@@ -35,8 +35,24 @@ APP_LDFLAGS +=
 	$(MZSCHEME) $(SRCDIR)/$(MODULE)/gen_prims.ss $< >$@
 
 
+# Libs and apps.
+
+# .a archives collect the objects as defined in a module's makefile.
+# Note that order for $(SRC) which determines $(OBJ) is important.
+
+OBJ=$(SRC:.c=.o)
+
+
+%.a: $(OBJ)
+	ar rcs $@ $(OBJ)
+
+
+# FIXME: define proper variables for these
 $(APP): $(OBJ) $(DEP_OBJ)
 	$(CC) -o $(APP) $(APP_DEBUG_LDFLAGS) $(OBJ) $(DEP_OBJ) $(LIBS) $(APP_LDFLAGS) $(LDFLAGS)
+
+$(SHLIB): $(OBJ) $(DEP_OBJ)
+	$(CC) -shared -o $(SHLIB) $(SHLIB_DEBUG_LDFLAGS) $(OBJ) $(DEP_OBJ) $(LIBS) $(SHLIB_LDFLAGS) $(LDFLAGS)
 
 $(TEST): $(TEST_OBJ)
 	$(CC) -o test $(TEST_OBJ)
@@ -62,3 +78,14 @@ clean:
 # The `mrproper' target also cleans the generated files.
 mrproper: clean
 	rm -rf *.h_* *.c_*
+
+
+
+# INTER-DEPENDENCIES: Make sure other components are up-to-date if a
+# build is initiated inside a subdirectory.
+
+$(BUILDDIR)/ex/libprim_ex.a:
+	make -C $(BUILDDIR)/ex/ libprim_ex.a
+
+$(BUILDDIR)/leaf/libprim_leaf.a:
+	make -C $(BUILDDIR)/leaf libprim_leaf.a

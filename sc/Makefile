@@ -2,7 +2,7 @@ MODULE=sc
 APP=sc
 SRC=scheme.c main.c
 # lib.c
-DEP_OBJ=../ex/libprim_ex.a ../leaf/libprim_leaf.a 
+DEP_OBJ=$(BUILDDIR)/ex/libprim_ex.a $(BUILDDIR)/leaf/libprim_leaf.a 
 
 
 LIBS += -lpthread
@@ -41,10 +41,6 @@ all: $(APP) libprim_sc.a
 
 libprim_sc.a: $(SC_LIB_OBJ)
 	ar rcs libprim_sc.a $(SC_LIB_OBJ)
-
-# libprim_sc_media.a: media.o
-#	ar rcs libprim_media.a media.o
-
 
 
 # generated files

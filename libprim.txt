@@ -7064,3 +7064,17 @@ implementation in-place.  It needs to be completely rewritten.  I'm
 going to revert the code back.
 
 
+
+Entry: Bootstrapping a Scheme VM in MZ
+Date: Thu Dec 31 11:34:23 CET 2009
+
+So.. Let's do it a bit more intelligently.  Use MZ to bootstrap a native 
+Scheme on top of the EX primitives, completely independent of the sc/ approach.
+
+Once this works, the same can be done for pf/ which is simpler.
+
+
+
+
+
+
