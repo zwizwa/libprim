@@ -2,9 +2,17 @@
 
 ;; Simple prettyprinter for semi-scheme -> C compilation.
 
-(require "../tools.ss"
+;; This produces code in the EX language, a C-based first-order
+;; dynamically typed language using Scheme's data types + C's control
+;; types (i.e. no proper tail calls).
+
+(require scheme/dict
+         scheme/pretty
+         "../tools.ss"
          "mangle.ss")
 (provide (all-defined-out))
+
+;; SIMPLE PRETTY PRINTER
 
 ;; State
 (define pp-column (make-parameter 0))  ;; current column
@@ -44,7 +52,7 @@
 
 
 
-;; Expressions
+;; PRIMITIVE EXPRESSION TRANSLATION
 
 ;; Scheme -> C function call mapping. I.e. :
 ;; (foo a b c)              -> ex_foo(ex, a, b, c)
@@ -72,15 +80,29 @@
 
 (require mzlib/match)
 
-;; Statements
+
+;; CORE EXPRESSION LANGUAGE TRANSLATION
+
+;; Conversion from a first-order Scheme subset (`if', `let*', variable
+;; reference and function application) to C code using the EX naming
+;; and calling conventions.
+
 (define (emit-return expr)
-  (pp-display-add-indent "return ")
+  ;; (pp-display-add-indent "return ")
+  (pp-display "return") (pp-enter)
   (emit-expression expr)
   (pp-display ";"))
 
-(define emit-definition
-  (match-lambda
+(define (pp-comment expr)
+  (display "/*\n")
+  (pretty-print expr)
+  (display "*/\n"))
+
+(define (emit-definition expr)
+  (match expr
    (('define (name . formals) expr)
+    (pp-enter)
+    (pp-comment expr)
     (pp-display
      (format "_ ~a(~a)"
              (map-name name)
@@ -91,37 +113,47 @@
     (pp-enter)
     (pp-display "{")
     (pp-start-indent
-     (lambda () (emit-return expr)))
+     (lambda () (emit-return (expand expr))))
     (pp-display "}"))))
 
-;; Expressions
+
 
 (define-syntax-rule (pp-save . body)
   (parameterize ((pp-margin (pp-margin))) ;; save-excursion
     . body))
+(define (emit-binding var expr)
+  (pp-save
+   (pp-display-add-indent
+    (format "_ ~a = " var))
+   (emit-expression expr)
+   (pp-display ";")))
 
 (define (emit-expression expr)
   (define N pp-enter)
   (define D pp-display)
   (define D/ pp-display-add-indent)
   (define E emit-expression)
+  (define (err [e expr]) (error 'ex-syntax-error e))
   (pp-save
     (match
      expr
 
+     ;; CONSTANTS
      (#f (D "FALSE"))
      (#t (D "TRUE"))
 
+     ;; CONDITIONAL
      (('if cond yes no)
       (D "(FALSE != ") (E cond) (D ") ?")
       (pp-start-indent
        (lambda ()
          (D "(") (E yes) (D ") :") (N)
          (D "(") (E no)  (D ")"))))
-         
      (('if cond yes)
-      (E `(if ,cond ,yes, (void))))
+      (E `(if ,cond ,yes ,(void))))
+     (('if . _) (err))
 
+     ;; BLOCK (VARIABLE BINDING + SEQUENTIAL EXECUTION)
      (('let* bindings . body)
       (begin
         (D/ "({ ")
@@ -135,10 +167,11 @@
                 (D ";")
                 (unless (null? (cdr e)) (N))
                 (loop (cdr e)))))))
+     (('let* . _) (err))
 
+     ;; FUNCTION APPLICATION
      ((fn . args)
       (D/ (format "~a(" (map-name fn)))
-       
       (let loop ((a (map-app args)))
         (if (null? a)
             (D ")")
@@ -153,16 +186,38 @@
                 ;; (N)
                 )
               (loop (cdr a))))))
-     (else
-      (D (format "~a" expr))))))
 
-(define (emit-binding var expr)
-  (pp-save
-   (pp-display-add-indent
-    (format "_ ~a = " var))
-   (emit-expression expr)
-   (pp-display ";")))
+     ;; Non-function variable references and immediates.
+     (else (D (format "~a" expr))))))
 
+
+
+;; SYNTACTIC SUGAR
+
+(define pp-macros
+  (make-parameter
+   `((begin . ,(lambda (form) `(let* () ,@(cdr form)))))))
+
+(define (expand expr [macros (pp-macros)])
+  (match expr
+         ;; Expand through core forms.
+         (('if . forms)
+          `(if ,@(map expand forms)))
+         (('let* bindings . forms)
+          `(let* ,(for/list ((b bindings))
+                    (match b ((name expr) `(name ,(expand expr)))))
+             ,@(map expand forms)))
+         ;; Expand a macro or expand through application.
+         ((tag . _)
+          (cond ((dict-ref macros tag #f) => (lambda (m) (m expr)))
+                (else (map expand expr))))
+         ;; Leaf nodes (varref or immediate)
+         (else expr)))
+           
+  
+
+
+;; FRONTENDS
 
 (define (compile-file file)
   (with-input-from-file file
@@ -177,5 +232,17 @@
 
 (emit-definition
  '(define (f x) (if (even? x) x #f)))
+
+(emit-definition
+ '(define (f x) (let* ((a (add x x))
+                       (b (mul y y)))
+                  (post a)
+                  (post b)
+                  (post b)
+                  (post b)
+                  (post b)
+                  (post (+ a b))
+                  (div a b))))
+
 (pp-enter)
 
