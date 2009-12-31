@@ -2,7 +2,8 @@
 
 ;; Simple prettyprinter for semi-scheme -> C compilation.
 
-(require "tools.ss")
+(require "../tools.ss"
+         "mangle.ss")
 (provide (all-defined-out))
 
 ;; State
@@ -45,20 +46,26 @@
 
 ;; Expressions
 
-
+;; Scheme -> C function call mapping. I.e. :
+;; (foo a b c)              -> ex_foo(ex, a, b, c)
+;; (define (foo a b c) ...) -> ex_foo(ex *ex, a, b, c)
+(define name-context (make-parameter "ex"))
 (define (arglist lst)
   (string-append* (list->args lst)))
-
 (define (add-type t) (lambda (x) (format "~a ~a" t x)))
 (define (pointer t) (format "*~a" t))
-
-(define name-context (make-parameter "ex"))
-
 (define ((if-ctx fn) x)
   (let ((ctx (name-context)))
     (if ctx (fn ctx x) x)))
-(define map-name (if-ctx (lambda (ctx x) (format "~a_~a" ctx x))))
-(define map-app  (if-ctx (lambda (ctx lst) (cons ctx lst))))
+;; * Function name prefixing
+(define map-name (if-ctx (lambda (ctx x)
+                           (scheme->c (symbol->string x)
+                                      (string-append ctx "_")))))
+;; * Prefixing a context variable to the argument list of function
+;; applications.
+(define map-app  (if-ctx (lambda (ctx lst)
+                           (cons ctx lst))))
+;; * Prefixing and transforming function definitions
 (define map-def  (if-ctx (lambda (ctx lst)
                            (cons ((add-type ctx)
                                   (pointer ctx)) lst))))
@@ -171,3 +178,4 @@
 (emit-definition
  '(define (f x) (if (even? x) x #f)))
 (pp-enter)
+
