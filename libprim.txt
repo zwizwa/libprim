@@ -7023,3 +7023,31 @@ Entry: LLVM
 Date: Sun Dec 27 19:10:53 CET 2009
 
 [1] http://www.ida.liu.se/~tobnu/scheme2llvm/
+
+
+
+Entry: VM refactoring again
+Date: Thu Dec 31 11:04:51 CET 2009
+
+The first things to eliminate are the continuation transformers.  Eval
+and apply could be made to modify the continuation directly.
+
+Benchmark: boot.scm compilation in debug mode on zni.
+tom@zni:~/libprim/sc$ rm -f boot-expanded.scm ; time make boot-expanded.scm
+./sc --boot /home/tom/libprim/sc/boot.scm --eval '(script)' /home/tom/libprim/sc/expand.scm /home/tom/libprim/sc/boot.scm boot-expanded.scm
+
+real	0m9.082s
+user	0m9.077s
+sys	0m0.008s
+
+How to do this?  Restructure the main loop: use the state vector only
+as a mark point to recover from GC restarts.
+
+So, first objective: eliminate the state object.  (current redex +
+continuation).
+
+( This keeps eluding me: the current structure is really too
+high-level to allow simple imperative optimizations...)
+
+Plan: flatten the state object into an expression + continuation
+object in the global state vector.

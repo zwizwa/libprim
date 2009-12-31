@@ -626,6 +626,7 @@ _ sc_apply_ktx(sc* sc, _ k, _ args) {
 _ sc_eval_ktx(sc *sc, _ k, _ expr) {
     return sc_make_k_seq(sc, k, CONS(REDEX(expr, NIL),NIL));
 }
+
 _ sc_bang_abort_k(sc *sc, _ k) {
     return sc_bang_set_global(sc, sc_slot_abort_k, k);
 }
