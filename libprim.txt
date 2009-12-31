@@ -7049,5 +7049,18 @@ continuation).
 ( This keeps eluding me: the current structure is really too
 high-level to allow simple imperative optimizations...)
 
-Plan: flatten the state object into an expression + continuation
-object in the global state vector.
+Plan: 
+
+* flatten the state object into an expression + continuation object in
+  the global state vector.
+ 
+
+The problem this leads to is that _sc_step_value returns a state
+object, which is a code + kontinuation (c . k) pair.  Essentially,
+this needs to be transformed into a loop, updating a central machine.
+
+It doesn't look like it is useful to start modifying the current
+implementation in-place.  It needs to be completely rewritten.  I'm
+going to revert the code back.
+
+
