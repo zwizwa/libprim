@@ -760,6 +760,8 @@
    (list io)
    void))
 
+(define (undefined x) (error 'undefined x))
+
 
 ;; FIXME: move this to a separate file.
 ;;; JAVA 

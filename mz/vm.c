@@ -233,17 +233,21 @@ _ sc_vm_continue(sc *sc) {
 
 /* Reflection.  These C functions are visible from the Scheme side.  */
 
-#define OP(name) { return const_to_object(_vm_##name); }
+// Opcode construction.
+#define OP(name, nargs, ...)                                            \
+    return gc_make_tagged(EX->gc, TAG_VECTOR, (1+nargs),                \
+                              const_to_object(_vm_##name), __VA_ARGS__)
 
-_ sc_op_if(sc *sc)     OP(if);
-_ sc_op_lit(sc *sc)    OP(lit);
-_ sc_op_ref(sc *sc)    OP(ref);
-_ sc_op_prim(sc *sc)   OP(prim);
-_ sc_op_seq(sc *sc)    OP(seq);
-_ sc_op_let1(sc *sc)   OP(let1);
-_ sc_op_unbox(sc *sc)  OP(unbox);
-_ sc_op_setbox(sc *sc) OP(setbox);
-_ sc_op_apply(sc *sc)  OP(apply);
+
+_ sc_op_if(sc *sc, _ cval, _ yes, _ no)  {OP(if,     3, cval, yes, no);}
+_ sc_op_lit(sc *sc, _ val)               {OP(lit,    1, val);}
+_ sc_op_ref(sc *sc, _ id)                {OP(ref,    1, id);}
+_ sc_op_prim(sc *sc, _ fn, _ ids)        {OP(prim,   2, fn, ids);}
+_ sc_op_seq(sc *sc, _ now, _ later)      {OP(seq,    2, now, later);}
+_ sc_op_let1(sc *sc, _ expr, _ body)     {OP(let1,   2, expr, body);}
+_ sc_op_unbox(sc *sc, _ box)             {OP(unbox,  1, box);}
+_ sc_op_setbox(sc *sc, _ box, _ val)     {OP(setbox, 2, box, val);}
+_ sc_op_apply(sc *sc, _ closure, _ ids)  {OP(apply,  2, closure, ids);}
 
 _ sc_prim_fn(sc *sc, _ p) { 
     void *fn = CAST(prim, p)->fn;

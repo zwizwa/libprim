@@ -16,7 +16,7 @@ include ../Makefile.defs
 include ../Makefile.rules
 
 BOOTE=$(BUILDDIR)/sc/boot-expanded.scm
-BOOTE:
+$(BOOTE):
 	make -C $(BUILDDIR)/sc boot-expanded.scm
 
 test: $(BOOTE) vm

@@ -29,11 +29,12 @@
         (if (eq? name (car env))
             indx
             (find (cdr env) (add1 indx)))))
+    (define (comp e) (compile e env menv))
 
     (cond
      ;; Variable reference
      ((symbol? form)
-      (vector (op-ref) (name->index form)))
+      (op-ref (name->index form)))
      ;; Expression
      ((pair? form)
       (let ((tag (car form))
@@ -42,25 +43,35 @@
          ;; Application in terms of variable references
          ((eq? tag '%app)
           (let ((ids (map name->index (car args))))
-            (vector (op-app) (car ids) (list->vector (cdr ids)))))
+            (op-app (car ids) (list->vector (cdr ids)))))
 
          ;; Literal values
          ((eq? tag 'quote)
-          (vector (op-lit) (car args)))
+          (op-lit (car args)))
 
          ;; Variable definition
          ((eq? tag '%let)
           (let ((name (car args))
                 (expr (cadr args))
                 (body (caddr args)))
-            (vector (op-let1)
-                    (compile expr env menv)
-                    (compile body (cons name env) menv))))
+            (op-let1
+             (comp expr)
+             (compile body (cons name env) menv))))
+
+         ;; Sequencing
+         ((eq? tag '%seq)
+          (apply op-seq (map comp args)))
+         ((eq? tag 'begin)
+          (cond
+           ((null? args) (comp '(void)))
+           ((null? (cdr args)) (comp (car args)))
+           (else (comp `(%seq ,(car args) (begin ,@(cdr args)))))))
+         
 
          ;; Application: convert to nested %let with inner %app
          (else 
           (let ((vars (map memoize-var form)))
-            (compile
+            (comp
              (let down ((v vars)
                         (f form))
                (cond 
@@ -71,9 +82,7 @@
                  `(%let ,(car v) 
                         ,(car f) 
                         ,(down (cdr v)
-                               (cdr f))))))
-             env menv))))))
-
+                               (cdr f))))))))))))
      ;; Constant
      (else
       (compile (list 'quote form) env menv)))))

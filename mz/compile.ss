@@ -4,10 +4,11 @@
          (planet dvanhorn/record-case:1:1/record-case))
 
 
-(define (op-ref)  "ref")
-(define (op-lit)  "lit")
-(define (op-let1) "let1")
-(define (op-app)  "app")
+(define (op-ref . a)  (cons "ref" a))
+(define (op-lit . a)  (cons "lit" a))
+(define (op-let1 . a) (cons "let1" a))
+(define (op-app . a)  (cons "app" a))
+(define (op-seq . a)  (cons "seq" a))
 
 (define (vm-init expr)
   (pretty-print expr))
