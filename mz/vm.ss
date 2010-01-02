@@ -3,13 +3,13 @@
 
 
 
-(define (vm c e k)
+(define (vm-next c e k)
 
   ;; Continuations
   (define (k-if v k yes no)
     (if v
-        (vm yes e k)
-        (vm no  e k)))
+        (vm-next yes e k)
+        (vm-next no  e k)))
 
   ;; Primitive instructions
   (define (c-ref n)

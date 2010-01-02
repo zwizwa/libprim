@@ -246,8 +246,8 @@ static inline void *object_to_struct(object ob, long tag) {
         return (type*)object_to_struct(o, tag); }
 
 /* Unsafe list macros */
-#define _CAR(o)  object_to_vector(o)->slot[0]
-#define _CDR(o)  object_to_vector(o)->slot[1]
+#define _CAR(o)  (((vector*)(GC_POINTER(o)))->slot[0])
+#define _CDR(o)  (((vector*)(GC_POINTER(o)))->slot[1])
 #define _CAAR(o) _CAR(_CAR(o))
 #define _CADR(o) _CAR(_CDR(o))
 #define _CDDR(o) _CDR(_CDR(o))

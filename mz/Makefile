@@ -8,6 +8,8 @@ DEP_OBJ=$(BUILDDIR)/ex/libprim_ex.a $(BUILDDIR)/leaf/libprim_leaf.a
 
 LIBS += -lpthread
 
+CFLAGS += -falign-functions=4
+
 GEN = vm.h_prims
 
 all: $(SHLIB)
@@ -20,4 +22,4 @@ BOOTE:
 	make -C $(BUILDDIR)/sc boot-expanded.scm
 
 test: $(BOOTE) vm
-	./vm --boot $(BOOTE)
+	gdb --args ./vm --boot $(BOOTE)

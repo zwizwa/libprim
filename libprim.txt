@@ -7148,10 +7148,87 @@ apply primitive.
 The machine primitives are CPS: they do not return, but instead update
 the machine state.
 
+Looks like plain and simple CPS is preferrable (see EOPL).  The
+non-returning lambda expressions can then be represented as structs.
+
+So how are CPS and DF related?
+
+From Danvy's paper[1]: DF can be used to represent the closures
+resulting after performing CPS transform.
+
+
+The main intuitive stumbling block is 'if'.  Somehow I don't understand
+why this needs two primitives: one to start the evaluation of the
+condition, and one to pass control to the proper expression based on
+the boolean value of the condition.
+
+PLAN: It looks like what I'm about to do is quite close to chapters
+8,9,10 in EOPL, so it might be a good idea to simply read those again.
+
+
+[1] http://www.brics.dk/RS/01/23/
 
 
 
+Entry: CPS and `if'
+Date: Sat Jan  2 10:44:40 CET 2010
+
+Indeed: it needs two control points: before and after the evaluation
+of the condition.
+
+(if a b c) -> 
+
+(if (a (lambda (v) (b k))
+       (lambda (v) (c k))))
+
+Looks like CPS by itself isn't the problem.  Representing the
+resulting functional continuations as data is.
+
+Here defunctionalization comes in: replace each lamba with a call to
+apply.
+
+(lambda (v) (b k))
+
+-> (apply (Lambdaxxx v))
 
 
+In the Danvy paper[1] representation as closures and
+defunctionalization are mentioned as separate approaches to
+representing higher order functions:
 
+* Closures: capture code pointers together with an environment
+  representing the free variable bindings.
+
+* Defunctionalization: represent a higher order function as a data
+  structure containing the free variables.
+
+* Combinators: translate a program into combinators (which eliminates
+  variable names) and use graph reduction.
+
+
+[1] http://www.brics.dk/RS/01/23/
+
+
+Entry: Experiments - trying to understand defunctionalized continuations
+Date: Sat Jan  2 11:08:07 CET 2010
+
+So, let's have a look at this from a more cocrete point of view: using
+a trampoline VM loop, how to implement `if'?
+
+Notes
+
+  * In the final implementation, the continuation represented as
+    nested frames needs to support continuation marks.  So it might be
+    best to stick close to the current representation.  However, the
+    tags that identify continuation frame constructors can be
+    implemented by primitive functions directly.  However, this
+    modification can probably be made later.
+
+  * Represent environments and continuation stacks as efficiently as
+    possible (i.e. use vectors).
+
+  * Avoid creating garbage in the VM.  Continuation frames themselves
+    are the main point.  Make sure that this is limited to an absolute
+    minimum, i.e. the place where the current value is stored (passed
+    to the current continuation) should not be a fresh cell.
 
