@@ -7232,3 +7232,108 @@ Notes
     minimum, i.e. the place where the current value is stored (passed
     to the current continuation) should not be a fresh cell.
 
+A place where a lot of garbage gets created in the original VM is
+function argument evaluation: instead of simply pushing in-place onto
+a stack, each evalated argument replaces the current continuation
+frame.  Note that when continuations can be captured, in-place update
+is not allowed.
+
+So how to fix this?  VMs i've seen before keep the current value rib
+stored in a register, and save the rib whenever a new frame gets
+entered.  Actually, this isn't much different except that it saves the
+creation of frames for primitive function evaluations.
+
+The question is now: once converted to CPS where the order of
+evaluation is clear, does this need special support?  I'm still mixing
+up several ways of looking at the problem..
+
+CPS-converted code names all intermediates explicitly, so they are
+added to the current environment.  Also, all primitive invocations are
+values.  The same goes for ANF.
+
+At the VM level this needs just apply, and no sequencing of
+evaluation.
+
+So which one is simplest?  ANF or CPS?  Since continuations need to be
+implemented as data structures in the current VM approach (due to
+access to the continuation marks), ANF might be simplest.
+
+However, this only side-steps the problem: sequencing still needs to
+be encoded somewhere.
+
+I wonder, is it possible to use `let*' (or a single-variable `let1') as
+a primitive form, explicitly sequencing the calculations at compile
+time?
+
+ANF does require the argument value to be stored in the environment
+multiple times: once when evaluated, and once when applied.  I.e.:
+
+(let ((fn ...)
+      (arg1 ...)
+      (arg2 ...))
+  (apply fn arg1 arg2))
+
+The `apply' extend the environment of `fn' with values from the
+environment of the body of the let expression.
+
+Can this be optimized?  I.e. something like this: first evaluated fn,
+get its environment, and extend that environment directly.
+
+This then gets into trouble with vararg functions.
+
+
+
+
+
+Alternatively: only one argument functions?  This makes the
+continuations simpler, moves sequencing to the compiler, but produces
+intermediate garbage.
+
+Is this so?
+
+However, single-argument abstractions seem simpler to implement.
+
+What about this: single-argument abstractions, and primitive
+invocations in terms of variable references using De Bruijn indices.
+
+
+So.. looks like ANF isn't necessary: creating separate continuation
+frames for all the instructions seems to be simplest.
+
+The idea behind ANF is then really that the only point where any
+continuation frames are created is for the body of a let form.  All
+the other forms take values directly.
+
+Maybe this is simpler indeed...
+
+
+
+Entry: ANF or not?
+Date: Sat Jan  2 15:33:11 CET 2010
+
+As far as I understand now:
+
+* CPS makes sure that the central abstraction form is the closure.
+  The continuation is then just a closure.  I don't think I can use
+  this as I need an explicit stack form for continuations, to be able
+  to attach continuation marks.
+
+* ANF makes sure there are less forms that create continuation framse
+  (let, seq).  All the other forms (if, set!, apply, prim-apply) can take
+  values from the environment and can be executed immediately.
+
+
+Reading the intro of [1].  CPS's greatest use is that the full lambda
+calulus provides an OS, leading to more transformation rules as
+compared to lambda_v with a beta_v strict reduction rule.
+
+The ANF's greatest use is that most of these transfomations can be
+carried over to a style with implicit continuations.
+
+[1] http://lambda-the-ultimate.org/node/69
+
+
+
+
+
+
