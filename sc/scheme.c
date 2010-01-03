@@ -98,20 +98,20 @@ _ sc_k_parent(sc *sc, _ o) {
 // D = datum
 
 
-_ sc_make_state(sc *sc, _ C, _ K)                 {STRUCT(TAG_STATE,   2, C,K);}
-_ sc_make_lambda(sc *sc, _ F, _ R, _ S, _ E)      {STRUCT(TAG_LAMBDA,  4, F,R,S,E);}
-_ sc_make_error(sc *sc, _ T, _ A, _ K, _ X)       {STRUCT(TAG_ERROR,   4, T,A,K,X);}
-_ sc_make_redex(sc *sc, _ D, _ E)                 {STRUCT(TAG_REDEX,   2, D,E);}
-_ sc_make_value(sc *sc, _ D)                      {STRUCT(TAG_VALUE,   1, D);}
-_ sc_make_aref(sc *sc, _ F, _ O)                  {STRUCT(TAG_AREF,    2, F,O);}
+_ sc_make_state(sc *sc, _ C, _ K)                 {return STRUCT(TAG_STATE,   2, C,K);}
+_ sc_make_lambda(sc *sc, _ F, _ R, _ S, _ E)      {return STRUCT(TAG_LAMBDA,  4, F,R,S,E);}
+_ sc_make_error(sc *sc, _ T, _ A, _ K, _ X)       {return STRUCT(TAG_ERROR,   4, T,A,K,X);}
+_ sc_make_redex(sc *sc, _ D, _ E)                 {return STRUCT(TAG_REDEX,   2, D,E);}
+_ sc_make_value(sc *sc, _ D)                      {return STRUCT(TAG_VALUE,   1, D);}
+_ sc_make_aref(sc *sc, _ F, _ O)                  {return STRUCT(TAG_AREF,    2, F,O);}
 
 
 // 'P' is in slot 0
 // continuations are created with an empty mark list
-_ sc_make_k_args(sc *sc, _ P, _ D, _ T)      {STRUCT(TAG_K_ARGS,   4, P,NIL,D,T);}
-_ sc_make_k_if(sc *sc, _ P, _ Y, _ N)        {STRUCT(TAG_K_IF,     4, P,NIL,Y,N);}
-_ sc_make_k_set(sc *sc, _ P, _ V, _ E, _ Et) {STRUCT(TAG_K_SET,    5, P,NIL,V,E,Et);}
-_ sc_make_k_seq(sc *sc, _ P, _ T)            {STRUCT(TAG_K_SEQ,    3, P,NIL,T);}
+_ sc_make_k_args(sc *sc, _ P, _ D, _ T)      {return STRUCT(TAG_K_ARGS,   4, P,NIL,D,T);}
+_ sc_make_k_if(sc *sc, _ P, _ Y, _ N)        {return STRUCT(TAG_K_IF,     4, P,NIL,Y,N);}
+_ sc_make_k_set(sc *sc, _ P, _ V, _ E, _ Et) {return STRUCT(TAG_K_SET,    5, P,NIL,V,E,Et);}
+_ sc_make_k_seq(sc *sc, _ P, _ T)            {return STRUCT(TAG_K_SEQ,    3, P,NIL,T);}
 
 
 /* Wrap a leaf object in an aref struct.  The destructor is gathered

@@ -45,6 +45,13 @@
           (let ((ids (map name->index (car args))))
             (op-app (car ids) (list->vector (cdr ids)))))
 
+         ;; Abstraction
+         ((eq? tag 'lambda)
+          (let ((formals (car args))
+                (body    (cdr args)))
+            (op-lambda (compile `(begin ,@body)
+                                (append formals env) menv))))
+
          ;; Literal values
          ((eq? tag 'quote)
           (op-lit (car args)))

@@ -410,8 +410,8 @@ _ px_compile_defs(pf *pf, _ E_top, _ defs) {
 }
 
 /* Compile anonymous symbolic code to code graph. */
-_ px_quote(pf *pf, _ data)       { STRUCT(TAG_QUOTE, 1, data); }
-_ px_seq(pf *pf, _ sub, _ next)  { STRUCT(TAG_SEQ, 2, sub, next); }
+_ px_quote(pf *pf, _ data)       { return STRUCT(TAG_QUOTE, 1, data); }
+_ px_seq(pf *pf, _ sub, _ next)  { return STRUCT(TAG_SEQ, 2, sub, next); }
 
 
 /* This one is insidious..  The input code is always nonlinear, but

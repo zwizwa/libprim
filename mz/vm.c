@@ -167,20 +167,27 @@ typedef struct {
     vm_op op;
     _ closure;
     _ ids;  // De Bruijn indices
-} vm_apply;
-void _vm_apply(sc *sc, vm_apply *op) {
-    closure *cl = (closure*)GC_POINTER(op->closure);
+} vm_app;
+void _vm_app(sc *sc, vm_app *op) {
+    closure *cl = (closure*)GC_POINTER(_sc_ref(sc, op->closure));
     vector *v = (vector *)GC_POINTER(op->ids);
     _ env = cl->env;
     int i, n = vector_size(v);
-    for(i = n-1; i >= 0; i++) {
-        _ val = _sc_ref(sc, object_to_integer(v->slot[i]));
+    for(i = n-1; i >= 0; i--) {
+        _ val = _sc_ref(sc, v->slot[i]);
         env = CONS(val, env);
     }
     sc->e = env;
     sc->c = cl->body;
 }
-
+typedef struct {
+    vm_op op;
+    _ body;
+} vm_lambda;
+void _vm_lambda(sc *sc, vm_lambda *op) {
+    _ cl = STRUCT(TAG_VECTOR, 2, sc->e, op->body);
+    _value(sc, cl);
+}
 
 /* SEQ */
 typedef struct {
@@ -231,9 +238,8 @@ _ sc_vm_continue(sc *sc) {
 
 
 
-/* Reflection.  These C functions are visible from the Scheme side.  */
 
-// Opcode construction.
+/* Opcode construction. */
 #define OP(name, nargs, ...)                                            \
     return gc_make_tagged(EX->gc, TAG_VECTOR, (1+nargs),                \
                               const_to_object(_vm_##name), __VA_ARGS__)
@@ -247,7 +253,8 @@ _ sc_op_seq(sc *sc, _ now, _ later)      {OP(seq,    2, now, later);}
 _ sc_op_let1(sc *sc, _ expr, _ body)     {OP(let1,   2, expr, body);}
 _ sc_op_unbox(sc *sc, _ box)             {OP(unbox,  1, box);}
 _ sc_op_setbox(sc *sc, _ box, _ val)     {OP(setbox, 2, box, val);}
-_ sc_op_apply(sc *sc, _ closure, _ ids)  {OP(apply,  2, closure, ids);}
+_ sc_op_app(sc *sc, _ closure, _ ids)    {OP(app,    2, closure, ids);}
+_ sc_op_lambda(sc *sc, _ body)           {OP(lambda, 1, body);}
 
 _ sc_prim_fn(sc *sc, _ p) { 
     void *fn = CAST(prim, p)->fn;

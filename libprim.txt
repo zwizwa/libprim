@@ -7333,7 +7333,29 @@ carried over to a style with implicit continuations.
 [1] http://lambda-the-ultimate.org/node/69
 
 
+Entry: VM status
+Date: Sat Jan  2 21:18:39 CET 2010
+
+- got both opcodes and continuations represented as C code functions
+  that operate on the machine state, modifying the C E K registers.
+
+- compiler from Scheme -> VM code
+
+TODO: 
+
+- creating function abstractions + distinguishing primive and
+  function abstractions.
+
+- self-hosted compiler
 
 
+
+Entry: More VM
+Date: Sun Jan  3 09:19:15 CET 2010
+
+Unifying primitives and abstractions.  Maybe this can be done by
+making a closure wrapper for each primitive.
+
+So let's make a closure constructor first.
 
 

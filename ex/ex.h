@@ -174,7 +174,7 @@ _ _ex_map1_prim(ex *ex, ex_1 fn, _ l_in);
 _ _ex_map2_prim(ex *ex, ex_2 fn, _ l_in1, _ l_in2);
 
 #define STRUCT(flags, size, ...) \
-    return gc_make_tagged(EX->gc, flags, size, __VA_ARGS__)
+    gc_make_tagged(EX->gc, flags, size, __VA_ARGS__)
 
 #define ZERO integer_to_object(0)
 #define ONE  integer_to_object(1)
