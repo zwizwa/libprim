@@ -137,23 +137,24 @@ static void _vm_setbox(sc *sc, op_setbox *op) {
 
 
 /* APPLY */
+
+/* Application operates on operator values that have unknown type at
+   compile time, which means they need to be implemented as tagged
+   structs instead of plain vectors. */
+
+// FIXME: these overlap with the other interpreter's primitive structs.
+#define TAG_CLOSURE VECTOR_TAG(7)
 typedef struct {
     vector v;
     _ env;
     _ body;
     _ signature;
 } closure;
-typedef struct {
-    vm_op op;
-    _ closure;
-    _ ids;  // De Bruijn indices
-} vm_app;
-/* Extend environment and jump to body. */
-void _app(sc *sc, _ cl_env, _ cl_body, int named_args, int list_args, _ op_ids) {
-    _ env = cl_env;
+DEF_STRUCT(closure, TAG_CLOSURE)
+
+_ _extend(sc *sc, _ env, _ cl_body, int named_args, int list_args, _ op_ids) {
     vector *v = (vector *)GC_POINTER(op_ids);
     int i, n = vector_size(v);
-
 
     /* Gather list args. */
     if (list_args) {
@@ -178,39 +179,49 @@ void _app(sc *sc, _ cl_env, _ cl_body, int named_args, int list_args, _ op_ids) 
     }
     
     /* Start executing body in extended context. */
-    sc->e = env;
-    sc->c = cl_body;
+    return env;
 }
-void _vm_app(sc *sc, vm_app *op) {
-    closure *cl = (closure*)GC_POINTER(_sc_ref(sc, op->closure));
-    /* LSB of signature indicates if there's an extra formal referring
-       to the remaining arguments. */
-    int named_args = object_to_integer(cl->signature);
-    int list_args = named_args & 1;
-    named_args >>= 1;
-    _app(sc, cl->env, cl->body, named_args, list_args, op->ids);
-}
-
-/* PRIM */
 typedef struct {
     vm_op op;
-    _ prim;
-    _ ids;  // De Bruijn indices
-} vm_prim;
-void _vm_prim(sc *sc, vm_prim *op) {
-    prim* p = (prim*)GC_POINTER(op->prim);
-    _app(sc, NIL, NIL, p->nargs, 0, op->ids);
-    _ rv = _sc_call(sc, p->fn, p->nargs, sc->e);
-    _value(sc, rv);
+    _ id_rator;
+    _ id_args;  // De Bruijn indices
+} vm_app;
+
+/* Application dispatches on operator type. */
+void _vm_app(sc *sc, vm_app *op) {
+    closure *cl;
+    prim *pr;
+    _ rator = _sc_ref(sc, op->id_rator);
+    if ((cl = object_to_closure(rator))) {
+        /* LSB of signature indicates if there's an extra formal
+           referring to the remaining arguments. */
+        int named_args = object_to_integer(cl->signature);
+        int list_args = named_args & 1;
+        named_args >>= 1;
+        /* Extend environment and jump to body. */
+        sc->e = _extend(sc, cl->env, cl->body, named_args, list_args, op->id_args);
+        sc->c = cl->body;
+    }
+    else if ((pr = object_to_prim(rator))) {
+        /* Extend NIL environment, perform primitive and pass value to
+           current continuation. */
+        _ args = _extend(sc, NIL, NIL, pr->nargs, 0, op->id_args);
+        _ rv = _sc_call(sc, pr->fn, pr->nargs, args);
+        _value(sc, rv);
+    }
+    else {
+        TYPE_ERROR(rator);
+    }
 }
 
+/* LAMBDA */
 typedef struct {
     vm_op op;
     _ body;
     _ signature;
 } vm_lambda;
 void _vm_lambda(sc *sc, vm_lambda *op) {
-    _ cl = STRUCT(TAG_VECTOR, 3, sc->e, op->body, op->signature);
+    _ cl = STRUCT(TAG_CLOSURE, 3, sc->e, op->body, op->signature);
     _value(sc, cl);
 }
 
@@ -253,15 +264,13 @@ void _vm_let1(sc *sc, vm_letvar *op) {
     f->body = op->body;
 }
 
-
+/* Trampoline. */
 _ sc_vm_continue(sc *sc) {
     for(;;) {
         vm_op *op = (vm_op*)GC_POINTER(sc->c);
         op->fn(sc, op);
     }
 }
-
-
 
 
 /* Opcode construction. */
@@ -273,7 +282,6 @@ _ sc_vm_continue(sc *sc) {
 _ sc_op_if(sc *sc, _ cval, _ yes, _ no)  {OP(if,     3, cval, yes, no);}
 _ sc_op_lit(sc *sc, _ val)               {OP(lit,    1, val);}
 _ sc_op_ref(sc *sc, _ id)                {OP(ref,    1, id);}
-_ sc_op_prim(sc *sc, _ fn, _ ids)        {OP(prim,   2, fn, ids);}
 _ sc_op_seq(sc *sc, _ now, _ later)      {OP(seq,    2, now, later);}
 _ sc_op_let1(sc *sc, _ expr, _ body)     {OP(let1,   2, expr, body);}
 _ sc_op_unbox(sc *sc, _ box)             {OP(unbox,  1, box);}

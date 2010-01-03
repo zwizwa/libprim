@@ -7358,4 +7358,15 @@ making a closure wrapper for each primitive.
 
 So let's make a closure constructor first.
 
+Done: nb argument checking.
+
+Next: distinguish primitives from abstractions.  The problem is that
+this can't be done at compile time.
+
+So, something needs to indicate this at run time.  Either the apply
+function dispatches on type, or all values in function position are
+assumed to be closures.
+
+The latter won't work: since values can come from anywhere, they need
+to be checked for type.
 
