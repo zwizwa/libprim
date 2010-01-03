@@ -7451,4 +7451,14 @@ extend the toplevel as well.  I.e. it adds slots for undefined
 variables, and links those slots into the code.
 
 Or better still, add a dynamic binding opcode that can be
-short-cicuited into an unbox opcode?
+short-cicuited into an unbox opcode at first use?
+
+
+
+Entry: Match in match
+Date: Sun Jan  3 16:57:52 CET 2010
+
+What about writing match in match, and bootstrap it using mzscheme?
+
+Looking at code I find online and in PLT, it's not a simple macro.
+Maybe best to leave it be and use something simpler.
