@@ -8,22 +8,20 @@
 ;;   (define (genvar)
 ;;     (set! *count* (add1 *count*))
 ;;     (cons 'g *count*))
-  (define (genvar) (cons 'g '()))
-  
+  (define (genvar)
+    (cons 'g '()))
   (define (varref? x)
     (or (symbol? x)
         (and (pair? x)
              (eq? (car x) 'g))))
-  
   ;; Create a new symbol if a value is not a variable reference.
   (define (memoize-var x)
     (if (varref? x) x (genvar)))
-
   ;; Recursive compilation, keeping track of the environment.
   (let compile ((form form)
                 (env '()))
-
-    ;; To implement `let' in terms of `let*' we use renames.
+    (define (comp e) (compile e env))
+    (define (comp/e e env) (compile e env))
     (define (name->index name)
       (let find ((env env)
                  (indx 0))
@@ -31,10 +29,8 @@
         (if (eq? name (car env))
             indx
             (find (cdr env) (add1 indx)))))
-    
-    (define (comp e) (compile e env))
-    (define (comp/e e env) (compile e env))
-
+    ;; For conversion to ANF: add binding sites for expressions -
+    ;; ignore varrefs.
     (define (memo-bindings vars forms)
       (let bind ((v vars)
                  (f forms))
@@ -55,18 +51,26 @@
       (let ((tag (car form))
             (args (cdr form)))
         (cond
+         ;; Macros.  Check these first to keep compiler extensible.
+         ((assq tag macros) => (lambda (mrec)
+                                 (comp ((cdr mrec) form))))
+         
          ;; Assignment
-         ((eq? tag '%set!)
+         ((eq? tag '%setval!)
           (apply op-assign (map name->index args)))
-         ((eq? tag 'set!)
+         ((eq? tag 'set!) ;; allow macro override
+          (comp `(%set! ,@args)))
+         ((eq? tag '%set!)
           (let ((name (car args))
                 (expr (cadr args)))
             (let ((var (memoize-var expr)))
               (comp `(let ,(memo-bindings (list var) (list expr))
-                       (%set! ,name ,var))))))
+                       (%setval! ,name ,var))))))
          
          ;; Abstraction
-         ((eq? tag 'lambda)
+         ((eq? tag 'lambda) ;; allow macro override
+          (comp `(%lambda ,@args)))
+         ((eq? tag '%lambda)
           (let ((formals (car args))
                 (body    (cdr args)))
             (let scan ((f formals)
@@ -87,7 +91,9 @@
           (op-lit (car args)))
 
          ;; Variable definition
-         ((eq? tag 'let)
+         ((eq? tag 'let) ;; allow macro override
+          (comp `(%let ,@args)))
+         ((eq? tag '%let)
           (let ((bindings (car args))
                 (body (cdr args)))
             (if (null? bindings)
@@ -108,19 +114,14 @@
            ((null? (cdr args)) (comp (car args)))
            (else (comp `(%seq ,(car args) (begin ,@(cdr args)))))))
 
+         ;; Application: perform evaluation using a `let' form
+         ;; and pass the result to `%app' which expects values.
          ((eq? tag '%app)
           (let ((ids (map name->index (car args))))
             (op-app (car ids) (list->vector (cdr ids)))))
-
-         ;; Form: macro or application.
          (else
-          (let ((mrec (assq tag macros)))
-            (if mrec
-                (comp ((cdr mrec) form))
-                ;; Application: perform evaluation using a `let' form
-                ;; and pass the result to `%app' which expects values.
-                (let ((vars (map memoize-var form)))
-                  (comp `(let ,(memo-bindings vars form) (%app ,vars)))))))
+          (let ((vars (map memoize-var form)))
+            (comp `(let ,(memo-bindings vars form) (%app ,vars)))))
          )))
          
      ;; Constant
@@ -128,5 +129,5 @@
       (comp (list 'quote form))))))
 
 (define (vm-eval expr)
-  (vm-init (vm-compile expr))
+  (vm-init (vm-compile expr '()))
   (vm-continue))
