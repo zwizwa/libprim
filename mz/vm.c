@@ -134,28 +134,7 @@ static void _vm_setbox(sc *sc, op_setbox *op) {
 }
 
 
-/* PRIM */
-typedef struct {
-    vm_op op;
-    _ fn;
-    _ ids;  // De Bruijn indices
-} vm_prim;
-#define ARG(n) _sc_ref(sc, v->slot[n])
-void _vm_prim(sc *sc, vm_prim *op) {
-    vector *v = (vector *)(GC_POINTER(op->ids));
-    void *p = GC_POINTER(op->fn);
-    _ rv;
-    switch(vector_size(v)) {
-    case 0: rv = ((ex_0)p)(EX); break;
-    case 1: rv = ((ex_1)p)(EX, ARG(0)); break;
-    case 2: rv = ((ex_2)p)(EX, ARG(0), ARG(1)); break;
-    case 3: rv = ((ex_3)p)(EX, ARG(0), ARG(1), ARG(2)); break;
-    case 4: rv = ((ex_4)p)(EX, ARG(0), ARG(1), ARG(2), ARG(3)); break;
-    case 5: rv = ((ex_5)p)(EX, ARG(0), ARG(1), ARG(2), ARG(3), ARG(4)); break;
-    default: ERROR("nargs", op->ids);
-    }
-    _value(sc, rv);
-}
+
 
 /* APPLY */
 typedef struct {
@@ -169,23 +148,18 @@ typedef struct {
     _ closure;
     _ ids;  // De Bruijn indices
 } vm_app;
-void _vm_app(sc *sc, vm_app *op) {
-    closure *cl = (closure*)GC_POINTER(_sc_ref(sc, op->closure));
-    vector *v = (vector *)GC_POINTER(op->ids);
-    _ env = cl->env;
+/* Extend environment and jump to body. */
+void _app(sc *sc, _ cl_env, _ cl_body, int named_args, int list_args, _ op_ids) {
+    _ env = cl_env;
+    vector *v = (vector *)GC_POINTER(op_ids);
     int i, n = vector_size(v);
 
-    /* LSB of signature indicates if there's an extra formal referring
-       to the remaining arguments. */
-    int named_args = object_to_integer(cl->signature);
-    int list_args = named_args & 1;
-    named_args >>= 1;
 
     /* Gather list args. */
     if (list_args) {
         _ la = NIL;
         int nb_list_args = n - named_args;
-        if (n < 0) ERROR("nargs", op->ids);
+        if (n < 0) ERROR("nargs", op_ids);
         for (i = n-1; i >= n; i--) {
             _ val = _sc_ref(sc, v->slot[i]);
             la = CONS(val, la);
@@ -195,7 +169,7 @@ void _vm_app(sc *sc, vm_app *op) {
     }
 
     /* Check nb of arguments. */
-    if (n != named_args) ERROR("nargs", op->ids);
+    if (n != named_args) ERROR("nargs", op_ids);
 
     /* Gather named arguments. */
     for(i = n-1; i >= 0; i--) {
@@ -205,8 +179,31 @@ void _vm_app(sc *sc, vm_app *op) {
     
     /* Start executing body in extended context. */
     sc->e = env;
-    sc->c = cl->body;
+    sc->c = cl_body;
 }
+void _vm_app(sc *sc, vm_app *op) {
+    closure *cl = (closure*)GC_POINTER(_sc_ref(sc, op->closure));
+    /* LSB of signature indicates if there's an extra formal referring
+       to the remaining arguments. */
+    int named_args = object_to_integer(cl->signature);
+    int list_args = named_args & 1;
+    named_args >>= 1;
+    _app(sc, cl->env, cl->body, named_args, list_args, op->ids);
+}
+
+/* PRIM */
+typedef struct {
+    vm_op op;
+    _ prim;
+    _ ids;  // De Bruijn indices
+} vm_prim;
+void _vm_prim(sc *sc, vm_prim *op) {
+    prim* p = (prim*)GC_POINTER(op->prim);
+    _app(sc, NIL, NIL, p->nargs, 0, op->ids);
+    _ rv = _sc_call(sc, p->fn, p->nargs, sc->e);
+    _value(sc, rv);
+}
+
 typedef struct {
     vm_op op;
     _ body;
