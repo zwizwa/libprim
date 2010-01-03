@@ -7471,3 +7471,7 @@ Still need to fix toplevel references + some way to bootstrap
 compile it.  If I add a #<data:...> reader, or something that can read
 a textual representation of byte code it might be simpler to
 serialize from a mzscheme hosted compiler and bootstrap that way.
+
+Yes. This seems a lot simpler.  Also, if the bytecode can be made
+machine-independent, this can also be used for cross-compilation.
+

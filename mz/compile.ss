@@ -1,16 +1,19 @@
 #lang scheme/base
 (require scheme/include
-         scheme/pretty
-         (planet dvanhorn/record-case:1:1/record-case))
+         scheme/pretty)
+;;         (planet dvanhorn/record-case:1:1/record-case))
 
-(define (op-if . a)     (cons "if" a))
-(define (op-ref . a)    (cons "ref" a))
-(define (op-lit . a)    (cons "lit" a))
-(define (op-let . a)    (cons "let" a))
-(define (op-app . a)    (cons "app" a))
-(define (op-seq . a)    (cons "seq" a))
-(define (op-lambda . a) (cons "lambda" a))
-(define (op-assign . a) (cons "assign" a))
+(define-syntax-rule (define-ops op ...)
+  (begin (define (op . a) (list->vector (cons 'op a))) ...))
+(define-ops
+  op-if
+  op-ref
+  op-lit
+  op-app
+  op-seq
+  op-let
+  op-lambda
+  op-assign)
 
 (define (vm-init expr)
   (pretty-print expr))
