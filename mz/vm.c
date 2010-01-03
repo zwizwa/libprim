@@ -95,44 +95,33 @@ static void _vm_lit(sc *sc, vm_lit *op) {
 }
 
 /* REF */
+static _ _sc_ref_pair(sc *sc, _ index) {
+    int n = object_to_integer(index);
+    _ env = sc->e;
+    while(n--) env = _CDR(env);
+    return env;
+}
+static _ _sc_ref(sc *sc, _ index) {
+    return _CAR(_sc_ref_pair(sc, index));
+}
 typedef struct {
     vm_op op;
     _ index;
 } vm_ref;
-static _ _sc_ref(sc *sc, _ index) {
-    int n = object_to_integer(index);
-    _ env = sc->e;
-    while(n--) env = _CDR(env);
-    return _CAR(env);
-}
 static void _vm_ref(sc *sc, vm_ref *op) {
     _value(sc, _sc_ref(sc, op->index));
 }
 
-/* BOX / UNBOX */
-typedef struct {
-    vector v;
-    _ value;
-} box;
+/* ASSIGN */
 typedef struct {
     vm_op op;
-    _ box;
-} op_unbox;
-static void _vm_unbox(sc *sc, op_unbox *op) {
-    box *b = (box *)GC_POINTER(op->box);
-    _value(sc, b->value);
-}
-typedef struct {
-    vm_op op;
-    _ box;
-    _ value;
-} op_setbox;
-static void _vm_setbox(sc *sc, op_setbox *op) {
-    box *b = (box *)GC_POINTER(op->box);
-    b->value = op->value;
+    _ id_variable;
+    _ id_value;
+} vm_assign;
+static _ _vm_assign(sc *sc, vm_assign *op) {
+    _CAR(_sc_ref_pair(sc, op->id_variable)) = _sc_ref(sc, op->id_value);
     _value(sc, VOID);
 }
-
 
 
 
@@ -303,10 +292,9 @@ _ sc_op_lit(sc *sc, _ val)               {OP(lit,    1, val);}
 _ sc_op_ref(sc *sc, _ id)                {OP(ref,    1, id);}
 _ sc_op_seq(sc *sc, _ now, _ later)      {OP(seq,    2, now, later);}
 _ sc_op_let(sc *sc, _ exprs, _ body)     {OP(let,    2, exprs, body);}
-_ sc_op_unbox(sc *sc, _ box)             {OP(unbox,  1, box);}
-_ sc_op_setbox(sc *sc, _ box, _ val)     {OP(setbox, 2, box, val);}
 _ sc_op_app(sc *sc, _ closure, _ ids)    {OP(app,    2, closure, ids);}
 _ sc_op_lambda(sc *sc, _ body, _ sig)    {OP(lambda, 2, body, sig);}
+_ sc_op_assign(sc *sc, _ id, _ val)      {OP(assign, 2, id, val);}
 
 _ sc_prim_fn(sc *sc, _ p) { 
     void *fn = CAST(prim, p)->fn;

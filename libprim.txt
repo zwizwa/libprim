@@ -7370,10 +7370,6 @@ assumed to be closures.
 The latter won't work: since values can come from anywhere, they need
 to be checked for type.  OK.
 
-Next: self-hosting compiler.  Re-arrange the code such that it becomes
-possible to write the macro expander and the compiler in the VM, then
-switch VMs.
-
 Next: Make vm-compile understand the basic forms in the other VM.
 This mainly requires `let'.  Maybe the VM's let1 schould be extended
 to support parallel evaluation.  Otoh, if it is possible to write
@@ -7382,12 +7378,6 @@ as it's useful for the Scheme -> EX compiler.
 
 Alternatively, can the current compile.scm be converted to C?  The
 task is finding the sweet spot somewhere.
-
-Next: Toplevel environment & boxes.
-
-Next: ribbed index.
-
-
 
 let* -> let can be achieved by renaming all variables in the let, and
 undoing the rename at a reference point.
@@ -7424,3 +7414,17 @@ Here's the let -> let* code (with a rename bug for the expressions).
                        env
                        (append (map cons names new-names)
                                renames)))))
+
+
+OK: let (made it a VM opcode).
+
+Next: self-hosting compiler.  Re-arrange the code such that it becomes
+possible to write the macro expander and the compiler in the VM, then
+switch VMs.
+
+Next: ribbed index.
+
+Next: Toplevel environment & boxes.
+
+Boxes are not be necessary yet as there is still an environment at run
+time.  set! can be implemented by updating this in-place.

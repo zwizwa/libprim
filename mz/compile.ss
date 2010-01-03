@@ -10,6 +10,7 @@
 (define (op-app . a)    (cons "app" a))
 (define (op-seq . a)    (cons "seq" a))
 (define (op-lambda . a) (cons "lambda" a))
+(define (op-assign . a) (cons "assign" a))
 
 (define (vm-init expr)
   (pretty-print expr))
