@@ -3,17 +3,21 @@
 
 
 (define (vm-compile form macros)
-  ;; Create symbols unique to this invocation of vm-compile.
-  ;; FIXME: make these uninterned.
-  (define *gensym-count* 0)
-  (define (gensym . _)
-    (set! *gensym-count* (add1 *gensym-count*))
-    (string->symbol
-     (string-append "#" (number->string *gensym-count*))))
-
+  ;; Create unique variable tags.  The numbering is only for debugging.
+;;   (define *count* 0)
+;;   (define (genvar)
+;;     (set! *count* (add1 *count*))
+;;     (cons 'g *count*))
+  (define (genvar) (cons 'g '()))
+  
+  (define (varref? x)
+    (or (symbol? x)
+        (and (pair? x)
+             (eq? (car x) 'g))))
+  
   ;; Create a new symbol if a value is not a variable reference.
   (define (memoize-var x)
-    (if (symbol? x) x (gensym)))
+    (if (varref? x) x (genvar)))
 
   ;; Recursive compilation, keeping track of the environment.
   (let compile ((form form)
@@ -36,7 +40,7 @@
                  (f forms))
         (cond 
          ((null? v) '())
-         ((symbol? (car f)) ;; already variable
+         ((varref? (car f)) ;; already variable
           (bind (cdr v) (cdr f)))
          (else ;; cache in variable
           (cons (list (car v) (car f))
@@ -44,7 +48,7 @@
     
     (cond
      ;; Variable reference
-     ((symbol? form)
+     ((varref? form)
       (op-ref (name->index form)))
      ;; Expression
      ((pair? form)
