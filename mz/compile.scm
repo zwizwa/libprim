@@ -50,7 +50,8 @@
           (let ((formals (car args))
                 (body    (cdr args)))
             (op-lambda (compile `(begin ,@body)
-                                (append formals env) menv))))
+                                (append formals env) menv)
+                       (* 2 (length formals)))))
 
          ;; Literal values
          ((eq? tag 'quote)

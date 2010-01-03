@@ -162,6 +162,7 @@ typedef struct {
     vector v;
     _ env;
     _ body;
+    _ signature;
 } closure;
 typedef struct {
     vm_op op;
@@ -173,19 +174,46 @@ void _vm_app(sc *sc, vm_app *op) {
     vector *v = (vector *)GC_POINTER(op->ids);
     _ env = cl->env;
     int i, n = vector_size(v);
+
+    /* LSB of signature indicates if there's an extra formal referring
+       to the remaining arguments. */
+    int named_args = object_to_integer(cl->signature);
+    int list_args = named_args & 1;
+    named_args >>= 1;
+
+    /* Gather list args. */
+    if (list_args) {
+        _ la = NIL;
+        int nb_list_args = n - named_args;
+        if (n < 0) ERROR("nargs", op->ids);
+        for (i = n-1; i >= n; i--) {
+            _ val = _sc_ref(sc, v->slot[i]);
+            la = CONS(val, la);
+        }
+        env = CONS(la, env);
+        n = named_args;
+    }
+
+    /* Check nb of arguments. */
+    if (n != named_args) ERROR("nargs", op->ids);
+
+    /* Gather named arguments. */
     for(i = n-1; i >= 0; i--) {
         _ val = _sc_ref(sc, v->slot[i]);
         env = CONS(val, env);
     }
+    
+    /* Start executing body in extended context. */
     sc->e = env;
     sc->c = cl->body;
 }
 typedef struct {
     vm_op op;
     _ body;
+    _ signature;
 } vm_lambda;
 void _vm_lambda(sc *sc, vm_lambda *op) {
-    _ cl = STRUCT(TAG_VECTOR, 2, sc->e, op->body);
+    _ cl = STRUCT(TAG_VECTOR, 3, sc->e, op->body, op->signature);
     _value(sc, cl);
 }
 
@@ -254,7 +282,7 @@ _ sc_op_let1(sc *sc, _ expr, _ body)     {OP(let1,   2, expr, body);}
 _ sc_op_unbox(sc *sc, _ box)             {OP(unbox,  1, box);}
 _ sc_op_setbox(sc *sc, _ box, _ val)     {OP(setbox, 2, box, val);}
 _ sc_op_app(sc *sc, _ closure, _ ids)    {OP(app,    2, closure, ids);}
-_ sc_op_lambda(sc *sc, _ body)           {OP(lambda, 1, body);}
+_ sc_op_lambda(sc *sc, _ body, _ sig)    {OP(lambda, 2, body, sig);}
 
 _ sc_prim_fn(sc *sc, _ p) { 
     void *fn = CAST(prim, p)->fn;

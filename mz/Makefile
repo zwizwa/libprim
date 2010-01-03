@@ -10,7 +10,7 @@ LIBS += -lpthread
 
 GEN = vm.h_prims
 
-all: $(SHLIB)
+all: $(SHLIB) $(APP)
 
 include ../Makefile.defs
 include ../Makefile.rules
