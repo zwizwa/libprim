@@ -161,7 +161,7 @@ _ _extend(sc *sc, _ env, _ cl_body, int named_args, int list_args, _ op_ids) {
         _ la = NIL;
         int nb_list_args = n - named_args;
         if (n < 0) ERROR("nargs", op_ids);
-        for (i = n-1; i >= n; i--) {
+        for (i = n-1; i >= named_args; i--) {
             _ val = _sc_ref(sc, v->slot[i]);
             la = CONS(val, la);
         }
@@ -244,26 +244,6 @@ void _vm_seq(sc *sc, vm_seq *op) {
     f->next = op->later;
 }
 
-/* LET1 */
-typedef struct {
-    kf_base f;
-    _ body;
-} kf_let1;
-static void _kf_let1(sc *sc, _ v, kf_let1 *f) {
-    sc->e = CONS(v, sc->e); // extend environemnt
-    sc->c = f->body;
-}
-typedef struct {
-    vm_op op;
-    _ expr;
-    _ body;
-} vm_letvar;
-void _vm_let1(sc *sc, vm_letvar *op) {
-    EXTEND_K(kf_let1, f);
-    sc->c   = op->expr; 
-    f->body = op->body;
-}
-
 /* LET */
 typedef struct {
     kf_base f;
@@ -272,17 +252,20 @@ typedef struct {
     _ body;
 } kf_let;
 static void _kf_let(sc *sc, _ v, kf_let *f) {
+    /* Extend environment with value. */
+    _ env = CONS(v, f->env);
     if (NIL == f->exprs) {
         /* Done: enter new environment. */
-        sc->e = CONS(v, f->env);
+        sc->e = env;
         sc->c = f->body;
     }
     else {
+        /* Evaluate next expression. */
         EXTEND_K(kf_let, fnext);
         sc->c        = _CAR(f->exprs);
         fnext->exprs = _CDR(f->exprs);
         fnext->body  = f->body;
-        fnext->env   = CONS(v, f->env);
+        fnext->env   = env;
     }
 }
 typedef struct {
@@ -295,6 +278,9 @@ void _vm_let(sc *sc, vm_let *op) {
     sc->c    = _CAR(op->exprs);
     f->exprs = _CDR(op->exprs);
     f->body  = op->body;
+    /* Build an extended environement with computed values, but stay
+       in the current one during evaluation. */
+    f->env   = sc->e;
 }
 
 /* Trampoline. */
@@ -316,7 +302,6 @@ _ sc_op_if(sc *sc, _ cval, _ yes, _ no)  {OP(if,     3, cval, yes, no);}
 _ sc_op_lit(sc *sc, _ val)               {OP(lit,    1, val);}
 _ sc_op_ref(sc *sc, _ id)                {OP(ref,    1, id);}
 _ sc_op_seq(sc *sc, _ now, _ later)      {OP(seq,    2, now, later);}
-_ sc_op_let1(sc *sc, _ expr, _ body)     {OP(let1,   2, expr, body);}
 _ sc_op_let(sc *sc, _ exprs, _ body)     {OP(let,    2, exprs, body);}
 _ sc_op_unbox(sc *sc, _ box)             {OP(unbox,  1, box);}
 _ sc_op_setbox(sc *sc, _ box, _ val)     {OP(setbox, 2, box, val);}

@@ -1,15 +1,5 @@
 ;; Compile basic VM opcodes in s-expression form into byte code.
 
-
-;;                    (let* (bindings)
-;;                      (let ((body (cddr form)))
-;;                        (cond
-;;                         ((null? bindings) (compile `(begin ,@body)))
-;;                         ((null? (cdr bindings)) (compile `(%let ,@(car bindings) `(begin ,@body))))
-;;                         (else (compile `(%let ,@(car bindings) (let* ,@(cdr bindings) ,@body)))))))
-                   
-
-
 (define (vm-compile form)
   ;; Create symbols unique to this invocation of vm-compile.
   ;; FIXME: make these uninterned.
@@ -53,32 +43,29 @@
       (let ((tag (car form))
             (args (cdr form)))
         (cond
-         ;; Application in terms of variable references
-         ((eq? tag '%app)
-          (let ((ids (map name->index (car args))))
-            (op-app (car ids) (list->vector (cdr ids)))))
-
          ;; Abstraction
          ((eq? tag 'lambda)
           (let ((formals (car args))
                 (body    (cdr args)))
-            (op-lambda (comp/e `(begin ,@body)
-                               (append formals env))
-                       (* 2 (length formals)))))
+            (let scan ((f formals)
+                       (rnamed '()))
+              (if (pair? f)
+                  (scan (cdr f)
+                        (cons (car f) rnamed))
+                  (let ((named (reverse rnamed))
+                        (rest (if (null? f) '() (list f))))
+                    (op-lambda (comp/e `(begin ,@body)
+                                       (append named rest env))
+                               ;; LSB = have-rest-arg
+                               (+ (length rest)
+                                  (* 2 (length named)))))))))
+         
 
          ;; Literal values
          ((eq? tag 'quote)
           (op-lit (car args)))
 
          ;; Variable definition
-         ((eq? tag '%let)
-          (let ((name (car args))
-                (expr (cadr args))
-                (body (caddr args)))
-            (op-let1
-             (comp expr)
-             (comp/e body (cons name env)))))
-
          ((eq? tag 'let)
           (let ((bindings (car args))
                 (body (cdr args)))
@@ -97,23 +84,28 @@
            ((null? args) (comp '(void)))
            ((null? (cdr args)) (comp (car args)))
            (else (comp `(%seq ,(car args) (begin ,@(cdr args)))))))
-         
 
-         ;; Application: convert to nested %let with inner %app
-         (else 
+         ;; Application: perform evaluation using a `let' form and
+         ;; pass the result to `%app' which expects values.
+         ((eq? tag '%app)
+          (let ((ids (map name->index (car args))))
+            (op-app (car ids) (list->vector (cdr ids)))))
+         (else
           (let ((vars (map memoize-var form)))
             (comp
-             (let down ((v vars)
-                        (f form))
-               (cond 
-                ((null? v) `(%app ,vars))
-                ((symbol? (car f)) ;; already variable
-                 (down (cdr v) (cdr f)))
-                (else ;; cache in variable
-                 `(%let ,(car v) 
-                        ,(car f) 
-                        ,(down (cdr v)
-                               (cdr f))))))))))))
+             `(let
+                  ,(let bind ((v vars)
+                              (f form))
+                     (cond 
+                      ((null? v) '())
+                      ((symbol? (car f)) ;; already variable
+                       (bind (cdr v) (cdr f)))
+                      (else ;; cache in variable
+                       (cons (list (car v) (car f))
+                             (bind (cdr v) (cdr f))))))
+                (%app ,vars)))))
+         )))
+         
      ;; Constant
      (else
       (comp (list 'quote form))))))
