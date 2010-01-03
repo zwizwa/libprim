@@ -11,25 +11,38 @@
 
 
 (define (vm-compile form)
+  ;; Create symbols unique to this invocation of vm-compile.
+  ;; FIXME: make these uninterned.
   (define *gensym-count* 0)
-  (define (gensym)
+  (define (gensym . _)
     (set! *gensym-count* (add1 *gensym-count*))
     (string->symbol
-     (string-append "g" (number->string *gensym-count*))))
+     (string-append "#" (number->string *gensym-count*))))
+
+  ;; Create a new symbol if a value is not a variable reference.
   (define (memoize-var x)
     (if (symbol? x) x (gensym)))
 
+  ;; Recursive compilation, keeping track of the environment.
   (let compile ((form form)
                 (env '())
-                (menv '()))
+                (renames '()))
+
+    ;; To implement `let' in terms of `let*' we use renames.
+    (define (map-renamed name)
+      (let ((record (assq name renames)))
+        (if record (cdr record) name)))
     (define (name->index name)
-      (let find ((env env)
-                 (indx 0))
-        (when (null? env) (undefined name))
-        (if (eq? name (car env))
-            indx
-            (find (cdr env) (add1 indx)))))
-    (define (comp e) (compile e env menv))
+      (let ((renamed-name (map-renamed name)))
+        (let find ((env env)
+                   (indx 0))
+          (when (null? env) (undefined name))
+          (if (eq? renamed-name (car env))
+              indx
+              (find (cdr env) (add1 indx))))))
+    
+    (define (comp e) (compile e env renames))
+    (define (comp/e e env) (compile e env renames))
 
     (cond
      ;; Variable reference
@@ -49,8 +62,8 @@
          ((eq? tag 'lambda)
           (let ((formals (car args))
                 (body    (cdr args)))
-            (op-lambda (compile `(begin ,@body)
-                                (append formals env) menv)
+            (op-lambda (comp/e `(begin ,@body)
+                               (append formals env))
                        (* 2 (length formals)))))
 
          ;; Literal values
@@ -64,7 +77,17 @@
                 (body (caddr args)))
             (op-let1
              (comp expr)
-             (compile body (cons name env) menv))))
+             (comp/e body (cons name env)))))
+
+         ((eq? tag 'let)
+          (let ((bindings (car args))
+                (body (cdr args)))
+            (let ((names (map car bindings))
+                  (exprs (map cadr bindings)))
+              (op-let
+               (reverse (map comp exprs))
+               (comp/e `(begin ,@body)
+                       (append names env))))))
 
          ;; Sequencing
          ((eq? tag '%seq)
@@ -93,7 +116,7 @@
                                (cdr f))))))))))))
      ;; Constant
      (else
-      (compile (list 'quote form) env menv)))))
+      (comp (list 'quote form))))))
 
 (define (vm-eval expr)
   (vm-init (vm-compile expr))

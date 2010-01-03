@@ -33,9 +33,9 @@ typedef struct {
 
 
 
-/* The following contains code for the VM primitives and continuation
-  primitives.  These are defined close to each other to keep the code
-  cache footprint small. */
+/* The following contains code for the VM opcode and continuation
+   primitives.  These are defined close to each other to keep the code
+   cache footprint small. */
 
 /* VM ops creating continuation frames. */
 #define CHECK_ALIGNED(x) { if(((void*)x) != GC_POINTER((object)x)) TRAP(); }
@@ -264,6 +264,39 @@ void _vm_let1(sc *sc, vm_letvar *op) {
     f->body = op->body;
 }
 
+/* LET */
+typedef struct {
+    kf_base f;
+    _ env;
+    _ exprs;
+    _ body;
+} kf_let;
+static void _kf_let(sc *sc, _ v, kf_let *f) {
+    if (NIL == f->exprs) {
+        /* Done: enter new environment. */
+        sc->e = CONS(v, f->env);
+        sc->c = f->body;
+    }
+    else {
+        EXTEND_K(kf_let, fnext);
+        sc->c        = _CAR(f->exprs);
+        fnext->exprs = _CDR(f->exprs);
+        fnext->body  = f->body;
+        fnext->env   = CONS(v, f->env);
+    }
+}
+typedef struct {
+    vm_op op;
+    _ exprs;
+    _ body;
+} vm_let;
+void _vm_let(sc *sc, vm_let *op) {
+    EXTEND_K(kf_let, f);
+    sc->c    = _CAR(op->exprs);
+    f->exprs = _CDR(op->exprs);
+    f->body  = op->body;
+}
+
 /* Trampoline. */
 _ sc_vm_continue(sc *sc) {
     for(;;) {
@@ -284,6 +317,7 @@ _ sc_op_lit(sc *sc, _ val)               {OP(lit,    1, val);}
 _ sc_op_ref(sc *sc, _ id)                {OP(ref,    1, id);}
 _ sc_op_seq(sc *sc, _ now, _ later)      {OP(seq,    2, now, later);}
 _ sc_op_let1(sc *sc, _ expr, _ body)     {OP(let1,   2, expr, body);}
+_ sc_op_let(sc *sc, _ exprs, _ body)     {OP(let,    2, exprs, body);}
 _ sc_op_unbox(sc *sc, _ box)             {OP(unbox,  1, box);}
 _ sc_op_setbox(sc *sc, _ box, _ val)     {OP(setbox, 2, box, val);}
 _ sc_op_app(sc *sc, _ closure, _ ids)    {OP(app,    2, closure, ids);}

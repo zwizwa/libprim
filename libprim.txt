@@ -7368,5 +7368,59 @@ function dispatches on type, or all values in function position are
 assumed to be closures.
 
 The latter won't work: since values can come from anywhere, they need
-to be checked for type.
+to be checked for type.  OK.
 
+Next: self-hosting compiler.  Re-arrange the code such that it becomes
+possible to write the macro expander and the compiler in the VM, then
+switch VMs.
+
+Next: Make vm-compile understand the basic forms in the other VM.
+This mainly requires `let'.  Maybe the VM's let1 schould be extended
+to support parallel evaluation.  Otoh, if it is possible to write
+`let' in terms of `let*' it might be interesting to pursue that route,
+as it's useful for the Scheme -> EX compiler.
+
+Alternatively, can the current compile.scm be converted to C?  The
+task is finding the sweet spot somewhere.
+
+Next: Toplevel environment & boxes.
+
+Next: ribbed index.
+
+
+
+let* -> let can be achieved by renaming all variables in the let, and
+undoing the rename at a reference point.
+
+Problem however is then properly threading the rename environment.
+I'm fixing the compiler such that `%let' is no longer recognized as a
+primitive form, but both `let*' and `let' compile directly to op-let1
+using a shared traversal function.
+
+However, it might be simpler to implement let directly in the VM:
+continuation frames are created anyway.
+
+Here's the let -> let* code (with a rename bug for the expressions).
+
+         ((eq? tag 'let*)
+          (let ((bindings (car args))
+                (body (cdr args)))
+            (cond
+             ((null? bindings) (comp `(begin ,@body)))
+             ((null? (cdr bindings))
+              (comp `(%let ,@(car bindings)
+                           (begin ,@body))))
+             (else
+              (comp `(%let ,@(car bindings)
+                           (let* ,(cdr bindings) ,@body)))))))
+         ((eq? tag 'let)
+          (let ((bindings (car args))
+                (body (cdr args)))
+            ;; Rename variables + keep translation records.
+            (let ((names (map car bindings))
+                  (exprs (map cadr bindings))
+                  (new-names (map gensym bindings)))
+              (compile `(let* ,(map list new-names exprs) ,@body)
+                       env
+                       (append (map cons names new-names)
+                               renames)))))
