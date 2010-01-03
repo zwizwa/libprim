@@ -2,7 +2,8 @@
 
 
 
-(define (vm-compile form macros)
+(define vm-compile
+(lambda (form macros)
   ;; Create unique variable tags.  The numbering is only for debugging.
 ;;   (define *count* 0)
 ;;   (define (genvar)
@@ -55,6 +56,18 @@
          ((assq tag macros) => (lambda (mrec)
                                  (comp ((cdr mrec) form))))
          
+         ;; Conditional
+         ((eq? tag '%ifval)
+          (let ((cvar (car args))
+                (branches (cdr args)))
+            (apply op-if (name->index cvar) (map comp branches))))
+         ((eq? tag 'if)
+          (let ((cexp (car args))
+                (branches (cdr args)))
+            (let ((cvar (memoize-var cexp)))
+              (comp `(let ,(memo-bindings (list cvar) (list cexp))2
+                       (%ifval ,cvar ,@branches))))))
+
          ;; Assignment
          ((eq? tag '%setval!)
           (apply op-assign (map name->index args)))
@@ -86,6 +99,7 @@
                                (+ (length rest)
                                   (* 2 (length named)))))))))
 
+         
          ;; Literal values
          ((eq? tag 'quote)
           (op-lit (car args)))
@@ -126,7 +140,8 @@
          
      ;; Constant
      (else
-      (comp (list 'quote form))))))
+      (comp (list 'quote form)))))))
+
 
 (define (vm-eval expr)
   (vm-init (vm-compile expr '()))

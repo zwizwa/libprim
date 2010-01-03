@@ -7462,3 +7462,12 @@ What about writing match in match, and bootstrap it using mzscheme?
 
 Looking at code I find online and in PLT, it's not a simple macro.
 Maybe best to leave it be and use something simpler.
+
+
+Entry: Self-hosting compiler
+Date: Sun Jan  3 18:28:16 CET 2010
+
+Still need to fix toplevel references + some way to bootstrap
+compile it.  If I add a #<data:...> reader, or something that can read
+a textual representation of byte code it might be simpler to
+serialize from a mzscheme hosted compiler and bootstrap that way.

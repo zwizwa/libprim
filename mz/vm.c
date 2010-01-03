@@ -74,16 +74,6 @@ static void _value(sc *sc, _ value) {
     fn(sc, value, f);
 }
 
-/* IF */
-typedef struct {
-    vm_op op;
-    _ value;
-    _ yes;
-    _ no;
-} vm_if;
-static void _vm_if(sc *sc, vm_if *op) {
-    sc->c = (FALSE == op->value) ? op->no : op->yes;
-}
 
 /* LIT */
 typedef struct {
@@ -123,6 +113,17 @@ static _ _vm_assign(sc *sc, vm_assign *op) {
     _value(sc, VOID);
 }
 
+/* IF */
+typedef struct {
+    vm_op op;
+    _ id_value;
+    _ yes;
+    _ no;
+} vm_if;
+static void _vm_if(sc *sc, vm_if *op) {
+    sc->c = (FALSE == _sc_ref(sc, op->id_value)) 
+        ? op->no : op->yes;
+}
 
 
 /* APPLY */

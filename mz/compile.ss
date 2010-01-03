@@ -3,7 +3,7 @@
          scheme/pretty
          (planet dvanhorn/record-case:1:1/record-case))
 
-
+(define (op-if . a)     (cons "if" a))
 (define (op-ref . a)    (cons "ref" a))
 (define (op-lit . a)    (cons "lit" a))
 (define (op-let . a)    (cons "let" a))
