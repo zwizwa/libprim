@@ -1,6 +1,8 @@
 ;; Compile basic VM opcodes in s-expression form into byte code.
 
-(define (vm-compile form)
+
+
+(define (vm-compile form macros)
   ;; Create symbols unique to this invocation of vm-compile.
   ;; FIXME: make these uninterned.
   (define *gensym-count* 0)
@@ -75,7 +77,6 @@
                                ;; LSB = have-rest-arg
                                (+ (length rest)
                                   (* 2 (length named)))))))))
-         
 
          ;; Literal values
          ((eq? tag 'quote)
@@ -103,14 +104,19 @@
            ((null? (cdr args)) (comp (car args)))
            (else (comp `(%seq ,(car args) (begin ,@(cdr args)))))))
 
-         ;; Application: perform evaluation using a `let' form and
-         ;; pass the result to `%app' which expects values.
          ((eq? tag '%app)
           (let ((ids (map name->index (car args))))
             (op-app (car ids) (list->vector (cdr ids)))))
+
+         ;; Form: macro or application.
          (else
-          (let ((vars (map memoize-var form)))
-            (comp `(let ,(memo-bindings vars form) (%app ,vars)))))
+          (let ((mrec (assq tag macros)))
+            (if mrec
+                (comp ((cdr mrec) form))
+                ;; Application: perform evaluation using a `let' form
+                ;; and pass the result to `%app' which expects values.
+                (let ((vars (map memoize-var form)))
+                  (comp `(let ,(memo-bindings vars form) (%app ,vars)))))))
          )))
          
      ;; Constant

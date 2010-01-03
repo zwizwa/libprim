@@ -7422,9 +7422,33 @@ Next: self-hosting compiler.  Re-arrange the code such that it becomes
 possible to write the macro expander and the compiler in the VM, then
 switch VMs.
 
-Next: ribbed index.
-
 Next: Toplevel environment & boxes.
 
 Boxes are not be necessary yet as there is still an environment at run
 time.  set! can be implemented by updating this in-place.
+
+OK: assignments
+
+
+Next: ribbed index.  -> Probably won't work since vectors can't be
+updated non-destructively.  However, closures could be packed lazily.
+I.e. if the 'ref' function can handle nested vectors like it now does
+cons-cells:
+
+#(a b c d e f #(h i j k l '()))
+
+Anyway, that's for later.
+
+Next: toplevel.
+
+Next: match form.
+
+It might be a lot simpler to use the `match' form for writing the
+compiler.  The effort needed to implement this might pay off well.
+
+For toplevel, it might be simplest to have the compile operation
+extend the toplevel as well.  I.e. it adds slots for undefined
+variables, and links those slots into the code.
+
+Or better still, add a dynamic binding opcode that can be
+short-cicuited into an unbox opcode?
