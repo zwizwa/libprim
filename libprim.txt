@@ -7475,3 +7475,88 @@ serialize from a mzscheme hosted compiler and bootstrap that way.
 Yes. This seems a lot simpler.  Also, if the bytecode can be made
 machine-independent, this can also be used for cross-compilation.
 
+
+Entry: Values
+Date: Sun Jan  3 21:13:12 CET 2010
+
+The benefit of the ANF rep is that the only opcodes that create
+continuation frames to support nexted evaluation are `let' and `seq'.
+
+But currently the VM expects variables; constants (that also do not
+require evaluation) are still buffered in variables.  Maybe the VM
+should support constants directly.
+
+If variables references can be represented in a separate type internal
+to the VM, this can be simplified.
+
+
+Entry: Distractions
+Date: Sun Jan  3 22:14:07 CET 2010
+
+Did I reach the goal?  (The goal was to replace the current VM with
+something faster and easier to understand).
+
+I do think this approach is simpler.  Although the direct
+implementation is quite straightforward also, the particular turns I
+took don't all make sense.  One of them is the `ktx' idea.  The reason
+is of course the tension between wanting to write the VM as a pure
+data structure transformer, while wanting to keep the primitives close
+to C function semantics.  This doesn't work well when continuations
+are part of the game, and the garbage collector has to be tamed using
+state.
+
+The new VM is simpler in that it has only two kinds of continuations:
+`let' expressions and `begin' forms (2-expression begin or `seq').
+This requires some complication on the compiler side however: the
+subset of scheme the VM supports is smaller.
+
+Whether it is faster I haven't checked.  It would really surprise me
+though if it is not.  It produces a lot less intermediate state: only
+continuation chains and environments.
+
+
+So what did we learn?  The interesting balance between operations that
+save context and setup a continuation, and the subsequent handling of
+the continuations: the move from direct style (function returns to the
+point after invocation) to CPS style: we tell the machine what to do
+next at the point the current evaluation finishes.
+
+This was already a revelation this summer working on the more explicit
+interpreter, but the VM and the closer connection to C functions makes
+it all a bit more earthy.
+
+
+Is there any beef in this?  Yes.  I'm not so far removed from being
+able to self-host the compiler.  Toplevel defs + some transferrable
+bytecode format.  It would be interesting to be able to cross-compile
+from any standard Scheme.
+
+
+
+Entry: Display data structure (implementing environments)
+Date: Sun Jan  3 23:30:59 CET 2010
+
+See 4.4. in ``Dybvig's Three Implementation Models for Scheme''[1]:
+
+  A display is an array of display pointers, each holding the address
+  of one frame in the current static chain.  
+
+This avoids frame traversal.
+
+[1] http://www.cs.unm.edu/~williams/cs491/three-imp.pdf
+
+
+Entry: ANF
+Date: Mon Jan  4 00:26:44 CET 2010
+
+To be correct, the compiler does not produce ANF, as it does not
+bubble let expressions outward (see the three A-rules in figure 7. in
+[1]).  However, the VM can interpret ANF form.
+
+It is not completely clear to me how this then provides room for
+particular optimization.  At the end of the paper there is an example.
+
+The current VM is a C_a E K machine, extended with set! and begin.
+
+
+[1] http://lambda-the-ultimate.org/node/69
