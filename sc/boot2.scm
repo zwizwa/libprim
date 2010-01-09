@@ -1,5 +1,8 @@
 ;; Second stage bootstrap.
 
+(define (vars) (map1 car (toplevel)))
+(define (macros) (map1 car (toplevel-macro)))
+
 ;; (or a b)  -> (if a a b)   
 ;; (and a b) -> (if a b a)
 
