@@ -14,7 +14,4 @@
                  (list (list name (list* 'lambda names body)))
                  (cons name values)))))
       ;; normal let
-      (with-letform-transpose
-       (cdr form)
-       (lambda (names values body)
-         (list* (list* 'lambda names body) values)))))
+      (cons '%let (cdr form))))

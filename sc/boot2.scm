@@ -276,23 +276,6 @@
 (define close-output-port close-port)
 (define close-input-port close-port)
 
-;; Support internal definitions
-(define (expand-lambda/defines lambda-form)
-   (let collect ((body (cddr lambda-form))
-                 (defs '()))
-     (if (and (pair? body)
-              (pair? (car body))
-              (eq? 'define (caar body)))
-         (collect (cdr body)
-                  (cons (expand-define (car body)) defs))
-         (let ((defs (reverse defs)))
-           (list* 'lambda
-                  (cadr lambda-form)
-                  (if (null? defs)
-                      (map expand body)
-                      (list (expand (list* 'letrec (reverse defs) body)))))))))
-(define expand-lambda expand-lambda/defines)
-
 (define (foldr1 fn init lst)
   (let rec ((lst lst))
     (if (null? lst) init

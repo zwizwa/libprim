@@ -15,18 +15,18 @@ all: $(SHLIB) $(APP)
 include ../Makefile.defs
 include ../Makefile.rules
 
-BOOT=$(BUILDDIR)/sc/boot12.gscm
+BOOT=$(BUILDDIR)/sc/boot12.scm_
 $(BOOT):
 	make -C $(BUILDDIR)/sc `basename $(BOOT)`
 
+.PHONY: test
 test: $(BOOT) vm
 	gdb --args ./vm --boot $(BOOT)
 
 LIBDEPS= \
 	$(SRCDIR)/sc/boot1-expand-letrec.scm \
 	$(SRCDIR)/sc/boot1-expand-let.scm \
-	$(SRCDIR)/sc/boot1-expand-define.scm \
-	$(SRCDIR)/sc/boot2.scm
+	$(SRCDIR)/sc/boot1-expand-define.scm
 
-lib.gscm: $(LIBDEPS)
-	cat $(LIBDEPS) >lib.gscm
+lib.scm_: $(LIBDEPS)
+	cat $(LIBDEPS) >lib.scm_

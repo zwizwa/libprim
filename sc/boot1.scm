@@ -102,13 +102,16 @@
                 (if (null? rest) a
                     (cons a (apply list* rest)))))
 ;; This let is in terms of lambda.
-(define-macro let
+(define expand-%let
   (lambda (form)
     ((lambda (names values body)
        (list* (list* 'lambda names body) values))
      (map1 car (cadr form))
      (map1 cadr (cadr form))
      (cddr form))))
+
+(define-macro let expand-%let)
+(define-macro %let expand-%let)
 
 (%load "boot1-expand-letrec.scm")
 (define-macro letrec expand-letrec)
@@ -121,6 +124,9 @@
 ;; Redefine let with named let.
 (%load "boot1-expand-let.scm")
 (define-macro let expand-let)
+
+;; Support internal definitions
+(%load "boot1-expand-lambda.scm")
 
 (%load "boot2.scm")
 )))

@@ -61,11 +61,20 @@ include ../Makefile.rules
 
 # code in step 2 is reused elsewhere.  step 1 is specific to this VM.
 
-BOOT=   boot12.gscm
 
-MRPROPER += $(BOOT) $(BOOTE)
+BOOT=$(BUILDDIR)/sc/boot12.scm_
+BOOTDEPS= \
+	$(SRCDIR)/sc/boot1.scm \
+	$(SRCDIR)/sc/boot1-expand-define.scm \
+	$(SRCDIR)/sc/boot1-expand-letrec.scm \
+	$(SRCDIR)/sc/boot1-expand-let.scm \
+	$(SRCDIR)/sc/boot1-expand-lambda.scm \
+	$(SRCDIR)/sc/boot2.scm
 
-$(BOOT): boot1.scm boot2.scm
+MRPROPER += $(BOOT)
+
+
+$(BOOT): $(BOOTDEPS)
 	$(MZSCHEME) ./bootstrap.ss >$(BOOT)
 
 test: $(BOOT) $(APP)
