@@ -4,14 +4,16 @@
 #include <sc/scheme.c>
 #include <mz/vm.h_prims>
 
-/* The VM uses vectors tagged with a native code pointer to represent
-   primitive code and continuations.  
+/* The VM interprets code trees and continuation stacks, represented
+   by nested vectors tagged with native code pointers.
 
-   VM opcodes modify the machine state and possibly install new
-   continuation frames in case evaluation is required.
+   CODE: VM opcodes modify the machine state.  %let and %seq push new
+         continuation frames to the current execution context to
+         keep track of nested expression evaluation.
 
-   Continuation opcodes take a value argument and complete the
-   computation. */
+   CONT: Continuation opcodes take a value argument and complete the
+         computation.
+*/
 
 typedef void (*k_code)(sc *sc, _ value, void *frame);
 typedef struct {
@@ -27,10 +29,6 @@ typedef struct {
     vector v;
     vm_code fn;
 } vm_op;
-
-
-
-
 
 
 /* The following contains code for the VM opcode and continuation
@@ -142,6 +140,7 @@ typedef struct {
 } closure;
 DEF_STRUCT(closure, TAG_CLOSURE)
 
+/* Extend enironment. */
 _ _extend(sc *sc, _ env, _ cl_body, int named_args, int list_args, _ op_ids) {
     vector *v = (vector *)GC_POINTER(op_ids);
     int i, n = vector_size(v);
@@ -189,12 +188,13 @@ void _vm_app(sc *sc, vm_app *op) {
         int list_args = named_args & 1;
         named_args >>= 1;
         /* Extend environment and jump to body. */
-        sc->e = _extend(sc, cl->env, cl->body, named_args, list_args, op->id_args);
+        sc->e = _extend(sc, cl->env, cl->body, named_args,
+                        list_args, op->id_args);
         sc->c = cl->body;
     }
     else if ((pr = object_to_prim(rator))) {
-        /* Extend NIL environment, perform primitive and pass value to
-           current continuation. */
+        /* Extend NIL environment to obtain primitive's argument list,
+           perform primitive and pass value to current continuation. */
         _ args = _extend(sc, NIL, NIL, pr->nargs, 0, op->id_args);
         _ rv = _sc_call(sc, pr->fn, pr->nargs, args);
         _value(sc, rv);
@@ -281,13 +281,6 @@ _ sc_vm_continue(sc *sc) {
     }
 }
 
-
-_ sc_prim_fn(sc *sc, _ p) { 
-    void *fn = CAST(prim, p)->fn;
-    CHECK_ALIGNED(fn);
-    return const_to_object(fn);
-}
-
 _ sc_vm_init(sc *sc, _ c) {
     sc->e = NIL;
     sc->k = NIL;
@@ -296,27 +289,9 @@ _ sc_vm_init(sc *sc, _ c) {
     return VOID;
 }
 
-
-
-/* Opcode construction. */
-#define MAKE_OP(name, nargs, ...)                                       \
-    gc_make_tagged(EX->gc, TAG_VECTOR, (1+nargs),                       \
-                              const_to_object(_vm_##name), __VA_ARGS__)
-#define OP(name, ...) return MAKE_OP(name, __VA_ARGS__)
-
-_ sc_op_if(sc *sc, _ cval, _ yes, _ no)  {OP(if,     3, cval, yes, no);}
-_ sc_op_lit(sc *sc, _ val)               {OP(lit,    1, val);}
-_ sc_op_ref(sc *sc, _ id)                {OP(ref,    1, id);}
-_ sc_op_seq(sc *sc, _ now, _ later)      {OP(seq,    2, now, later);}
-_ sc_op_let(sc *sc, _ exprs, _ body)     {OP(let,    2, exprs, body);}
-_ sc_op_app(sc *sc, _ closure, _ ids)    {OP(app,    2, closure, ids);}
-_ sc_op_lambda(sc *sc, _ body, _ sig)    {OP(lambda, 2, body, sig);}
-_ sc_op_assign(sc *sc, _ id, _ val)      {OP(assign, 2, id, val);}
-
-
-/* Compile s-expression representing Scheme code in ANF form to
-   internal representation.  This allows simpler bootstrapping, as no
-   external byte-code representation is necessary; we can simply use
+/* Compile s-expression representation of byte code to internal
+   representation.  This allows simpler bootstrapping, as no external
+   byte-code representation is necessary; we can simply use
    s-expressions and the leaf/parser.c code. */
 #define V1 CADR(code)
 #define V2 CADDR(code)
@@ -327,25 +302,24 @@ _ sc_op_assign(sc *sc, _ id, _ val)      {OP(assign, 2, id, val);}
 #define E2 ANF(V2)
 #define E3 ANF(V3)
 #define ES1 ANFS(V1)  // recurse down list of expressions
-#define CASE_OP(str, code, ...) if(tag == SYMBOL(str)) return MAKE_OP(code, __VA_ARGS__)
+#define MAKE_OP(name, nargs, ...)                                       \
+    gc_make_tagged(EX->gc, TAG_VECTOR, (1+nargs),                       \
+                              const_to_object(_vm_##name), __VA_ARGS__)
+#define CASE_OP(str, code, ...) \
+    if(tag == SYMBOL(str)) return MAKE_OP(code, __VA_ARGS__)
 
 _ sc_vm_compile_anf(sc *sc, _ code) {
     _ tag = CAR(code);
-
     CASE_OP("%let",    let,    2, ES1, E2);
     CASE_OP("%seq",    seq,    2,  E1, E2);
-
     CASE_OP("%if",     if,     3,  V1, E2, E3);
     CASE_OP("%ref",    ref,    1,  V1);
     CASE_OP("%lit",    lit,    1,  V1);
     CASE_OP("%app",    app,    2,  V1, V2);
     CASE_OP("%lambda", lambda, 2,  E1, V2);
     CASE_OP("%assign", assign, 2,  V1, V2);
-
     return ERROR("invalid-opcode", tag);
 }
-
-
 
 static prim_def vm_prims[] = vm_table_init;
 int main(int argc, char **argv) {

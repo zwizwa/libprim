@@ -132,7 +132,7 @@
          ;; and pass the result to `%app' which expects values.
          ((eq? tag '%app)
           (let ((ids (map name->index (car args))))
-            (op-app (car ids) (list->vector (cdr ids)))))
+            ((op '%app) (car ids) (list->vector (cdr ids)))))
          (else
           (let ((vars (map memoize-var form)))
             (comp `(let ,(memo-bindings vars form) (%app ,vars)))))
