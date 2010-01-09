@@ -156,7 +156,8 @@
 (define vm-macros
   `((let    . ,expand-let)
     (letrec . ,expand-letrec)
-    (lambda . ,expand-lambda)))
+    (lambda . ,(lambda (e) ;; FIXME: cold VM compat
+                 (expand-lambda e (lambda (x) x))))))
 
 (define (vm-compile expr)
   (vm-compile/macros expr vm-macros))
