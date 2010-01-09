@@ -12,4 +12,10 @@
 (include "../sc/boot1-expand-letrec.scm")
 (include "../sc/boot1-expand-lambda.scm")
 (include "../sc/boot1-expand-define.scm")
+
+(include "macros.scm")
 (include "compile.scm")
+
+(define (self-compile)
+  (vm-compile
+   (cddr (read (open-input-file "compile.scm")))))

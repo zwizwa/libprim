@@ -7,7 +7,8 @@
           (let ((_name (car name))
                 (_formals (cdr name)))
             (set! name _name)
-            (set! value (list* 'lambda _formals (cddr form)))))
+            (set! value (list* 'lambda _formals (cddr form))))
+          #f)
       (list name value))))
 (define make-definer
   (lambda (def!)

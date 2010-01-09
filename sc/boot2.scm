@@ -78,7 +78,7 @@
 ;;
 ;; Subsequently modified to handle vectors: D. Souflis
 
-(define-macro (quasiquote l)
+(define (expand-quasiquote l)
   (letrec
       ((mcons
         (lambda (f l r)
@@ -128,7 +128,7 @@
     (tx 0 (car (cdr l)))))
 
 
-
+(define-macro quasiquote expand-quasiquote)
 
 
 
@@ -322,7 +322,7 @@
 ;; Re-implement some macros to be more generic using record-case and
 ;; quasiquote.
 
-(define-macro (cond form)
+(define (expand-cond form)
   (let next ((clauses (cdr form)))
     (if (null? clauses) '(void)
         (let* ((clause (car clauses))
@@ -339,6 +339,9 @@
                  (if bv (,body bv) ,(rest)))))
            (else
             `(if ,guard ,body ,(rest))))))))
+
+(define-macro cond expand-cond)
+
 
 (define (improper lst)
   (if (null? lst) '()
