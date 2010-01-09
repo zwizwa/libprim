@@ -1,5 +1,5 @@
 ;; Support internal definitions
-(define (expand-lambda lambda-form expand)
+(define (expand-lambda lambda-form)
   (let ((define? (lambda (x)
                    (if (pair? x)
                    (if (pair? (car x))
@@ -14,5 +14,5 @@
             (list* '%lambda
                    (cadr lambda-form)
                    (if (null? defs)
-                       (map expand body)
-                       (list (expand (list* 'letrec (reverse defs) body))))))))))
+                       body
+                       (list (list* 'letrec (reverse defs) body)))))))))
