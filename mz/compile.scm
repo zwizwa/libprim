@@ -4,14 +4,9 @@
 ;;   - basic forms:  <application> <reference> if lambda quote begin let
 ;;   - macros: let (letrec, named-let) lambda (internal defs)
 
-(load "lib.scm_") ;; expanders for: let letrec lambda
+;; (load "lib.scm_") ;; expanders for: let letrec lambda define->bindings
 
-(define vm-macros
-  `((let    . ,expand-let)
-    (letrec . ,expand-letrec)
-    (lambda . ,(lambda (x) (expand-lambda x (lambda (x) x))))))
-
-(define vm-compile
+(define vm-compile/macros
 (lambda (form macros)
   ;; Create unique variable tags.  The numbering is only for debugging.
 ;;   (define *count* 0)
@@ -37,7 +32,12 @@
     (define (name->index name)
       (let find ((env env)
                  (indx 0))
-        (if (null? env) (undefined name)
+        (if (null? env)
+            (begin
+              (display "undefined: ")
+              (display name)
+              (newline)
+              name)
             (if (eq? name (car env))
                 indx
                 (find (cdr env) (add1 indx))))))
@@ -153,10 +153,18 @@
      (else
       (comp (list 'quote form)))))))
 
+(define vm-macros
+  `((let    . ,expand-let)
+    (letrec . ,expand-letrec)
+    (lambda . ,expand-lambda)))
+
+(define (vm-compile expr)
+  (vm-compile/macros expr vm-macros))
 
 (define (vm-eval expr)
   (vm-init
    (vm-compile-anf  ;; anf -> internal
     (vm-compile     ;; sexpr -> anf
-     expr vm-macros)))
+     expr)))
   (vm-continue))
+
