@@ -76,8 +76,9 @@ clean:
 	rm -f $(JUNK) $(APP) $(TEST)
 
 # The `mrproper' target also cleans the generated files.
+.PHONY: mrproper
 mrproper: clean
-	rm -rf *.h_* *.c_*
+	rm -rf *.h_* *.c_* $(MRPROPER)
 
 
 

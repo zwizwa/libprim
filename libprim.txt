@@ -7576,7 +7576,7 @@ Date: Sat Jan  9 09:51:33 CET 2010
 Essence: compile scheme to some lower form that can be serialized and
 interpreted by the VM or can be compiled to native machine code.
 
-Idially, it would be something that can be mmapped.  Two
+Ideally, it would be something that can be mmapped.  Two
 straightforward optimizations come to mind:
 
    - replacing code pointers w. opcode tags
@@ -7601,3 +7601,15 @@ freedom.
 Anyways, when using a human-readable s-expression ANF form as a
 bytecode representation, the code that compiles this to the currently
 established internal representation needs to be written in C.
+
+Done.  This was quite straightforward.
+
+
+
+Entry: Compiling the compiler
+Date: Sat Jan  9 11:27:18 CET 2010
+
+The next step in compiling the compiler is to clean up the sc/boot.scm
+code so we can extract the macros necessary to transform the compiler
+code.
+

@@ -54,9 +54,21 @@ GEN = scheme.h_prims
 include ../Makefile.defs
 include ../Makefile.rules
 
+# There are 3 stages in compiling the boot script:
+#  1. defines 'eval' and 'expand' on top of SC VM
+#  2. defines library code using the expander
+#  3. expands the whole boot to run directly on SC VM
+
+# code in step 2 is reused elsewhere.  step 1 is specific to this VM.
+
 EXPAND= $(SRCDIR)/$(MODULE)/expand.scm
-BOOT=   $(SRCDIR)/$(MODULE)/boot.scm
-BOOTE=  boot-expanded.scm
+BOOT=   boot12.gscm
+BOOTE=  boot123.gscm
+
+MRPROPER += $(BOOT) $(BOOTE)
+
+$(BOOT): boot1.scm boot2.scm
+	$(MZSCHEME) ./bootstrap.ss >$(BOOT)
 
 $(BOOTE): sc $(BOOT) $(EXPAND)
 	./sc --boot $(BOOT) --eval '(script)' $(EXPAND) $(BOOT) $(BOOTE)

@@ -1,5 +1,11 @@
 ;; Compile basic VM opcodes in s-expression form into byte code.
 
+;; This is (will be) self-hosting and run on R5RS
+;;   - basic forms:  <application> <reference> if lambda quote begin let
+;;   - macros: let (letrec, named-let) lambda (internal defs)
+
+
+
 (define vm-compile
 (lambda (form macros)
   ;; Create unique variable tags.  The numbering is only for debugging.
@@ -26,10 +32,10 @@
     (define (name->index name)
       (let find ((env env)
                  (indx 0))
-        (when (null? env) (undefined name))
-        (if (eq? name (car env))
-            indx
-            (find (cdr env) (add1 indx)))))
+        (if (null? env) (undefined name)
+            (if (eq? name (car env))
+                indx
+                (find (cdr env) (add1 indx))))))
     ;; For conversion to ANF: add binding sites for expressions -
     ;; ignore varrefs.
     (define (memo-bindings vars forms)
