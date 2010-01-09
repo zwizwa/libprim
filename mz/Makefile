@@ -15,9 +15,9 @@ all: $(SHLIB) $(APP)
 include ../Makefile.defs
 include ../Makefile.rules
 
-BOOTE=$(BUILDDIR)/sc/boot-expanded.scm
-$(BOOTE):
-	make -C $(BUILDDIR)/sc boot-expanded.scm
+BOOT=$(BUILDDIR)/sc/boot12.gscm
+$(BOOT):
+	make -C $(BUILDDIR)/sc `basename $(BOOT)`
 
-test: $(BOOTE) vm
-	gdb --args ./vm --boot $(BOOTE)
+test: $(BOOT) vm
+	gdb --args ./vm --boot $(BOOT)

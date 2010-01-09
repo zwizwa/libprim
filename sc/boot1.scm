@@ -161,5 +161,6 @@
        (lambda (names values body)
          (list* (list* 'lambda names body) values)))))
 
-%boot2%)))
+(%load "boot2.scm")
+)))
 

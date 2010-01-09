@@ -61,20 +61,15 @@ include ../Makefile.rules
 
 # code in step 2 is reused elsewhere.  step 1 is specific to this VM.
 
-EXPAND= $(SRCDIR)/$(MODULE)/expand.scm
 BOOT=   boot12.gscm
-BOOTE=  boot123.gscm
 
 MRPROPER += $(BOOT) $(BOOTE)
 
 $(BOOT): boot1.scm boot2.scm
 	$(MZSCHEME) ./bootstrap.ss >$(BOOT)
 
-$(BOOTE): sc $(BOOT) $(EXPAND)
-	./sc --boot $(BOOT) --eval '(script)' $(EXPAND) $(BOOT) $(BOOTE)
-
-test: $(BOOTE)
-	gdb --args ./sc --boot $(BOOTE)
+test: $(BOOT) $(APP)
+	gdb --args ./sc --boot $(BOOT)
 
 tcptest: $(BOOTE)
 	./sc --boot $(BOOTE) --eval '(tcp-console-server 12345)'
