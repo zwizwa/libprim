@@ -1,0 +1,16 @@
+;; Convert define syntax into (list symbol form)
+(define expand-define
+  (lambda (form)
+    (let ((name (cadr form))
+          (value (caddr form)))
+      (if (pair? name)
+          (let ((_name (car name))
+                (_formals (cdr name)))
+            (set! name _name)
+            (set! value (list* 'lambda _formals (cddr form)))))
+      (list name value))))
+(define make-definer
+  (lambda (def!)
+    (lambda (form)
+      (let ((n+v (expand-define form)))
+        (list def! (list 'quote (car n+v)) (cadr n+v))))))

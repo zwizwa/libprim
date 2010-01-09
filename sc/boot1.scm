@@ -96,6 +96,7 @@
 (define list* (lambda (a . rest)
                 (if (null? rest) a
                     (cons a (apply list* rest)))))
+;; This let is in terms of lambda.
 (define-macro let
   (lambda (form)
     ((lambda (names values body)
@@ -104,26 +105,11 @@
      (map1 cadr (cadr form))
      (cddr form))))
 
-(%load "expand-letrec.scm") (define-macro letrec expand-letrec)
+(%load "expand-letrec.scm")
+(define-macro letrec expand-letrec)
 
 ;; Overwrite define + define-macro with more complete implementations.
-
-;; Convert define syntax into (list symbol form)
-(define expand-define
-  (lambda (form)
-    (let ((name (cadr form))
-          (value (caddr form)))
-      (if (pair? name)
-          (let ((_name (car name))
-                (_formals (cdr name)))
-            (set! name _name)
-            (set! value (list* 'lambda _formals (cddr form)))))
-      (list name value))))
-(define make-definer
-  (lambda (def!)
-    (lambda (form)
-      (let ((n+v (expand-define form)))
-        (list def! (list 'quote (car n+v)) (cadr n+v))))))
+(%load "make-definer.scm")
 (define-macro define (make-definer 'def-toplevel!))
 (define-macro define-macro (make-definer 'def-toplevel-macro!))
 
@@ -136,7 +122,7 @@
       (cdr bindings_body)))
 
 ;; Redefine let with named let.
-(define-macro (let form)
+(define (expand-let form)
   (if (symbol? (cadr form))
       ;; named let
       (with-letform-transpose
@@ -151,6 +137,8 @@
        (cdr form)
        (lambda (names values body)
          (list* (list* 'lambda names body) values)))))
+
+(define-macro let expand-let)
 
 (%load "boot2.scm")
 )))
