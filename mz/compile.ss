@@ -16,6 +16,8 @@
 (include "macros.scm")
 (include "compile.scm")
 
-(define (self-compile)
-  (vm-compile
-   (cddr (read (open-input-file "compile.scm")))))
+
+(define code
+  (caddr (read (open-input-file "compile.scm"))))
+
+
