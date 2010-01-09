@@ -1,9 +1,14 @@
 ;;; Bootstrap
 
 ;; This is boot phase 1 for libprim/sc VM, which is incrementally
-;; bootstrapped from the C source. Phase 2 is shared with other VM,
-;; which is batch-bootstrapped from Scheme.
+;; bootstrapped from the C source.  Most code is shared with the other
+;; VM.
 
+;; Note that this file, and the files it loads before boot2.scm are
+;; quite brittle due to incremental bootstrapping.  Be careful when
+;; you change anything.
+
+;;;
 
 ;; A single s-expression will be allocated outside the VM and passed
 ;; to the interpretation step.  This means there is no GC during
@@ -105,17 +110,16 @@
      (map1 cadr (cadr form))
      (cddr form))))
 
-(%load "expand-letrec.scm")
+(%load "boot1-expand-letrec.scm")
 (define-macro letrec expand-letrec)
 
 ;; Overwrite define + define-macro with more complete implementations.
-(%load "make-definer.scm")
+(%load "boot1-expand-define.scm")
 (define-macro define (make-definer 'def-toplevel!))
 (define-macro define-macro (make-definer 'def-toplevel-macro!))
 
-
 ;; Redefine let with named let.
-(%load "expand-let.scm")
+(%load "boot1-expand-let.scm")
 (define-macro let expand-let)
 
 (%load "boot2.scm")
