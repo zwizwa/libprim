@@ -7570,3 +7570,34 @@ Date: Tue Jan  5 14:49:56 CET 2010
 
 
 
+Entry: Bootstrapping the VM
+Date: Sat Jan  9 09:51:33 CET 2010
+
+Essence: compile scheme to some lower form that can be serialized and
+interpreted by the VM or can be compiled to native machine code.
+
+Idially, it would be something that can be mmapped.  Two
+straightforward optimizations come to mind:
+
+   - replacing code pointers w. opcode tags
+   - flattening the code tree
+
+Now, the challenge is, since an ANF interpreter is similar to a
+concatenative interpreter, how to make sure both can be hosted?
+
+Ok, let's dig up the tree rep I used before, now renamed to
+leaf/bytecode.c
+
+This can compactly encode arbitrary tree structures, and the bytecode
+is a tree structure.
+
+But, it's really not necessary.  There is already an s-expression
+parser, and it might be simplest to just use ANF transformed scheme as
+the serialized "byte code" form.
+
+I can't seem to find a proper point of attack.  To many degrees of
+freedom.
+
+Anyways, when using a human-readable s-expression ANF form as a
+bytecode representation, the code that compiles this to the currently
+established internal representation needs to be written in C.

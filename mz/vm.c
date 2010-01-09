@@ -282,21 +282,6 @@ _ sc_vm_continue(sc *sc) {
 }
 
 
-/* Opcode construction. */
-#define OP(name, nargs, ...)                                            \
-    return gc_make_tagged(EX->gc, TAG_VECTOR, (1+nargs),                \
-                              const_to_object(_vm_##name), __VA_ARGS__)
-
-
-_ sc_op_if(sc *sc, _ cval, _ yes, _ no)  {OP(if,     3, cval, yes, no);}
-_ sc_op_lit(sc *sc, _ val)               {OP(lit,    1, val);}
-_ sc_op_ref(sc *sc, _ id)                {OP(ref,    1, id);}
-_ sc_op_seq(sc *sc, _ now, _ later)      {OP(seq,    2, now, later);}
-_ sc_op_let(sc *sc, _ exprs, _ body)     {OP(let,    2, exprs, body);}
-_ sc_op_app(sc *sc, _ closure, _ ids)    {OP(app,    2, closure, ids);}
-_ sc_op_lambda(sc *sc, _ body, _ sig)    {OP(lambda, 2, body, sig);}
-_ sc_op_assign(sc *sc, _ id, _ val)      {OP(assign, 2, id, val);}
-
 _ sc_prim_fn(sc *sc, _ p) { 
     void *fn = CAST(prim, p)->fn;
     CHECK_ALIGNED(fn);
@@ -310,6 +295,56 @@ _ sc_vm_init(sc *sc, _ c) {
     EXTEND_K(kf_halt, f);
     return VOID;
 }
+
+
+
+/* Opcode construction. */
+#define MAKE_OP(name, nargs, ...)                                       \
+    gc_make_tagged(EX->gc, TAG_VECTOR, (1+nargs),                       \
+                              const_to_object(_vm_##name), __VA_ARGS__)
+#define OP(name, ...) return MAKE_OP(name, __VA_ARGS__)
+
+_ sc_op_if(sc *sc, _ cval, _ yes, _ no)  {OP(if,     3, cval, yes, no);}
+_ sc_op_lit(sc *sc, _ val)               {OP(lit,    1, val);}
+_ sc_op_ref(sc *sc, _ id)                {OP(ref,    1, id);}
+_ sc_op_seq(sc *sc, _ now, _ later)      {OP(seq,    2, now, later);}
+_ sc_op_let(sc *sc, _ exprs, _ body)     {OP(let,    2, exprs, body);}
+_ sc_op_app(sc *sc, _ closure, _ ids)    {OP(app,    2, closure, ids);}
+_ sc_op_lambda(sc *sc, _ body, _ sig)    {OP(lambda, 2, body, sig);}
+_ sc_op_assign(sc *sc, _ id, _ val)      {OP(assign, 2, id, val);}
+
+
+/* Compile s-expression representing Scheme code in ANF form to
+   internal representation.  This allows simpler bootstrapping, as no
+   external byte-code representation is necessary; we can simply use
+   s-expressions and the leaf/parser.c code. */
+#define V1 CADR(code)
+#define V2 CADDR(code)
+#define V3 CADDDR(code)
+#define ANF(...) sc_vm_compile_anf(sc, __VA_ARGS__)
+#define ANFS(ES) _ex_map1_prim(EX, (ex_1)sc_vm_compile_anf, ES)
+#define E1 ANF(V1)
+#define E2 ANF(V2)
+#define E3 ANF(V3)
+#define ES1 ANFS(V1)  // recurse down list of expressions
+#define CASE_OP(str, code, ...) if(tag == SYMBOL(str)) return MAKE_OP(code, __VA_ARGS__)
+
+_ sc_vm_compile_anf(sc *sc, _ code) {
+    _ tag = CAR(code);
+
+    CASE_OP("%let",    let,    2, ES1, E2);
+    CASE_OP("%seq",    seq,    2,  E1, E2);
+
+    CASE_OP("%if",     if,     3,  V1, E2, E2);
+    CASE_OP("%ref",    ref,    1,  V1);
+    CASE_OP("%app",    app,    2,  V1, V2);
+    CASE_OP("%lambda", lambda, 2,  E1, V2);
+    CASE_OP("%set!",   assign, 2,  V1, V2);
+
+    return ERROR("invalid-opcode", tag);
+}
+
+
 
 static prim_def vm_prims[] = vm_table_init;
 int main(int argc, char **argv) {

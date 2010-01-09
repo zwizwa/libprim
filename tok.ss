@@ -62,4 +62,5 @@
    ((symbol? x) (prim 'SYMBOL (symbol->bytes x)))))
 
 
-(unparse '(foo bar (baz)))
+(define (test)
+  (unparse '(foo bar (baz))))
