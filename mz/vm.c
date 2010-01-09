@@ -320,7 +320,7 @@ _ sc_op_assign(sc *sc, _ id, _ val)      {OP(assign, 2, id, val);}
    s-expressions and the leaf/parser.c code. */
 #define V1 CADR(code)
 #define V2 CADDR(code)
-#define V3 CADDDR(code)
+#define V3 CADR(CDDR(code))
 #define ANF(...) sc_vm_compile_anf(sc, __VA_ARGS__)
 #define ANFS(ES) _ex_map1_prim(EX, (ex_1)sc_vm_compile_anf, ES)
 #define E1 ANF(V1)
@@ -335,11 +335,12 @@ _ sc_vm_compile_anf(sc *sc, _ code) {
     CASE_OP("%let",    let,    2, ES1, E2);
     CASE_OP("%seq",    seq,    2,  E1, E2);
 
-    CASE_OP("%if",     if,     3,  V1, E2, E2);
+    CASE_OP("%if",     if,     3,  V1, E2, E3);
     CASE_OP("%ref",    ref,    1,  V1);
+    CASE_OP("%lit",    lit,    1,  V1);
     CASE_OP("%app",    app,    2,  V1, V2);
     CASE_OP("%lambda", lambda, 2,  E1, V2);
-    CASE_OP("%set!",   assign, 2,  V1, V2);
+    CASE_OP("%assign", assign, 2,  V1, V2);
 
     return ERROR("invalid-opcode", tag);
 }

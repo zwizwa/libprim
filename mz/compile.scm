@@ -1,7 +1,5 @@
 ;; Compile basic VM opcodes in s-expression form into byte code.
 
-
-
 (define vm-compile
 (lambda (form macros)
   ;; Create unique variable tags.  The numbering is only for debugging.
@@ -9,6 +7,8 @@
 ;;   (define (genvar)
 ;;     (set! *count* (add1 *count*))
 ;;     (cons 'g *count*))
+  (define (op opcode)
+    (lambda args (cons opcode args)))
   (define (genvar)
     (cons 'g '()))
   (define (varref? x)
@@ -46,7 +46,7 @@
     (cond
      ;; Variable reference
      ((varref? form)
-      (op-ref (name->index form)))
+      ((op '%ref) (name->index form)))
      ;; Expression
      ((pair? form)
       (let ((tag (car form))
@@ -60,7 +60,7 @@
          ((eq? tag '%ifval)
           (let ((cvar (car args))
                 (branches (cdr args)))
-            (apply op-if (name->index cvar) (map comp branches))))
+            (apply (op '%if) (name->index cvar) (map comp branches))))
          ((eq? tag 'if)
           (let ((cexp (car args))
                 (branches (cdr args)))
@@ -70,7 +70,7 @@
 
          ;; Assignment
          ((eq? tag '%setval!)
-          (apply op-assign (map name->index args)))
+          (apply (op '%assign) (map name->index args)))
          ((eq? tag 'set!) ;; allow macro override
           (comp `(%set! ,@args)))
          ((eq? tag '%set!)
@@ -93,7 +93,7 @@
                         (cons (car f) rnamed))
                   (let ((named (reverse rnamed))
                         (rest (if (null? f) '() (list f))))
-                    (op-lambda (comp/e `(begin ,@body)
+                    ((op '%lambda) (comp/e `(begin ,@body)
                                        (append named rest env))
                                ;; LSB = have-rest-arg
                                (+ (length rest)
@@ -102,7 +102,7 @@
          
          ;; Literal values
          ((eq? tag 'quote)
-          (op-lit (car args)))
+          ((op '%lit) (car args)))
 
          ;; Variable definition
          ((eq? tag 'let) ;; allow macro override
@@ -114,14 +114,14 @@
                 (comp `(begin ,@body))
                 (let ((names (map car bindings))
                       (exprs (map cadr bindings)))
-                  (op-let
+                  ((op '%let)
                    (reverse (map comp exprs))
                    (comp/e `(begin ,@body)
                            (append names env)))))))
 
          ;; Sequencing
          ((eq? tag '%seq)
-          (apply op-seq (map comp args)))
+          (apply (op '%seq) (map comp args)))
          ((eq? tag 'begin)
           (cond
            ((null? args) (comp '(void)))
@@ -144,5 +144,8 @@
 
 
 (define (vm-eval expr)
-  (vm-init (vm-compile expr '()))
+  (vm-init
+   (vm-compile-anf  ;; anf -> internal
+    (vm-compile     ;; sexpr -> anf
+     expr '())))
   (vm-continue))
