@@ -93,8 +93,6 @@
   (lambda (fn . lsts)
     (mapn fn lsts)))
 
-
-
 (define list* (lambda (a . rest)
                 (if (null? rest) a
                     (cons a (apply list* rest)))))
@@ -106,14 +104,7 @@
      (map1 cadr (cadr form))
      (cddr form))))
 
-(define-macro letrec
-  (lambda (form)
-    (let ((bindings (cadr form)))
-      (let ((names (map1 car bindings))
-            (values (map1 cadr bindings)))
-        (list* 'let (map1 (lambda (n) (list n #f)) names)
-               (cons 'begin (map (lambda (n v) (list 'set! n v)) names values))
-               (cddr form))))))
+(%load "expand-letrec.scm") (define-macro letrec expand-letrec)
 
 ;; Overwrite define + define-macro with more complete implementations.
 
