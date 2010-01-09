@@ -18,27 +18,27 @@
 
 ;; Macro expander + support.
 (def-toplevel! 'assq
-  (lambda (obj lst)
+  (%lambda (obj lst)
     (if (null? lst) #f
         (if (eq? (caar lst) obj) (car lst)
             (assq obj (cdr lst))))))
 (def-toplevel! 'map1
-  (lambda (fn lst)
+  (%lambda (fn lst)
     (if (null? lst) lst
         (cons (fn (car lst))
               (map1 fn (cdr lst))))))
 (def-toplevel! 'expand-lambda
-  (lambda (expr)
-    (cons 'lambda
+  (%lambda (expr expand)
+    (cons '%lambda
     (cons (cadr expr)
     (map1 expand (cddr expr))))))
 (def-toplevel! 'expand
-  (lambda (expr)
+  (%lambda (expr)
     (if (pair? expr)
-        ((lambda (tag)
+        ((%lambda (tag)
            (if (eq? tag 'quote) expr
-           (if (eq? tag 'lambda) (expand-lambda expr)
-               ((lambda (rec)
+           (if (eq? tag 'lambda) (expand-lambda expr expand)
+               ((%lambda (rec)
                   (if rec
                       (expand ((cdr rec) expr))
                       (map1 expand expr)))
@@ -47,12 +47,12 @@
         expr)))
 ;; Implemented in terms of primitive continuation transformers (ktx).
 (def-toplevel! 'eval
-  (lambda (expr) (letcc k ((eval-ktx k (expand expr))))))
+  (%lambda (expr) (letcc k ((eval-ktx k (expand expr))))))
 
 ;; Evaluate expressions in sequence.  This makes sure macros take
 ;; effect immediately after definition.
 (def-toplevel! 'eval-list
-  (lambda (expr)
+  (%lambda (expr)
     (if (null? expr) (void)
         (begin (eval (car expr)) (eval-list (cdr expr))))))
 

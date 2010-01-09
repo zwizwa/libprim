@@ -310,14 +310,14 @@ _ sc_vm_init(sc *sc, _ c) {
 
 _ sc_vm_compile_anf(sc *sc, _ code) {
     _ tag = CAR(code);
-    CASE_OP("%let",    let,    2, ES1, E2);
-    CASE_OP("%seq",    seq,    2,  E1, E2);
-    CASE_OP("%if",     if,     3,  V1, E2, E3);
-    CASE_OP("%ref",    ref,    1,  V1);
-    CASE_OP("%lit",    lit,    1,  V1);
-    CASE_OP("%app",    app,    2,  V1, V2);
-    CASE_OP("%lambda", lambda, 2,  E1, V2);
-    CASE_OP("%assign", assign, 2,  V1, V2);
+    CASE_OP("op-let",    let,    2, ES1, E2);
+    CASE_OP("op-seq",    seq,    2,  E1, E2);
+    CASE_OP("op-if",     if,     3,  V1, E2, E3);
+    CASE_OP("op-ref",    ref,    1,  V1);
+    CASE_OP("op-lit",    lit,    1,  V1);
+    CASE_OP("op-app",    app,    2,  V1, V2);
+    CASE_OP("op-lambda", lambda, 2,  E1, V2);
+    CASE_OP("op-assign", assign, 2,  V1, V2);
     return ERROR("invalid-opcode", tag);
 }
 

@@ -861,7 +861,7 @@ sc *_sc_new(int argc, const char **argv) {
     sc->error = FALSE;
 
     /* Cached identifiers */
-    sc->s_lambda   = SYMBOL("lambda");
+    sc->s_lambda   = SYMBOL("%lambda");
     sc->s_if       = SYMBOL("if");
     sc->s_bang_set = SYMBOL("set!");
     sc->s_quote    = SYMBOL("quote");

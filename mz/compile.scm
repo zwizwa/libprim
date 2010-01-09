@@ -4,7 +4,12 @@
 ;;   - basic forms:  <application> <reference> if lambda quote begin let
 ;;   - macros: let (letrec, named-let) lambda (internal defs)
 
+(load "lib.scm_") ;; expanders for: let letrec lambda
 
+(define vm-macros
+  `((let    . ,expand-let)
+    (letrec . ,expand-letrec)
+    (lambda . ,(lambda (x) (expand-lambda x (lambda (x) x))))))
 
 (define vm-compile
 (lambda (form macros)
@@ -52,7 +57,7 @@
     (cond
      ;; Variable reference
      ((varref? form)
-      ((op '%ref) (name->index form)))
+      ((op 'op-ref) (name->index form)))
      ;; Expression
      ((pair? form)
       (let ((tag (car form))
@@ -66,7 +71,7 @@
          ((eq? tag '%ifval)
           (let ((cvar (car args))
                 (branches (cdr args)))
-            (apply (op '%if) (name->index cvar) (map comp branches))))
+            (apply (op 'op-if) (name->index cvar) (map comp branches))))
          ((eq? tag 'if)
           (let ((cexp (car args))
                 (branches (cdr args)))
@@ -76,7 +81,7 @@
 
          ;; Assignment
          ((eq? tag '%setval!)
-          (apply (op '%assign) (map name->index args)))
+          (apply (op 'op-assign) (map name->index args)))
          ((eq? tag 'set!) ;; allow macro override
           (comp `(%set! ,@args)))
          ((eq? tag '%set!)
@@ -91,7 +96,7 @@
           (comp `(%lambda ,@args)))
          ((eq? tag '%lambda)
           (let ((formals (car args))
-                (body    (cdr args)))
+                (body (cdr args)))
             (let scan ((f formals)
                        (rnamed '()))
               (if (pair? f)
@@ -99,16 +104,16 @@
                         (cons (car f) rnamed))
                   (let ((named (reverse rnamed))
                         (rest (if (null? f) '() (list f))))
-                    ((op '%lambda) (comp/e `(begin ,@body)
-                                       (append named rest env))
-                               ;; LSB = have-rest-arg
-                               (+ (length rest)
-                                  (* 2 (length named)))))))))
-
+                    ((op 'op-lambda) (comp/e `(begin ,@body)
+                                           (append named rest env))
+                     ;; LSB = have-rest-arg
+                     (+ (length rest)
+                        (* 2 (length named)))))))))
+         
          
          ;; Literal values
          ((eq? tag 'quote)
-          ((op '%lit) (car args)))
+          ((op 'op-lit) (car args)))
 
          ;; Variable definition
          ((eq? tag 'let) ;; allow macro override
@@ -120,14 +125,14 @@
                 (comp `(begin ,@body))
                 (let ((names (map car bindings))
                       (exprs (map cadr bindings)))
-                  ((op '%let)
+                  ((op 'op-let)
                    (reverse (map comp exprs))
                    (comp/e `(begin ,@body)
                            (append names env)))))))
 
          ;; Sequencing
          ((eq? tag '%seq)
-          (apply (op '%seq) (map comp args)))
+          (apply (op 'op-seq) (map comp args)))
          ((eq? tag 'begin)
           (cond
            ((null? args) (comp '(void)))
@@ -138,7 +143,7 @@
          ;; and pass the result to `%app' which expects values.
          ((eq? tag '%app)
           (let ((ids (map name->index (car args))))
-            ((op '%app) (car ids) (list->vector (cdr ids)))))
+            ((op 'op-app) (car ids) (list->vector (cdr ids)))))
          (else
           (let ((vars (map memoize-var form)))
             (comp `(let ,(memo-bindings vars form) (%app ,vars)))))
@@ -153,5 +158,5 @@
   (vm-init
    (vm-compile-anf  ;; anf -> internal
     (vm-compile     ;; sexpr -> anf
-     expr '())))
+     expr vm-macros)))
   (vm-continue))

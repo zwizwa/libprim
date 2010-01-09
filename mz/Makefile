@@ -20,12 +20,13 @@ $(BOOT):
 	make -C $(BUILDDIR)/sc `basename $(BOOT)`
 
 .PHONY: test
-test: $(BOOT) vm
+test: $(BOOT) vm lib.scm_
 	gdb --args ./vm --boot $(BOOT)
 
 LIBDEPS= \
 	$(SRCDIR)/sc/boot1-expand-letrec.scm \
 	$(SRCDIR)/sc/boot1-expand-let.scm \
+	$(SRCDIR)/sc/boot1-expand-lambda.scm \
 	$(SRCDIR)/sc/boot1-expand-define.scm
 
 lib.scm_: $(LIBDEPS)
