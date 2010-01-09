@@ -7,7 +7,7 @@
 ;; (load "lib.scm_") ;; expanders for: let letrec lambda define->bindings
 
 (define vm-compile/macros
-(lambda (form macros)
+(lambda (form toplevel macros)
   ;; Create unique variable tags.  The numbering is only for debugging.
 ;;   (define *count* 0)
 ;;   (define (genvar)
@@ -33,11 +33,9 @@
       (let find ((env env)
                  (indx 0))
         (if (null? env)
-            (begin
-              (display "undefined: ")
-              (display name)
-              (newline)
-              name)
+            (let ((rec (assq name toplevel)))
+              (if rec (cdr rec)
+                  (undefined name)))
             (if (eq? name (car env))
                 indx
                 (find (cdr env) (add1 indx))))))
@@ -153,16 +151,45 @@
      (else
       (comp (list 'quote form)))))))
 
+;; Compiler macro dependencies.
 (define vm-macros
   (list (cons 'quasiquote expand-quasiquote)
         (cons 'cond       expand-cond)
+        (cons 'and        expand-and)
+        (cons 'or         expand-or)
         (cons 'let        expand-let)
         (cons 'letrec     expand-letrec)
         (cons 'lambda     (lambda (e) ;; FIXME: cold VM compat
                             (expand-lambda e (lambda (x) x))))))
 
+;; Compiler free variables.
+(define vm-toplevel
+  `((car)
+    (cdr)
+    (list)
+    (eq?)
+    (apply)
+    (add1)
+    (+)
+    (*)
+    (map)
+    (cons)
+    (symbol?)
+    (pair?)
+    (null?)
+    (assq)
+    (undefined)
+    (cadr)
+    (reverse)
+    (append)
+    (length)
+    (list->vector)
+    ))
+
 (define (vm-compile expr)
-  (vm-compile/macros expr vm-macros))
+  (vm-compile/macros expr
+                     vm-toplevel
+                     vm-macros))
 
 (define (vm-eval expr)
   (vm-init

@@ -7621,5 +7621,10 @@ Maybe it's time to throw it away, and run the bytecode on an emulated
 CEK machine?  It requires some effort to keep the old VM running.
 Let's split the boot code up.
 
+Ok, i rewound the old VM to something that's working as I'm still
+using some of that substrate to run the new VM.
+
+New VM can compile itself to byte-code.  To run the byte code it needs
+to also compile its dependencies:
 
 

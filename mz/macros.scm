@@ -65,3 +65,20 @@
                  (if bv (,body bv) ,(rest)))))
            (else
             `(if ,guard ,body ,(rest))))))))
+
+
+(define (expand-or form)
+  (let clause ((args (cdr form)))
+    (if (null? args) #t
+        (if (null? (cdr args)) (car args)
+            (list 'if (car args)
+                  (car args)
+                  (clause (cdr args)))))))
+  
+(define (expand-and form)
+  (let clause ((args (cdr form)))
+    (if (null? args) '#f
+        (if (null? (cdr args)) (car args)
+            (list 'if (car args) 
+                  (clause (cdr args))
+                  (car args))))))

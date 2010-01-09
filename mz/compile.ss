@@ -21,3 +21,4 @@
   (caddr (read (open-input-file "compile.scm"))))
 
 
+(vm-compile code)
