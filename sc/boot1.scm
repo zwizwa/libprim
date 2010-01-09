@@ -27,8 +27,8 @@
     (if (null? lst) lst
         (cons (fn (car lst))
               (map1 fn (cdr lst))))))
-(def-toplevel! 'expand-%lambda
-  (%lambda (expr)
+(def-toplevel! 'expand-lambda
+  (%lambda (expr expand)
     (cons '%lambda
     (cons (cadr expr)
     (map1 expand (cddr expr))))))
@@ -37,7 +37,7 @@
     (if (pair? expr)
         ((%lambda (tag)
            (if (eq? tag 'quote) expr
-           (if (eq? tag '%lambda) (expand-%lambda expr)
+           (if (eq? tag 'lambda) (expand-lambda expr expand)
                ((%lambda (rec)
                   (if rec
                       (expand ((cdr rec) expr))
@@ -62,12 +62,7 @@
 ;; also performs macro expansion.
 (eval-list '(
 
-;; Start with plain lambda.
-(def-toplevel-macro! 'lambda
-  (%lambda (form) (cons '%lambda (cdr form))))
-             
-(def-toplevel! 'list
-  (lambda args args))
+(def-toplevel! 'list (lambda args args))
 
 (def-toplevel-macro!
   'define
@@ -132,7 +127,6 @@
 
 ;; Support internal definitions
 (%load "boot1-expand-lambda.scm")
-(define-macro lambda expand-lambda)
 
 (%load "boot2.scm")
 )))

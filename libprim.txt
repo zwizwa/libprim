@@ -7613,3 +7613,13 @@ The next step in compiling the compiler is to clean up the sc/boot.scm
 code so we can extract the macros necessary to transform the compiler
 code.
 
+Almost there: need to gather some more macros: and or quasiquote cond
+
+Nope.. I messed up the old vm boot file again..
+
+Maybe it's time to throw it away, and run the bytecode on an emulated
+CEK machine?  It requires some effort to keep the old VM running.
+Let's split the boot code up.
+
+
+
