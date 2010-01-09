@@ -21,3 +21,12 @@ $(BOOT):
 
 test: $(BOOT) vm
 	gdb --args ./vm --boot $(BOOT)
+
+LIBDEPS= \
+	$(SRCDIR)/sc/boot1-expand-letrec.scm \
+	$(SRCDIR)/sc/boot1-expand-let.scm \
+	$(SRCDIR)/sc/boot1-expand-define.scm \
+	$(SRCDIR)/sc/boot2.scm
+
+lib.gscm: $(LIBDEPS)
+	cat $(LIBDEPS) >lib.gscm
