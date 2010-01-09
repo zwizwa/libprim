@@ -13,8 +13,10 @@
 (define (load-expand filename)
   (let find ((e (car (load->exprs filename))))
     (match e
-           (`(%load ,filename) `(begin ,@(load->exprs filename)))
-           ((a . d) (cons (find a) (find d)))
+           (`((%load ,filename) . ,d)
+            (append (load->exprs filename) (find d)))
+           ((a . d)
+            (cons (find a) (find d)))
            (else e))))
 
 (pretty-print
