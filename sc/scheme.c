@@ -170,7 +170,7 @@ _ _sc_step_value(sc *sc, _ v, _ k) {
 
     /* A fully reduced value in an empty continuation means the
        evaluation is finished, and the machine can be halted. */
-    if (MT == k) ERROR("halt", value);
+    if (MT == k) HALT(value);
 
     if (TRUE == sc_is_k_if(sc, k)) {
         k_if *kx = object_to_k_if(k);
@@ -481,20 +481,6 @@ _ sc_bang_abort_k(sc *sc, _ k) {
 
 
 
-/* Toplevel eval.  This function captures the GC restart.
-
-     - This function is NOT re-entrant.  
-
-       Note that this would involve some C stack / Scheme continuation
-       synchronization.  Currently this is not supported: use Scheme
-       as the toplevel control.
-
-     - It is allowed to use gc_alloc() outside this loop to create
-       data (to pass to this function) as long as you can prove that
-       there will be no collection.  Triggering GC outside of this
-       function will invalidate previously allocated data (it will
-       have moved).
-*/
 
 void _sc_loop(sc *sc) {
     _ in_state;
@@ -516,9 +502,9 @@ void _sc_loop(sc *sc) {
     }
 }
 
-void _sc_abort(sc *sc, _ error) {
+void _sc_abort(sc *sc) {
     sc_bang_set_global(sc, sc_slot_state,
-                       STATE(VALUE(error), 
+                       STATE(VALUE(sc->error), 
                              sc_global(sc, sc_slot_abort_k)));
 }
 

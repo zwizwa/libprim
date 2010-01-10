@@ -251,6 +251,22 @@ _ sc_script_dir(sc *sc) {
 }
 
 
+/* Toplevel VM loop.  This function captures the GC restart and
+   primitive error exceptions.
+
+     - This function is NOT re-entrant.  
+
+       Note that this would involve some C stack / Scheme continuation
+       synchronization.  Currently this is not supported: use Scheme
+       as the toplevel control.
+
+     - It is allowed to use gc_alloc() outside this loop to create
+       data (to pass to this function) as long as you can prove that
+       there will be no collection.  Triggering GC outside of this
+       function will invalidate previously allocated data (it will
+       have moved).
+*/
+
 _ _sc_continue_dynamic(sc *sc, sc_loop _sc_loop, sc_abort _sc_abort) {
 
     if (sc->m.entries) {
@@ -265,36 +281,34 @@ _ _sc_continue_dynamic(sc *sc, sc_loop _sc_loop, sc_abort _sc_abort) {
         case EXCEPT_TRY:
 
             /* Pre-allocate the error struct before the step() is
-               entered to prevent GC restarts. */ 
+               entered to prevent GC restarts when handling
+               exceptions. */ 
             if (FALSE == sc->error) {
                 sc->error = sc_make_error(sc, VOID, VOID, VOID);
             }
+            /* Run the interpreter loop defined elsewhere. */
             _sc_loop(sc);
+
+        case EXCEPT_HALT: {
+            sc->m.entries--;
+            pthread_mutex_unlock(&EX->machine_lock);
+            return sc->m.error_arg;
+        }
 
         case EXCEPT_ABORT: {
             error *e = object_to_error(sc->error);
             if (unlikely(NULL == e)) { TRAP(); }
             
-            /* Populate error struct (condition + state) */
-            e->tag = sc->m.error_tag;
-            e->arg = sc->m.error_arg;
-            e->prim = const_to_object(sc->m.prim);
+            /* Wrap error info and clear the low level error state. */
+            e->tag  = sc->m.error_tag;              sc->m.error_arg = NIL;
+            e->arg  = sc->m.error_arg;              sc->m.error_tag = NIL;
+            e->prim = const_to_object(sc->m.prim);  sc->m.prim = NULL;
 
-            /* Reset VM error state. */
-            sc->m.error_arg = NIL;
-            sc->m.error_tag = NIL;
-            sc->m.prim = NULL;
-
-            /* Halt */
-            if (e->tag == SYMBOL("halt")) {
-                sc->m.entries--;
-                pthread_mutex_unlock(&EX->machine_lock);
-                return e->arg;
-            }
-                    
-            /* For other errors, invoke the global abort
-               continuation. */
-            _sc_abort(sc, sc->error);
+            /* Run the error handler defined elsewhere. */
+            _sc_abort(sc);
+            
+            /* Unlink error struct, so it won't get overwritten. */
+            sc->error = FALSE;
         }
 
         case EXCEPT_GC:

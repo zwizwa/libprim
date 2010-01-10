@@ -120,6 +120,7 @@ long _ex_unwrap_integer(ex *ex, object o);
 #define EXCEPT_TRY   0
 #define EXCEPT_ABORT 1 /* abort to default toplevel continuation. */
 #define EXCEPT_GC    2 /* garbage collection finished: restart primitive */
+#define EXCEPT_HALT  3 /* machine halt */
 
 _ _ex_make_bytes(ex *ex, int size);
 _ _ex_make_string(ex *ex, const char *str);

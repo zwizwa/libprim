@@ -1134,6 +1134,11 @@ _ ex_raise_error(ex *ex, _ tag_o, _ arg_o) {
     TRAP();
     exit(1);
 }
+_ ex_halt(ex *ex, _ value) {
+    ex->error_tag = SYMBOL("halt");
+    ex->error_arg = value;
+    longjmp(ex->except, EXCEPT_HALT);
+}
 
 _ ex_raise_type_error(ex *ex, _ arg_o) {
     return ex_raise_error(ex, SYMBOL("type"), arg_o);
