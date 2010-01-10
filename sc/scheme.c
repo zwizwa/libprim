@@ -13,9 +13,9 @@
 #include <sc/sc.h_prims>
 
 
+/* A treewalking interpreter implemented as a CEK machine w/o
+   compiler. */
 
-
-/**** Code specific to this VM ****/
 
 
 /* Predicates */
@@ -456,7 +456,8 @@ _ sc_gc_used(sc *sc) {
    continuation frame that contains the sc_yield primitive application. */
 _ sc_yield(sc *sc, _ ob) {
     _sc_pop_k(sc, VALUE(ob));
-    return ERROR("halt", FALSE);
+    ex_halt(EX, FALSE);
+    // return ERROR("halt", FALSE);
 }
 
 
@@ -468,6 +469,7 @@ _ sc_apply_ktx(sc* sc, _ k, _ args) {
     return sc_make_k_args(sc, k, args, NIL);
 }
 _ sc_eval_ktx(sc *sc, _ k, _ expr) {
+    // sc_write_stderr(sc, expr);
     return sc_make_k_seq(sc, k, CONS(REDEX(expr, NIL),NIL));
 }
 

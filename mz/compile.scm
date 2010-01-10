@@ -6,6 +6,8 @@
 
 ;; (load "lib.scm_") ;; expanders for: let letrec lambda define->bindings
 
+
+
 (define vm-compile/macros
 (lambda (form toplevel macros)
   ;; Create unique variable tags.  The numbering is only for debugging.
@@ -174,29 +176,12 @@
         (cons 'lambda     (lambda (e) ;; FIXME: cold VM compat
                             (expand-lambda e (lambda (x) x))))))
 
-;; Compiler free variables.
-'(symbol?
-  memq
-  list->vector
-  +
-  *
-  length
-  append
-  reverse
-  cadr
-  apply
-  map1
-  pair?
-  add1
-  eq?
-  assq
-  cons
-  list
-  cdr
-  car
-  null?))
-
-(define vm-toplevel '())
+;; Initial toplevel.
+(define vm-toplevel
+  (append
+   (filter (lambda (x) (prim? (cdr x))) (toplevel))
+   `((+             . ,add)
+     (*             . ,mul))))
 
 (define (vm-compile expr)
   (vm-compile/macros expr

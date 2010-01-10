@@ -128,6 +128,7 @@
 ;; Support internal definitions
 (%load "boot1-expand-lambda.scm")
 
+
 (%load "boot2.scm")
 )))
 

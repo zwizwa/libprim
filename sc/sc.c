@@ -126,7 +126,7 @@ _ sc_write_port(sc *sc, _ o, _ o_port) {
     port *p = CAST(port, o_port);
     _ saved_port = sc_global(sc, sc_slot_error_port);
     sc_bang_set_global(sc, sc_slot_error_port, o_port);
-    _ rv = sc->m.write(sc, o);
+    _ rv = sc->m.write(EX, o);
     sc_bang_set_global(sc, sc_slot_error_port, saved_port);
     return rv;
 }
@@ -299,8 +299,8 @@ _ _sc_continue_dynamic(sc *sc, sc_loop _sc_loop, sc_abort _sc_abort) {
             if (unlikely(NULL == e)) { TRAP(); }
             
             /* Wrap error info and clear the low level error state. */
-            e->tag  = sc->m.error_tag;              sc->m.error_arg = NIL;
-            e->arg  = sc->m.error_arg;              sc->m.error_tag = NIL;
+            e->tag  = sc->m.error_tag;              sc->m.error_tag = NIL;
+            e->arg  = sc->m.error_arg;              sc->m.error_arg = NIL;
             e->prim = const_to_object(sc->m.prim);  sc->m.prim = NULL;
 
             /* Run the error handler defined elsewhere. */

@@ -1,6 +1,7 @@
 // Hack it on top of SC
 
 #define SC_NEW_VM
+#include <sc/sc.c>
 #include <sc/scheme.c>
 #include <mz/vm.h_prims>
 
