@@ -546,6 +546,10 @@ sc *_sc_new(int argc, const char **argv) {
 
     /* Primitive defs */
     _sc_def_prims(sc, scheme_prims);
+    
+    /* Printer for interpreter's tagged vectors. */
+    sc->m.write = (ex_m_write)sc_write_stderr;
+
 
     /* Toplevel abort continuation */
     _ done = CONS(FIND(TOPLEVEL(),SYMBOL("print-error")),NIL);

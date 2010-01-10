@@ -126,8 +126,7 @@ _ sc_write_port(sc *sc, _ o, _ o_port) {
     port *p = CAST(port, o_port);
     _ saved_port = sc_global(sc, sc_slot_error_port);
     sc_bang_set_global(sc, sc_slot_error_port, o_port);
-    // _ rv = sc_write_stderr(sc, o);
-    _ rv = _ex_write(EX, o);
+    _ rv = sc->m.write(sc, o);
     sc_bang_set_global(sc, sc_slot_error_port, saved_port);
     return rv;
 }
