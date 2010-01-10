@@ -10,47 +10,12 @@
 // generated
 #include <sc/scheme.h_prims>
 #include <ex/ex.h_prims>
-
-
-/* --- PRIMITIVES --- */
-
-/* To simplify the implementation, most C functions are implemented as
-   Scheme primitives operating on Scheme values.  They use the prefix
-   "sc_".
-
-   Note in particular that interpreter data constructors are available
-   in Scheme, and that "sc_eval_step()" is re-entrant with primitive
-   errors limited to the innermost step.
-
-   The functions operating on *sc that are too lowlevel to respect the
-   "sc_" ABI (because they use values that cannot be represented as a
-   Scheme object, or because they otherwize violate behavioural
-   constraints) are prefixed "_sc".  These functions are kept to a
-   minimum.
-*/
+#include <sc/sc.h_prims>
 
 
 
 
-// GC finalized objects
-// DEF_AREF_TYPE(ck)
-DEF_AREF_TYPE(port)
-DEF_AREF_TYPE(bytes)
-DEF_AREF_TYPE(inexact)
-DEF_AREF_TYPE(channel)
-
-
-
-/* Predicates for primitive objects are derived from their
-   object_to_pointer cast: if it returns NULL, the type isn't
-   correct. */
-#define OBJECT_PREDICATE(cast) \
-    {if (cast(o)) return TRUE; else return FALSE;}
-// _ _DISABLED_sc_is_ck(sc *sc, _ o)     { OBJECT_PREDICATE(object_to_ck); }
-_ sc_is_port(sc *sc, _ o)   { OBJECT_PREDICATE(object_to_port); }
-_ sc_is_bytes(sc *sc, _ o)  { OBJECT_PREDICATE(object_to_bytes); }
-
-
+/**** Code specific to this VM ****/
 
 
 /* Predicates */
@@ -58,8 +23,6 @@ _ sc_is_lambda(sc *sc, _ o)  { return _is_vector_type(o, TAG_LAMBDA); }
 _ sc_is_state(sc *sc, _ o)   { return _is_vector_type(o, TAG_STATE); }
 _ sc_is_redex(sc *sc, _ o)   { return _is_vector_type(o, TAG_REDEX); }
 _ sc_is_value(sc *sc, _ o)   { return _is_vector_type(o, TAG_VALUE); }
-_ sc_is_error(sc *sc, _ o)   { return _is_vector_type(o, TAG_ERROR); }
-_ sc_is_aref(sc *sc, _ o)    { return _is_vector_type(o, TAG_AREF); }
 
 _ sc_is_k_if(sc *sc, _ o)    { return _is_vector_type(o, TAG_K_IF); }
 _ sc_is_k_args(sc *sc, _ o)  { return _is_vector_type(o, TAG_K_ARGS); }
@@ -100,10 +63,8 @@ _ sc_k_parent(sc *sc, _ o) {
 
 _ sc_make_state(sc *sc, _ C, _ K)                 {return STRUCT(TAG_STATE,   2, C,K);}
 _ sc_make_lambda(sc *sc, _ F, _ R, _ S, _ E)      {return STRUCT(TAG_LAMBDA,  4, F,R,S,E);}
-_ sc_make_error(sc *sc, _ T, _ A, _ K, _ X)       {return STRUCT(TAG_ERROR,   4, T,A,K,X);}
 _ sc_make_redex(sc *sc, _ D, _ E)                 {return STRUCT(TAG_REDEX,   2, D,E);}
 _ sc_make_value(sc *sc, _ D)                      {return STRUCT(TAG_VALUE,   1, D);}
-_ sc_make_aref(sc *sc, _ F, _ O)                  {return STRUCT(TAG_AREF,    2, F,O);}
 
 
 // 'P' is in slot 0
@@ -113,94 +74,13 @@ _ sc_make_k_if(sc *sc, _ P, _ Y, _ N)        {return STRUCT(TAG_K_IF,     4, P,N
 _ sc_make_k_set(sc *sc, _ P, _ V, _ E, _ Et) {return STRUCT(TAG_K_SET,    5, P,NIL,V,E,Et);}
 _ sc_make_k_seq(sc *sc, _ P, _ T)            {return STRUCT(TAG_K_SEQ,    3, P,NIL,T);}
 
-
-/* Wrap a leaf object in an aref struct.  The destructor is gathered
-   from the leaf_class.  Note that GC finalizers are pointers to
-   function pointers (this is because function pointers themselves
-   might not be aligned, and thus have no space for bit tags. */
-
-
-_ _sc_make_aref(sc *sc, void *_x) {
-    static fin leaf_free_ptr = (fin)leaf_free;
-    leaf_object *x = _x;
-    if (!x) ERROR("aref", VOID);
-    leaf_class *t = leaf_type(x);
-    fin *f = &leaf_free_ptr;
-    return sc_make_aref(sc, fin_to_object(f), const_to_object(x));
-}
-
-
-
 _ sc_make_mt(sc *sc)    { return MT; }
 
-_ sc_global(sc *sc, _ n) { 
-    return VECTOR_REF(sc->global, n); 
-}
-_ sc_bang_set_global(sc *sc, _ n, _ val) { 
-    return BANG_VECTOR_SET(sc->global, n, val); 
-}
 
-#define _GLOBAL(name) return sc_global(sc, sc_slot_##name)
-#define _GLOBAL_SET(name, val) return sc_bang_set_global(sc, sc_slot_##name, val)
 
-_ sc_toplevel(sc *sc)       { _GLOBAL(toplevel); }
-_ sc_toplevel_macro(sc *sc) { _GLOBAL(toplevel_macro); }
-_ sc_machine_state(sc *sc)  { _GLOBAL(state); }
 _ sc_abort_k(sc *sc)        { _GLOBAL(abort_k); }
 
-_ sc_bang_set_toplevel(sc *sc, _ val)       { _GLOBAL_SET(toplevel, val); }
-_ sc_bang_set_toplevel_macro(sc *sc, _ val) { _GLOBAL_SET(toplevel_macro, val); }
 
-/*  Add to or mutate toplevel env. */
-_ sc_bang_def_global(sc* sc, _ slot, _ var, _ val) {
-    symbol *s;
-    _ env = sc_global(sc, slot);
-    if (!(s=object_to_symbol(var))) TYPE_ERROR(var);
-    // _ex_printf(EX, "DEF %s: \n",s->name); // sc_write(EX, val);
-    sc_bang_set_global(sc, slot, ENV_DEF(env, var, val));
-    // return VOID;
-    return val; // emacs-like behaviour - simpler when debugging
-}
-_ sc_bang_def_toplevel(sc* sc, _ var, _ val) {
-    return sc_bang_def_global(sc, sc_slot_toplevel, var, val);
-}
-_ sc_bang_def_toplevel_macro(sc* sc, _ var, _ val) {
-    return sc_bang_def_global(sc, sc_slot_toplevel_macro, var, val);
-}
-
-// FIXME: should be parameter
-port *_sc_port(sc *sc) {
-    return object_to_port(CURRENT_ERROR_PORT());
-}
-_ sc_current_error_port(sc *sc)  { return sc_global(sc, sc_slot_error_port); }
-_ sc_current_input_port(sc *sc)  { return sc_global(sc, sc_slot_input_port); }
-_ sc_current_output_port(sc *sc) { return sc_global(sc, sc_slot_output_port); }
-
-_ sc_write_port(sc *sc, _ o, _ o_port) {
-    /* This `dynamic-wind' hack only works because we're sure there
-       are no aborts in this dynamic extent!  FIXME: use explicit
-       lexical variables where possible. */
-    port *p = CAST(port, o_port);
-    _ saved_port = sc_global(sc, sc_slot_error_port);
-    sc_bang_set_global(sc, sc_slot_error_port, o_port);
-    _ rv = sc_write_stderr(sc, o);
-    sc_bang_set_global(sc, sc_slot_error_port, saved_port);
-    return rv;
-}
-
-/* Unwrap leaf objects: it is assumed that all aref-wrapped objects
-   are leaf objects.  See constructor. */
-leaf_object *_sc_object_to_leaf(sc *sc, _ o) {
-    aref *a = object_to_aref(o); if (!a) return NULL;
-    leaf_object *x = object_to_const(a->object);
-    return x;
-}
-/* This is used in channel communication: the leaf object's ownership
-   is transferred to the other end. */
-void _sc_object_erase_leaf(sc *sc, _ o) {
-    aref *a = object_to_aref(o); if (!a) return;
-    a->fin = a->object = const_to_object(NULL);
-}
 
 _ sc_write_stderr(sc *sc,  _ o) {
     vector *v = object_to_vector(o);
@@ -208,7 +88,6 @@ _ sc_write_stderr(sc *sc,  _ o) {
     if (TRUE == sc_is_redex(sc, o))   return _ex_write_vector(EX, "redex", v);
     if (TRUE == sc_is_value(sc, o))   return _ex_write_vector(EX, "value", v);
     if (TRUE == sc_is_error(sc, o))   return _ex_write_vector(EX, "error", v);
-    // if (TRUE == sc_is_aref(sc, o))    return _ex_write_vector(EX, "aref", o);
 
     if (TRUE == sc_is_k_args(sc, o))  return _ex_write_vector(EX, "k_args", v);
     if (TRUE == sc_is_k_if(sc, o))    return _ex_write_vector(EX, "k_if", v);
@@ -222,34 +101,10 @@ _ sc_write_stderr(sc *sc,  _ o) {
         _ex_printf(EX, "#<procedure>", _sc_port(sc));
         return VOID;
     }
-
-
     return _ex_write(EX, o);
 }
 
 
-
-
-_ sc_print_error(sc *sc, _ err) {
-    if (TRUE == sc_is_error(sc, err)) {
-        error *e = object_to_error(err);
-        _ex_printf(EX, "ERROR");
-        if (TRUE == IS_PRIM(e->prim)) {
-            prim *p = object_to_prim(e->prim);
-            /* If the recorded primitive is sc_print_error itself,
-               this means the error is a result of a direct
-               invocation, i.e. a highlevel error. */
-            if (SYMBOL("raise-error") != p->var) { 
-                symbol *s = object_to_symbol(p->var);
-                if (s) _ex_printf(EX, " in `%s'", s->name); 
-            }
-        }
-        _ex_printf(EX, ": ");
-        sc_write_stderr(sc, e->tag); _ex_printf(EX, ": ");
-        sc_write_stderr(sc, e->arg); _ex_printf(EX, "\n");
-    }
-    return VOID;
-}
 
 
 
@@ -490,7 +345,7 @@ static _ _sc_step(sc *sc, _ o_state) {
 
     /* Special Form */
     if (TRUE==IS_SYMBOL(term_f)) {
-        if (term_f == sc->s_lambda) {
+        if (term_f == ((sc_interpreter*)sc)->s_lambda) {
             if (NIL == term_args) goto syntax_error;
             _ argspec = CAR(term_args);
             _ named;
@@ -505,15 +360,15 @@ static _ _sc_step(sc *sc, _ o_state) {
                expression as a `begin' sequencing form. */
             _ body = CDR(term_args);
             if (NIL == CDR(body)) body = CAR(body);
-            else body = CONS(sc->s_begin, body);
+            else body = CONS(((sc_interpreter*)sc)->s_begin, body);
             _ l = sc_make_lambda(sc, formals, rest, body, env);
             return STATE(VALUE(l), k);
         }
-        if (term_f == sc->s_quote) {
+        if (term_f == ((sc_interpreter*)sc)->s_quote) {
             if (NIL == term_args) goto syntax_error;
             return STATE(VALUE(CAR(term_args)), k);
         }
-        if (term_f == sc->s_if) {
+        if (term_f == ((sc_interpreter*)sc)->s_if) {
             if (NIL == term_args) goto syntax_error;
             if (NIL == CDR(term_args)) goto syntax_error;
             _ cond = REDEX(CAR(term_args),env);
@@ -525,7 +380,7 @@ static _ _sc_step(sc *sc, _ o_state) {
             return STATE(cond, sc_make_k_if(sc, k, yes,no));
                                               
         }
-        if (term_f == sc->s_bang_set) {
+        if (term_f == ((sc_interpreter*)sc)->s_bang_set) {
             if (NIL == term_args) goto syntax_error;
             _ var = CAR(term_args);
             if (FALSE == IS_SYMBOL(var)) goto syntax_error;
@@ -534,7 +389,7 @@ static _ _sc_step(sc *sc, _ o_state) {
             return STATE(REDEX(expr, env),
                          sc_make_k_set(sc, k, var, env, sc_slot_toplevel));
         }
-        if (term_f == sc->s_begin) {
+        if (term_f == ((sc_interpreter*)sc)->s_begin) {
             /* (begin) is a NOP */
             if (NIL == term_args) return STATE(VALUE(VOID), k);
             // if (FALSE == IS_PAIR(term_args)) goto syntax_error;
@@ -545,7 +400,7 @@ static _ _sc_step(sc *sc, _ o_state) {
             if (NIL == body->cdr) return STATE(body->car, k);
             return STATE(body->car, sc_make_k_seq(sc, k, body->cdr));
         }                
-        if (term_f == sc->s_letcc) {
+        if (term_f == ((sc_interpreter*)sc)->s_letcc) {
             if (NIL == term_args) goto syntax_error;
             if (NIL == CDR(term_args)) goto syntax_error;
             _ var = CAR(term_args);
@@ -619,24 +474,11 @@ _ sc_eval_ktx(sc *sc, _ k, _ expr) {
 _ sc_bang_abort_k(sc *sc, _ k) {
     return sc_bang_set_global(sc, sc_slot_abort_k, k);
 }
-_ sc_exit(sc *sc) {
-    exit(0);
-}
 
 
 /* --- SETUP & GC --- */
 
 
-static void _sc_check_gc_size(sc *sc) {
-    /* Check mem size. */
-    gc *gc = EX->gc;
-    long used = gc->current_index;
-    long free = gc->slot_total - used;
-    if (free < 100) {
-        _ex_printf(EX, "growing GC\n");
-        gc_alloc(gc, 100); // grow.
-    }
-}
 
 
 /* Toplevel eval.  This function captures the GC restart.
@@ -739,139 +581,27 @@ _ _sc_top(sc *sc, _ expr) {
 }
 
 static prim_def scheme_prims[] = scheme_table_init;
-static prim_def ex_prims[] = ex_table_init;
-
-void _sc_def_prims(sc *sc, prim_def *prims) {
-    prim_def *prim;
-    for (prim = prims; prim->name; prim++) {
-        DEF(prim->name, prim->fn, prim->nargs);
-    }
-}
-
-
-#define MARK(x) x = gc_mark(sc->m.gc, x)
-static void _sc_mark_roots(sc *sc, gc_finalize fin) {
-    // ex_trap(EX);
-    // printf("gc_mark()\n");
-    // sc_post(sc, sc->state);
-    if (EX->stateful_context) {
-        _ex_printf(EX, "FATAL: GC triggered in stateful context.");
-        ex_trap(EX);
-    }
-    MARK(sc->global);
-    MARK(sc->error);
-#ifdef SC_NEW_VM
-    MARK(sc->c);
-    MARK(sc->e);
-    MARK(sc->k);
-#endif
-
-    if (fin) {
-        /* We're given a finalizer continuation to aid us in aborting
-           the C context that gave rise to the collection.  We use
-           this to restart the current interpretation step saved in
-           sc->state.  */
-        fin(sc->m.gc);
-        long used = sc->m.gc->current_index;
-        long free = sc->m.gc->slot_total - used;
-        GC_DEBUG { _ex_printf(EX, ";; gc %d:%d\n", (int)used, (int)free); }
-        _ex_restart(EX);
-    }
-    else {
-        /* No finalizer continuation means that this call is part of a
-           gc_grow() operation, called from _sc_overflow(), which will
-           handle restart.  We need to return to caller. */
-        return;
-    }
-}
-static _ _sc_make_prim(sc *sc, void *fn, long nargs, _ var) {
-    prim *p = malloc(sizeof(*p));
-    leaf_init(&p->base, prim_type());
-    p->fn = fn;
-    p->nargs = nargs;
-    p->var = var;
-    return const_to_object(p);
-}
-void _sc_def_prim(sc *sc, const char *str, void *fn, long nargs) {
-    _ var = SYMBOL(str);
-    sc_bang_def_toplevel(sc, var, _sc_make_prim(sc, fn, nargs, var));
-}
 
 
 
-#define SHIFT(n) {argv+=n;argc-=n;}
 sc *_sc_new(int argc, const char **argv) {
-    sc *sc = calloc(1, sizeof(*sc));
-    sc->m.entries = 0;
-
-    const char *bootfile = NULL;
-    _ args = NIL;
-    int verbose = 0;
-    const char *evalstr = NULL;
-
-    /* Read command line interpreter options options. */
-    SHIFT(1); // skip program name
-    while ((argc > 0) && ('-' == argv[0][0])) {
-        if (!strcmp("--boot", argv[0])) { bootfile = argv[1]; SHIFT(2); }
-        else if (!strcmp("--verbose", argv[0])) { SHIFT(1); verbose = 1; }
-        else if (!strcmp("--eval", argv[0])) { evalstr = argv[1]; SHIFT(2); }
-        else if (!strcmp("--", argv[0])) { SHIFT(1); break; }
-        else {
-            fprintf(stderr, "option `%s' not recognized\n", argv[0]);
-            return NULL;
-        }
+    sc *sc = calloc(1, sizeof(sc_interpreter));
+    sc_bootinfo info;
+    if (_sc_init(sc, argc, argv, &info)) {
+        free(sc);
+        return NULL;
     }
 
-    /* This is taken during resume() and freed during select() */
-    pthread_mutex_init(&EX->machine_lock, NULL);
-
-    /* Garbage collector. */
-    sc->m.gc = gc_new(20000, sc, 
-                      (gc_mark_roots)_sc_mark_roots,
-                      (gc_overflow)_ex_overflow);
-
-    /* Nb of cells guaranteed to be available to primitive. */
-    EX->gc_guard_cells = 40;
-                    
-    /* Atom classes. */
-    base_types *types = NULL; // FIXME: configurable subclass?
-
-    /* EX virtual methods */
-    sc->m.port = (_ex_m_port)_sc_port;
-    sc->m.write = (ex_m_write)sc_write_stderr;
-    sc->m.make_pair = ex_cons;
-    sc->m.leaf_to_object = (_ex_m_leaf_to_object)_sc_make_aref;
-    sc->m.object_to_leaf = (_ex_m_object_to_leaf)_sc_object_to_leaf;
-    sc->m.object_erase_leaf = (_ex_m_object_erase_leaf)_sc_object_erase_leaf;
-
-    /* Data roots. */
-    _ in  = _ex_make_file_port(EX, stdin,  "stdin");
-    _ out = _ex_make_file_port(EX, stdout, "stdout");
-    _ err = _ex_make_file_port(EX, stderr, "stderr");
-    sc->global = gc_make_tagged(sc->m.gc, 
-                                TAG_VECTOR,
-                                7,
-                                NIL,  // toplevel
-                                NIL,  // macro
-                                NIL,  // state
-                                NIL,  // abort
-                                in,
-                                out,
-                                err);
-    sc->error = FALSE;
-
-    /* Cached identifiers */
-    sc->s_lambda   = SYMBOL("%lambda");
-    sc->s_if       = SYMBOL("if");
-    sc->s_bang_set = SYMBOL("set!");
-    sc->s_quote    = SYMBOL("quote");
-    sc->s_begin    = SYMBOL("begin");
-    sc->s_letcc    = SYMBOL("letcc");
+    /* Cached identifiers for use in interpreter. */
+    ((sc_interpreter*)sc)->s_lambda   = SYMBOL("%lambda");
+    ((sc_interpreter*)sc)->s_if       = SYMBOL("if");
+    ((sc_interpreter*)sc)->s_bang_set = SYMBOL("set!");
+    ((sc_interpreter*)sc)->s_quote    = SYMBOL("quote");
+    ((sc_interpreter*)sc)->s_begin    = SYMBOL("begin");
+    ((sc_interpreter*)sc)->s_letcc    = SYMBOL("letcc");
 
     /* Primitive defs */
-    _sc_def_prims(sc, ex_prims);
     _sc_def_prims(sc, scheme_prims);
-
 
     /* Toplevel abort continuation */
     _ done = CONS(FIND(TOPLEVEL(),SYMBOL("print-error")),NIL);
@@ -879,34 +609,18 @@ sc *_sc_new(int argc, const char **argv) {
 
     sc_bang_abort_k(sc, abort_k);
 
-    /* Pass command line arguments to scheme. */
-    while ((argc > 0)) { args = CONS(STRING(argv[0]), args); SHIFT(1); }
-    args = BANG_REVERSE(args);
-    sc_bang_def_toplevel(sc, SYMBOL("args"), args);
 
-    /* Highlevel bootstrap. */
-    if (!bootfile) bootfile = getenv("PRIM_BOOT_SCM");
-    if (!bootfile) bootfile = PRIM_HOME "boot.scm";
-    if (verbose) _ex_printf(EX, "SC: %s\n", bootfile);
-    _sc_top(sc, _ex_boot_load(EX, bootfile));
+    _sc_top(sc, _ex_boot_load(EX, info.bootfile));
 
     /* Set the continuation to continue booting in Scheme when the vm
        is started using _sc_continue() */
-    if (!evalstr) evalstr = "(repl)"; 
     _sc_prepare(sc, CONS(SYMBOL("eval-string"),
-                    CONS(STRING(evalstr),
+                    CONS(STRING(info.evalstr),
                     NIL)));
 
     return sc;
 }
 
-_ sc_read_no_gc(sc *sc, _ o) {
-    port *p = CAST(port, o);
-    return _ex_read(EX, p);
-}
-_ sc_script_dir(sc *sc) {
-    return STRING(PRIM_HOME);
-}
 
 /* FIXME: currently this doesn't save the existing I/O ports (only for
    headless embedding). */

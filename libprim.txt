@@ -7628,3 +7628,217 @@ New VM can compile itself to byte-code.  To run the byte code it needs
 to also compile its dependencies:
 
 
+
+Entry: What did I learn about bootstrapping?
+Date: Sat Jan  9 20:54:41 CET 2010
+
+- It's a lot of work to get it right: the devil is in the details.
+
+- Incremental bootstrapping is error-prone and non-trivial.  It's fun
+  to do once (it's a nice puzzle) but once is really enough.  
+
+- However the system is alive during development: it is possible to
+  interactively test all incremental semantics extensions.
+
+- Writing a compiler in a subset of Scheme without any form of pattern
+  matching is tedious and error-prone.  
+
+
+
+Entry: What's next
+Date: Sat Jan  9 21:03:04 CET 2010
+
+Separate out only the very high-level code, but write the macros for
+the VM compiler is a reasonably comfortable subset.  There is a clear
+advantage to bootstrapping from a higher level.
+
+
+
+Entry: Now generalize
+Date: Sat Jan  9 21:05:47 CET 2010
+
+So, there is something to learn here, though I'm not sure what.
+
+
+Entry: A simple pattern matcher
+Date: Sat Jan  9 21:07:57 CET 2010
+
+This seems to be the essence of bootstrapping: make sure syntax
+translation doesn't become a pain.
+
+What is the simplest form of pattern matcher that's easy to implement?
+I guess one that just uses:
+
+  - cons quote '()
+  - variables
+
+Essentially quasiquote can be re-used to convert an expression into
+nested constructors, which can then be easily matched.
+
+This is the "match in match" idea.
+
+Match seems simplest to implement in CPS: every failure continues with
+the next pattern.
+
+(cons a b)
+->
+(if (pair? expr)
+   (let ((a (car expr))
+         (b (cdr expr)))
+     (next)))
+
+For an implementation check "The implementation of functional
+programming languages" by Simon Peyton Jones.
+
+It looks like that algorithm isn't what I'm looking for (it compiles
+pattern matches to case expressions, avoiding multiple matches of the
+same expression).
+
+Some duplication of computation is probably OK, since most cases
+useful atm are all head-tagged.
+
+[1] http://www.cs.tufts.edu/~nr/pubs/match-abstract.html
+
+
+
+Entry: Poor man's module system
+Date: Sun Jan 10 09:21:14 CET 2010
+
+Problem: sequential bootstrapping is tedious for writing a compiler
+and runtime library.  What you want is to write all that code in
+itself.  For the library this means the code will not necessarily have
+"flat" dependencies, i.e. you can have mutual recursion.
+
+However, since this all takes a lot of time, I have to be a bit
+pragmatic: I currently have a sequentially bootstrapped scheme system
+I'd like to reuse.
+
+This requires `define-macro' to work in the new VM compiler to
+incrementally build the 2 toplevel environments.
+
+Next:
+- build initial environment with all the primitives
+- gather all macros from boot1-expand*.scm, boot2.scm, compile.scm
+- compile the files
+
+
+
+Entry: How do deal with improper phase separation?
+Date: Sun Jan 10 10:11:57 CET 2010
+
+There is such a huge difference between implicit behaviour
+(i.e. stateful sequential bootstrap) and explicit declaration (clear
+phase separation).
+
+It shows up clearly when writing a compiler for a system without phase
+separation (sequential bootstrap).  Figuring out the dependencies
+between code to separate compile time code from run time code objects
+is non-trivial.
+
+In case of non-separated phases it seems that the simplest such
+algorithm is to EMULATE all macros defined in terms of the target
+language on a (sandboxed) VM, as the static semantics of the language
+can change in quite arbitrary ways during sequential bootstrap, and
+such changes can't be simply transformed to run on the host as part of
+the compiler.
+
+More precisely:
+
+  - run the compiler + low level macros that define the kernel
+    language on the host.
+
+  - incrementally compile target code
+
+  - emulate any bootstrapping macros encountered in the source
+  
+So, essentially, looking at this from the target's perspective, the
+bootstrap compiler behaves as a magic external component that can be
+completely replaced at the end of the incremental bootstrap process,
+as it can then be defined in terms of already compiled macros.
+
+
+Entry: Reflection and self-hosted compilation
+Date: Sun Jan 10 11:03:59 CET 2010
+
+Why is this relevant?
+
+Let's abuse terminology and call what was called "incremental
+bootstrap" a special case of reflection: the ability of a language to
+change its own semantics in some way.
+
+Note that in our case, we change compile-time semantics (macros) in a
+bottom-up, linear fashion.  I.e. code, once compiled, does not change
+semantics.  This can then be augmented by either early or late binding
+of run-time code (redefining procedures).
+
+Some assumptions:
+
+- Interactive console acces is useful for debugging.
+
+- Some form of compilation (to native or VM code) is necessary for
+  efficiency.
+
+From this follows that we need an in-image compiler to compile source
+code to executable format.
+
+- Using reflection (i.e. giving up phase separation allowing compiler
+  extension to change language semantics on the fly) can lead to very
+  small run-time systems.
+
+Two examples that illustrate this: Forth and COLA.  The downside of
+powerful reflection is the absence of clear compile-time semantics:
+there is essentially only behaviour, no static meaning.  I.e. the only
+way to get any information about what a program means is to feed it
+into the system and see what it does.
+
+It seems to me that the difficulty associated with incremental
+bootstrap (the ``puzzle'' factor) translates directly into smaller
+code size, probably as a consequence of the very aggressive factoring
+required.
+
+
+Conclusion:
+
+  Reflection in the form of incremental compiler extensions gives up
+  static semantics and gets small code size in return.
+
+
+Entry: Practical bootstrapping with embedded VM
+Date: Sun Jan 10 12:11:55 CET 2010
+
+Back to the original plan: to bootstrap the incrementally defined
+Scheme library by feeding a VM with code and asking it to compile some
+of the macro forms.
+
+This might actually not be so simple: the problem is that this
+requires another interface.  Maybe it is more straightforward to
+compile the whole library on top of R5RS Scheme.
+
+Some trade-offs:
+
+  - Run the macro transformers on the target VM and provide an
+    interface to transfer the data from/to the host compiler.
+
+  - Emulate the VM + primitives.  This is not just the VM (composite
+    code) but also the primitives need to be implemented.
+
+  - Don't emulate the VM: compile all macros and their supporting code
+    on the host, and use the hosts's language features.
+
+It seems the latter is a more robust approach.  However, I have the
+interface for free if I can run the compiler on the old VM.
+
+Maybe it's time to separate the old VM code from the rest of the C
+code that's re-used by the old VM.
+
+
+Entry: Unrolling a sequential bootstrap
+Date: Sun Jan 10 12:43:46 CET 2010
+
+This is exactly the same problem as Staapl's standard Forth compiler.
+Maybe I should focus on that first and generalize to Scheme?
+
+The essential problem is to build a dependency graph of all the code
+that allows each function and macro to be defined independently
+relative to some core language.
+

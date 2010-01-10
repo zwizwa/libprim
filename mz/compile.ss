@@ -1,5 +1,6 @@
 #lang scheme/base
-(require scheme/include)
+(require scheme/include
+         scheme/pretty)
 
 (define vm-init void)
 (define vm-continue void)
@@ -21,4 +22,5 @@
   (caddr (read (open-input-file "compile.scm"))))
 
 
-(vm-compile code)
+(pretty-print
+ (vm-compile code))

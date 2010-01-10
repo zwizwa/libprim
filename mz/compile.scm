@@ -24,9 +24,16 @@
   ;; Create a new symbol if a value is not a variable reference.
   (define (memoize-var x)
     (if (varref? x) x (genvar)))
+
+  ;; Keep track of free variables.
+  (define free '())
+  (define (free-var! name)
+    (if (memq name free) #f
+        (set! free (cons name free)))
+    `(topref ,name))
+  
   ;; Recursive compilation, keeping track of the environment.
-  (let compile ((form form)
-                (env '()))
+  (define (compile form env)
     (define (comp e) (compile e env))
     (define (comp/e e env) (compile e env))
     (define (name->index name)
@@ -35,7 +42,7 @@
         (if (null? env)
             (let ((rec (assq name toplevel)))
               (if rec (cdr rec)
-                  (undefined name)))
+                  (free-var! name)))
             (if (eq? name (car env))
                 indx
                 (find (cdr env) (add1 indx))))))
@@ -69,7 +76,7 @@
          ((eq? tag '%ifval)
           (let ((cvar (car args))
                 (branches (cdr args)))
-            (apply (op 'op-if) (name->index cvar) (map comp branches))))
+            (apply (op 'op-if) (name->index cvar) (map1 comp branches))))
          ((eq? tag 'if)
           (let ((cexp (car args))
                 (branches (cdr args)))
@@ -79,7 +86,7 @@
 
          ;; Assignment
          ((eq? tag '%setval!)
-          (apply (op 'op-assign) (map name->index args)))
+          (apply (op 'op-assign) (map1 name->index args)))
          ((eq? tag 'set!) ;; allow macro override
           (comp `(%set! ,@args)))
          ((eq? tag '%set!)
@@ -121,16 +128,16 @@
                 (body (cdr args)))
             (if (null? bindings)
                 (comp `(begin ,@body))
-                (let ((names (map car bindings))
-                      (exprs (map cadr bindings)))
+                (let ((names (map1 car bindings))
+                      (exprs (map1 cadr bindings)))
                   ((op 'op-let)
-                   (reverse (map comp exprs))
+                   (reverse (map1 comp exprs))
                    (comp/e `(begin ,@body)
                            (append names env)))))))
 
          ;; Sequencing
          ((eq? tag '%seq)
-          (apply (op 'op-seq) (map comp args)))
+          (apply (op 'op-seq) (map1 comp args)))
          ((eq? tag 'begin)
           (cond
            ((null? args) (comp '(void)))
@@ -140,16 +147,21 @@
          ;; Application: perform evaluation using a `let' form
          ;; and pass the result to `%app' which expects values.
          ((eq? tag '%app)
-          (let ((ids (map name->index (car args))))
+          (let ((ids (map1 name->index (car args))))
             ((op 'op-app) (car ids) (list->vector (cdr ids)))))
          (else
-          (let ((vars (map memoize-var form)))
+          (let ((vars (map1 memoize-var form)))
             (comp `(let ,(memo-bindings vars form) (%app ,vars)))))
          )))
          
      ;; Constant
      (else
-      (comp (list 'quote form)))))))
+      (comp (list 'quote form)))))
+
+  ;; Compile and gather free variables.
+  (let ((code (compile form '())))
+    (list code free))))
+
 
 ;; Compiler macro dependencies.
 (define vm-macros
@@ -163,28 +175,28 @@
                             (expand-lambda e (lambda (x) x))))))
 
 ;; Compiler free variables.
-(define vm-toplevel
-  `((car)
-    (cdr)
-    (list)
-    (eq?)
-    (apply)
-    (add1)
-    (+)
-    (*)
-    (map)
-    (cons)
-    (symbol?)
-    (pair?)
-    (null?)
-    (assq)
-    (undefined)
-    (cadr)
-    (reverse)
-    (append)
-    (length)
-    (list->vector)
-    ))
+'(symbol?
+  memq
+  list->vector
+  +
+  *
+  length
+  append
+  reverse
+  cadr
+  apply
+  map1
+  pair?
+  add1
+  eq?
+  assq
+  cons
+  list
+  cdr
+  car
+  null?))
+
+(define vm-toplevel '())
 
 (define (vm-compile expr)
   (vm-compile/macros expr

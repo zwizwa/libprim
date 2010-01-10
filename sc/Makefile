@@ -1,6 +1,6 @@
 MODULE=sc
 APP=sc
-SRC=scheme.c main.c
+SRC=sc.c scheme.c main.c
 # lib.c
 DEP_OBJ=$(BUILDDIR)/ex/libprim_ex.a $(BUILDDIR)/leaf/libprim_leaf.a 
 
@@ -32,7 +32,7 @@ DEBUG_CFLAGS=-Wall -g -Wno-unused
 # OPTI_CFLAGS=-Os
 # CC = gcc -m32
 
-SC_LIB_OBJ = scheme.o
+SC_LIB_OBJ = scheme.o sc.o
 SC_APP_OBJ = $(SC_LIB_OBJ) main.o $(DEP_OBJ)
 
 
@@ -47,7 +47,7 @@ libprim_sc.a: $(SC_LIB_OBJ)
 # %.h_load: %.scm ../load.ss
 #	$(MZSCHEME) ../load.ss $< >$@
 
-GEN = scheme.h_prims 
+GEN = scheme.h_prims sc.h_prims
 # test.h_load
 # boot.h_load 
 
