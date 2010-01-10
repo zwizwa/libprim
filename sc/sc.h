@@ -126,5 +126,15 @@ int _sc_init(sc *sc, int argc, const char **argv,
              sc_bootinfo *info);
 
 
+typedef struct {
+    vector v;
+    // _ state;
+    _ prim;
+    _ tag;
+    _ arg;
+} error;
+
+DEF_STRUCT(error,  TAG_ERROR)
+
 
 #endif

@@ -69,13 +69,6 @@ typedef struct {
     _ env;
 } lambda;
 
-typedef struct {
-    vector v;
-    _ state;
-    _ prim;
-    _ tag;
-    _ arg;
-} error;
 
 typedef struct {
     vector v;
@@ -134,7 +127,6 @@ typedef struct {
 DEF_STRUCT(state,  TAG_STATE)
 DEF_STRUCT(lambda, TAG_LAMBDA)
 DEF_STRUCT(redex,  TAG_REDEX)
-DEF_STRUCT(error,  TAG_ERROR)
 DEF_STRUCT(value,  TAG_VALUE)
 
 DEF_STRUCT(k_args,  TAG_K_ARGS)

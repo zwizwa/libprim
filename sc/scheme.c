@@ -496,8 +496,30 @@ _ sc_bang_abort_k(sc *sc, _ k) {
        have moved).
 */
 
+void _sc_loop(sc *sc) {
+    _ in_state;
+    for(;;) {
+        /* From here to the invocation of primitive code it is OK
+           to perform a restart when a garbage collection occurs.
+           We guarantee a minimum amount of free cells to
+           primitive code, and will trigger collection here in
+           case there is not enough. */
+        EX->stateful_context = 0;
+        if (gc_available(EX->gc) < EX->gc_guard_cells) gc_collect(EX->gc);
+        
+        /* The _sc_step() function will perform a single state
+           update, or exit through sc->m.except in which case
+           the sc_slot_state field is not updated. */
+        in_state = sc_global(sc, sc_slot_state);
+        sc_bang_set_global(sc, sc_slot_state, 
+                           _sc_step(sc, in_state));
+    }
+}
 
-_ _sc_continue(sc *sc) {
+typedef void (*sc_loop)(sc *sc);
+
+_ _sc_continue_dynamic(sc *sc, sc_loop _sc_loop) {
+
     if (sc->m.entries) {
         _ex_printf(EX, "WARNING: multiple _sc_top() entries.\n");
         return NIL;
@@ -506,32 +528,16 @@ _ _sc_continue(sc *sc) {
     sc->m.entries++;
     for(;;) {
 
-        _ in_state = FALSE;
-
         switch(setjmp(sc->m.except)) {
         case EXCEPT_TRY:
 
             /* Pre-allocate the error struct before the step() is
                entered to prevent GC restarts. */ 
             if (FALSE == sc->error) {
-                sc->error = sc_make_error(sc, VOID, VOID, VOID, VOID);
+                sc->error = sc_make_error(sc, VOID, VOID, VOID);
             }
-            for(;;) {
-                /* From here to the invocation of primitive code it is OK
-                   to perform a restart when a garbage collection occurs.
-                   We guarantee a minimum amount of free cells to
-                   primitive code, and will trigger collection here in
-                   case there is not enough. */
-                EX->stateful_context = 0;
-                if (gc_available(EX->gc) < EX->gc_guard_cells) gc_collect(EX->gc);
+            _sc_loop(sc);
 
-                /* The _sc_step() function will perform a single state
-                   update, or exit through sc->m.except in which case
-                   the sc_slot_state field is not updated. */
-                in_state = sc_global(sc, sc_slot_state);
-                sc_bang_set_global(sc, sc_slot_state, 
-                                   _sc_step(sc, in_state));
-                }
         case EXCEPT_ABORT: {
             error *e = object_to_error(sc->error);
             if (unlikely(NULL == e)) { TRAP(); }
@@ -539,7 +545,6 @@ _ _sc_continue(sc *sc) {
             /* Populate error struct (condition + state) */
             e->tag = sc->m.error_tag;
             e->arg = sc->m.error_arg;
-            e->state = in_state; 
             e->prim = const_to_object(sc->m.prim);
 
             /* Reset VM error state. */
@@ -567,6 +572,11 @@ _ _sc_continue(sc *sc) {
             sc->m.prim = NULL;
         }
     }
+}
+
+/* Run the above loop in a dynamic context. */
+_ _sc_continue(sc *sc) { 
+    return _sc_continue_dynamic(sc, _sc_loop); 
 }
 
 

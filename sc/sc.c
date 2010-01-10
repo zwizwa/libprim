@@ -44,8 +44,8 @@ DEF_AREF_TYPE(inexact)
 DEF_AREF_TYPE(channel)
 
 
-_ sc_make_aref(sc *sc, _ F, _ O)            {return STRUCT(TAG_AREF,    2, F,O);}
-_ sc_make_error(sc *sc, _ T, _ A, _ K, _ X) {return STRUCT(TAG_ERROR,   4, T,A,K,X);}
+_ sc_make_aref(sc *sc, _ F, _ O)       {return STRUCT(TAG_AREF,    2, F,O);}
+_ sc_make_error(sc *sc, _ P, _ T, _ A) {return STRUCT(TAG_ERROR,   3, P,T,A);}
 
 _ sc_is_aref(sc *sc, _ o)        { return _is_vector_type(o, TAG_AREF); }
 _ sc_is_error(sc *sc, _ o)       { return _is_vector_type(o, TAG_ERROR); }
