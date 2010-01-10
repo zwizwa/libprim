@@ -136,5 +136,9 @@ typedef struct {
 
 DEF_STRUCT(error,  TAG_ERROR)
 
+typedef void (*sc_loop)(sc *sc);
+typedef void (*sc_abort)(sc *sc, _ error);
+_ _sc_continue_dynamic(sc *sc, sc_loop _sc_loop, sc_abort _sc_abort);
+
 
 #endif

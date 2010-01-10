@@ -516,67 +516,15 @@ void _sc_loop(sc *sc) {
     }
 }
 
-typedef void (*sc_loop)(sc *sc);
-
-_ _sc_continue_dynamic(sc *sc, sc_loop _sc_loop) {
-
-    if (sc->m.entries) {
-        _ex_printf(EX, "WARNING: multiple _sc_top() entries.\n");
-        return NIL;
-    }
-    pthread_mutex_lock(&EX->machine_lock);
-    sc->m.entries++;
-    for(;;) {
-
-        switch(setjmp(sc->m.except)) {
-        case EXCEPT_TRY:
-
-            /* Pre-allocate the error struct before the step() is
-               entered to prevent GC restarts. */ 
-            if (FALSE == sc->error) {
-                sc->error = sc_make_error(sc, VOID, VOID, VOID);
-            }
-            _sc_loop(sc);
-
-        case EXCEPT_ABORT: {
-            error *e = object_to_error(sc->error);
-            if (unlikely(NULL == e)) { TRAP(); }
-            
-            /* Populate error struct (condition + state) */
-            e->tag = sc->m.error_tag;
-            e->arg = sc->m.error_arg;
-            e->prim = const_to_object(sc->m.prim);
-
-            /* Reset VM error state. */
-            sc->m.error_arg = NIL;
-            sc->m.error_tag = NIL;
-            sc->m.prim = NULL;
-
-            /* Halt */
-            if (e->tag == SYMBOL("halt")) {
-                sc->m.entries--;
-                pthread_mutex_unlock(&EX->machine_lock);
-                return e->arg;
-            }
-                    
-            /* For other errors, invoke the global abort
-               continuation. */
-            sc_bang_set_global(sc, sc_slot_state,
-                               STATE(VALUE(sc->error), 
-                                     sc_global(sc, sc_slot_abort_k)));
-            
-        }
-
-        case EXCEPT_GC:
-            /* Continue with current state = restart step. */
-            sc->m.prim = NULL;
-        }
-    }
+void _sc_abort(sc *sc, _ error) {
+    sc_bang_set_global(sc, sc_slot_state,
+                       STATE(VALUE(error), 
+                             sc_global(sc, sc_slot_abort_k)));
 }
 
 /* Run the above loop in a dynamic context. */
 _ _sc_continue(sc *sc) { 
-    return _sc_continue_dynamic(sc, _sc_loop); 
+    return _sc_continue_dynamic(sc, _sc_loop, _sc_abort); 
 }
 
 

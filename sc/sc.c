@@ -250,6 +250,62 @@ _ sc_script_dir(sc *sc) {
     return STRING(PRIM_HOME);
 }
 
+
+_ _sc_continue_dynamic(sc *sc, sc_loop _sc_loop, sc_abort _sc_abort) {
+
+    if (sc->m.entries) {
+        _ex_printf(EX, "WARNING: multiple _sc_top() entries.\n");
+        return NIL;
+    }
+    pthread_mutex_lock(&EX->machine_lock);
+    sc->m.entries++;
+    for(;;) {
+
+        switch(setjmp(sc->m.except)) {
+        case EXCEPT_TRY:
+
+            /* Pre-allocate the error struct before the step() is
+               entered to prevent GC restarts. */ 
+            if (FALSE == sc->error) {
+                sc->error = sc_make_error(sc, VOID, VOID, VOID);
+            }
+            _sc_loop(sc);
+
+        case EXCEPT_ABORT: {
+            error *e = object_to_error(sc->error);
+            if (unlikely(NULL == e)) { TRAP(); }
+            
+            /* Populate error struct (condition + state) */
+            e->tag = sc->m.error_tag;
+            e->arg = sc->m.error_arg;
+            e->prim = const_to_object(sc->m.prim);
+
+            /* Reset VM error state. */
+            sc->m.error_arg = NIL;
+            sc->m.error_tag = NIL;
+            sc->m.prim = NULL;
+
+            /* Halt */
+            if (e->tag == SYMBOL("halt")) {
+                sc->m.entries--;
+                pthread_mutex_unlock(&EX->machine_lock);
+                return e->arg;
+            }
+                    
+            /* For other errors, invoke the global abort
+               continuation. */
+            _sc_abort(sc, sc->error);
+        }
+
+        case EXCEPT_GC:
+            /* Continue with current state = restart step. */
+            sc->m.prim = NULL;
+        }
+    }
+}
+
+
+
 static prim_def ex_prims[] = ex_table_init;
 static prim_def sc_prims[] = sc_table_init;
 
