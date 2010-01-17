@@ -7842,3 +7842,35 @@ The essential problem is to build a dependency graph of all the code
 that allows each function and macro to be defined independently
 relative to some core language.
 
+
+
+Entry: A simple match form
+Date: Sun Jan 17 08:32:12 CET 2010
+
+What I need is a simple abstraction around lambda applied to list,
+with deterministic dispatch on tags.
+
+(switch <value>
+  (<tag> <formals> .  <body>)
+  ...)
+
+->
+
+(case (car value)
+  ((<tag>) (apply (lambda <formals> . <body>) (cdr value)))
+  ...)
+
+
+(define (switch form)
+  (let ((data (cadr form))
+        (rules (cddr form))
+        (_match_ '_match_)
+        (_form_  '_form_)) ;; GENSYM!
+    
+    `(let ((,_form_ ,data))
+       (let ((,_match_ (lambda (fn) (apply fn (cdr ,_form_)))))
+         (case (car ,data)
+           ,@(let ((tx (lambda (rule)
+                         `((,(car rule))
+                           (,_match_ (lambda ,@(cdr rule)))))))
+               (map tx rules)))))))
