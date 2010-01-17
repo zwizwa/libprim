@@ -170,7 +170,7 @@ _ _sc_step_value(sc *sc, _ v, _ k) {
 
     /* A fully reduced value in an empty continuation means the
        evaluation is finished, and the machine can be halted. */
-    if (MT == k) HALT(value);
+    if (MT == k) HALT_VM(value);
 
     if (TRUE == sc_is_k_if(sc, k)) {
         k_if *kx = object_to_k_if(k);
@@ -456,8 +456,7 @@ _ sc_gc_used(sc *sc) {
    continuation frame that contains the sc_yield primitive application. */
 _ sc_yield(sc *sc, _ ob) {
     _sc_pop_k(sc, VALUE(ob));
-    ex_halt(EX, FALSE);
-    // return ERROR("halt", FALSE);
+    return ex_halt_vm(EX, FALSE);
 }
 
 

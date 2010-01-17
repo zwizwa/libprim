@@ -139,6 +139,10 @@ object _ex_write(ex *ex, object o) {
         //if (TAG_BOX == flags) {
         //    return object_write_vector(ex, "box", v);
         // }
+        if (TAG_GENSYM == flags) {
+            port_printf(p, "#<gensym:%p>", (void*)o);
+            return VOID;
+        }
         if (TAG_AREF == flags) {
             aref *a = (aref *)v;
             if (a->object == NIL) {
@@ -212,6 +216,11 @@ _ ex_struct_to_vector(ex *ex, _ strct) {
 
 _ _ex_make_symbol(ex *ex, const char *str) {
     return const_to_object((void*)(symbol_from_cstring(str)));
+}
+_ ex_gensym(ex *ex) {
+    vector *v = gc_alloc(ex->gc, 0);
+    vector_set_flags(v, TAG_GENSYM);
+    return vector_to_object(v);
 }
 
 long _ex_unwrap_integer(ex *ex, object o) {
@@ -315,7 +324,11 @@ _ ex_is_inexact(ex *ex, _ o) {
 
 #define OBJECT_PREDICATE(cast) \
     {if (cast(o)) return TRUE; else return FALSE;}
-_ ex_is_symbol(ex *ex, _ o) { OBJECT_PREDICATE(object_to_symbol); }
+
+_ ex_is_symbol(ex *ex, _ o) { 
+    if ((object_to_symbol(o)) ||
+        (object_to_gensym(o))) return TRUE; else return FALSE;
+}
 _ ex_is_prim(ex *ex, _ o)   { OBJECT_PREDICATE(object_to_prim); }
 
 
@@ -1134,7 +1147,7 @@ _ ex_raise_error(ex *ex, _ tag_o, _ arg_o) {
     TRAP();
     exit(1);
 }
-_ ex_halt(ex *ex, _ value) {
+_ ex_halt_vm(ex *ex, _ value) {
     ex->error_tag = SYMBOL("halt");
     ex->error_arg = value;
     longjmp(ex->except, EXCEPT_HALT);

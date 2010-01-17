@@ -7874,3 +7874,10 @@ with deterministic dispatch on tags.
                          `((,(car rule))
                            (,_match_ (lambda ,@(cdr rule)))))))
                (map tx rules)))))))
+
+
+Entry: Gensym
+Date: Sun Jan 17 09:16:53 CET 2010
+
+The simplest implementation is a tagged, zero-size record.  This makes
+sure it's GDd.

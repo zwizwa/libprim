@@ -63,6 +63,7 @@ static inline unsigned long VECTOR_TAG(unsigned long x) {
 #define TAG_VECTOR    VECTOR_TAG(0)   /* The flat vector. */
 #define TAG_AREF      VECTOR_TAG(1)   /* Reference with finalization. */
 #define TAG_ERROR     VECTOR_TAG(2)
+#define TAG_GENSYM    VECTOR_TAG(3)   /* Uninterned symbols. */
 
 /* Interpreter data types. */
 #define TAG_REDEX     VECTOR_TAG(4)
@@ -125,6 +126,10 @@ typedef struct {
     object car;
     object cdr;
 } pair;
+
+typedef struct {
+    vector v;
+} gensym;
 
 typedef pair lpair;  // linear pair
 typedef pair lnext;  // PF's NEXT K-FRAME
@@ -265,7 +270,7 @@ DEF_STRUCT(lnext,  TAG_LNEXT)
 DEF_STRUCT(ldata,  TAG_LDATA)
 DEF_STRUCT(aref,   TAG_AREF)
 // DEF_STRUCT(box,  TAG_BOX)
-
+DEF_STRUCT(gensym, TAG_GENSYM)
 
 
 #endif
