@@ -22,7 +22,6 @@
 #include <ex/ex.h>
 #include <ex/ex.h_prims>
 
-
 char *object_to_cstring(_ ob) {
     bytes *b = object_to_bytes(ob);
     if (!b) return NULL;

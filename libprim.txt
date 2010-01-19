@@ -7881,3 +7881,41 @@ Date: Sun Jan 17 09:16:53 CET 2010
 
 The simplest implementation is a tagged, zero-size record.  This makes
 sure it's GDd.
+
+
+
+Entry: Non-recursive make
+Date: Tue Jan 19  7:35:11 CET 2010
+
+Main trick:
+
+# Build makfile by including all makefile fragments.
+define do_include
+MODULE := $(1)
+include $(1)/module.mk
+PROJECT_SRC := $(PROJECT_SRC) $$(patsubst %, $(1)/%, $$(SRC))
+# DUMMY := $$(shell echo $(1) : $$(SRC) >&2)
+SRC :=
+endef
+$(foreach prog,$(MODULES),$(eval $(call do_include,$(prog))))
+
+
+This works for the .o files.  Now, how to make the .a files
+(i.e. aggregation) and how to make the .h_prims files (header
+generation which messes up GCC's dependency generation.
+
+The latter is the real problem.  What would solve it is to generate a
+dependency file of the .d file itself, and generate the deps in two
+steps.
+
+What seems to work is -MM which skips system files.
+
+-MG In conjunction with an option such as -M requesting dependency
+    generation, -MG assumes missing header files are generated files
+    and adds them to the dependency list without raising an error.
+    The dependency filename is taken directly from the "#include"
+    directive without prepending any path.  -MG also suppresses
+    preprocessed output, as a missing header file renders this
+    useless.
+
+That was easy!

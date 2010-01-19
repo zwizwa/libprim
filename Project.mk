@@ -29,14 +29,19 @@ MAKEFILES := Project.mk $(pathsubst %, %/module.mk, $(MODULES)
 
 %.d: %.c $(MAKEFILES) $(GEN)
 	@echo "$@"
-	@(set -e; rm -f $@; \
-		$(CC) -M $(CPPFLAGS) $< > $@.$$$$; \
-		sed 's,\($*\)\.o[ :]*,\1.o $@ : ,g' < $@.$$$$ > $@; \
-		rm -f $@.$$$$)
+	@( echo -n "`dirname $<`/"; $(CC) -M -MG $(CPPFLAGS) $< ) > $@
+
 
 %.o: %.c $(MAKEFILES)
 	@echo "$@"
 	@$(CC) $(CPPFLAGS) $(CFLAGS) -o $@ -c $<
+
+# Generated header files.  These assume the .c file's directory
+# contains the `gen_prims.ss' script.
+%.h_prims: %.c
+	@echo "$@"
+	@$(MZSCHEME) `dirname $<`/gen_prims.ss $< >$@
+
 
 # Build makfile by including all makefile fragments.
 define do_include
@@ -51,5 +56,9 @@ $(foreach prog,$(MODULES),$(eval $(call do_include,$(prog))))
 # Include generated dependencies.
 -include $(PROJECT_SRC:.c=.d)
 
-all: $(PROJECT_SRC:.c=.o)
+.PHONY: all clean
+
+OBJECTS := $(PROJECT_SRC:.c=.o)
+
+all: $(OBJECTS)
 
