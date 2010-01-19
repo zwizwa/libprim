@@ -22,10 +22,15 @@
 #	./configure
 include Makefile.defs
 
+# VPATH = $(SRCDIR)
+# vpath %.c $(SRCDIR)
+
+
 all: _all
 
 MODULES := leaf ex sc pf
 
+VOID := $(shell mkdir -p $(MODULES))
 
 CFLAGS += $(pathsubst %, -I%, $(MODULES))
 
@@ -41,6 +46,9 @@ MAKEFILES := project.mk $(pathsubst %, %/module.mk, $(MODULES))
 	@echo "$@"
 	@$(CC) $(CPPFLAGS) $(CFLAGS) $(OPTI_CFLAGS) $(DEBUG_CFLAGS) -o $@ -c $<
 
+
+
+
 # Generated header files.  These assume the .c file's directory
 # contains the `gen_prims.ss' script.
 %.h_prims: %.c
@@ -51,19 +59,15 @@ MAKEFILES := project.mk $(pathsubst %, %/module.mk, $(MODULES))
 	@echo "$@"
 	@$(MZSCHEME) `dirname $<`/pf_prims.ss $< >$@
 
-%.h_px_prims: %.c
-	@echo "$@"
-	@$(MZSCHEME) `dirname $<`/px_prims.ss $< >$@
-
 
 
 
 # This function generates a makefile fragment that gathers variables
 # and build rules through an include, and accumulates them to global
 # variables.
-define module_fragment
-MODULE := $(1) 		# Define module name for use in included fragment
-include $(1)/module.mk  # Include module fragment
+define module
+MODULE := $(1) 	# Define module name for use in included fragment
+include $$(SRCDIR)/$(1)/module.mk
 
 # Get properly prefixed list of sources and objects.
 $(1)_SRC := $$(patsubst %, $(1)/%, $$(SRC))
@@ -80,27 +84,25 @@ PROJECT_A := $$(PROJECT_A) $(1)/$(1).a
 # Clear local vars.
 SRC :=
 MODULE :=
-
 endef
 
-# Expand the template for each module
-$(foreach prog,$(MODULES),$(eval $(call module_fragment,$(prog))))
+# Expand template for each module
+$(foreach prog,$(MODULES),$(eval $(call module,$(prog))))
 
 # Include generated dependencies.
 -include $(DEPS)
 
 
-# Products
-SC_OBJS := sc/sc.a ex/ex.a leaf/leaf.a
-SC_LIBS := -lm -lpthread
-sc/sc: $(SC_OBJS)
-	$(CC) $(LDFLAGS) -o sc/sc $(SC_OBJS) $(SC_LIBS)
+# Products: app <target> <deps> <libs>
+define app
+$(1): $(2)
+	@echo $(1)
+	@$$(CC) $$(LDFLAGS) -o $(1) $(2) $(3)
+endef
 
-PF_OBJS := pf/pf.a ex/ex.a leaf/leaf.a
-PF_LIBS := -lm -lpthread
-pf/pf: $(PF_OBJS)
-	$(CC) $(LDFLAGS) -o pf/pf $(PF_OBJS) $(PF_LIBS)
-
+# Expand template for each app
+$(eval $(call app, sc/sc, sc/sc.a ex/ex.a leaf/leaf.a, -lm -lpthread))
+$(eval $(call app, pf/pf, pf/pf.a ex/ex.a leaf/leaf.a, -lm -lpthread))
 
 
 .PHONY: all clean

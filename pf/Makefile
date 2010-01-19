@@ -15,8 +15,6 @@ SD = $(SRCDIR)/$(MODULE)
 
 %.h_pf_prims: $(SD)/%.c $(SD)/pf_prims.ss $(SRCDIR)/prim-tools.ss
 	$(MZSCHEME) $(SD)/pf_prims.ss $< >$@
-%.h_px_prims: $(SD)/%.c $(SD)/px_prims.ss $(SRCDIR)/prim-tools.ss
-	$(MZSCHEME) $(SD)/px_prims.ss $< >$@
 %.h_load: $(SD)/%.pf $(SRCDIR)/load.ss
 	$(MZSCHEME) $(SRCDIR)/load.ss $< >$@
 

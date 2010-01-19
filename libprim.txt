@@ -7919,3 +7919,18 @@ What seems to work is -MM which skips system files.
     useless.
 
 That was easy!
+
+
+Entry: contd..
+Date: Tue Jan 19 23:01:44 CET 2010
+
+Using another generated rule for the apps.  $(eval $(call ...)) is
+essentially macro expansion, and works quite well.
+
+Tried VPATH for building in a separate directory.  The current rules
+work well if the object files already exist, but are out of date.
+Otherwise the files are built in the source dir.
+
+VPATH doesn't seem to work well with prefixes...  It really is all
+string substitution: I was assuming something like it "unpacking" path
+names..
