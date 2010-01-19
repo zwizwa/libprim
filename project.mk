@@ -24,14 +24,13 @@ include Makefile.defs
 
 all: _all
 
-MODULES := leaf ex sc
+MODULES := leaf ex sc pf
 
 
 CFLAGS += $(pathsubst %, -I%, $(MODULES))
 
 # Make sure the entire build depends on all makefile fragments.
-MAKEFILES := Project.mk $(pathsubst %, %/module.mk, $(MODULES))
-# MAKEFILES = Project.mk
+MAKEFILES := project.mk $(pathsubst %, %/module.mk, $(MODULES))
 
 %.d: %.c $(MAKEFILES)
 	@echo "$@"
@@ -40,13 +39,23 @@ MAKEFILES := Project.mk $(pathsubst %, %/module.mk, $(MODULES))
 
 %.o: %.c $(MAKEFILES)
 	@echo "$@"
-	@$(CC) $(CPPFLAGS) $(CFLAGS) -o $@ -c $<
+	@$(CC) $(CPPFLAGS) $(CFLAGS) $(OPTI_CFLAGS) $(DEBUG_CFLAGS) -o $@ -c $<
 
 # Generated header files.  These assume the .c file's directory
 # contains the `gen_prims.ss' script.
 %.h_prims: %.c
 	@echo "$@"
 	@$(MZSCHEME) `dirname $<`/gen_prims.ss $< >$@
+
+%.h_pf_prims: %.c
+	@echo "$@"
+	@$(MZSCHEME) `dirname $<`/pf_prims.ss $< >$@
+
+%.h_px_prims: %.c
+	@echo "$@"
+	@$(MZSCHEME) `dirname $<`/px_prims.ss $< >$@
+
+
 
 
 # This function generates a makefile fragment that gathers variables
@@ -59,7 +68,7 @@ include $(1)/module.mk  # Include module fragment
 # Get properly prefixed list of sources and objects.
 $(1)_SRC := $$(patsubst %, $(1)/%, $$(SRC))
 $(1)_OBJ := $$($(1)_SRC:.c=.o)
-PROJECT_SRC := $$(PROJECT_SRC) $$($(1)_SRC)
+DEPS := $$(DEPS) $$($(1)_SRC:.c=.d)
 # Build a single archive per module.
 $(1)/$(1).a: $$($(1)_OBJ)
 	@echo "$$@"
@@ -78,7 +87,21 @@ endef
 $(foreach prog,$(MODULES),$(eval $(call module_fragment,$(prog))))
 
 # Include generated dependencies.
--include $(PROJECT_SRC:.c=.d)
+-include $(DEPS)
+
+
+# Products
+SC_OBJS := sc/sc.a ex/ex.a leaf/leaf.a
+SC_LIBS := -lm -lpthread
+sc/sc: $(SC_OBJS)
+	$(CC) $(LDFLAGS) -o sc/sc $(SC_OBJS) $(SC_LIBS)
+
+PF_OBJS := pf/pf.a ex/ex.a leaf/leaf.a
+PF_LIBS := -lm -lpthread
+pf/pf: $(PF_OBJS)
+	$(CC) $(LDFLAGS) -o pf/pf $(PF_OBJS) $(PF_LIBS)
+
+
 
 .PHONY: all clean
 
