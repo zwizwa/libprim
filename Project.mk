@@ -22,6 +22,7 @@
 #	./configure
 include Makefile.defs
 
+all: _all
 
 MODULES := leaf ex sc
 
@@ -84,5 +85,5 @@ $(foreach prog,$(MODULES),$(eval $(call module_fragment,$(prog))))
 # OBJECTS := $(PROJECT_SRC:.c=.o)
 OBJECTS := $(PROJECT_A)
 
-all: $(OBJECTS)
+_all: $(OBJECTS)
 
