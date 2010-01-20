@@ -14,6 +14,11 @@ BOOT_SCM_DEPS := $(addprefix $(SRC_SC)/, \
 
 BOOT_SCM := $(MODULE)/boot12.scm_
 $(BOOT_SCM): $(BOOT_SCM_DEPS)
-	@echo $@; $(MZSCHEME) $(SRC_SC)/bootstrap.ss >$@
+# @echo $@; 
+	$(call build, cd $(SRC_SC); $(MZSCHEME) bootstrap.ss >$(BUILDDIR)/$@)
+
+.PHONY: sc_test
+sc_test: $(MODULE)/sc $(BOOT_SCM)
+	gdb --args sc/sc --boot $(BOOT_SCM)
 
 # VOID := $(shell echo $(BOOT_SCM) >&2)
