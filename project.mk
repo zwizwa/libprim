@@ -22,12 +22,6 @@
 #	./configure
 include Makefile.defs
 
-# VPATH = $(SRCDIR)
-# vpath %.c $(SRCDIR)
-
-# We supply all the rules: no implicit ones.
-# .SUFFIXES:
-
 all: _all
 
 MODULES := leaf ex sc pf
@@ -37,7 +31,7 @@ VOID := $(shell mkdir -p $(MODULES))
 CFLAGS += $(pathsubst %, -I%, $(MODULES))
 
 # Make sure the entire build depends on all makefile fragments.
-MAKEFILES := project.mk $(addsuffix /module.mk, $(MODULES))
+# MAKEFILES := project.mk $(addsuffix /module.mk, $(MODULES))
 
 
 # These are bodies of build rules.  Note that these variables _need_
@@ -60,8 +54,8 @@ rule_h_pf_prims_c = $(call build, $(MZSCHEME) $(dir $<)pf_prims.ss $< >$@)
 %.d: %.c $(MAKEFILES)
 	$(rule_d_c)
 
-# %.o: %.c $(MAKEFILES)
-#	$(rule_o_c)
+%.o: %.c $(MAKEFILES)
+	$(rule_o_c)
 
 # Generated header files.  These assume the .c file's directory
 # contains the `gen_prims.ss' script.
@@ -78,25 +72,18 @@ rule_h_pf_prims_c = $(call build, $(MZSCHEME) $(dir $<)pf_prims.ss $< >$@)
 # variables.
 define module
 MODULE := $(1) 	# Define module name for use in included fragment
-include $$(SRCDIR)/$(1)/module.mk
+include $(1)/module.mk
 
 # Get properly prefixed list of sources and objects.
 $(1)_SRC := $$(addprefix $(1)/, $$(SRC))
 $(1)_OBJ := $$($(1)_SRC:.c=.o)
 DEPS := $$(DEPS) $$($(1)_SRC:.c=.d)
-# Create rules specialized to this module
-$$(BUILDDIR)/$(1)/%.o: $$(SRCDIR)/$(1)/%.c $$(MAKEFILES)
-	echo foo
-	$$(rule_o_c)
+
 # Build a single archive per module.
 $(1)/$(1).a: $$($(1)_OBJ)
 	@echo "$$@"
 	@ar rcs $$@ $$($(1)_OBJ)
 PROJECT_A := $$(PROJECT_A) $(1)/$(1).a
-# debug print
-# DUMMY := $$(shell echo $(1) : $$($(1)_SRC) >&2)
-# DUMMY := $$(shell echo $$(BUILDDIR)/$(1)/%.o: $$(SRCDIR)/$(1)/%.c $$(MAKEFILES) $$(rule_o_c) >&2)
-
 # Clear local vars.
 SRC :=
 MODULE :=
