@@ -24,7 +24,7 @@ include Makefile.defs
 
 all: _all
 
-MODULES := test leaf ex sc pf
+MODULES := test leaf ex sc pf vm
 
 VOID := $(shell mkdir -p $(MODULES))
 
@@ -54,7 +54,8 @@ rule_test_c = $(call build, $(CC) $(CPPFLAGS) $(CFLAGS) $(OPTI_CFLAGS) $(DEBUG_C
 # expanded, it constructs a set of variables and build rules
 # specialized to the module.
 define module
-MODULE := $(1) 	# Define module name for use in included fragment
+MODULE:=$(1)
+# Define module name for use in included fragment
 include $(SRCDIR)/$(1)/module.mk
 
 # Personalized build rules: grab sources in $(SRCDIR).
@@ -102,9 +103,11 @@ $(1): $(2)
 endef
 
 # Expand template for each app
-$(eval $(call app, sc/sc, sc/sc.a ex/ex.a leaf/leaf.a, -lm -lpthread))
-$(eval $(call app, pf/pf, pf/pf.a ex/ex.a leaf/leaf.a, -lm -lpthread))
-
+BASE_A := ex/ex.a leaf/leaf.a
+APP_LIBS := -lm -lpthread
+$(eval $(call app, sc/sc, sc/sc.a $(BASE_A), $(APP_LIBS)))
+$(eval $(call app, pf/pf, pf/pf.a $(BASE_A), $(APP_LIBS)))
+$(eval $(call app, vm/vm, vm/vm.a $(BASE_A), $(APP_LIBS)))
 
 .PHONY: all clean
 

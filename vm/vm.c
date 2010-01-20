@@ -3,7 +3,7 @@
 #define SC_NEW_VM
 #include <sc/sc.c>
 #include <sc/scheme.c>
-#include <mz/vm.h_prims>
+#include <vm/vm.h_prims>
 
 /* The VM interprets code trees and continuation stacks, represented
    by nested vectors tagged with native code pointers.
