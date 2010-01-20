@@ -28,7 +28,8 @@ MODULES := leaf ex sc pf
 
 VOID := $(shell mkdir -p $(MODULES))
 
-CFLAGS += $(pathsubst %, -I%, $(MODULES))
+# CFLAGS += $(pathsubst %, -I%, $(MODULES))
+CFLAGS += -I$(BUILDDIR) -I$(SRCDIR)
 
 # Make sure the entire build depends on all makefile fragments.
 # MAKEFILES := project.mk $(addsuffix /module.mk, $(MODULES))
@@ -38,21 +39,18 @@ CFLAGS += $(pathsubst %, -I%, $(MODULES))
 # delayed evaluation, as the $@ and $< variables are filled in when
 # the rule is applied.
 
-build = @echo "$@"; $(1)
-# build = $(1)
+# build = @echo "$@"; $(1)
+build = $(1)
 
 
 # .c deps are created using gcc -M, ignoring generated files (-MG) and
 # explicity prefixing the output rule with the directory of the
 # object.
 
-rule_d_c = $(call build, (echo -n $(dir $<); $(CC) -M -MG $(CPPFLAGS) $<) >$@)
+rule_d_c = $(call build, (echo -n $(dir $@); $(CC) -M -MG $(CPPFLAGS) $<) >$@)
 rule_o_c = $(call build, $(CC) $(CPPFLAGS) $(CFLAGS) $(OPTI_CFLAGS) $(DEBUG_CFLAGS) -o $@ -c $<)
 rule_h_prims_c = $(call build, $(MZSCHEME) $(dir $<)gen_prims.ss $< >$@)
 rule_h_pf_prims_c = $(call build, $(MZSCHEME) $(dir $<)pf_prims.ss $< >$@)
-
-%.d: %.c $(MAKEFILES)
-	$(rule_d_c)
 
 # %.o: %.c $(MAKEFILES)
 # 	$(rule_o_c)
@@ -79,10 +77,17 @@ $(1)_SRC := $$(addprefix $(1)/, $$(SRC))
 $(1)_OBJ := $$($(1)_SRC:.c=.o)
 DEPS := $$(DEPS) $$($(1)_SRC:.c=.d)
 
+# Personalize build rules
+$(1)/%.d: $(SRCDIR)/$(1)/%.c $(MAKEFILES)
+	$$(rule_d_c)
 $(1)/%.o: $(1)/%.c $$(MAKEFILES)
 	$$(rule_o_c)
 $(1)/%.o: $(SRCDIR)/$(1)/%.c $$(MAKEFILES)
 	$$(rule_o_c)
+$(1)/%.h_prims: $(SRCDIR)/$(1)/%.c $$(MAKEFILES)
+	$$(rule_h_prims_c)
+$(1)/%.h_pf_prims: $(SRCDIR)/$(1)/%.c $$(MAKEFILES)
+	$$(rule_h_pf_prims_c)
 
 # Build a single archive per module.
 $(1)/$(1).a: $$($(1)_OBJ)
