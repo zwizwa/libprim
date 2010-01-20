@@ -44,8 +44,14 @@ MAKEFILES := project.mk $(pathsubst %, %/module.mk, $(MODULES))
 # delayed evaluation, as the $@ and $< variables are filled in when
 # the rule is applied.
 
-rule_d_c = @echo "$@"; (echo -n "`dirname $<`/"; $(CC) -M -MG $(CPPFLAGS) $<) >$@
-rule_o_c = @echo "$@"; $(CC) $(CPPFLAGS) $(CFLAGS) $(OPTI_CFLAGS) $(DEBUG_CFLAGS) -o $@ -c $<
+build = @echo "$@"; $(1)
+
+# .c deps are created using gcc -M, ignoring generated files (-MG) and
+# explicity prefixing the output rule with the directory of the
+# object.
+
+rule_d_c = $(call build, (echo -n $(dir $<); $(CC) -M -MG $(CPPFLAGS) $<) >$@)
+rule_o_c = $(call build, $(CC) $(CPPFLAGS) $(CFLAGS) $(OPTI_CFLAGS) $(DEBUG_CFLAGS) -o $@ -c $<)
 
 
 %.d: %.c $(MAKEFILES)
@@ -77,7 +83,7 @@ MODULE := $(1) 	# Define module name for use in included fragment
 include $$(SRCDIR)/$(1)/module.mk
 
 # Get properly prefixed list of sources and objects.
-$(1)_SRC := $$(patsubst %, $(1)/%, $$(SRC))
+$(1)_SRC := $$(addprefix $(1)/, $$(SRC))
 $(1)_OBJ := $$($(1)_SRC:.c=.o)
 DEPS := $$(DEPS) $$($(1)_SRC:.c=.d)
 # Build a single archive per module.
@@ -86,7 +92,7 @@ $(1)/$(1).a: $$($(1)_OBJ)
 	@ar rcs $$@ $$($(1)_OBJ)
 PROJECT_A := $$(PROJECT_A) $(1)/$(1).a
 # debug print
-# DUMMY := $$(shell echo $(1) : $$($(1)_SRC) >&2)
+DUMMY := $$(shell echo $(1) : $$($(1)_SRC) >&2)
 
 # Clear local vars.
 SRC :=
