@@ -22,11 +22,11 @@
 #	./configure
 include Makefile.defs
 
-VPATH = $(SRCDIR)
+# VPATH = $(SRCDIR)
 # vpath %.c $(SRCDIR)
 
 # We supply all the rules: no implicit ones.
-.SUFFIXES:
+# .SUFFIXES:
 
 all: _all
 
@@ -37,14 +37,16 @@ VOID := $(shell mkdir -p $(MODULES))
 CFLAGS += $(pathsubst %, -I%, $(MODULES))
 
 # Make sure the entire build depends on all makefile fragments.
-MAKEFILES := project.mk $(pathsubst %, %/module.mk, $(MODULES))
+MAKEFILES := project.mk $(addsuffix /module.mk, $(MODULES))
 
 
 # These are bodies of build rules.  Note that these variables _need_
 # delayed evaluation, as the $@ and $< variables are filled in when
 # the rule is applied.
 
-build = @echo "$@"; $(1)
+# build = @echo "$@"; $(1)
+build = $(1)
+
 
 # .c deps are created using gcc -M, ignoring generated files (-MG) and
 # explicity prefixing the output rule with the directory of the
@@ -52,26 +54,22 @@ build = @echo "$@"; $(1)
 
 rule_d_c = $(call build, (echo -n $(dir $<); $(CC) -M -MG $(CPPFLAGS) $<) >$@)
 rule_o_c = $(call build, $(CC) $(CPPFLAGS) $(CFLAGS) $(OPTI_CFLAGS) $(DEBUG_CFLAGS) -o $@ -c $<)
-
+rule_h_prims_c = $(call build, $(MZSCHEME) $(dir $<)gen_prims.ss $< >$@)
+rule_h_pf_prims_c = $(call build, $(MZSCHEME) $(dir $<)pf_prims.ss $< >$@)
 
 %.d: %.c $(MAKEFILES)
 	$(rule_d_c)
 
-%.o: %.c $(MAKEFILES)
-	$(rule_o_c)
-
-
+# %.o: %.c $(MAKEFILES)
+#	$(rule_o_c)
 
 # Generated header files.  These assume the .c file's directory
 # contains the `gen_prims.ss' script.
 %.h_prims: %.c
-	@echo "$@"
-	@$(MZSCHEME) `dirname $<`/gen_prims.ss $< >$@
+	$(rule_h_prims_c)
 
 %.h_pf_prims: %.c
-	@echo "$@"
-	@$(MZSCHEME) `dirname $<`/pf_prims.ss $< >$@
-
+	$(rule_h_pf_prims_c)
 
 
 
@@ -86,13 +84,18 @@ include $$(SRCDIR)/$(1)/module.mk
 $(1)_SRC := $$(addprefix $(1)/, $$(SRC))
 $(1)_OBJ := $$($(1)_SRC:.c=.o)
 DEPS := $$(DEPS) $$($(1)_SRC:.c=.d)
+# Create rules specialized to this module
+$$(BUILDDIR)/$(1)/%.o: $$(SRCDIR)/$(1)/%.c $$(MAKEFILES)
+	echo foo
+	$$(rule_o_c)
 # Build a single archive per module.
 $(1)/$(1).a: $$($(1)_OBJ)
 	@echo "$$@"
 	@ar rcs $$@ $$($(1)_OBJ)
 PROJECT_A := $$(PROJECT_A) $(1)/$(1).a
 # debug print
-DUMMY := $$(shell echo $(1) : $$($(1)_SRC) >&2)
+# DUMMY := $$(shell echo $(1) : $$($(1)_SRC) >&2)
+# DUMMY := $$(shell echo $$(BUILDDIR)/$(1)/%.o: $$(SRCDIR)/$(1)/%.c $$(MAKEFILES) $$(rule_o_c) >&2)
 
 # Clear local vars.
 SRC :=
