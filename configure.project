@@ -1,0 +1,30 @@
+#!/bin/bash
+
+# custom configure & build system.
+# all files reside in the build/ dir
+
+# set some env variables and call configure.pl
+BUILDDIR=`pwd`    # not yet used: call it locally!
+cd `dirname $0`
+SRCDIR=`pwd`
+
+LOG=$BUILDDIR/build.log
+
+echo "source:  $SRCDIR"
+echo "build:   $BUILDDIR"
+
+export SRCDIR
+export BUILDDIR
+
+# gather some data
+echo >>$LOG
+echo -n "libpf configure -- " >>$LOG
+date >>$LOG
+echo >>$LOG
+
+uname -a >>$LOG
+echo >>$LOG
+
+# execute main configure script
+exec perl $SRCDIR/bin/configure.pl $* 2>>$LOG
+
