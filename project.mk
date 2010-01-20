@@ -38,8 +38,8 @@ CFLAGS += $(pathsubst %, -I%, $(MODULES))
 # delayed evaluation, as the $@ and $< variables are filled in when
 # the rule is applied.
 
-# build = @echo "$@"; $(1)
-build = $(1)
+build = @echo "$@"; $(1)
+# build = $(1)
 
 
 # .c deps are created using gcc -M, ignoring generated files (-MG) and
@@ -54,8 +54,8 @@ rule_h_pf_prims_c = $(call build, $(MZSCHEME) $(dir $<)pf_prims.ss $< >$@)
 %.d: %.c $(MAKEFILES)
 	$(rule_d_c)
 
-%.o: %.c $(MAKEFILES)
-	$(rule_o_c)
+# %.o: %.c $(MAKEFILES)
+# 	$(rule_o_c)
 
 # Generated header files.  These assume the .c file's directory
 # contains the `gen_prims.ss' script.
@@ -72,12 +72,17 @@ rule_h_pf_prims_c = $(call build, $(MZSCHEME) $(dir $<)pf_prims.ss $< >$@)
 # variables.
 define module
 MODULE := $(1) 	# Define module name for use in included fragment
-include $(1)/module.mk
+include $(SRCDIR)/$(1)/module.mk
 
-# Get properly prefixed list of sources and objects.
+# Get list of sources and objects.
 $(1)_SRC := $$(addprefix $(1)/, $$(SRC))
 $(1)_OBJ := $$($(1)_SRC:.c=.o)
 DEPS := $$(DEPS) $$($(1)_SRC:.c=.d)
+
+$(1)/%.o: $(1)/%.c $$(MAKEFILES)
+	$$(rule_o_c)
+$(1)/%.o: $(SRCDIR)/$(1)/%.c $$(MAKEFILES)
+	$$(rule_o_c)
 
 # Build a single archive per module.
 $(1)/$(1).a: $$($(1)_OBJ)
