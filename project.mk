@@ -22,9 +22,11 @@
 #	./configure
 include Makefile.defs
 
-# VPATH = $(SRCDIR)
+VPATH = $(SRCDIR)
 # vpath %.c $(SRCDIR)
 
+# We supply all the rules: no implicit ones.
+.SUFFIXES:
 
 all: _all
 
@@ -37,15 +39,20 @@ CFLAGS += $(pathsubst %, -I%, $(MODULES))
 # Make sure the entire build depends on all makefile fragments.
 MAKEFILES := project.mk $(pathsubst %, %/module.mk, $(MODULES))
 
-%.d: %.c $(MAKEFILES)
-	@echo "$@"
-	@( echo -n "`dirname $<`/"; $(CC) -M -MG $(CPPFLAGS) $< ) > $@
 
+# These are bodies of build rules.  Note that these variables _need_
+# delayed evaluation, as the $@ and $< variables are filled in when
+# the rule is applied.
+
+rule_d_c = @echo "$@"; (echo -n "`dirname $<`/"; $(CC) -M -MG $(CPPFLAGS) $<) >$@
+rule_o_c = @echo "$@"; $(CC) $(CPPFLAGS) $(CFLAGS) $(OPTI_CFLAGS) $(DEBUG_CFLAGS) -o $@ -c $<
+
+
+%.d: %.c $(MAKEFILES)
+	$(rule_d_c)
 
 %.o: %.c $(MAKEFILES)
-	@echo "$@"
-	@$(CC) $(CPPFLAGS) $(CFLAGS) $(OPTI_CFLAGS) $(DEBUG_CFLAGS) -o $@ -c $<
-
+	$(rule_o_c)
 
 
 
