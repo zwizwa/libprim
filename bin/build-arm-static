@@ -1,9 +1,12 @@
-cd `basename $0`/../
+cd `dirname $0`/../
+CC=$1
+if [ "$CC" == "" ]; then CC=arm-linux-uclibcgnueabi-gcc; fi
 DIR=build-arm-static
 rm -rf $DIR
 mkdir $DIR
 cd $DIR
-../configure --cc=arm-linux-uclibcgnueabi-gcc --enable-static --prefix=`pwd` && make && make install
+../configure --cc=$CC --enable-static --prefix=`pwd` && make && make install
+
 
 
 
