@@ -28,16 +28,24 @@ echo >>$LOG
 
 
 # copy build tree
-cd $BUILDDIR
-cp $SRCDIR/Makefile .
-cp $SRCDIR/Makefile.rules .
-if [ $SRCDIR != $BUILDDIR ]; then
-    for dir in test leaf ex sc pf jni; do
-        mkdir -p $dir
-        cp $SRCDIR/$dir/Makefile $dir
-    done
+# cd $BUILDDIR
+# cp $SRCDIR/Makefile .
+# cp $SRCDIR/Makefile.rules .
+# if [ $SRCDIR != $BUILDDIR ]; then
+#     for dir in test leaf ex sc pf jni; do
+#         mkdir -p $dir
+#         cp $SRCDIR/$dir/Makefile $dir
+#     done
+# fi
+
+if [ $SRCDIR == $BUILDDIR ]; then
+    echo "Can't build in source dir.  Please run configure from (empty) build directory."
+    exit 1;
 fi
 
+
+# Build starting point is a single Makefile.
+ln -s $SRCDIR/project.mk $BUILDDIR/Makefile
 
 # execute main configure script
 exec perl $SRCDIR/bin/configure.pl $* 2>>$LOG

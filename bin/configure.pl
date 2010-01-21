@@ -62,7 +62,9 @@ $var{target} = $target;
 # perform a test in the pbuild/tests/ directory. return false on success.
 sub troubles {
     my $testname = shift;
-    my @args = ($var{make}, "-s", "-C", "test", "$testname\.test");
+    my @args = 
+        ($var{make}, "-s", "test/$testname\.test");
+        #($var{make}, "-s", "-C", "test", "$testname\.test");
     my $retval = system (@args);
     return $retval;
 }
@@ -78,9 +80,10 @@ sub check_deps {
     my $thing = shift;
     my $error_msg = shift;
     print "checking $thing";
+    print "\n";
     my $retval = troubles($thing);
     if ($retval) { print $error_msg; }
-    print "\n";
+    # print "\n";
     return $retval;
 }
 
