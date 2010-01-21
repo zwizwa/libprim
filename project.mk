@@ -26,6 +26,8 @@ all: _all
 
 MODULES := test leaf ex sc pf vm
 
+# Strict variable assignment can be used to add imperative code to a
+# Makefile.  The command will be executed when this line is parsed.
 VOID := $(shell mkdir -p $(MODULES))
 
 # CFLAGS += $(pathsubst %, -I%, $(MODULES))
@@ -113,6 +115,40 @@ $(eval $(call app, vm/vm, vm/vm.a $(BASE_A), $(APP_LIBS)))
 
 # OBJECTS := $(PROJECT_SRC:.c=.o)
 OBJECTS := $(PROJECT_A)
+APPS := sc/sc vm/vm pf/pf sc/boot12.scm_
 
-_all: $(OBJECTS)
+_all: $(OBJECTS) $(APPS)
+
+
+install: all
+	install -d $(PREFIX)/lib/pkgconfig
+	install -m 644 libprim.pc $(PREFIX)/lib/pkgconfig
+
+	install -d $(PREFIX)/share/prim/
+	install -m 644 $(SRCDIR)/sc/*.scm* $(PREFIX)/share/prim/
+	install -m 644 $(SRCDIR)/pf/*.pf $(PREFIX)/share/prim/
+
+	install -d $(PREFIX)/include/prim/ex
+	install -d $(PREFIX)/include/prim/leaf
+	install -d $(PREFIX)/include/prim/sc
+	install -d $(PREFIX)/include/prim/media
+
+	install -m 644 $(SRCDIR)/ex/*.h* $(PREFIX)/include/prim/ex/
+	install -m 644 $(SRCDIR)/sc/*.h* $(PREFIX)/include/prim/sc/
+	install -m 644 $(SRCDIR)/leaf/*.h* $(PREFIX)/include/prim/leaf/
+	install -m 644 $(SRCDIR)/media/*.h* $(PREFIX)/include/prim/media/
+
+#	install -m 755 */libprim_*.a $(PREFIX)/lib/
+
+	install -d $(PREFIX)/bin
+	install -m 755 sc/sc $(PREFIX)/bin
+	install -m 755 pf/pf $(PREFIX)/bin
+
+uninstall:
+	rm -rf $(PREFIX)/share/prim
+	rm -rf $(PREFIX)/include/prim
+#	rm -rf $(PREFIX)/lib/libprim_*.a
+	rm -rf $(PREFIX)/bin/sc
+	rm -rf $(PREFIX)/bin/pf
+
 
