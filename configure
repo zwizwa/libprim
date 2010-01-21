@@ -8,6 +8,16 @@ BUILDDIR=`pwd`    # not yet used: call it locally!
 cd `dirname $0`
 SRCDIR=`pwd`
 
+
+if [ $SRCDIR == $BUILDDIR ]; then
+    BUILDDIR=$SRCDIR/build
+    echo "Can't build in source dir $SRDCIR."
+    echo "Will build in $BUILDDIR instead."
+    mkdir $BUILDDIR
+fi
+
+
+
 LOG=$BUILDDIR/build.log
 
 echo "source:  $SRCDIR"
@@ -37,11 +47,6 @@ echo >>$LOG
 #         cp $SRCDIR/$dir/Makefile $dir
 #     done
 # fi
-
-if [ $SRCDIR == $BUILDDIR ]; then
-    echo "Can't build in source dir.  Please run configure from (empty) build directory."
-    exit 1;
-fi
 
 
 # Build starting point is a single Makefile.
