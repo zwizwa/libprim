@@ -117,22 +117,23 @@ $(eval $(call app, vm/vm, vm/vm.a $(BASE_A), $(APP_LIBS)))
 OBJECTS := $(PROJECT_A)
 APPS := sc/sc vm/vm pf/pf sc/boot12.scm_
 
-_all: $(OBJECTS) $(APPS)
+ALL := $(OBJECTS) $(APPS)
+_all: $(ALL)
 
-
-install: all
+install: $(ALL)
 	install -d $(PREFIX)/lib/pkgconfig
 	install -m 644 libprim.pc $(PREFIX)/lib/pkgconfig
 
 	install -d $(PREFIX)/share/prim/
-	install -m 644 $(SRCDIR)/sc/*.scm* $(PREFIX)/share/prim/
+	install -m 644 $(SRCDIR)/sc/*.scm $(PREFIX)/share/prim/
+	install -m 644 $(BUILDDIR)/sc/boot12.scm_ $(PREFIX)/share/prim/boot.scm
 	install -m 644 $(SRCDIR)/pf/*.pf $(PREFIX)/share/prim/
 
 	$(foreach dir, ex leaf sc media, \
 		install -d $(PREFIX)/include/prim/$(dir); \
 		install -m 644 $(SRCDIR)/$(dir)/*.h* $(PREFIX)/include/prim/$(dir);)
 
-## Don't instal intermediate .a libs.
+## Don't install intermediate .a libs.
 #	install -m 755 */libprim_*.a $(PREFIX)/lib/
 
 	install -d $(PREFIX)/bin
@@ -147,3 +148,5 @@ uninstall:
 	rm -rf $(PREFIX)/bin/pf
 
 
+clean:
+	rm -rf $(MODULES)
