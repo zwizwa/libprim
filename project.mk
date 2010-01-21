@@ -128,16 +128,11 @@ install: all
 	install -m 644 $(SRCDIR)/sc/*.scm* $(PREFIX)/share/prim/
 	install -m 644 $(SRCDIR)/pf/*.pf $(PREFIX)/share/prim/
 
-	install -d $(PREFIX)/include/prim/ex
-	install -d $(PREFIX)/include/prim/leaf
-	install -d $(PREFIX)/include/prim/sc
-	install -d $(PREFIX)/include/prim/media
+	$(foreach dir, ex leaf sc media, \
+		install -d $(PREFIX)/include/prim/$(dir); \
+		install -m 644 $(SRCDIR)/$(dir)/*.h* $(PREFIX)/include/prim/$(dir);)
 
-	install -m 644 $(SRCDIR)/ex/*.h* $(PREFIX)/include/prim/ex/
-	install -m 644 $(SRCDIR)/sc/*.h* $(PREFIX)/include/prim/sc/
-	install -m 644 $(SRCDIR)/leaf/*.h* $(PREFIX)/include/prim/leaf/
-	install -m 644 $(SRCDIR)/media/*.h* $(PREFIX)/include/prim/media/
-
+## Don't instal intermediate .a libs.
 #	install -m 755 */libprim_*.a $(PREFIX)/lib/
 
 	install -d $(PREFIX)/bin
