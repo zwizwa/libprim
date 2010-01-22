@@ -254,6 +254,18 @@ typedef struct {
     _ exprs;
     _ body;
 } kf_let;
+
+static void _kf_let(sc *sc, _ v, kf_let *f);
+/* Extend current continuation frame with a let frame to evaluate the
+   head of exprs and continue with the tail. */
+static void _let_extend_k(sc *sc, _ exprs, _ body, _ env) {
+    EXTEND_K(kf_let, f);
+    sc->c    = _CAR(exprs);
+    f->exprs = _CDR(exprs);
+    f->body  = body;
+    f->env   = env;
+}
+
 static void _kf_let(sc *sc, _ v, kf_let *f) {
     /* Extend environment with value. */
     _ env = CONS(v, f->env);
@@ -264,11 +276,7 @@ static void _kf_let(sc *sc, _ v, kf_let *f) {
     }
     else {
         /* Evaluate next expression. */
-        EXTEND_K(kf_let, fnext);
-        sc->c        = _CAR(f->exprs);
-        fnext->exprs = _CDR(f->exprs);
-        fnext->body  = f->body;
-        fnext->env   = env;
+        _let_extend_k(sc, f->exprs, f->body, env);
     }
 }
 typedef struct {
@@ -277,13 +285,7 @@ typedef struct {
     _ body;
 } vm_let;
 void _vm_let(sc *sc, vm_let *op) {
-    EXTEND_K(kf_let, f);
-    sc->c    = _CAR(op->exprs);
-    f->exprs = _CDR(op->exprs);
-    f->body  = op->body;
-    /* Build an extended environement with computed values, but stay
-       in the current one during evaluation. */
-    f->env   = sc->e;
+    _let_extend_k(sc, op->exprs, op->body, sc->e);
 }
 
 /* Trampoline. */

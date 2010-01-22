@@ -86,8 +86,8 @@ $(1)/$(1).a: $$($(1)_OBJ)
 PROJECT_A := $$(PROJECT_A) $(1)/$(1).a
 
 # Clear local vars.
-SRC :=
-MODULE :=
+SRC    := undefined_SRC
+MODULE := undefined_MODULE
 endef
 
 # Expand template for each module

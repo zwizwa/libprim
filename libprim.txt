@@ -8021,7 +8021,40 @@ static void _kf_let(sc *sc, _ v, kf_let *f) {
     }
 }
 
-Is there a simpler way to do this?
+Generally, the basic point is: `let' (next to `seq') is the place
+where continuations get created.  For primitive evaluation, variable
+references, constants and lambda expressions this is not necessary.
 
+Can the compiler sort this out?
 
+Yes.
 
+So the answer is to wrap the RHS of `let' and `seq' expressions in a
+constructor that expresses whether an expression can be reduced to a
+value immediately (without creating a continuation) or not.
+
+The problem is: how to handle primitives?  Essentially, the _vm_let()
+and _kf_let() opcodes and continuations need to peek into the value of
+the operator, which is not known at compile time.
+
+Is it possible to prune complexity and remove the "apply" opcode, and
+move this to an implicit operation in let and seq?
+
+(From now on forget about `seq' as the `let' results generalize easy
+to `seq'.)
+
+So, the `let' RHS is either a varref, a constant or an application,
+which can be:
+
+    - primitive
+    - closure
+    - continuation
+
+Only in the case of a closure a new continuation needs to be created.
+The primitive can be executed directly, and the continuation will void
+the current continuation anyway.
+
+How to express this?
+
+The compiler can distinguish between application and non-application.
+However, the runtime system needs to
