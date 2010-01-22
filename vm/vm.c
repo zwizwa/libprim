@@ -65,7 +65,7 @@ static void _kf_halt(sc *sc, _ v) {
    extending the continuation frame. */
 
 /* Pass value to current continuation and pop frame. */
-static void _value(sc *sc, _ value) {
+static void _return_value(sc *sc, _ value) {
     kf_base *f = (kf_base*)GC_POINTER(sc->k); // unsafe
     sc->k = f->parent;                        // pop frame
     sc->e = f->env;                           // restore lex env
@@ -74,32 +74,43 @@ static void _value(sc *sc, _ value) {
 }
 
 
+
 /* LIT */
 typedef struct {
     vm_op op;
     _ value;
 } vm_lit;
 static void _vm_lit(sc *sc, vm_lit *op) {
-    _value(sc, op->value);
+    _return_value(sc, op->value);
 }
 
 /* REF */
-static _ _sc_ref_pair(sc *sc, _ index) {
+static _ _sc_varref_pair(sc *sc, _ index) {
     int n = object_to_integer(index);
     _ env = sc->e;
     while(n--) env = _CDR(env);
     return env;
 }
-static _ _sc_ref(sc *sc, _ index) {
-    return _CAR(_sc_ref_pair(sc, index));
+static _ _sc_varref(sc *sc, _ index) {
+    return _CAR(_sc_varref_pair(sc, index));
 }
 typedef struct {
     vm_op op;
     _ index;
 } vm_ref;
+
 static void _vm_ref(sc *sc, vm_ref *op) {
-    _value(sc, _sc_ref(sc, op->index));
+    _return_value(sc, _sc_varref(sc, op->index));
 }
+
+
+/* Unpack a value wrapped in byte code.  The GC integer type represent
+   variable references.  Other values are wrapped. */
+#define IS_VARIABLE(x) (GC_INTEGER == GC_TAG(x))
+_ _unpack_value(sc *sc, _ it) {
+    if (IS_VARIABLE(it)) return _sc_varref(sc, it);
+}
+
 
 /* ASSIGN */
 typedef struct {
@@ -108,8 +119,8 @@ typedef struct {
     _ id_value;
 } vm_assign;
 static _ _vm_assign(sc *sc, vm_assign *op) {
-    _CAR(_sc_ref_pair(sc, op->id_variable)) = _sc_ref(sc, op->id_value);
-    _value(sc, VOID);
+    _CAR(_sc_varref_pair(sc, op->id_variable)) = _unpack_value(sc, op->id_value);
+    _return_value(sc, VOID);
 }
 
 /* IF */
@@ -120,7 +131,7 @@ typedef struct {
     _ no;
 } vm_if;
 static void _vm_if(sc *sc, vm_if *op) {
-    sc->c = (FALSE == _sc_ref(sc, op->id_value)) 
+    sc->c = (FALSE == _unpack_value(sc, op->id_value)) 
         ? op->no : op->yes;
 }
 
@@ -141,6 +152,7 @@ typedef struct {
 } closure;
 DEF_STRUCT(closure, TAG_CLOSURE)
 
+
 /* Extend enironment. */
 _ _extend(sc *sc, _ env, _ cl_body, int named_args, int list_args, _ op_ids) {
     vector *v = (vector *)GC_POINTER(op_ids);
@@ -152,7 +164,7 @@ _ _extend(sc *sc, _ env, _ cl_body, int named_args, int list_args, _ op_ids) {
         int nb_list_args = n - named_args;
         if (n < 0) ERROR("nargs", op_ids);
         for (i = n-1; i >= named_args; i--) {
-            _ val = _sc_ref(sc, v->slot[i]);
+            _ val = _unpack_value(sc, v->slot[i]);
             la = CONS(val, la);
         }
         env = CONS(la, env);
@@ -164,7 +176,7 @@ _ _extend(sc *sc, _ env, _ cl_body, int named_args, int list_args, _ op_ids) {
 
     /* Gather named arguments. */
     for(i = n-1; i >= 0; i--) {
-        _ val = _sc_ref(sc, v->slot[i]);
+        _ val = _unpack_value(sc, v->slot[i]);
         env = CONS(val, env);
     }
     
@@ -181,7 +193,7 @@ typedef struct {
 void _vm_app(sc *sc, vm_app *op) {
     closure *cl;
     prim *pr;
-    _ rator = _sc_ref(sc, op->id_rator);
+    _ rator = _unpack_value(sc, op->id_rator);
     if ((cl = object_to_closure(rator))) {
         /* LSB of signature indicates if there's an extra formal
            referring to the remaining arguments. */
@@ -198,7 +210,7 @@ void _vm_app(sc *sc, vm_app *op) {
            perform primitive and pass value to current continuation. */
         _ args = _extend(sc, NIL, NIL, pr->nargs, 0, op->id_args);
         _ rv = _sc_call(sc, pr->fn, pr->nargs, args);
-        _value(sc, rv);
+        _return_value(sc, rv);
     }
     else {
         TYPE_ERROR(rator);
@@ -213,7 +225,7 @@ typedef struct {
 } vm_lambda;
 void _vm_lambda(sc *sc, vm_lambda *op) {
     _ cl = STRUCT(TAG_CLOSURE, 3, sc->e, op->body, op->signature);
-    _value(sc, cl);
+    _return_value(sc, cl);
 }
 
 /* SEQ */

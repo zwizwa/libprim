@@ -188,10 +188,10 @@
                      vm-toplevel
                      vm-macros))
 
-(define (vm-eval expr)
-  (vm-init
-   (vm-compile-anf  ;; anf -> internal
-    (vm-compile     ;; sexpr -> anf
-     expr)))
+(define (vm-run bytecode)
+  (vm-init (vm-compile-anf bytecode))
   (vm-continue))
+
+(define (vm-eval expr)
+  (vm-run (car (vm-compile expr))))    ;; sexpr -> anf
 
