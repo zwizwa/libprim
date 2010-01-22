@@ -106,10 +106,10 @@ endef
 
 # Expand template for each app
 BASE_A := ex/ex.a leaf/leaf.a
-APP_LIBS := -lm -lpthread
-$(eval $(call app, sc/sc, sc/sc.a $(BASE_A), $(APP_LIBS)))
-$(eval $(call app, pf/pf, pf/pf.a $(BASE_A), $(APP_LIBS)))
-$(eval $(call app, vm/vm, vm/vm.a $(BASE_A), $(APP_LIBS)))
+APP_LD := $(LIBS) $(APP_LDFLAGS) $(LDFLAGS) -lm -lpthread
+$(eval $(call app, sc/sc, sc/sc.a $(BASE_A), $(APP_LD)))
+$(eval $(call app, pf/pf, pf/pf.a $(BASE_A), $(APP_LD)))
+$(eval $(call app, vm/vm, vm/vm.a $(BASE_A), $(APP_LD)))
 
 .PHONY: all clean
 
