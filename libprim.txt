@@ -7880,7 +7880,116 @@ Entry: Gensym
 Date: Sun Jan 17 09:16:53 CET 2010
 
 The simplest implementation is a tagged, zero-size record.  This makes
-sure it's GDd.
+sure it's GCd.
+
+
+Entry: Compiler + VM cleanup
+Date: Sun Jan 17 11:15:41 CET 2010
+
+- Allow values to appear in applications instead of only variable
+  references.
+
+First step is to make all variable refs explicit.  It might pay to
+make a binary tagged type for these, also to suppport displays later.
+
+But where to insert it?  Integers, constants, vectors, finalizers.
+There's no room, except as part of the integers or constants.
+I.e. these could give up one bit of precision to allow for references.
+
+Question: making references explicit, requires also literals and
+lambdas to be tagged.  So numbers could still be used to encode
+varrefs.
+
+I.e. the following byte code:
+
+  `(op-let ((op-lit 1) (op-lit 2) (op-lit ,add)) (op-app 0 #(1 2)))
+
+Should become something like
+
+  `(op-app (op-lit #<prim>) #((op-lit 1) (op-lit 2)))
+
+I.e. any point in the byte code that expects a value might as well
+contain an expression that can be immediately transformed to a value.
+But tagging values might not be a good idea.
+
+The problem is there are 2 opaque values that need to be constructed
+at run-time - i.e. code needs to run - but the code that runs doesn't
+need to create new continuations (no expression evaluation).
+
+   - variables: lookup in the environment
+   - lambda expressions: create a closure grabbing the current environment
+
+Other values (concrete values or literals) do not need any extra
+processing.
+
+Currently, variables are referenced directly, but lambda forms trigger
+the creation and subsequent deletion of a closure (i.e. they are
+treated as expressions to be evaluated).
+
+  What did we learn: this is not necessary.  Lambda expressions are
+  values, just like variable references and literals.
+
+
+
+Entry: Non-recursive make
+Date: Tue Jan 19  7:35:11 CET 2010
+
+Main trick:
+
+# Build makfile by including all makefile fragments.
+define do_include
+MODULE := $(1)
+include $(1)/module.mk
+PROJECT_SRC := $(PROJECT_SRC) $$(patsubst %, $(1)/%, $$(SRC))
+# DUMMY := $$(shell echo $(1) : $$(SRC) >&2)
+SRC :=
+endef
+$(foreach prog,$(MODULES),$(eval $(call do_include,$(prog))))
+
+
+This works for the .o files.  Now, how to make the .a files
+(i.e. aggregation) and how to make the .h_prims files (header
+generation which messes up GCC's dependency generation.
+
+The latter is the real problem.  What would solve it is to generate a
+dependency file of the .d file itself, and generate the deps in two
+steps.
+
+What seems to work is -MM which skips system files.
+
+-MG In conjunction with an option such as -M requesting dependency
+    generation, -MG assumes missing header files are generated files
+    and adds them to the dependency list without raising an error.
+    The dependency filename is taken directly from the "#include"
+    directive without prepending any path.  -MG also suppresses
+    preprocessed output, as a missing header file renders this
+    useless.
+
+That was easy!
+
+
+Entry: contd..
+Date: Tue Jan 19 23:01:44 CET 2010
+
+Using another generated rule for the apps.  $(eval $(call ...)) is
+essentially macro expansion, and works quite well.
+
+Tried VPATH for building in a separate directory.  The current rules
+work well if the object files already exist, but are out of date.
+Otherwise the files are built in the source dir.
+
+VPATH doesn't seem to work well with prefixes...  It really is all
+string substitution: I was assuming something like it "unpacking" path
+names..  See [1]:
+
+  Although they say ``the commands I list here will create a X from a
+  file Y'', that is not what the commands actually do. Instead, they
+  create ../obj/X from Y. This is not the same thing at all, and GNU
+  make will become very upset with the deception.
+
+
+[1] http://make.mad-scientist.us/vpath.html
+
 
 
 
