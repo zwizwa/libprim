@@ -10,8 +10,9 @@ VM_TEST_DEPS := $(MODULE)/vm $(BOOT)
 
 # The test is run in the source directory to have easy access to .scm
 # files from the console.
+VM_TEST_EVAL :=  --eval '(begin(load "macros.scm")(load "compile.scm")(repl))'
 VM_TEST_CMD := cd $(SRCDIR)/$(MODULE); \
-	gdb --args $(BUILDDIR)/$(MODULE)/vm --boot $(BUILDDIR)/$(BOOT)
+	gdb --args $(BUILDDIR)/$(MODULE)/vm --boot $(BUILDDIR)/$(BOOT) $(VM_TEST_EVAL)
 
 .PHONY: vm_test
 vm_test: $(VM_TEST_DEPS)
