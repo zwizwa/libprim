@@ -8051,3 +8051,37 @@ names..  See [1]:
 
 
 [1] http://make.mad-scientist.us/vpath.html
+
+
+
+Entry: VM fixes
+Date: Fri Jan 22 07:27:43 CET 2010
+
+Time to start incremental refinement to get it to a working state.
+
+Next: handle lambda without creating an evaluation context.  It is
+problematic to do this in the `let' evaluation cycle: it needs to be
+special-cased.  I.e. the following function needs an extension at (1)
+to evaluate lambdas in-place.
+
+static void _kf_let(sc *sc, _ v, kf_let *f) {
+    /* Extend environment with value. */
+    _ env = CONS(v, f->env);
+    if (NIL == f->exprs) {
+        /* Done: enter new environment. */
+        sc->e = env;
+        sc->c = f->body;
+    }
+    else {
+        // (1)
+
+        /* Evaluate next expression. */
+        EXTEND_K(kf_let, fnext);
+        sc->c        = _CAR(f->exprs);
+        fnext->exprs = _CDR(f->exprs);
+        fnext->body  = f->body;
+        fnext->env   = env;
+    }
+}
+
+Is there a simpler way to do this?
