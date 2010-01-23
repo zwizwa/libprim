@@ -1,3 +1,8 @@
 
-SRC := port.c bytes.c symbol.c scanner.c parser.c tuple.c leaf.c grid.c \
-	inexact.c channel.c console.c bytecode.c
+# 'LOCAL_OBJ' contains this module's binary objects that will be
+# collected in a $(MODULE).a archive.
+
+LOCAL_OBJ := \
+	port.o bytes.o symbol.o scanner.o parser.o tuple.o leaf.o grid.o \
+	inexact.o channel.o console.o bytecode.o
+

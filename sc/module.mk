@@ -1,3 +1,1 @@
-# Input to global build system.  Sources for $(MODULE).a
-SRC := sc.c
-
+LOCAL_OBJ := sc.o

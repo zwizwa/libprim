@@ -1,5 +1,5 @@
 #define SC_NEW_VM
-#include <sc/sc.c>
+
 #include <sc_vm1/vm1.c>     // piggy-back on VM1
 #include <sc_vm2/vm2.h_prims>
 

@@ -1,1 +1,2 @@
-SRC := pf.c px.c
+LOCAL_OBJ := pf.o px.o
+

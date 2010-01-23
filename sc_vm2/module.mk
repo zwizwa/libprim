@@ -1,4 +1,4 @@
-SRC=vm2.c
+LOCAL_OBJ=vm2.o
 
 
 # All global rules created inside a module.mk that use the MODULE

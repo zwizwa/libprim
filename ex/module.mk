@@ -1,1 +1,1 @@
-SRC := ex.c gc.c read_intl.c
+LOCAL_OBJ := ex.o gc.o read_intl.o
