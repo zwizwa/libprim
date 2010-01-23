@@ -21,22 +21,31 @@
 # Makefile.defs: configure
 #	./configure
 
-
-include Makefile.defs
-
 all: _all
 
+# Include build variables.
+include Makefile.defs
 
-
-
+# Include "module.mk" Makefile fragments from these subdirectories.
 MODULES := test leaf ex sc sc_vm1 sc_vm2 pf
 
-# Strict variable assignment can be used to add imperative code to a
-# Makefile.  The command will be executed when this line is parsed.
-VOID := $(shell mkdir -p $(MODULES))
+# Create build tree
+$(shell mkdir -p $(MODULES))
 
-# CFLAGS += $(pathsubst %, -I%, $(MODULES))
-CFLAGS += -I$(BUILDDIR) -I$(SRCDIR)
+# Template rule for applications: app <target>, <deps>, <libs>
+define app
+APPS := $$(APPS) $(1)
+$(1): $(2)
+	@echo $(1)
+	@$$(CC) -o $(1) $(2) $(3) $$(LDFLAGS) $$(APP_LDFLAGS)
+endef
+
+# Convenience macro for creating application build rules.  All such
+# targets defined are collected in the APPS variable.
+
+# app_rule: <target>, <libprim_modules>, <extra_deps>, <libs>
+app_rule = $(eval $(call app, $(1), $(foreach m, $(2), $(m)/$(m).a), $(3)))
+
 
 # These are bodies of build rules.  Note that these variables _need_
 # delayed evaluation, as the $@ and $< variables are filled in when
@@ -55,14 +64,14 @@ rule_o_c = $(call build, $(CC) $(CPPFLAGS) $(CFLAGS) $(OPTI_CFLAGS) $(DEBUG_CFLA
 rule_h_prims_c = $(call build, $(MZSCHEME) $(dir $<)gen_prims.ss $< >$@)
 rule_h_pf_prims_c = $(call build, $(MZSCHEME) $(dir $<)pf_prims.ss $< >$@)
 
-rule_test_c = $(call build, $(CC) $(CPPFLAGS) $(CFLAGS) $(OPTI_CFLAGS) $(DEBUG_CFLAGS) $< -o $@ $(LIBS))
+rule_test_c = $(call build, $(CC) $(CPPFLAGS) $(CFLAGS) $(OPTI_CFLAGS) $(DEBUG_CFLAGS) $< -o $@ $(LDFLAGS))
 
 # This function generates the makefile fragment for each module.  Once
 # expanded, it constructs a set of variables and build rules
 # specialized to the module.
 define module
 # Define module name for use in included fragment + clear locals.
-MODULE:=$(1)
+LOCAL_MODULE:=$(1)
 LOCAL_OBJ :=
 include $(SRCDIR)/$(1)/module.mk
 
@@ -85,7 +94,7 @@ $(1)/%.test: $(SRCDIR)/$(1)/%.c
 # archive.
 
 # The module.mk : LOCAL_OBJ variable lists the binary objects to be
-# gathered in the $(MODULE).a archive.
+# gathered in the $(LOCAL_MODULE).a archive.
 $(1)_OBJ := $$(addprefix $(1)/, $$(LOCAL_OBJ))
 
 # Each object .o should have a corresponding rule to generate a .d
@@ -103,40 +112,26 @@ endef
 # Expand template for each module
 $(foreach prog,$(MODULES),$(eval $(call module,$(prog))))
 
-SRC    := out_of_scope_SRC
-OBJ    := out_of_scope_OBJ
-MODULE := out_of_scope_MODULE
+LOCAL_OBJ    := out_of_scope_LOCAL_OBJ
+LOCAL_MODULE := out_of_scope_LOCAL_MODULE
 
 # Include generated dependencies.
 -include $(DEPS)
 
 
-# Template rule for applications: app <target> <deps> <libs>
-define app
-$(1): $(2)
-	@echo $(1)
-	@$$(CC) $$(LDFLAGS) -o $(1) $(2) $(3)
-endef
-
-# Expand app template rule for each app.
-BASE_A := ex/ex.a leaf/leaf.a
-APP_LD := $(LIBS) $(APP_LDFLAGS) $(LDFLAGS) -lm -lpthread
-
 # Two versions of the Scheme VM.
-$(eval $(call app, sc_vm1/vm1, sc_vm1/sc_vm1.a sc/sc.a $(BASE_A), $(APP_LD)))
-$(eval $(call app, sc_vm2/vm2, sc_vm2/sc_vm2.a sc/sc.a $(BASE_A), $(APP_LD)))
+# Expand app template rule for each app.
+$(call app_rule, sc_vm1/vm1, sc_vm1 sc ex leaf, -lpthread)
+$(call app_rule, sc_vm2/vm2, sc_vm2 sc ex leaf, -lpthread)
 
 # Packet Forth
-$(eval $(call app, pf/pf, pf/pf.a $(BASE_A), $(APP_LD)))
+$(call app_rule, pf/pf, pf ex leaf, -lpthread)
 
 
 .PHONY: all clean
 
-# OBJECTS := $(PROJECT_SRC:.c=.o)
-OBJECTS := $(PROJECT_A)
-APPS := sc_vm1/vm1 sc_vm2/vm2 pf/pf sc_vm1/boot12.scm_
+ALL := $(APPS)
 
-ALL := $(OBJECTS) $(APPS)
 _all: $(ALL)
 
 install: $(ALL)

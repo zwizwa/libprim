@@ -13,7 +13,7 @@ if [ $SRCDIR == $BUILDDIR ]; then
     BUILDDIR=$SRCDIR/build
     echo "Can't build in source dir $SRDCIR."
     echo "Will build in $BUILDDIR instead."
-    mkdir -f $BUILDDIR
+    mkdir -p $BUILDDIR
 fi
 
 

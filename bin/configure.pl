@@ -214,7 +214,7 @@ chdir "$var{builddir}/tests"; # dir where we will run the tests
 
 sub check_base {
     push @LIBS, "-lm";
-    makefile "LIBS += -lm" ; 
+    makefile "LDFLAGS += -lm" ; 
     if (check_deps "base-deps") {
 	errorexit;
     }
@@ -223,7 +223,7 @@ sub check_base {
 
 sub check_dl {
     push @LIBS, "-ldl";
-    makefile "LIBS += -ldl" ; 
+    makefile "LDFLAGS += -ldl" ; 
     if (check_deps "libdl") {
 	errorexit;
     }
@@ -240,7 +240,7 @@ sub toolchain {
 
 
 # add prefix lib & include path 
-makefile "LIBS += -L$var{prefix}/lib";
+makefile "LDFLAGS += -L$var{prefix}/lib";
 makefile "CPPFLAGS += -I$var{prefix}/include";
 
 # link to pf lib
@@ -316,7 +316,7 @@ elsif ("Darwin" eq $var{target}){
     $EXTRA_DEBUG_CFLAGS="-Wno-long-double";
     $DLIB_PATH="DYLD_LIBRARY_PATH";
     makefile "CPPFLAGS += -I$var{finkpath}/include -fpascal-strings";
-    makefile "LIBS += -L$var{finkpath}/lib";
+    makefile "LDFLAGS += -L$var{finkpath}/lib";
     makefile "DLEXT = dylib";
     makefile 'LDFLAGS_SHARED = -dynamiclib -install_name $(PREFIX)/lib/$(TARGET)';
     makefile "LDFLAGS_MODULE = -dynamic -bundle -flat_namespace -undefined suppress" ;
@@ -389,7 +389,7 @@ else{
     makefile "OPTI_CFLAGS = -O3 -ffast-math -funroll-loops";
     if ($var{profile} eq "yes") {
 	makefile "OPTI_CFLAGS += -pg -g -O3";
-	makefile "LIBS += -pg";
+	makefile "LDFLAGS += -pg";
     }
     else {
 	makefile "OPTI_CFLAGS += -fomit-frame-pointer";
@@ -401,7 +401,7 @@ else{
 if ($var{pthread} eq "yes"){
     header "#define HAVE_PTHREAD";
     push @LIBS, "-lpthread";
-    makefile "LIBS += -lpthread";
+    makefile "LDFLAGS += -lpthread";
     makefile "OPT_MODULES += console";
     check_deps "libpthread";
 }
@@ -422,7 +422,7 @@ pkgconfig "Cflags: -I$var{prefix}/include/prim";
 
 # don't include efence in LIBS or pgkconfig
 if ($var{efence} eq "yes"){
-    makefile "DEBUG_LIBS += -lefence"; 
+    makefile "DEBUG_LDFLAGS += -lefence"; 
 }
 
 # 
