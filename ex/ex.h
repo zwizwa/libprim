@@ -14,15 +14,20 @@
 // #include <leaf/task.h>   // ck : abstraction for C stack
 #include <leaf/port.h>
 #include <leaf/bytes.h>
-#include <ex/pair.h>
 #include <leaf/prim.h>
 #include <leaf/rc.h>
 #include <leaf/inexact.h>
 #include <leaf/channel.h>
+#include <leaf/channel.h>
+#include <ex/pair.h>
+#include <ex/object.h>
 
 /* Highlevel transparent object rep and GC */
 #include <ex/object.h>
 #include <ex/gc.h>
+
+typedef struct _ex ex;
+#include <ex/ex.h_prims>
 
 typedef struct {
     symbol_class *symbol_type;
@@ -34,7 +39,6 @@ typedef struct {
     inexact_class *inexact_type;
 } base_types;
 
-typedef struct _ex ex;
 typedef object (*ex_m_write)(ex *ex, object ob);
 typedef port*  (*_ex_m_port)(ex *ex);
 typedef object (*_ex_m_leaf_to_object)(ex *ex, leaf_object*);
@@ -105,7 +109,7 @@ _ _is_vector_type(_ o, long flags);
    object_to_pointer function, _except_ for integers: there we use the
    predicate. */
 // void* _ex_unwrap_pointer(ex *sc, void *unwrap, object o);
-_ ex_raise_type_error(ex *ex, _ arg_o);
+// _ ex_raise_type_error(ex *ex, _ arg_o);
 static inline void* _ex_unwrap_pointer(ex *ex, void *unwrap, object o){
     object_to_pointer fn = (object_to_pointer)unwrap;
     void *x = fn(o);
@@ -150,7 +154,7 @@ _ _ex_restart(ex *ex);
 void _ex_overflow(ex *ex, long extra);
 
 // parse improper list
-_ ex_is_pair(ex *ex, _ o);
+// _ ex_is_pair(ex *ex, _ o);
 static inline void _ex_length_rest(ex *ex, _ lst, _ *length, _ *rest) {
     long nb = 0;
     while (object_to_lpair(lst) || 

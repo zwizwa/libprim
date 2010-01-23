@@ -8273,4 +8273,7 @@ be done in a straightforward way using something like this in the
 generated header files:
 
 #define ex_write ex_1_write
+OK
+
+How to list the symbols in a .so file?
 

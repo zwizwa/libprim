@@ -1,6 +1,8 @@
 #ifndef _PRIM_H_
 #define _PRIM_H_
 
+#include <ex/object.h>
+
 /* primitive function wrapper */
 typedef struct {
     // void *free;

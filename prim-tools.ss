@@ -15,8 +15,10 @@
 (define mangle c->scheme)
 
 (define (macro-mangle x)
-  (let* ((x (regexp-replace  #px"^\\S*?_"   x "")))
-    (string-upcase x)))
+  (string-upcase (remove-ctx x)))
+
+(define (remove-ctx x)
+  (regexp-replace #px"^\\S*?_" x ""))
 
 (define (arg0) (vector-ref (current-command-line-arguments) 0))
 
@@ -74,18 +76,27 @@
   (string-append (macro-prefix) str))
 
 (define (macro-defs dict ctx)
-  (for-each*
-   (lambda (name n)
-     (let ((mname (mprefix (macro-mangle name))))
-       ;; (printf "#ifndef ~a\n" mname) ;; (*)
-       (printf "#define ~a(~a) ~a(~a)\n"
-               mname
-               (string-append* (list->args (n->args n)))
-               name
-               (string-append* (list->args (cons ctx (n->args n)))))
-       ;; (printf "#endif\n")
-       ))
-   dict))
+  (let ((namespace (string-downcase ctx)))
+    ;; Tag names with nb of arguments.  This allows non-tagged names
+    ;; in C source code, but places tgged names in objects.
+    ;; I.e. #define ex_foo ex_3_foo
+    (for-each*
+     (lambda (name n)
+       (printf "#define ~a ~a_~a_~a\n" name namespace n (remove-ctx name)))
+     dict)
+    ;; Create bound macros.  I.e. #define EX_FOO(a,b,c) ex_foo(EX, a, b, c)
+    (for-each*
+     (lambda (name n)
+       (let ((mname (mprefix (macro-mangle name))))
+         ;; (printf "#ifndef ~a\n" mname) ;; (*)
+         (printf "#define ~a(~a) ~a(~a)\n"
+                 mname
+                 (string-append* (list->args (n->args n)))
+                 name
+                 (string-append* (list->args (cons ctx (n->args n)))))
+         ;; (printf "#endif\n")
+         ))
+     dict)))
 
 ;; This (*) is really asking for trouble.  Just make sure it doesn't
 ;; happen.
@@ -108,9 +119,9 @@
   (let ((dict (declarations->dict ds)))
     (printf "#ifndef _~a_H_GEN_\n" guard)
     (printf "#define _~a_H_GEN_\n" guard)
+    (macro-defs dict ctx)
     (decls ds)
     (table-defs init dict "")
-    (macro-defs dict ctx)
     (printf "#endif\n")
     ))
 
