@@ -97,17 +97,18 @@ typedef struct {
     _ index;
 } vm_ref;
 
-static void _vm_ref(sc *sc, vm_ref *op) {
-    _return_value(sc, _sc_varref(sc, op->index));
-}
-
-
 /* Unpack a value wrapped in byte code.  The GC integer type represent
    variable references.  Other values are wrapped. */
 #define IS_VARIABLE(x) (GC_INTEGER == GC_TAG(x))
 _ _unpack_value(sc *sc, _ it) {
     if (IS_VARIABLE(it)) return _sc_varref(sc, it);
 }
+
+static void _vm_ref(sc *sc, vm_ref *op) {
+    _return_value(sc, _unpack_value(sc, op->index));
+}
+
+
 
 
 /* ASSIGN */

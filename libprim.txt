@@ -8132,6 +8132,12 @@ on page 10 in [1] that seemed rather strange.
 This is an application of rule A3 in figure 7 on page 7, which lifts
 an inner application out of a primtive or value application.
 
+So, to summarize: ANF's usefulness is mainly for optimization, as it
+can expose certain reductions more easily.  Whether a VM creates
+continuations during 'let' or during argument evaluation doesn't
+matter so much for the internal complexity..
+
+
 
 [1] http://www.ccs.neu.edu/scheme/pubs/pldi93-fsdf.ps.gz
 [2] http://lambda-the-ultimate.org/node/69
@@ -8178,6 +8184,7 @@ mutated.
    (let ((a ...)) (let ((b a))) b) 
 -> (let ((a ...)) a)
 
+It's also useful for creating display closures (lambda lifting).
 
 
 
@@ -8190,7 +8197,43 @@ _let() instead?  I.e. to create a frame or to not create a frame?
 Maybe it's time to leave it as is, bootstrap the system and see how
 fast it runs.  Then try to create a next version.
 
-Let's cleanup the code a bit first.
+Let's cleanup the code a bit first. OK.
+
+The idea is this: at the point where we have let's intermediate state
+active (list of values + list of expressions) we need to decide
+whether this state should be saved to introduce a new frame or not.
+
+It looks like this means breaking out the current expression list and
+the list of collected values.
+
+So let's turn it around: the VM's core function is to perform `let':
+interpret a linear sequence of opcodes, and collect their results in a
+value rib.  Once the rib is complete, add the rib to the environment
+and execute a body.
+
+A body is then:
+  - a new let
+  - an application  (gather arguments + change environment)
+
+
+Dybvig[1] uses 5 registers:
+
+  - a: accumulator
+  - x: next expression
+  - e: current environment
+  - r: current value rib
+  - s: current stack
+
+Using a value rib in the presence of continuations requires some
+special care when the continuation is captured during a `let'
+expression.
+
+It's really quite complex: there are a lot of possible optimizations.
+I wonder if it's possible to formulate the different implementation
+trade-offs in a more modular fashion, and use partial evaluation te
+generate an implementation.
+
+[1] http://www.cs.unm.edu/~williams/cs491/three-imp.pdf
 
 
 
@@ -8202,5 +8245,32 @@ Make the module.mk "object oriented".
 Instead of defining SRC, define OBJ.  We always produce binary
 objects, but the source files might be anything.
 
+Also made application rules locally defined, such that the project.mk
+only aggregates.
 
+
+
+Entry: Embedded use and debugging
+Date: Sat Jan 23 12:20:31 CET 2010
+
+So..  compilation is complex: there are a lot of possible tricks and
+trade-offs.  Maybe I should aim for a simpler problem to solve,
+instead of picking a route that would end at re-implementing one of
+the current scheme interpreters.
+
+For embedded systems it is not so very useful to have a dynamic
+language during the application's run time.  It's more useful to be
+able to poke around at debug time.  This means that the interpretation
+(run-time compilation) can be offloaded to the host.
+
+Maybe it's time to think of the libprim project from that perspective:
+easy integration with C and debug-time interactive compilation, more
+in the spirit of Staapl.
+
+One modification I would like to make is to use shared libraries, and
+annotate all functions with the number of input arguments.  This can
+be done in a straightforward way using something like this in the
+generated header files:
+
+#define ex_write ex_1_write
 

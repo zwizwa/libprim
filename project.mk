@@ -57,8 +57,7 @@ endef
 # targets defined are collected in the APPS variable.
 
 # app_rule: <target>, <libprim_modules>, <extra_deps>, <libs>
-app_rule = $(eval $(call app, $(1), $(foreach m, $(2), $(m)/$(m).a), $(3)))
-
+app_rule = $(eval $(call app, $(1)/$(1), $(foreach m, $(1) $(2), $(m)/$(m).a), $(3)))
 
 # These are bodies of build rules.  Note that these variables _need_
 # delayed evaluation, as the $@ and $< variables are filled in when
@@ -79,6 +78,7 @@ rule_h_pf_prims_c = $(call build, $(MZSCHEME) $(dir $<)pf_prims.ss $< >$@)
 
 rule_test_c = $(call build, $(CC) $(CPPFLAGS) $(CFLAGS) $(OPTI_CFLAGS) $(DEBUG_CFLAGS) $< -o $@ $(LDFLAGS))
 
+
 # This function generates the makefile fragment for each module.  Once
 # expanded, it constructs a set of variables and build rules
 # specialized to the module.
@@ -88,11 +88,9 @@ LOCAL_MODULE:=$(1)
 LOCAL_OBJ :=
 include $(SRCDIR)/$(1)/module.mk
 
-# Personalized build rules: grab sources in $(SRCDIR).
+# Localized build rules: grab sources in $(SRCDIR).
 $(1)/%.d: $(SRCDIR)/$(1)/%.c 
 	$$(rule_d_c)
-# $(1)/%.o: $(1)/%.c
-# 	$$(rule_o_c)
 $(1)/%.o: $(SRCDIR)/$(1)/%.c 
 	$$(rule_o_c)
 $(1)/%.h_prims: $(SRCDIR)/$(1)/%.c
