@@ -125,20 +125,12 @@ endef
 # Expand template for each module
 $(foreach prog,$(MODULES),$(eval $(call module,$(prog))))
 
+# Invalidate module-local vars.
 LOCAL_OBJ    := out_of_scope_LOCAL_OBJ
 LOCAL_MODULE := out_of_scope_LOCAL_MODULE
 
 # Include generated dependencies.
 -include $(DEPS)
-
-
-# Two versions of the Scheme VM.
-# Expand app template rule for each app.
-# $(call app_rule, sc_vm1/vm1, sc_vm1 sc ex leaf, -lpthread)
-# $(call app_rule, sc_vm2/vm2, sc_vm2 sc ex leaf, -lpthread)
-
-# Packet Forth
-$(call app_rule, pf/pf, pf ex leaf, -lpthread)
 
 
 .PHONY: all clean
