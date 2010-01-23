@@ -2,7 +2,7 @@
 LOCAL_OBJ=vm2.o
 
 # Define global application target.
-$(call app_rule,sc_vm2, sc ex leaf, -lpthread)
+$(call app_rule,sc_vm2, ex leaf, -lpthread)
 
 # Boot file comes from VM1
 SC_VM2       := $(LOCAL_MODULE)/sc_vm2

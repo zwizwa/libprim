@@ -1,5 +1,7 @@
 #define SC_NEW_VM
 
+#include <sc/sc.c>
+
 #include <sc_vm1/vm1.c>     // piggy-back on VM1
 #include <sc_vm2/vm2.h_prims>
 
@@ -102,6 +104,7 @@ typedef struct {
 #define IS_VARIABLE(x) (GC_INTEGER == GC_TAG(x))
 _ _unpack_value(sc *sc, _ it) {
     if (IS_VARIABLE(it)) return _sc_varref(sc, it);
+    else return FIND(TOPLEVEL(), it);
 }
 
 static void _vm_ref(sc *sc, vm_ref *op) {

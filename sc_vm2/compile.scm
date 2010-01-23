@@ -32,7 +32,8 @@
   (define (free-var! name)
     (if (memq name free) #f
         (set! free (cons name free)))
-    `(topref ,name))
+    ;; `(topref ,name)
+    name)
   
   ;; Recursive compilation, keeping track of the environment.
   (define (compile form env)
