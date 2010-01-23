@@ -29,7 +29,7 @@ all: _all
 
 
 
-MODULES := test leaf ex sc pf vm
+MODULES := test leaf ex sc sc_vm1 sc_vm2 pf
 
 # Strict variable assignment can be used to add imperative code to a
 # Makefile.  The command will be executed when this line is parsed.
@@ -102,25 +102,30 @@ $(foreach prog,$(MODULES),$(eval $(call module,$(prog))))
 -include $(DEPS)
 
 
-# Products: app <target> <deps> <libs>
+# Template rule for applications: app <target> <deps> <libs>
 define app
 $(1): $(2)
 	@echo $(1)
 	@$$(CC) $$(LDFLAGS) -o $(1) $(2) $(3)
 endef
 
-# Expand template for each app
+# Expand app template rule for each app.
 BASE_A := ex/ex.a leaf/leaf.a
 APP_LD := $(LIBS) $(APP_LDFLAGS) $(LDFLAGS) -lm -lpthread
-$(eval $(call app, sc/sc, sc/sc.a $(BASE_A), $(APP_LD)))
+
+# Two versions of the Scheme VM.
+$(eval $(call app, sc_vm1/vm1, sc_vm1/sc_vm1.a sc/sc.a $(BASE_A), $(APP_LD)))
+$(eval $(call app, sc_vm2/vm2, sc_vm2/sc_vm2.a sc/sc.a $(BASE_A), $(APP_LD)))
+
+# Packet Forth
 $(eval $(call app, pf/pf, pf/pf.a $(BASE_A), $(APP_LD)))
-$(eval $(call app, vm/vm, vm/vm.a $(BASE_A), $(APP_LD)))
+
 
 .PHONY: all clean
 
 # OBJECTS := $(PROJECT_SRC:.c=.o)
 OBJECTS := $(PROJECT_A)
-APPS := sc/sc vm/vm pf/pf sc/boot12.scm_
+APPS := vm1/vm1 vm2/vm2 pf/pf sc/boot12.scm_
 
 ALL := $(OBJECTS) $(APPS)
 _all: $(ALL)

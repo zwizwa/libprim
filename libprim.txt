@@ -8057,4 +8057,138 @@ the current continuation anyway.
 How to express this?
 
 The compiler can distinguish between application and non-application.
-However, the runtime system needs to
+However, the runtime system needs to then distinguish closures from
+primitives and continuations.
+
+
+
+Entry: The `let' form: understanding ANF
+Date: Sat Jan 23 06:30:56 CET 2010
+
+The point of extension is this function, which is called both from the
+machine primitive _vm_let as from the continuation primitive _kf_let.
+
+It needs to decide whether to create a continuation frame or not.
+This is only necessary for closure applications.
+
+static void _let(sc *sc, _ exprs, _ body, _ env) {
+    if (NIL == exprs) {
+        /* Done: enter new environment. */
+        sc->e = env;
+        sc->c = body;
+    }
+    else {
+        /* Evaluate next expression. */
+        EXTEND_K(kf_let, f);
+        sc->c    = _CAR(exprs);
+        f->exprs = _CDR(exprs);
+        f->body  = body;
+        f->env   = env;
+    }
+}
+
+However, nested `let' forms are a special case.  They also need to
+create continuation frames before evaluation.
+
+So again, assuming `seq' is implemented as `let' (and later optimized
+again to not cons needlessly), the _let() function needs to create a
+continuation for:
+
+        - another _vm_let() operation
+
+        - a _vm_app() operation with a closure operator
+
+
+So, the representation needs to be optimized for dispatching:
+
+new frame:
+    (let (let ...))
+    (let (app-closure ...))
+
+no frame:
+    (let (ref ...))
+    (let (const ...))
+    (let (app-prim ...))
+    (let (app-cont ...))
+
+Can the decision to create a continuation frame be moved from the
+caller to the callee?  I.e. something like Forth's ENTER?
+
+Meaning: assume that all primitive machine operations simply produce a
+value (i.e. go back to the previous representation), but special-case
+closure applications and nested let.
+
+
+Entry: ANF again
+Date: Sat Jan 23 06:38:16 CET 2010
+
+Let's see what I missed last time.  There is a transformation example
+on page 10 in [1] that seemed rather strange.
+
+   (add1 (let (x (f 5)) 0))
+
+-> (let (x (f 5)) (add1 0))
+
+This is an application of rule A3 in figure 7 on page 7, which lifts
+an inner application out of a primtive or value application.
+
+
+[1] http://www.ccs.neu.edu/scheme/pubs/pldi93-fsdf.ps.gz
+[2] http://lambda-the-ultimate.org/node/69
+
+
+Entry: Encoding `let' non-tail calls as SC primitives
+Date: Sat Jan 23 07:15:13 CET 2010
+
+Again, the essence: while walking the list of expressions to be
+evaluated in a `let' form, two means of dispatch are necessary:
+
+   - P: the operation is primitive and can compute a value immediately
+     without modifying the current continuation.
+
+   - N: the operation nests.
+
+Is it possible to represent the N form as a P form, or does this need
+to be encoded explicitly?
+
+The fundamental dissonance is that this then yields 3 kinds of C
+functions to implement machine behaviour:
+
+   _vm:  creates context (CALL)
+   _kf:  consumes context (RETURN)
+   ex:   avoids creation/consumption of context (CALL+RETURN)
+
+The main problem being that ex (functions) cannot represent _vm nor
+_kf which are "function yin & yang".
+
+I.e. the constraint to use C function semantics for most of the
+structure of libprim requires that at some point a decision is made to
+either use the C call semantics (the C stack), or the VM call
+semantics (the continuation stack).
+
+
+
+
+Entry: Why box variables?
+Date: Sat Jan 23 07:46:41 CET 2010
+
+The reason is that values don't need to be copied if they are never
+mutated.
+
+   (let ((a ...)) (let ((b a))) b) 
+-> (let ((a ...)) a)
+
+
+
+
+Entry: VM cont..
+Date: Sat Jan 23 07:53:17 CET 2010
+
+I'm running in circles.  Maybe the machine needs to be designed around
+_let() instead?  I.e. to create a frame or to not create a frame?
+
+Maybe it's time to leave it as is, bootstrap the system and see how
+fast it runs.  Then try to create a next version.
+
+Let's cleanup the code a bit first.
+

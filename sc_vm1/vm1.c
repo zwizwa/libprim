@@ -4,13 +4,13 @@
 #include <unistd.h>
 #include <string.h>
 
-#include <sc/scheme.h>
 #include <config.h>
 
-// generated
-#include <sc/scheme.h_prims>
+#include <sc_vm1/vm1.h>
+#include <sc_vm1/vm1.h_prims>
 #include <ex/ex.h_prims>
 #include <sc/sc.h_prims>
+
 
 
 /* A treewalking interpreter implemented as a CEK machine w/o
@@ -525,7 +525,7 @@ _ _sc_top(sc *sc, _ expr) {
     return _sc_continue(sc);
 }
 
-static prim_def scheme_prims[] = scheme_table_init;
+static prim_def scheme_prims[] = vm1_table_init;
 
 
 

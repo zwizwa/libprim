@@ -1,9 +1,7 @@
-// Hack it on top of SC
-
 #define SC_NEW_VM
 #include <sc/sc.c>
-#include <sc/scheme.c>
-#include <vm/vm.h_prims>
+#include <sc_vm1/vm1.c>     // piggy-back on VM1
+#include <sc_vm2/vm2.h_prims>
 
 /* The VM interprets code trees and continuation stacks, represented
    by nested vectors tagged with native code pointers.
@@ -254,38 +252,40 @@ typedef struct {
     _ exprs;
     _ body;
 } kf_let;
-
-static void _kf_let(sc *sc, _ v, kf_let *f);
-/* Extend current continuation frame with a let frame to evaluate the
-   head of exprs and continue with the tail. */
-static void _let_extend_k(sc *sc, _ exprs, _ body, _ env) {
-    EXTEND_K(kf_let, f);
-    sc->c    = _CAR(exprs);
-    f->exprs = _CDR(exprs);
-    f->body  = body;
-    f->env   = env;
-}
-
-static void _kf_let(sc *sc, _ v, kf_let *f) {
-    /* Extend environment with value. */
-    _ env = CONS(v, f->env);
-    if (NIL == f->exprs) {
-        /* Done: enter new environment. */
-        sc->e = env;
-        sc->c = f->body;
-    }
-    else {
-        /* Evaluate next expression. */
-        _let_extend_k(sc, f->exprs, f->body, env);
-    }
-}
 typedef struct {
     vm_op op;
     _ exprs;
     _ body;
 } vm_let;
-void _vm_let(sc *sc, vm_let *op) {
-    _let_extend_k(sc, op->exprs, op->body, sc->e);
+static void _kf_let(sc *sc, _ v, kf_let *f);
+/* Evaluate list of expressions by creating new continuation frames.
+   Only create frames for closure applications.  If list is empty,
+   evaluate body in new environment. */
+static void _let(sc *sc, _ exprs, _ body, _ env) {
+    if (NIL == exprs) {
+        /* Done: enter new environment. */
+        sc->e = env;
+        sc->c = body;
+    }
+    else {
+        _ next  = _CAR(exprs);
+        _ later = _CDR(exprs);
+
+        /* Evaluate next expression. */
+        EXTEND_K(kf_let, f);
+        sc->c    = next;
+        f->exprs = later;
+        f->body  = body;
+        f->env   = env;
+    }
+}
+/* Extend environment with value and continue. */
+static void _kf_let(sc *sc, _ v, kf_let *f) {
+    _ env = CONS(v, f->env);
+    _let(sc, f->exprs, f->body, env);
+}
+static void _vm_let(sc *sc, vm_let *op) {
+    _let(sc, op->exprs, op->body, sc->e);
 }
 
 /* Trampoline. */
@@ -336,7 +336,7 @@ _ sc_vm_compile_anf(sc *sc, _ code) {
     return ERROR("invalid-opcode", tag);
 }
 
-static prim_def vm_prims[] = vm_table_init;
+static prim_def vm_prims[] = vm2_table_init;
 int main(int argc, char **argv) {
     sc *sc = _sc_new(argc, (const char**)argv);
     _sc_def_prims(sc, vm_prims);

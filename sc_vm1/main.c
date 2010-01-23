@@ -1,7 +1,6 @@
 #include <stdio.h>
 #include <stdlib.h>
-#include <sc/scheme.h>
-
+#include <sc_vm1/vm1.h>
 
 
 int main(int argc, char **argv) {

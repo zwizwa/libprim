@@ -5,13 +5,10 @@
 #include <unistd.h>
 #include <string.h>
 
-#include <sc/scheme.h>
 #include <config.h>
 
-// generated
 #include <sc/sc.h>
-#include <sc/sc.h_prims>
-#include <ex/ex.h_prims>
+
 
 
 

@@ -1,5 +1,5 @@
 
-DELEGATE = all install clean vm_test sc_test
+DELEGATE = all install clean sc_vm1_test sc_vm2_test
 .PHONY: $(DELEGATE) mrproper
 
 # Generate delegate rules

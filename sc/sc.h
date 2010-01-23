@@ -1,7 +1,11 @@
 #ifndef _SC_H_
 #define _SC_H_
 
+#include <ex/ex.h>
+
 typedef struct _scheme sc;
+#include <sc/sc.h_prims>
+#include <ex/ex.h_prims>
 
 
 #define _GLOBAL(name) return sc_global(sc, sc_slot_##name)
