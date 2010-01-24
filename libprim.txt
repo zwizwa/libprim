@@ -8233,8 +8233,11 @@ I wonder if it's possible to formulate the different implementation
 trade-offs in a more modular fashion, and use partial evaluation te
 generate an implementation.
 
-[1] http://www.cs.unm.edu/~williams/cs491/three-imp.pdf
+Looks like guile has display closures too[2].
 
+
+[1] http://www.cs.unm.edu/~williams/cs491/three-imp.pdf
+[2] http://wingolog.org/archives/2009/07/26/the-good-hack
 
 
 Entry: Build system
