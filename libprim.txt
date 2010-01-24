@@ -8138,6 +8138,8 @@ continuations during 'let' or during argument evaluation doesn't
 matter so much for the internal complexity..
 
 
+Another thing I missed is that proper ANF is _serial_ (i.e. let*
+instead of let): it doesn't have a parallel representation.
 
 [1] http://www.ccs.neu.edu/scheme/pubs/pldi93-fsdf.ps.gz
 [2] http://lambda-the-ultimate.org/node/69
@@ -8332,3 +8334,31 @@ bootstrapping VM2, but it seems better to disentangle both a bit, and
 write the library for VM2 in more concise way.  See remarks here[1].
 
 [1] entry://20100109-205441
+
+
+Entry: VM3?
+Date: Sun Jan 24 14:42:36 CET 2010
+
+Maybe I should start over using this[1] ANF compiler.  Or let it go
+for a while, and rethink the purpose of the project.
+
+What about focussing on something else instead?  Back to the libprim
+roots: how to build a scripting engine on top of a collection of
+primitive C objects without much effort?
+
+I.e: given a collection of LEAF objects, automatically wrap them in
+Scheme or PF.
+
+Main idea: for systems programming dealing with scarse resources
+(i.e. hardware units) asynchronous GC isn't always a nice model, as it
+doesn't follow the plentiful memory resource model.
+
+
+[1] http://schemecookbook.org/view/Cookbook/PearlANormalForm
+
+
+Entry: More about tethering
+Date: Sun Jan 24 14:54:37 CET 2010
+  
+Let's build a tethered library based only on LEAF.
+

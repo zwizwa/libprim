@@ -39,8 +39,17 @@ all: targets
 # Include build variables.
 include Makefile.defs
 
+
+
 # Include "module.mk" Makefile fragments from these subdirectories.
-MODULES := test leaf ex sc sc_vm1 sc_vm2 pf
+# MODULES := test leaf ex sc sc_vm1 sc_vm2 pf
+
+
+MKS :=  $(shell cd $(SRCDIR); echo */*.mk)
+MODULES := $(patsubst %/module.mk,%,$(MKS))
+
+# $(shell echo $(MKS) >&2)
+
 
 # Create build tree
 $(shell mkdir -p $(MODULES))
