@@ -45,25 +45,28 @@ MODULES := test leaf ex sc sc_vm1 sc_vm2 pf
 # Create build tree
 $(shell mkdir -p $(MODULES))
 
+# Quiet build messages.
+build = $(if $(VERBOSE), $(1), @echo "$@"; $(1))
+
 # Template rule for applications: app <target>, <deps>, <libs>
 define app
 APPS := $$(APPS) $(1)
 $(1): $(2)
-	@echo $(1)
-	@$$(CC) -o $(1) $(2) $(3) $$(LDFLAGS) $$(APP_LDFLAGS)
+	$$(call build, $$(CC) -o $(1) $(2) $(3) $$(LDFLAGS) $$(APP_LDFLAGS))
 endef
 
 # Convenience macro for creating application build rules.  All such
 # targets defined are collected in the APPS variable.
 
 # app_rule: <target>, <libprim_modules>, <extra_deps>, <libs>
-app_rule = $(eval $(call app, $(1)/$(1), $(foreach m, $(1) $(2), $(m)/$(m).a), $(3)))
+
+modules  = $(foreach m, $(1), $(m)/$(m).a)
+app_rule = $(eval $(call app, $(1)/$(strip $(1)), $(call modules, $(1) $(2)), $(3)))
 
 # These are bodies of build rules.  Note that these variables _need_
 # delayed evaluation, as the $@ and $< variables are filled in when
 # the rule is applied.
 
-build = $(if $(VERBOSE), $(1), @echo "$@"; $(1))
 
 # The .c deps are created using gcc -M, ignoring generated files (-MG)
 # and explicity prefixing the output rule with the directory of the

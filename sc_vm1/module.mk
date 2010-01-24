@@ -1,8 +1,9 @@
 # Sources for $(LOCAL_MODULE).a
 LOCAL_OBJ := vm1.o main.o
 
+
 # Define a new global build target.
-$(call app_rule,sc_vm1, sc ex leaf, -lpthread)
+$(call app_rule, sc_vm1, sc ex leaf, -lpthread)
 
 # Test target.
 .PHONY: sc_vm1_test
