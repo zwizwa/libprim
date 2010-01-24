@@ -61,7 +61,7 @@ endef
 # app_rule: <target>, <libprim_modules>, <extra_deps>, <libs>
 
 modules  = $(foreach m, $(1), $(m)/$(m).a)
-app_rule = $(eval $(call app, $(1)/$(strip $(1)), $(call modules, $(1) $(2)), $(3)))
+app_rule = $(eval $(call app, $(1)/$(strip $(1)), $(2) $(call modules, $(3)), $(4)))
 
 # These are bodies of build rules.  Note that these variables _need_
 # delayed evaluation, as the $@ and $< variables are filled in when
@@ -89,6 +89,9 @@ define module
 # Define module name for use in included fragment + clear locals.
 LOCAL_MODULE:=$(1)
 LOCAL_OBJ :=
+LOCAL_APP :=
+LOCAL_MODULES :=
+LOCAL_LDFLAGS :=
 include $(SRCDIR)/$(1)/module.mk
 
 # Localized build rules: grab sources in $(SRCDIR).
@@ -118,7 +121,12 @@ DEPS := $$(DEPS) $$($(1)_OBJ:.o=.d)
 $(1)/$(1).a: $$($(1)_OBJ)
 	@echo "$$@"
 	@ar rcs $$@ $$($(1)_OBJ)
-PROJECT_A := $$(PROJECT_A) $(1)/$(1).a
+
+$$(if $$(LOCAL_APP), $$(call app_rule, \
+	$$(LOCAL_APP), \
+	$$($(1)_OBJ), \
+	$$(LOCAL_APP_MODULES), \
+	$$(LOCAL_APP_LDFLAGS)))
 
 # Clear local vars.
 endef

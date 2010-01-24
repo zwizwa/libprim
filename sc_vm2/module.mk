@@ -1,8 +1,11 @@
 # Sources for $(LOCAL_MODULE).a
 LOCAL_OBJ=vm2.o
 
-# Define global application target.
-$(call app_rule,sc_vm2, ex leaf, -lpthread)
+# Define a new global build target.
+LOCAL_APP         := sc_vm2
+LOCAL_APP_MODULES := sc ex leaf
+LOCAL_APP_LDFLAGS := -lpthread
+
 
 # Boot file comes from VM1
 SC_VM2       := $(LOCAL_MODULE)/sc_vm2
