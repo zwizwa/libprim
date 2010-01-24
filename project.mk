@@ -182,3 +182,7 @@ uninstall:
 
 clean:
 	rm -rf $(MODULES)
+
+
+%.syms: %.so
+	$(call build, objdump -T $< | grep '\.text' | awk '{print $$7;}' >$@)

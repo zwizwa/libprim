@@ -8295,7 +8295,7 @@ How to list the symbols in a .so file?  Use
 dl_iterate_phdr[1]. (GNU_SOURCE).
 
 [1] http://linux.die.net/man/3/dl_iterate_phdr
-
+[2] http://lists.cairographics.org/archives/cairo-commit/2007-April/007935.html
 
 
 
@@ -8361,4 +8361,11 @@ Entry: More about tethering
 Date: Sun Jan 24 14:54:37 CET 2010
   
 Let's build a tethered library based only on LEAF.
+
+Given a function from LEAF, how can EX use it?  It needs to know how
+many arguments to pass, and how to wrap/unwrap the arguments.
+
+What about adding a _type function that will provide this information?
+For each function defined in an .so there is an additional function
+_type that will produce meta-info.
 
