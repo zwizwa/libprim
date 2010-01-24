@@ -20,6 +20,9 @@
            (else e))))
 
 (pretty-print
- (load-expand "boot1.scm"))
+ (load-expand
+  (vector-ref (current-command-line-arguments) 0)))
+   
+
 
 ;; (pretty-print boot)

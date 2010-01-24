@@ -8320,6 +8320,15 @@ primitive data and code shared with VM2.
 VM1 compiling VM2 compiler to VM2: ok.
 Next: compile the library.
 
+Pfff... sharing code between the two VMs in this hacked up way is too
+error prone.
 
+Maybe it's better to use a properly phased implementation, and rewrite
+most of the macros in a higher level function set with some form of
+pattern matching.
 
+VM1 was an interesting excercise, and can still be used for
+bootstrapping VM2, but it seems better to disentangle both a bit, and
+write the library for VM2 in more concise way.  See remarks here[1].
 
+[1] entry://20100109-205441
