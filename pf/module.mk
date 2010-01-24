@@ -1,4 +1,4 @@
-LOCAL_OBJ := pf.o px.o
+MODULE_OBJ := pf.o px.o
 
 # Application target: 
 # Define a new global build target.

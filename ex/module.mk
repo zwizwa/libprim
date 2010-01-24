@@ -1,1 +1,1 @@
-LOCAL_OBJ := ex.o gc.o read_intl.o
+MODULE_OBJ := ex.o gc.o read_intl.o

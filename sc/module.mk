@@ -1,4 +1,4 @@
-LOCAL_OBJ := sc.o
+MODULE_OBJ := sc.o
 
 # Define a new build target.
 TARGET         := libsc.so
