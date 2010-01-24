@@ -174,7 +174,7 @@
         (cons 'or         expand-or)
         (cons 'let        expand-let)
         (cons 'letrec     expand-letrec)
-        (cons 'lambda     (lambda (e) ;; FIXME: cold VM compat
+        (cons 'lambda     (lambda (e) ;; FIXME: old VM compat
                             (expand-lambda e (lambda (x) x))))))
 
 ;; Initial toplevel.

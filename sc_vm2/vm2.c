@@ -118,8 +118,6 @@ static void _vm_ref(sc *sc, vm_ref *op) {
 }
 
 
-
-
 /* ASSIGN */
 typedef struct {
     vm_op op;

@@ -17,7 +17,7 @@ SC_VM2_TEST_CMD := \
 	gdb -x $(SRCDIR)/bin/run.gdb \
 		--args $(BUILDDIR)/$(SC_VM2) \
 		--boot $(BUILDDIR)/$(SC_VM2_BOOT) \
-		--eval '(begin (load "macros.scm") (load "compile.scm") (repl))'
+		--eval '(begin (load "vm1vm2.scm") (repl))'
 
 .PHONY: sc_vm2_all sc_vm2_test
 sc_vm2_all: $(SC_VM2_TEST_DEPS)

@@ -8314,4 +8314,12 @@ Piumartha's object model[3] might be a simpler starting place.
 Entry: Next?
 Date: Sun Jan 24 09:24:22 CET 2010
 
-Bootstrap VM.  
+Bootstrap VM.  It seems simpler to do this from VM2 since it has the
+primitive data and code shared with VM2.
+
+VM1 compiling VM2 compiler to VM2: ok.
+Next: compile the library.
+
+
+
+
