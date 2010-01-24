@@ -2,10 +2,9 @@
 LOCAL_OBJ=vm2.o
 
 # Define a new global build target.
-LOCAL_APP         := sc_vm2
-LOCAL_APP_MODULES := sc ex leaf
-LOCAL_APP_LDFLAGS := -lpthread
-
+TARGET         := sc_vm2
+TARGET_MODULES := sc ex leaf
+TARGET_LDFLAGS := -lpthread
 
 # Boot file comes from VM1
 SC_VM2       := $(LOCAL_MODULE)/sc_vm2

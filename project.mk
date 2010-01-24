@@ -49,8 +49,8 @@ $(shell mkdir -p $(MODULES))
 build = $(if $(VERBOSE), $(1), @echo "$@"; $(1))
 
 # Template rule for applications: app <target>, <deps>, <libs>
-define app
-APPS := $$(APPS) $(1)
+define target
+TARGETS := $$(TARGETS) $(1)
 $(1): $(2)
 	$$(call build, $$(CC) -o $(1) $(2) $(3) $$(LDFLAGS) $$(APP_LDFLAGS))
 endef
@@ -58,10 +58,10 @@ endef
 # Convenience macro for creating application build rules.  All such
 # targets defined are collected in the APPS variable.
 
-# app_rule: <target>, <libprim_modules>, <extra_deps>, <libs>
+# target_rule: <module>, <target>, <objects>, <extra_deps>, <ldflags>
 
-modules  = $(foreach m, $(1), $(m)/$(m).a)
-app_rule = $(eval $(call app, $(1)/$(strip $(1)), $(2) $(call modules, $(3)), $(4)))
+modules     = $(foreach m, $(1), $(m)/$(m).a)
+target_rule = $(eval $(call target, $(1)/$(strip $(2)), $(3) $(call modules, $(4)), $(5)))
 
 # These are bodies of build rules.  Note that these variables _need_
 # delayed evaluation, as the $@ and $< variables are filled in when
@@ -89,9 +89,9 @@ define module
 # Define module name for use in included fragment + clear locals.
 LOCAL_MODULE:=$(1)
 LOCAL_OBJ :=
-LOCAL_APP :=
-LOCAL_MODULES :=
-LOCAL_LDFLAGS :=
+TARGET :=
+TARGET_MODULES :=
+TARGET_LDFLAGS :=
 include $(SRCDIR)/$(1)/module.mk
 
 # Localized build rules: grab sources in $(SRCDIR).
@@ -122,11 +122,12 @@ $(1)/$(1).a: $$($(1)_OBJ)
 	@echo "$$@"
 	@ar rcs $$@ $$($(1)_OBJ)
 
-$$(if $$(LOCAL_APP), $$(call app_rule, \
-	$$(LOCAL_APP), \
+$$(if $$(TARGET), $$(call target_rule, \
+	$(1), \
+	$$(TARGET), \
 	$$($(1)_OBJ), \
-	$$(LOCAL_APP_MODULES), \
-	$$(LOCAL_APP_LDFLAGS)))
+	$$(TARGET_MODULES), \
+	$$(TARGET_LDFLAGS)))
 
 # Clear local vars.
 endef
