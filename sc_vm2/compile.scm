@@ -178,15 +178,15 @@
                             (expand-lambda e (lambda (x) x))))))
 
 ;; Initial toplevel.
-(define vm-toplevel
-  (append
-   (filter (lambda (x) (prim? (cdr x))) (toplevel))
-   `((+             . ,add)
-     (*             . ,mul))))
+;; (define vm-toplevel-primitives
+;;   (append
+;;    (filter (lambda (x) (prim? (cdr x))) (toplevel))
+;;    `((+             . ,add)
+;;      (*             . ,mul))))
 
 (define (vm-compile expr)
   (vm-compile/macros expr
-                     vm-toplevel
+                     '() ;; vm-toplevel
                      vm-macros))
 
 (define (vm-run bytecode)

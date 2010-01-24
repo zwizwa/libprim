@@ -85,14 +85,22 @@ static void _vm_lit(sc *sc, vm_lit *op) {
 }
 
 /* REF */
-static _ _sc_varref_pair(sc *sc, _ index) {
-    int n = object_to_integer(index);
-    _ env = sc->e;
-    while(n--) env = _CDR(env);
-    return env;
+#define IS_LEXICAL_VARIABLE(x) (GC_INTEGER == GC_TAG(x))
+static _* _sc_box(sc *sc, _ ref) {
+    if (IS_LEXICAL_VARIABLE(ref)) {
+        int n = object_to_integer(ref);
+        _ env = sc->e;
+        while(n--) env = _CDR(env);
+        return &_CAR(env);
+    }
+    else {
+        _ slot = FIND_SLOT(TOPLEVEL(), ref); 
+        if (slot != NIL) return &_CDR(slot);
+        else { ERROR_UNDEFINED(ref); return NULL; }
+    }
 }
-static _ _sc_varref(sc *sc, _ index) {
-    return _CAR(_sc_varref_pair(sc, index));
+static _ _sc_varref(sc *sc, _ ref) {
+    return *_sc_box(sc, ref);
 }
 typedef struct {
     vm_op op;
@@ -101,10 +109,8 @@ typedef struct {
 
 /* Unpack a value wrapped in byte code.  The GC integer type represent
    variable references.  Other values are wrapped. */
-#define IS_VARIABLE(x) (GC_INTEGER == GC_TAG(x))
 _ _unpack_value(sc *sc, _ it) {
-    if (IS_VARIABLE(it)) return _sc_varref(sc, it);
-    else return FIND(TOPLEVEL(), it);
+    return _sc_varref(sc, it);
 }
 
 static void _vm_ref(sc *sc, vm_ref *op) {
@@ -121,7 +127,7 @@ typedef struct {
     _ id_value;
 } vm_assign;
 static _ _vm_assign(sc *sc, vm_assign *op) {
-    _CAR(_sc_varref_pair(sc, op->id_variable)) = _unpack_value(sc, op->id_value);
+    *_sc_box(sc, op->id_variable) = _unpack_value(sc, op->id_value);
     _return_value(sc, VOID);
 }
 
