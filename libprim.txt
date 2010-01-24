@@ -8141,6 +8141,8 @@ matter so much for the internal complexity..
 
 [1] http://www.ccs.neu.edu/scheme/pubs/pldi93-fsdf.ps.gz
 [2] http://lambda-the-ultimate.org/node/69
+[3] http://schemecookbook.org/view/Cookbook/PearlANormalForm
+
 
 
 Entry: Encoding `let' non-tail calls as SC primitives
@@ -8270,13 +8272,46 @@ Maybe it's time to think of the libprim project from that perspective:
 easy integration with C and debug-time interactive compilation, more
 in the spirit of Staapl.
 
+There is a huge advantage in this approach: if a language does not
+need to be self-hosting, a fairly sophisticated host language can be
+used to implement the compiler.
+
+
+Entry: Mangled shared object names
+Date: Sat Jan 23 13:20:31 CET 2010
+
 One modification I would like to make is to use shared libraries, and
 annotate all functions with the number of input arguments.  This can
 be done in a straightforward way using something like this in the
 generated header files:
 
 #define ex_write ex_1_write
-OK
 
-How to list the symbols in a .so file?
+Implemented.  It seems to work fine.
 
+How to list the symbols in a .so file?  Use
+dl_iterate_phdr[1]. (GNU_SOURCE).
+
+[1] http://linux.die.net/man/3/dl_iterate_phdr
+
+
+
+
+Entry: More snooping
+Date: Sun Jan 24 08:39:57 CET 2010
+
+The bitc[1] and fonc[2] projects have a lot of good stuff to borrow
+from.
+
+Piumartha's object model[3] might be a simpler starting place.
+
+[1] http://www.bitc-lang.org/
+[2] http://www.vpri.org/fonc_wiki/index.php/Installation_Guide
+[3] http://piumarta.com/software/id-objmodel/
+
+
+
+Entry: Next?
+Date: Sun Jan 24 09:24:22 CET 2010
+
+Bootstrap VM.  
