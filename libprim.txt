@@ -8371,17 +8371,6 @@ _type that will produce meta-info.
 
 
 
-Entry: This week.
-Date: Sun Jan 24 18:28:20 CET 2010
-
-So where did we get this week?
-
-- Learned how to use GNU Make.  This was quite an eye opener.  GNU
-  make allows a functional programming style (it is Scheme-like).
-
-- Dabbled with VM2.  Currently its not usable yet as I need to figure
-  out a way to conveniently bootstrap the code on top of VM1's
-  boot.scm or write a new library.  
 
    - Incremental bootstrap is messy. 
    - A decent self-hosting compiler is not so trivial
@@ -8406,3 +8395,71 @@ LEAF+GC could be written in C, but the rest might be generated from
 Scheme or some first-order language.
 
 
+Entry: Modifying VM1
+Date: Sun Jan 24 23:38:24 CET 2010
+
+Adding some simple optimizations might already improve it a lot:
+
+- snap global variable pointers (-> cell)
+- snap lexial variable indices (-> number)
+- eliminate the STATE update allocation
+- mark continuations as not captured to re-use frames
+
+The basic idea is that the bootstrapping required for a compiler not
+written in C is a pain.  If some bootstrapping is going to be
+necessary anyway, it's probably best to use it to make implementing
+the system easier, i.e.  raise the abstraction level of all the
+components:
+
+     VM:         scheme -> C/EX
+     COMP, LIB:  scheme -> VM
+
+Conclusion about dybvig's stack-based implementation: it's probably
+not worth the trouble: better to re-use another Scheme implementation.
+
+
+Entry: Dybvig-style VM
+Date: Mon Jan 25 07:49:14 CET 2010
+
+See presentation in [1].
+
+It seems easier to use a full bootstrap from scheme to do development
+and testing comfortably in PLT Scheme.
+
+Write a VM + compiler in scheme.
+Write a bootstrap / JIT compiler for the VM in scheme -> C/LLVM/ASM.
+
+Principles:
+
+CHEAPER:
+   + a single stack for static and dynamic chains makes function calls
+     and variable references cheap.
+
+MORE EXPENSIVE:
+   - boxes for assignment
+   - display closures (flat closures) to eliminate environment 
+   - stack copying for continuations
+
+
+Question: how does ANF relate to this?
+
+At first sight, ANF seems to work well for a stack-oriented approach,
+as it gives an elegant way to preserve proper tail calls.
+
+  * Une does not need to worry about proper calls when evaluating
+    expressions, as they are never in tail position.
+
+  * The tail call in a let expression can clean up the lexical
+    environment after collecting arguments to a function but before
+    performing the call, as all closures that use these variables use
+    heap-allocated copies.
+
+I think I'm starting to see it.  Primitive forms will be `let1'
+(aggregated into `let*', and representing `begin2'), `if', variable
+reference (either from the stack or from a display closure), primitive
+application and closure application.
+
+[1] http://icfp06.cs.uchicago.edu/dybvig-talk.pdf
+
+
+ 
