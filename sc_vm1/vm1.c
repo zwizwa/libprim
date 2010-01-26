@@ -12,20 +12,6 @@
 #include <sc/sc.h_prims>
 
 
-#define STATE_RETURN(v, k)      STATE(VALUE(v), k)
-#define STATE_REDEX(c, e, k)    STATE(REDEX(c,e),k)
-
-#define NEXT_STATE(r, k)           return STATE(r, k)
-
-
-// #define NEXT_STATE_REDEX(c, e, k)  return STATE_REDEX(c, e, k)
-#define NEXT_STATE_REDEX(_c, _e, _k)  { term = _c; env = _e; k = _k; goto next_state; }
-
-
-// #define NEXT_STATE_RETURN(v, k)    return STATE_RETURN(v, k)
-#define NEXT_STATE_RETURN(v, _k)    { term = v; k = _k; goto return_value; }
-
-
 static inline void _sc_set_state(sc *sc, _ state) {
     sc_bang_set_global(sc, _sc_slot_state, state);
 }
@@ -189,6 +175,19 @@ _ sc_close_args(sc *sc, _ lst, _ E) {
 }
 
 _ sc_error_undefined(sc *sc, _ o) { return ERROR("undefined", o); }
+
+
+#define STATE_RETURN(v, k)      STATE(VALUE(v), k)
+#define STATE_REDEX(c, e, k)    STATE(REDEX(c,e),k)
+#define NEXT_STATE(r, k)        return STATE(r, k)
+
+
+// #define NEXT_STATE_REDEX(c, e, k)  return STATE_REDEX(c, e, k)
+#define NEXT_STATE_REDEX(_c, _e, _k)  { term = _c; env = _e; k = _k; goto next_state; }
+
+// #define NEXT_STATE_RETURN(v, k)    return STATE_RETURN(v, k)
+#define NEXT_STATE_RETURN(v, _k)    { term = v; k = _k; goto return_value; }
+
 
 
 static inline _ _sc_step(sc *sc) {
@@ -481,33 +480,32 @@ static inline _ _sc_step(sc *sc) {
 }
 
 
+// no longer valid outside of _sc_tep()
+// #undef STATE_RETURN
+// #undef STATE_REDEX
+
+#undef NEXT_STATE
+#undef NEXT_STATE_REDEX
+#undef NEXT_STATE_RETURN
+
 
 
 
 
 /** STATE UPDATE HACKS **/
 
-void _sc_pop_k(sc *sc, _ value) {
-    state *s = CAST(state, _sc_get_state(sc));
-    _ k = sc_k_parent(sc, s->continuation);    // drop `gc' k_apply frame
-    _sc_set_state(sc, STATE_RETURN(value, k)); // update state manually    
-}
-
 /* GC: set continuation manually, since since the interpreter aborts
    and restarts the current step. */
 _ sc_gc(sc* sc) {
-    _sc_pop_k(sc, VOID);
+    _ term = CONS(SYMBOL("quote"),  CONS(VOID, NIL)); //value as term
+    state *s = CAST(state, _sc_get_state(sc));
+    _ k = sc_k_parent(sc, s->continuation);    // drop `gc' k_apply frame
+    _sc_set_state(sc, STATE_REDEX(term, NIL, k)); // update state manually    
     EX->stateful_context = 0;  // enable restarts
     gc_collect(sc->m.gc);      // collect will restart at sc->state
     return NIL; // not reached
 }
 
-/* Yield is currently implemented as halt.  Essentially it pops the
-   continuation frame that contains the sc_yield primitive application. */
-_ sc_yield(sc *sc, _ ob) {
-    _sc_pop_k(sc, ob);
-    return ex_halt_vm(EX, FALSE);
-}
 
 /* A ktx allows modification of a continuation frame.  The result can
    be invoked as a continuation.  FIXME: change these to primitives
@@ -639,22 +637,6 @@ const char *_sc_repl_cstring(sc *sc, const char *commands) {
 
 void _sc_eval_cstring(sc *sc, const char *commands) {
     _sc_top(sc, CONS(SYMBOL("eval-string"), CONS(STRING(commands), NIL)));
-}
-
-const char *_sc_yield(sc *sc, const char *msg) {
-    state *s;
-    s = CAST(state, _sc_get_state(sc));
-    s->redex_or_value = VALUE(_sc_make_aref(sc, bytes_from_cstring(msg)));
-
-    _sc_continue(sc);
-
-    s = CAST(state, _sc_get_state(sc));
-    value *v = object_to_value(s->redex_or_value);
-    if (!v) {
-        fprintf(stderr, "YIELD gives redex, not value!\n");
-        exit(1);
-    }
-    return object_to_cstring(v->datum);
 }
 
 

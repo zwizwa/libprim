@@ -8503,3 +8503,12 @@ LOG:
   simpler to save the current environment in continuations than in
   redexes.   it's not so simple after all..
 
+- eliminate the STATE structure.  all constructors need to be
+  converted to jumps to the next_state entry point.  
+
+- eliminte VALUE structure.  this might be more difficult.  the
+  problem is that _sc_yield uses this + the state hacks too.
+
+- its simplest to remove yield for now, and put it back when the
+  transformation is done.
+
