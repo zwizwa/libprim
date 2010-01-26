@@ -11,7 +11,7 @@
 #include <ex/ex.h_prims>
 #include <sc/sc.h_prims>
 
-
+#define sc_slot_state _sc_slot_state
 
 /* A treewalking interpreter implemented as a CEK machine w/o
    compiler. */

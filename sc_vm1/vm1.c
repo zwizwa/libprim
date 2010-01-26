@@ -14,6 +14,13 @@
 
 #define STATE_RETURN(v, k)   STATE(VALUE(v), k)
 #define STATE_REDEX(c, e, k) STATE(REDEX(c,e),k)
+static inline void _sc_set_state(sc *sc, _ state) {
+    sc_bang_set_global(sc, _sc_slot_state, state);
+}
+static inline _ _sc_get_state(sc *sc) {
+    return sc_global(sc, _sc_slot_state);
+}
+
 
 /* A treewalking interpreter implemented as a CEK machine w/o
    compiler. */
@@ -436,9 +443,9 @@ static _ _sc_step(sc *sc, _ o_state) {
 
 
 void _sc_pop_k(sc *sc, _ value) {
-    state *s = CAST(state, sc_global(sc, sc_slot_state));
+    state *s = CAST(state, _sc_get_state(sc));
     _ k = sc_k_parent(sc, s->continuation); // drop `gc' k_apply frame
-    sc_bang_set_global(sc, sc_slot_state, STATE(value, k)); // update state manually    
+    _sc_set_state(sc, STATE(value, k)); // update state manually    
 }
 
 
@@ -486,9 +493,7 @@ _ sc_bang_abort_k(sc *sc, _ k) {
 
 
 
-
 void _sc_loop(sc *sc) {
-    _ in_state;
     for(;;) {
         /* From here to the invocation of primitive code it is OK
            to perform a restart when a garbage collection occurs.
@@ -501,16 +506,12 @@ void _sc_loop(sc *sc) {
         /* The _sc_step() function will perform a single state
            update, or exit through sc->m.except in which case
            the sc_slot_state field is not updated. */
-        in_state = sc_global(sc, sc_slot_state);
-        sc_bang_set_global(sc, sc_slot_state, 
-                           _sc_step(sc, in_state));
+        _sc_set_state(sc, _sc_step(sc, _sc_get_state(sc)));
     }
 }
 
 void _sc_abort(sc *sc) {
-    sc_bang_set_global(sc, sc_slot_state,
-                       STATE_RETURN(sc->error, 
-                                    sc_global(sc, sc_slot_abort_k)));
+    _sc_set_state(sc, STATE_RETURN(sc->error, sc_global(sc, sc_slot_abort_k)));
 }
 
 /* Run the above loop in a dynamic context. */
@@ -521,7 +522,7 @@ _ _sc_continue(sc *sc) {
 
 /* Set the current VM state to start evaluating an expression on _sc_continue() */
 void _sc_prepare(sc *sc, _ expr) {
-    sc_bang_set_global(sc, sc_slot_state, STATE_REDEX(expr,NIL,MT));
+    _sc_set_state(sc, STATE_REDEX(expr,NIL,MT));
 }
 
 _ _sc_top(sc *sc, _ expr) {
@@ -609,12 +610,12 @@ void _sc_eval_cstring(sc *sc, const char *commands) {
 
 const char *_sc_yield(sc *sc, const char *msg) {
     state *s;
-    s = CAST(state, sc_global(sc, sc_slot_state));
+    s = CAST(state, _sc_get_state(sc));
     s->redex_or_value = VALUE(_sc_make_aref(sc, bytes_from_cstring(msg)));
 
     _sc_continue(sc);
 
-    s = CAST(state, sc_global(sc, sc_slot_state));
+    s = CAST(state, _sc_get_state(sc));
     value *v = object_to_value(s->redex_or_value);
     if (!v) {
         fprintf(stderr, "YIELD gives redex, not value!\n");

@@ -88,7 +88,6 @@ _ sc_bang_set_toplevel_macro(sc *sc, _ val) { _GLOBAL_SET(toplevel_macro, val); 
 _ sc_toplevel(sc *sc)       { _GLOBAL(toplevel); }
 _ sc_toplevel_macro(sc *sc) { _GLOBAL(toplevel_macro); }
 
-_ sc_machine_state(sc *sc)  { _GLOBAL(state); }
 
 /*  Add to or mutate toplevel env. */
 _ sc_bang_def_global(sc* sc, _ slot, _ var, _ val) {
