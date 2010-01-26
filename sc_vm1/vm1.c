@@ -15,9 +15,16 @@
 #define STATE_RETURN(v, k)      STATE(VALUE(v), k)
 #define STATE_REDEX(c, e, k)    STATE(REDEX(c,e),k)
 
-#define NEXT_STATE_RETURN(v, k)    return STATE_RETURN(v, k)
-#define NEXT_STATE_REDEX(c, e, k)  return STATE_REDEX(c, e, k)
 #define NEXT_STATE(r, k)           return STATE(r, k)
+
+
+// #define NEXT_STATE_REDEX(c, e, k)  return STATE_REDEX(c, e, k)
+#define NEXT_STATE_REDEX(_c, _e, _k)  { term = _c; env = _e; k = _k; goto next_state; }
+
+
+// #define NEXT_STATE_RETURN(v, k)    return STATE_RETURN(v, k)
+#define NEXT_STATE_RETURN(v, _k)    { term = v; k = _k; goto return_value; }
+
 
 static inline void _sc_set_state(sc *sc, _ state) {
     sc_bang_set_global(sc, _sc_slot_state, state);
@@ -119,6 +126,15 @@ _ sc_write_stderr(sc *sc,  _ o) {
 }
 
 
+/* MISC */
+_ sc_gc_used(sc *sc) {
+    return integer_to_object(sc->m.gc->current_index);
+}
+_ sc_bang_abort_k(sc *sc, _ k) {
+    return sc_bang_set_global(sc, sc_slot_abort_k, k);
+}
+
+
 
 
 /* COMPILER */
@@ -177,15 +193,13 @@ _ sc_error_undefined(sc *sc, _ o) { return ERROR("undefined", o); }
 
 static inline _ _sc_step(sc *sc) {
 
-    /* From here up to the invocation of primitive code it is OK to
-       perform a restart when a garbage collection occurs.  Reserve
-       some cells so the interpreter dispatch won't get stuck in a
-       restart loop. */
-
-    EX->stateful_context = 0;
-    if (gc_available(EX->gc) < EX->gc_guard_cells) gc_collect(EX->gc);
+    _ term;      // C
+    _ env;       // E
+    _ k;         // K
+    
 
     _ o_state = _sc_get_state(sc);
+
 
     /* The state consists of:
 
@@ -199,9 +213,6 @@ static inline _ _sc_step(sc *sc) {
        current continuation with the current value (= non-reducible
        closure). */
 
-    _ term;      // C
-    _ env;       // E
-    _ k;         // K
 
     state *s = CAST(state, o_state);
     k = s->continuation;
@@ -209,6 +220,7 @@ static inline _ _sc_step(sc *sc) {
     /* Values */
     if (FALSE==sc_is_redex(sc, s->redex_or_value)) {
         /* Unwrap */
+        env  = NIL;
         term = CAST(value, s->redex_or_value)->datum;
         goto return_value;
     }
@@ -219,6 +231,21 @@ static inline _ _sc_step(sc *sc) {
         env  = r->env;
         term = r->term;
     }
+
+    /* This is a jump target to enter the next state without saving
+     * the global state registers. */
+  next_state:
+
+    /* From here up to the invocation of primitive code it is OK to
+       perform a restart when a garbage collection occurs.  Reserve
+       some cells so the interpreter dispatch won't get stuck in a
+       restart loop. */
+
+    EX->stateful_context = 0;
+    if (gc_available(EX->gc) < EX->gc_guard_cells) gc_collect(EX->gc);
+
+
+
 
     /* Abstract Syntax: perform a single reduction step.
 
@@ -457,35 +484,30 @@ static inline _ _sc_step(sc *sc) {
 
 
 
+
+/** STATE UPDATE HACKS **/
+
 void _sc_pop_k(sc *sc, _ value) {
     state *s = CAST(state, _sc_get_state(sc));
-    _ k = sc_k_parent(sc, s->continuation); // drop `gc' k_apply frame
-    _sc_set_state(sc, STATE(value, k)); // update state manually    
+    _ k = sc_k_parent(sc, s->continuation);    // drop `gc' k_apply frame
+    _sc_set_state(sc, STATE_RETURN(value, k)); // update state manually    
 }
-
 
 /* GC: set continuation manually, since since the interpreter aborts
    and restarts the current step. */
 _ sc_gc(sc* sc) {
-    _sc_pop_k(sc, VALUE(VOID));
+    _sc_pop_k(sc, VOID);
     EX->stateful_context = 0;  // enable restarts
     gc_collect(sc->m.gc);      // collect will restart at sc->state
     return NIL; // not reached
 }
 
-_ sc_gc_used(sc *sc) {
-    return integer_to_object(sc->m.gc->current_index);
-}
-
-
 /* Yield is currently implemented as halt.  Essentially it pops the
    continuation frame that contains the sc_yield primitive application. */
 _ sc_yield(sc *sc, _ ob) {
-    _sc_pop_k(sc, VALUE(ob));
+    _sc_pop_k(sc, ob);
     return ex_halt_vm(EX, FALSE);
 }
-
-
 
 /* A ktx allows modification of a continuation frame.  The result can
    be invoked as a continuation.  FIXME: change these to primitives
@@ -498,9 +520,13 @@ _ sc_eval_ktx(sc *sc, _ k, _ expr) {
     return sc_make_k_seq(sc, k, CONS(REDEX(expr, NIL),NIL));
 }
 
-_ sc_bang_abort_k(sc *sc, _ k) {
-    return sc_bang_set_global(sc, sc_slot_abort_k, k);
-}
+
+
+
+
+
+
+
 
 
 /* --- SETUP & GC --- */
