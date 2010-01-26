@@ -556,11 +556,11 @@ sc *_sc_new(int argc, const char **argv) {
     sc->m.write = (ex_m_write)sc_write_stderr;
 
 
-    /* Toplevel abort continuation */
-    _ done = CONS(FIND(TOPLEVEL(),SYMBOL("fatal-error")),NIL);
-    _ abort_k = sc_make_k_args(sc, MT, done, NIL);
-
-    sc_bang_abort_k(sc, abort_k);
+    /* Toplevel abort continuation.  This will just halt.  During
+     * boot.scm a proper error handler will be installed.  To debug
+     * errors during boot, disable the high-level error handling
+     * altogether using the --fatal option. */
+    sc_bang_abort_k(sc, MT);  // simply halt
 
 
     _sc_top(sc, _ex_boot_load(EX, info.bootfile));
@@ -574,6 +574,10 @@ sc *_sc_new(int argc, const char **argv) {
     return sc;
 }
 
+_ sc_fatal_abort(sc *sc, _ error) {
+    _ex_printf(EX, "ERROR!\n");
+    return ex_fatal_print_error(EX, SYMBOL("fatal"), error);
+}
 
 /* FIXME: currently this doesn't save the existing I/O ports (only for
    headless embedding). */

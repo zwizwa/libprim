@@ -72,6 +72,9 @@ struct _ex {
     _ex_m_leaf_to_object leaf_to_object;
     _ex_m_object_to_leaf object_to_leaf;
     _ex_m_object_erase_leaf object_erase_leaf;
+
+    /* Debug flags */
+    int fatal;
 };
 
 #define DEF_ATOM(name)                                         \

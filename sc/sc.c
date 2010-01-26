@@ -331,6 +331,7 @@ int _sc_init(sc *sc, int argc, const char **argv, sc_bootinfo *info) {
     while ((argc > 0) && ('-' == argv[0][0])) {
         if (!strcmp("--boot", argv[0])) { info->bootfile = argv[1]; SHIFT(2); }
         else if (!strcmp("--verbose", argv[0])) { SHIFT(1); info->verbose = 1; }
+        else if (!strcmp("--fatal", argv[0])) { SHIFT(1); sc->m.fatal = 1; }
         else if (!strcmp("--eval", argv[0])) { info->evalstr = argv[1]; SHIFT(2); }
         else if (!strcmp("--", argv[0])) { SHIFT(1); break; }
         else {
@@ -385,6 +386,7 @@ int _sc_init(sc *sc, int argc, const char **argv, sc_bootinfo *info) {
     if (!info->bootfile) info->bootfile = getenv("PRIM_BOOT_SCM");
     if (!info->bootfile) info->bootfile = PRIM_HOME "boot.scm";
     if (info->verbose) _ex_printf(EX, "SC: %s\n", info->bootfile);
+    if (sc->m.fatal) _ex_printf(EX, "SC: all errors are fatal: SIGTRAP for bootstrap debugging.\n");
 
     /* Code entry point. */
     if (!info->evalstr) info->evalstr = "(repl)"; 
