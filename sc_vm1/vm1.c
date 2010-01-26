@@ -18,6 +18,9 @@ static inline void _sc_set_state(sc *sc, _ state) {
 static inline _ _sc_get_state(sc *sc) {
     return sc_global(sc, _sc_slot_state);
 }
+_ _sc_value_as_term(sc *sc, _ value) {
+    return CONS(SYMBOL("quote"),  CONS(value, NIL));
+}
 
 
 /* A treewalking interpreter implemented as a CEK machine w/o
@@ -177,7 +180,7 @@ _ sc_close_args(sc *sc, _ lst, _ E) {
 _ sc_error_undefined(sc *sc, _ o) { return ERROR("undefined", o); }
 
 
-#define STATE_RETURN(v, k)      STATE(VALUE(v), k)
+// #define STATE_RETURN(v, k)      STATE(VALUE(v), k)
 #define STATE_REDEX(c, e, k)    STATE(REDEX(c,e),k)
 #define NEXT_STATE(r, k)        return STATE(r, k)
 
@@ -481,7 +484,7 @@ static inline _ _sc_step(sc *sc) {
 
 
 // no longer valid outside of _sc_tep()
-// #undef STATE_RETURN
+#undef STATE_RETURN
 // #undef STATE_REDEX
 
 #undef NEXT_STATE
@@ -497,10 +500,9 @@ static inline _ _sc_step(sc *sc) {
 /* GC: set continuation manually, since since the interpreter aborts
    and restarts the current step. */
 _ sc_gc(sc* sc) {
-    _ term = CONS(SYMBOL("quote"),  CONS(VOID, NIL)); //value as term
     state *s = CAST(state, _sc_get_state(sc));
     _ k = sc_k_parent(sc, s->continuation);    // drop `gc' k_apply frame
-    _sc_set_state(sc, STATE_REDEX(term, NIL, k)); // update state manually    
+    _sc_set_state(sc, STATE_REDEX(_sc_value_as_term(sc, VOID), NIL, k)); // update state manually    
     EX->stateful_context = 0;  // enable restarts
     gc_collect(sc->m.gc);      // collect will restart at sc->state
     return NIL; // not reached
@@ -542,7 +544,8 @@ void _sc_loop(sc *sc) {
 }
 
 void _sc_abort(sc *sc) {
-    _sc_set_state(sc, STATE_RETURN(sc->error, sc_global(sc, sc_slot_abort_k)));
+    _sc_set_state(sc, STATE_REDEX(_sc_value_as_term(sc, sc->error), NIL,
+                                  sc_global(sc, sc_slot_abort_k)));
 }
 
 /* Run the above loop in a dynamic context. */

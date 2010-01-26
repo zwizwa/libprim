@@ -156,7 +156,8 @@ DEF_STRUCT(k_seq,   TAG_K_SEQ)
 /* Macros valid in sc context. */
 #define STATE(c,k)   sc_make_state(sc,c,k)
 #define REDEX(t,e)   sc_make_redex(sc,t,e)
-#define VALUE(d)     sc_make_value(sc,d)
+
+// #define VALUE(d)     sc_make_value(sc,d)
 
 
     
