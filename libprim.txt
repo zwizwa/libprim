@@ -8463,3 +8463,16 @@ application and closure application.
 
 
  
+Entry: Incrementally fixing VM1
+Date: Tue Jan 26 08:59:30 CET 2010
+
+Today I'm hopeful again that VM1 can be fixed incrementally.
+
+- make all the dispatching uniform (if ... return)
+
+- replace VALUE and STATE by using deforestation (connect the
+  creation and dispatch by a goto)
+
+- write a trivial compiler in C
+
+- move functionality from interpreter to compiler
