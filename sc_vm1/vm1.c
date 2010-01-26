@@ -12,6 +12,8 @@
 #include <sc/sc.h_prims>
 
 
+#define STATE_RETURN(value, k) STATE(VALUE(value), k)
+
 
 /* A treewalking interpreter implemented as a CEK machine w/o
    compiler. */
@@ -160,6 +162,8 @@ _ sc_close_args(sc *sc, _ lst, _ E) {
 
 _ sc_error_undefined(sc *sc, _ o) { return ERROR("undefined", o); }
 
+
+
 _ _sc_return(sc *sc, _ value, _ k) {
 
     /* Look at the continuation to determine what to do with the value. 
@@ -189,7 +193,7 @@ _ _sc_return(sc *sc, _ value, _ k) {
                 return ERROR_UNDEFINED(kx->var);
             }
         }
-        return STATE(VALUE(VOID), kx->k.parent);
+        return STATE_RETURN(VOID, kx->k.parent);
     }
     if (TRUE == sc_is_k_seq(sc, k)) {
         k_seq *kx = object_to_k_seq(k);
@@ -229,7 +233,7 @@ _ _sc_return(sc *sc, _ value, _ k) {
                    small number of cells are guaranteed to exist. */
                 EX->stateful_context = 1;
                 _ rv = _sc_call(sc, prim_fn(p), prim_nargs(p), args);
-                return STATE(VALUE(rv), kx->k.parent);
+                return STATE_RETURN(rv, kx->k.parent);
             }
 
             /* Application of abstraction extends the fn_env environment. */
@@ -266,7 +270,7 @@ _ _sc_return(sc *sc, _ value, _ k) {
                     arg = p->car;
                     if (p->cdr != NIL) ERROR("nargs", fn);
                 }
-                return STATE(VALUE(arg), fn);
+                return STATE_RETURN(arg, fn);
             }
 
             /* Unknown applicant type */
@@ -330,7 +334,7 @@ static _ _sc_step(sc *sc, _ o_state) {
                 return ERROR_UNDEFINED(term);
             }
         }
-        return STATE(VALUE(CDR(slot)), k);
+        return STATE_RETURN(CDR(slot), k);
     }
 
     /* Literal Value */
@@ -338,7 +342,7 @@ static _ _sc_step(sc *sc, _ o_state) {
         _ val = (TRUE==sc_is_lambda(sc, term)) 
             ? s->redex_or_value : term;
 
-        return STATE(VALUE(val),k);
+        return STATE_RETURN(val,k);
     }
 
     _ term_f    = CAR(term);
@@ -365,11 +369,11 @@ static _ _sc_step(sc *sc, _ o_state) {
             if (NIL == CDR(body)) body = CAR(body);
             else body = CONS(sci->s_begin, body);
             _ l = sc_make_lambda(sc, formals, rest, body, env);
-            return STATE(VALUE(l), k);
+            return STATE_RETURN(l, k);
         }
         if (term_f == sci->s_quote) {
             if (NIL == term_args) goto syntax_error;
-            return STATE(VALUE(CAR(term_args)), k);
+            return STATE_RETURN(CAR(term_args), k);
         }
         if (term_f == sci->s_if) {
             if (NIL == term_args) goto syntax_error;
@@ -394,7 +398,7 @@ static _ _sc_step(sc *sc, _ o_state) {
         }
         if (term_f == sci->s_begin) {
             /* (begin) is a NOP */
-            if (NIL == term_args) return STATE(VALUE(VOID), k);
+            if (NIL == term_args) return STATE_RETURN(VOID, k);
             // if (FALSE == IS_PAIR(term_args)) goto syntax_error;
             _ todo = sc_close_args(sc, term_args, env);
             pair *body = object_to_pair(todo);
@@ -508,8 +512,8 @@ void _sc_loop(sc *sc) {
 
 void _sc_abort(sc *sc) {
     sc_bang_set_global(sc, sc_slot_state,
-                       STATE(VALUE(sc->error), 
-                             sc_global(sc, sc_slot_abort_k)));
+                       STATE_RETURN(sc->error, 
+                                    sc_global(sc, sc_slot_abort_k)));
 }
 
 /* Run the above loop in a dynamic context. */

@@ -8491,3 +8491,7 @@ LOG:
   prim return.
 
 
+- deforestation: replace STATE(VALUE(),) constructors with a direct
+  call to _sc_return.
+  phase 1: replace STATE(VALUE(),) with STATE_RETURN(,)
+
