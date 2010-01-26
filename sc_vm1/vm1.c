@@ -163,125 +163,6 @@ _ sc_close_args(sc *sc, _ lst, _ E) {
 _ sc_error_undefined(sc *sc, _ o) { return ERROR("undefined", o); }
 
 
-
-_ _sc_return(sc *sc, _ value, _ k) {
-
-    /* Look at the continuation to determine what to do with the value. 
-       
-       - empty continuation -> halt
-       - argument evaluation -> eval next, or apply
-       - predicate position of an 'if' -> pick yes or no
-       - value position of 'set!' -> mutate environment
-       - ...
-    */
-
-
-    /* A fully reduced value in an empty continuation means the
-       evaluation is finished, and the machine can be halted. */
-    if (MT == k) HALT_VM(value);
-
-    if (TRUE == sc_is_k_if(sc, k)) {
-        k_if *kx = object_to_k_if(k);
-        _ rc = (FALSE == value) ? kx->no : kx->yes;
-        return STATE(rc, kx->k.parent);
-    }
-    if (TRUE == sc_is_k_set(sc, k)) {
-        k_set *kx = object_to_k_set(k);
-        if (FALSE == ENV_SET(kx->env, kx->var, value)) {
-            if (FALSE == ENV_SET(sc_global(sc, kx->tl_slot),  // global toplevel
-                                 kx->var, value)) {
-                return ERROR_UNDEFINED(kx->var);
-            }
-        }
-        return STATE_RETURN(VOID, kx->k.parent);
-    }
-    if (TRUE == sc_is_k_seq(sc, k)) {
-        k_seq *kx = object_to_k_seq(k);
-        /* There is always at least one next expression. */
-        pair *top = CAST(pair, kx->todo);
-        /* If this is the last one, replace the continuation, else
-           update k_seq. */
-        if (NIL == top->cdr) return STATE(top->car, kx->k.parent);
-        return STATE(top->car, sc_make_k_seq(sc, kx->k.parent, top->cdr));
-    }
-    if (TRUE == sc_is_k_args(sc, k)) {
-        /* If there are remaining closures to evaluate, push the value
-           to the update value list and pop the next closure. */
-        k_args *kx = object_to_k_args(k);
-        if (TRUE==IS_PAIR(kx->todo)) {
-            return STATE(CAR(kx->todo),
-                         sc_make_k_args(sc, kx->k.parent,
-                                        CONS(value, kx->done),
-                                        CDR(kx->todo)));
-        }
-        /* No more expressions to be reduced in the current k_apply:
-           perform application. */
-        else {
-            _ fn   = value;
-            _ args = kx->done; 
-
-            // fn == primitive | lambda | continuation
-
-            /* Application of primitive function results in C call. */
-            if (TRUE==IS_PRIM(fn)) {
-                prim *p = object_to_prim(fn);
-                sc->m.prim = p; // for debug
-
-                /* Before entering primitive code, make GC restarts
-                   illegal.  Code that allocates a large amount of
-                   cells needs to re-enable restarts explicitly.  A
-                   small number of cells are guaranteed to exist. */
-                EX->stateful_context = 1;
-                _ rv = _sc_call(sc, prim_fn(p), prim_nargs(p), args);
-                return STATE_RETURN(rv, kx->k.parent);
-            }
-
-            /* Application of abstraction extends the fn_env environment. */
-            if (TRUE==sc_is_lambda(sc, fn)) {
-                lambda *l = CAST(lambda, fn);
-                vector *v = CAST(vector, l->formals);
-                long    n = vector_size(v);
-                _  fn_env = l->env;
-
-                /* Extend environment */
-                int i;
-                for (i = 0; i < n; i ++) {
-                    fn_env = CONS(CONS(v->slot[i], CAR(args)), fn_env);
-                    args = CDR(args);
-                }
-                if (NIL != l->rest) {
-                    fn_env = CONS(CONS(l->rest, args), fn_env);
-                }
-                else {
-                    if (args != NIL) return ERROR("nargs", fn);
-                }
-                return STATE_REDEX(l->term, fn_env,  // close term
-                                   kx->k.parent);    // drop frame
-            } 
-
-            /* Continuation */
-            if (TRUE==sc_is_k(sc, fn)) {
-                _ arg;
-                pair *p = object_to_pair(args);
-                if (!p) { 
-                    arg = VOID; // no args to k -> inserts void.
-                }
-                else {
-                    arg = p->car;
-                    if (p->cdr != NIL) ERROR("nargs", fn);
-                }
-                return STATE_RETURN(arg, fn);
-            }
-
-            /* Unknown applicant type */
-            return ERROR("apply", fn);
-        }
-    }
-    /* Unknown continuation type */
-    return ERROR("cont", k);
-}
-
-
 static _ _sc_step(sc *sc, _ o_state) {
 
     /* The state consists of:
@@ -306,8 +187,8 @@ static _ _sc_step(sc *sc, _ o_state) {
     /* Values */
     if (FALSE==sc_is_redex(sc, s->redex_or_value)) {
         /* Unwrap */
-        value *vx = CAST(value, s->redex_or_value);
-        return _sc_return(sc, vx->datum, k);
+        term = CAST(value, s->redex_or_value)->datum;
+        goto return_value;
     }
     /* Determine term and environment: The redex can contain naked
        values with an implied empty envionment. */
@@ -430,6 +311,124 @@ static _ _sc_step(sc *sc, _ o_state) {
                                 CDR(closed)));
   syntax_error:
     return ERROR("syntax",term);
+
+
+  return_value:
+    /* Look at the continuation to determine what to do with the value. 
+       
+       - empty continuation -> halt
+       - argument evaluation -> eval next, or apply
+       - predicate position of an 'if' -> pick yes or no
+       - value position of 'set!' -> mutate environment
+       - ...
+    */
+
+
+    /* A fully reduced value in an empty continuation means the
+       evaluation is finished, and the machine can be halted. */
+#define value term
+    if (MT == k) HALT_VM(value);
+
+    if (TRUE == sc_is_k_if(sc, k)) {
+        k_if *kx = object_to_k_if(k);
+        _ rc = (FALSE == value) ? kx->no : kx->yes;
+        return STATE(rc, kx->k.parent);
+    }
+    if (TRUE == sc_is_k_set(sc, k)) {
+        k_set *kx = object_to_k_set(k);
+        if (FALSE == ENV_SET(kx->env, kx->var, value)) {
+            if (FALSE == ENV_SET(sc_global(sc, kx->tl_slot),  // global toplevel
+                                 kx->var, value)) {
+                return ERROR_UNDEFINED(kx->var);
+            }
+        }
+        return STATE_RETURN(VOID, kx->k.parent);
+    }
+    if (TRUE == sc_is_k_seq(sc, k)) {
+        k_seq *kx = object_to_k_seq(k);
+        /* There is always at least one next expression. */
+        pair *top = CAST(pair, kx->todo);
+        /* If this is the last one, replace the continuation, else
+           update k_seq. */
+        if (NIL == top->cdr) return STATE(top->car, kx->k.parent);
+        return STATE(top->car, sc_make_k_seq(sc, kx->k.parent, top->cdr));
+    }
+    if (TRUE == sc_is_k_args(sc, k)) {
+        /* If there are remaining closures to evaluate, push the value
+           to the update value list and pop the next closure. */
+        k_args *kx = object_to_k_args(k);
+        if (TRUE==IS_PAIR(kx->todo)) {
+            return STATE(CAR(kx->todo),
+                         sc_make_k_args(sc, kx->k.parent,
+                                        CONS(value, kx->done),
+                                        CDR(kx->todo)));
+        }
+        /* No more expressions to be reduced in the current k_apply:
+           perform application. */
+        else {
+            _ fn   = value;
+            _ args = kx->done; 
+
+            // fn == primitive | lambda | continuation
+
+            /* Application of primitive function results in C call. */
+            if (TRUE==IS_PRIM(fn)) {
+                prim *p = object_to_prim(fn);
+                sc->m.prim = p; // for debug
+
+                /* Before entering primitive code, make GC restarts
+                   illegal.  Code that allocates a large amount of
+                   cells needs to re-enable restarts explicitly.  A
+                   small number of cells are guaranteed to exist. */
+                EX->stateful_context = 1;
+                _ rv = _sc_call(sc, prim_fn(p), prim_nargs(p), args);
+                return STATE_RETURN(rv, kx->k.parent);
+            }
+
+            /* Application of abstraction extends the fn_env environment. */
+            if (TRUE==sc_is_lambda(sc, fn)) {
+                lambda *l = CAST(lambda, fn);
+                vector *v = CAST(vector, l->formals);
+                long    n = vector_size(v);
+                _  fn_env = l->env;
+
+                /* Extend environment */
+                int i;
+                for (i = 0; i < n; i ++) {
+                    fn_env = CONS(CONS(v->slot[i], CAR(args)), fn_env);
+                    args = CDR(args);
+                }
+                if (NIL != l->rest) {
+                    fn_env = CONS(CONS(l->rest, args), fn_env);
+                }
+                else {
+                    if (args != NIL) return ERROR("nargs", fn);
+                }
+                return STATE_REDEX(l->term, fn_env,  // close term
+                                   kx->k.parent);    // drop frame
+            } 
+
+            /* Continuation */
+            if (TRUE==sc_is_k(sc, fn)) {
+                _ arg;
+                pair *p = object_to_pair(args);
+                if (!p) { 
+                    arg = VOID; // no args to k -> inserts void.
+                }
+                else {
+                    arg = p->car;
+                    if (p->cdr != NIL) ERROR("nargs", fn);
+                }
+                return STATE_RETURN(arg, fn);
+            }
+
+            /* Unknown applicant type */
+            return ERROR("apply", fn);
+        }
+    }
+    /* Unknown continuation type */
+    return ERROR("cont", k);
+#undef value
 }
 
 
