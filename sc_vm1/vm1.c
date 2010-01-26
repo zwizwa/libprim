@@ -160,7 +160,7 @@ _ sc_close_args(sc *sc, _ lst, _ E) {
 
 _ sc_error_undefined(sc *sc, _ o) { return ERROR("undefined", o); }
 
-_ _sc_step_value(sc *sc, _ v, _ k) {
+_ _sc_return(sc *sc, _ value, _ k) {
 
     /* Look at the continuation to determine what to do with the value. 
        
@@ -171,9 +171,6 @@ _ _sc_step_value(sc *sc, _ v, _ k) {
        - ...
     */
 
-    /* Unwrap */
-    value *vx = CAST(value, v);
-    _ value = vx->datum;
 
     /* A fully reduced value in an empty continuation means the
        evaluation is finished, and the machine can be halted. */
@@ -304,7 +301,9 @@ static _ _sc_step(sc *sc, _ o_state) {
 
     /* Values */
     if (FALSE==sc_is_redex(sc, s->redex_or_value)) {
-        return _sc_step_value(sc, s->redex_or_value, k);
+        /* Unwrap */
+        value *vx = CAST(value, s->redex_or_value);
+        return _sc_return(sc, vx->datum, k);
     }
     /* Determine term and environment: The redex can contain naked
        values with an implied empty envionment. */
