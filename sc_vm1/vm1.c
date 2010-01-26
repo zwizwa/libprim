@@ -32,7 +32,6 @@ _ _sc_value_as_term(sc *sc, _ value) {
 _ sc_is_lambda(sc *sc, _ o)  { return _is_vector_type(o, TAG_LAMBDA); }
 _ sc_is_state(sc *sc, _ o)   { return _is_vector_type(o, TAG_STATE); }
 _ sc_is_redex(sc *sc, _ o)   { return _is_vector_type(o, TAG_REDEX); }
-_ sc_is_value(sc *sc, _ o)   { return _is_vector_type(o, TAG_VALUE); }
 
 _ sc_is_k_if(sc *sc, _ o)    { return _is_vector_type(o, TAG_K_IF); }
 _ sc_is_k_args(sc *sc, _ o)  { return _is_vector_type(o, TAG_K_ARGS); }
@@ -74,7 +73,6 @@ _ sc_k_parent(sc *sc, _ o) {
 _ sc_make_state(sc *sc, _ C, _ K)                 {return STRUCT(TAG_STATE,   2, C,K);}
 _ sc_make_lambda(sc *sc, _ F, _ R, _ S, _ E)      {return STRUCT(TAG_LAMBDA,  4, F,R,S,E);}
 _ sc_make_redex(sc *sc, _ D, _ E)                 {return STRUCT(TAG_REDEX,   2, D,E);}
-_ sc_make_value(sc *sc, _ D)                      {return STRUCT(TAG_VALUE,   1, D);}
 
 
 // 'P' is in slot 0
@@ -96,7 +94,7 @@ _ sc_write_stderr(sc *sc,  _ o) {
     vector *v = object_to_vector(o);
     if (TRUE == sc_is_state(sc, o))   return _ex_write_vector(EX, "state", v);
     if (TRUE == sc_is_redex(sc, o))   return _ex_write_vector(EX, "redex", v);
-    if (TRUE == sc_is_value(sc, o))   return _ex_write_vector(EX, "value", v);
+    // if (TRUE == sc_is_value(sc, o))   return _ex_write_vector(EX, "value", v);
     if (TRUE == sc_is_error(sc, o))   return _ex_write_vector(EX, "error", v);
 
     if (TRUE == sc_is_k_args(sc, o))  return _ex_write_vector(EX, "k_args", v);
@@ -189,7 +187,7 @@ _ sc_error_undefined(sc *sc, _ o) { return ERROR("undefined", o); }
 #define NEXT_STATE_REDEX(_c, _e, _k)  { term = _c; env = _e; k = _k; goto next_state; }
 
 // #define NEXT_STATE_RETURN(v, k)    return STATE_RETURN(v, k)
-#define NEXT_STATE_RETURN(v, _k)    { term = v; k = _k; goto return_value; }
+#define VM_RETURN(v, _k)    { term = v; k = _k; goto return_value; }
 
 
 
@@ -219,20 +217,11 @@ static inline _ _sc_step(sc *sc) {
     state *s = CAST(state, o_state);
     k = s->continuation;
 
-    /* Values */
-    if (FALSE==sc_is_redex(sc, s->redex_or_value)) {
-        /* Unwrap */
-        env  = NIL;
-        term = CAST(value, s->redex_or_value)->datum;
-        goto return_value;
-    }
     /* Determine term and environment: The redex can contain naked
        values with an implied empty envionment. */
-    else {
-        redex *r = CAST(redex, s->redex_or_value);
-        env  = r->env;
-        term = r->term;
-    }
+    redex *r = CAST(redex, s->redex_or_value);
+    env  = r->env;
+    term = r->term;
 
     /* This is a jump target to enter the next state without saving
      * the global state registers. */
@@ -266,7 +255,7 @@ static inline _ _sc_step(sc *sc) {
                 return ERROR_UNDEFINED(term);
             }
         }
-        NEXT_STATE_RETURN(CDR(slot), k);
+        VM_RETURN(CDR(slot), k);
     }
 
     /* Literal Value */
@@ -274,7 +263,7 @@ static inline _ _sc_step(sc *sc) {
         _ val = (TRUE==sc_is_lambda(sc, term)) 
             ? s->redex_or_value : term;
 
-        NEXT_STATE_RETURN(val,k);
+        VM_RETURN(val,k);
     }
 
     _ term_f    = CAR(term);
@@ -301,11 +290,11 @@ static inline _ _sc_step(sc *sc) {
             if (NIL == CDR(body)) body = CAR(body);
             else body = CONS(sci->s_begin, body);
             _ l = sc_make_lambda(sc, formals, rest, body, env);
-            NEXT_STATE_RETURN(l, k);
+            VM_RETURN(l, k);
         }
         if (term_f == sci->s_quote) {
             if (NIL == term_args) goto syntax_error;
-            NEXT_STATE_RETURN(CAR(term_args), k);
+            VM_RETURN(CAR(term_args), k);
         }
         if (term_f == sci->s_if) {
             if (NIL == term_args) goto syntax_error;
@@ -329,7 +318,7 @@ static inline _ _sc_step(sc *sc) {
         }
         if (term_f == sci->s_begin) {
             /* (begin) is a NOP */
-            if (NIL == term_args) NEXT_STATE_RETURN(VOID, k);
+            if (NIL == term_args) VM_RETURN(VOID, k);
             // if (FALSE == IS_PAIR(term_args)) goto syntax_error;
             _ todo = sc_close_args(sc, term_args, env);
             pair *body = object_to_pair(todo);
@@ -393,7 +382,7 @@ static inline _ _sc_step(sc *sc) {
                 return ERROR_UNDEFINED(kx->var);
             }
         }
-        NEXT_STATE_RETURN(VOID, kx->k.parent);
+        VM_RETURN(VOID, kx->k.parent);
     }
     if (TRUE == sc_is_k_seq(sc, k)) {
         k_seq *kx = object_to_k_seq(k);
@@ -433,7 +422,7 @@ static inline _ _sc_step(sc *sc) {
                    small number of cells are guaranteed to exist. */
                 EX->stateful_context = 1;
                 _ rv = _sc_call(sc, prim_fn(p), prim_nargs(p), args);
-                NEXT_STATE_RETURN(rv, kx->k.parent);
+                VM_RETURN(rv, kx->k.parent);
             }
 
             /* Application of abstraction extends the fn_env environment. */
@@ -470,7 +459,7 @@ static inline _ _sc_step(sc *sc) {
                     arg = p->car;
                     if (p->cdr != NIL) ERROR("nargs", fn);
                 }
-                NEXT_STATE_RETURN(arg, fn);
+                VM_RETURN(arg, fn);
             }
 
             /* Unknown applicant type */
@@ -489,7 +478,7 @@ static inline _ _sc_step(sc *sc) {
 
 #undef NEXT_STATE
 #undef NEXT_STATE_REDEX
-#undef NEXT_STATE_RETURN
+#undef VM_RETURN
 
 
 

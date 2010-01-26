@@ -76,11 +76,6 @@ typedef struct {
     _ env;
 } redex;
 
-typedef struct {
-    vector v;
-    _ datum;
-} value;
-
 /* All continuation frames have a parent frame, and a mark dictionary.
    The marks can be used to implement partial continuations, dynamic
    binding, ... as in
@@ -127,7 +122,6 @@ typedef struct {
 DEF_STRUCT(state,  TAG_STATE)
 DEF_STRUCT(lambda, TAG_LAMBDA)
 DEF_STRUCT(redex,  TAG_REDEX)
-DEF_STRUCT(value,  TAG_VALUE)
 
 DEF_STRUCT(k_args,  TAG_K_ARGS)
 DEF_STRUCT(k_if,    TAG_K_IF)

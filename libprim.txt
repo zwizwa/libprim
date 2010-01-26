@@ -8510,5 +8510,7 @@ LOG:
   problem is that _sc_yield uses this + the state hacks too.
 
 - its simplest to remove yield for now, and put it back when the
-  transformation is done.
+  transformation is done. OK
+
+- VALUE is removed completely.
 
