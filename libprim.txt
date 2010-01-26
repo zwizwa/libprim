@@ -8495,3 +8495,11 @@ LOG:
   call to _sc_return.
   phase 1: replace STATE(VALUE(),) with STATE_RETURN(,)
 
+
+- flip STATE and STATE_RETURN / STATE_REDEX: make the latter two fast
+  and have STATE unpack a redex and call STATE_REDEX.
+
+  problem: the redex packing makes things difficult.  it might be
+  simpler to save the current environment in continuations than in
+  redexes.   it's not so simple after all..
+

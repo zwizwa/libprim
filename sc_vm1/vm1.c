@@ -378,14 +378,13 @@ static _ _sc_step(sc *sc, _ o_state) {
         if (term_f == sci->s_if) {
             if (NIL == term_args) goto syntax_error;
             if (NIL == CDR(term_args)) goto syntax_error;
-            _ cond = REDEX(CAR(term_args),env);
             _ yes  = REDEX(CADR(term_args),env);
-            _ no   = 
-                (NIL == _CDDR(term_args)) ? 
-                VALUE(VOID) :
-                REDEX(_CADDR(term_args),env);
-            return STATE(cond, sc_make_k_if(sc, k, yes,no));
-                                              
+            _ no   = REDEX(CADDR(term_args),env);
+            /* _ no   =  */
+            /*     (NIL == _CDDR(term_args)) ?  */
+            /*     VALUE(VOID) : */
+            /*     REDEX(_CADDR(term_args),env); */
+            return STATE_REDEX(CAR(term_args), env, sc_make_k_if(sc, k, yes,no));
         }
         if (term_f == sci->s_bang_set) {
             if (NIL == term_args) goto syntax_error;
