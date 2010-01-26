@@ -466,9 +466,9 @@
   (lambda p (if (null? p) (global n) (set-global! n (car p)))))
 
 ;; See scheme.h -> sc_slot_*
-(define current-input-port  (make-global-access 4))
-(define current-output-port (make-global-access 5))
-(define current-error-port  (make-global-access 6))
+(define current-input-port  (make-global-access 3))
+(define current-output-port (make-global-access 4))
+(define current-error-port  (make-global-access 5))
 
 
 (define close-output-port close-port)
