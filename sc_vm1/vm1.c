@@ -12,8 +12,13 @@
 #include <sc/sc.h_prims>
 
 
-#define STATE_RETURN(v, k)   STATE(VALUE(v), k)
-#define STATE_REDEX(c, e, k) STATE(REDEX(c,e),k)
+#define STATE_RETURN(v, k)      STATE(VALUE(v), k)
+#define STATE_REDEX(c, e, k)    STATE(REDEX(c,e),k)
+
+#define NEXT_STATE_RETURN(v, k)    return STATE_RETURN(v, k)
+#define NEXT_STATE_REDEX(c, e, k)  return STATE_REDEX(c, e, k)
+#define NEXT_STATE(r, k)           return STATE(r, k)
+
 static inline void _sc_set_state(sc *sc, _ state) {
     sc_bang_set_global(sc, _sc_slot_state, state);
 }
@@ -170,7 +175,17 @@ _ sc_close_args(sc *sc, _ lst, _ E) {
 _ sc_error_undefined(sc *sc, _ o) { return ERROR("undefined", o); }
 
 
-static _ _sc_step(sc *sc, _ o_state) {
+static inline _ _sc_step(sc *sc) {
+
+    /* From here up to the invocation of primitive code it is OK to
+       perform a restart when a garbage collection occurs.  Reserve
+       some cells so the interpreter dispatch won't get stuck in a
+       restart loop. */
+
+    EX->stateful_context = 0;
+    if (gc_available(EX->gc) < EX->gc_guard_cells) gc_collect(EX->gc);
+
+    _ o_state = _sc_get_state(sc);
 
     /* The state consists of:
 
@@ -495,18 +510,10 @@ _ sc_bang_abort_k(sc *sc, _ k) {
 
 void _sc_loop(sc *sc) {
     for(;;) {
-        /* From here to the invocation of primitive code it is OK
-           to perform a restart when a garbage collection occurs.
-           We guarantee a minimum amount of free cells to
-           primitive code, and will trigger collection here in
-           case there is not enough. */
-        EX->stateful_context = 0;
-        if (gc_available(EX->gc) < EX->gc_guard_cells) gc_collect(EX->gc);
-        
         /* The _sc_step() function will perform a single state
            update, or exit through sc->m.except in which case
            the sc_slot_state field is not updated. */
-        _sc_set_state(sc, _sc_step(sc, _sc_get_state(sc)));
+        _sc_set_state(sc, _sc_step(sc));
     }
 }
 
