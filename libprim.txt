@@ -8556,3 +8556,6 @@ Date: Tue Jan 26 20:30:52 CET 2010
 
 Speedup isn't so great.  I'm surprised.  So what's next?  Speedup
 varrefs.  This requires compilation to some intermediate structure.
+
+Implemented `apply1' and `eval-core' without the weird ktx trampoline.
+Using direct state modification and EXCEPT_RESTART instead.
