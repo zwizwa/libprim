@@ -137,7 +137,7 @@ void _px_run(pf *pf) {
     }
     goto inner_loop;
 
-    case EXCEPT_GC:
+    case EXCEPT_RESTART:
         /* Restarts can only happen in primitives.  The rest of the
            interpreter is linear.  We re-push the IP because it has
            been popped right before execution. */

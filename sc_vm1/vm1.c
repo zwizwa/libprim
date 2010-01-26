@@ -51,25 +51,11 @@ _ sc_k_parent(sc *sc, _ o) {
 
 
 /* Constructors */
-// C = closure
-// K = continuation
-// F = formal argument vector
-// R = rest args
-// S = syntax term (REDEX)
-// D = done (list of reduced closures)
-// T = todo (list of non-reduced closures)
-// E = environment (Et = toplevel)
-// M = macro environment (Et = toplevel)
-// P = parent continuation
-// D = datum
-
-
-_ sc_make_state(sc *sc, _ C, _ K)                 {return STRUCT(TAG_STATE,   2, C,K);}
 _ sc_make_lambda(sc *sc, _ F, _ R, _ S, _ E)      {return STRUCT(TAG_LAMBDA,  4, F,R,S,E);}
 _ sc_make_redex(sc *sc, _ D, _ E)                 {return STRUCT(TAG_REDEX,   2, D,E);}
 
 
-// 'P' is in slot 0
+// 'P' (parent) is in slot 0
 // continuations are created with an empty mark list
 _ sc_make_k_args(sc *sc, _ P, _ D, _ T)      {return STRUCT(TAG_K_ARGS,   4, P,NIL,D,T);}
 _ sc_make_k_if(sc *sc, _ P, _ Y, _ N)        {return STRUCT(TAG_K_IF,     4, P,NIL,Y,N);}
@@ -134,30 +120,16 @@ _ sc_bang_abort_k(sc *sc, _ k) {
 
 /* INTERPRETER */
 
-/* If we pick evaluation to go from left to right, a continuation
-   formed by a hole in the evaluation of (X_1 ... X_n) at position h
-   is a list of frames
-   
-       K = (K_ K_ ...) 
+/* This is a straightforward CEK machine.
 
-   where each frame 
+    C = open term
+    E = free variable environment
+    K = continuation stack
 
-       K_ = ((V_{h-1} ... V_1) 
-             (X_{h+1} ... X_n))
-
-   is a list of values V and a list of closures X.  A closure 
-
-       X = (T E)
-
-   where T is an open term and E is and environment mapping variables
-   (identifiers) V to closures X.
-
-       E = ((I X) (I X) ...)
-
-   Other continuations (if, set!, ...) work similarly: they indicate
-   what to do next with the recently reduced closure.
+   The interpreter consists largely of two parts: instruction
+   dispatch and continuation dispatch.
+    
 */
-
 
 /* Propagate environment during reduction. */
 _ sc_close_args(sc *sc, _ lst, _ E) {
@@ -446,13 +418,14 @@ _ sc_gc(sc* sc) {
     return NIL; // not reached
 }
 
+/* Eval and apply both modify the current continuation and thus cannot
+   use the default return path; they restart instead. */
 _ sc_apply1(sc *sc, _ fn, _ args) {
     sc->k = sc_k_parent(sc, sc->k);  // drop `apply1' k_apply frame
     sc->k = sc_make_k_args(sc, sc->k, args, NIL);
     sc->c = _sc_value_as_term(sc, fn);
     _ex_restart(EX); // bypass normal primitive return
 }
-
 _ sc_eval_core(sc *sc, _ expr) {
     sc->c = expr;
     sc->e = NIL;
