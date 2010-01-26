@@ -553,7 +553,7 @@ sc *_sc_new(int argc, const char **argv) {
 
 
     /* Toplevel abort continuation */
-    _ done = CONS(FIND(TOPLEVEL(),SYMBOL("print-error")),NIL);
+    _ done = CONS(FIND(TOPLEVEL(),SYMBOL("fatal-error")),NIL);
     _ abort_k = sc_make_k_args(sc, MT, done, NIL);
 
     sc_bang_abort_k(sc, abort_k);

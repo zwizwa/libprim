@@ -1131,15 +1131,21 @@ _ ex_trap(ex *ex) {
     return VOID;
 }
 
-_ ex_raise_error(ex *ex, _ tag_o, _ arg_o) {
-    ex->error_tag = tag_o;
-    ex->error_arg = arg_o;
-    if (ex->entries) longjmp(ex->except, EXCEPT_ABORT);
-    _ex_printf(ex, "ERROR (outside of VM): ");
+
+_ ex_fatal_error(ex *ex, _ tag_o, _ arg_o) {
+    _ex_printf(ex, "FATAL ERROR: ");
     ex->write(ex, tag_o); _ex_printf(ex, ": ");
     ex->write(ex, arg_o); _ex_printf(ex, "\n");
     TRAP();
     exit(1);
+}
+
+_ ex_raise_error(ex *ex, _ tag_o, _ arg_o) {
+    ex->error_tag = tag_o;
+    ex->error_arg = arg_o;
+    if (ex->entries) longjmp(ex->except, EXCEPT_ABORT);
+    _ex_printf(ex, "(out-of-context) ");
+    return ex_fatal_error(ex, tag_o, arg_o);
 }
 _ ex_halt_vm(ex *ex, _ value) {
     ex->error_tag = SYMBOL("halt");

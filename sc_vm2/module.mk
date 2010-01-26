@@ -21,6 +21,9 @@ SC_VM2_TEST_CMD := \
 		--eval '(begin (load "vm1vm2.scm") (repl))'
 
 .PHONY: sc_vm2_test
+
+sv_vm2_all: $(SC_VM2)
+
 sc_vm2_test: $(SC_VM2)
 	$(SC_VM2_TEST_CMD)
 
