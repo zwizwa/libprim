@@ -332,7 +332,7 @@ static _ _sc_loop(sc *sc) {
 
     /* A fully reduced value in an empty continuation means the
        evaluation is finished, and the machine can be halted. */
-#define value term
+#define value term  // shares the slot
     if (MT == k) HALT_VM(value);
 
     if (TRUE == sc_is_k_if(sc, k)) {
