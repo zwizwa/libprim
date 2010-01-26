@@ -8548,3 +8548,4 @@ $ time build/sc_vm3/sc_vm3 --boot sc_vm1/boot.scm --eval '(begin)'
 real	0m1.106s
 user	0m1.062s
 sys	0m0.001s
+
