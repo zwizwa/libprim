@@ -107,7 +107,14 @@ _ sc_write_stderr(sc *sc,  _ o) {
 
 
 
+/* COMPILER */
 
+/* Some operations are best performed only once.  We transform the
+ * code into a form that makes interpretation more efficient. */
+
+_ sc_compile_vm1(sc *sc, _ form) {
+    return form;
+}
 
 
 
@@ -345,7 +352,9 @@ static _ _sc_step(sc *sc, _ o_state) {
 
     /* Special Form */
     if (TRUE==IS_SYMBOL(term_f)) {
-        if (term_f == ((sc_interpreter*)sc)->s_lambda) {
+        sc_interpreter *sci = (sc_interpreter*)sc;
+
+        if (term_f == sci->s_lambda) {
             if (NIL == term_args) goto syntax_error;
             _ argspec = CAR(term_args);
             _ named;
@@ -360,15 +369,15 @@ static _ _sc_step(sc *sc, _ o_state) {
                expression as a `begin' sequencing form. */
             _ body = CDR(term_args);
             if (NIL == CDR(body)) body = CAR(body);
-            else body = CONS(((sc_interpreter*)sc)->s_begin, body);
+            else body = CONS(sci->s_begin, body);
             _ l = sc_make_lambda(sc, formals, rest, body, env);
             return STATE(VALUE(l), k);
         }
-        if (term_f == ((sc_interpreter*)sc)->s_quote) {
+        if (term_f == sci->s_quote) {
             if (NIL == term_args) goto syntax_error;
             return STATE(VALUE(CAR(term_args)), k);
         }
-        if (term_f == ((sc_interpreter*)sc)->s_if) {
+        if (term_f == sci->s_if) {
             if (NIL == term_args) goto syntax_error;
             if (NIL == CDR(term_args)) goto syntax_error;
             _ cond = REDEX(CAR(term_args),env);
@@ -380,7 +389,7 @@ static _ _sc_step(sc *sc, _ o_state) {
             return STATE(cond, sc_make_k_if(sc, k, yes,no));
                                               
         }
-        if (term_f == ((sc_interpreter*)sc)->s_bang_set) {
+        if (term_f == sci->s_bang_set) {
             if (NIL == term_args) goto syntax_error;
             _ var = CAR(term_args);
             if (FALSE == IS_SYMBOL(var)) goto syntax_error;
@@ -389,7 +398,7 @@ static _ _sc_step(sc *sc, _ o_state) {
             return STATE(REDEX(expr, env),
                          sc_make_k_set(sc, k, var, env, sc_slot_toplevel));
         }
-        if (term_f == ((sc_interpreter*)sc)->s_begin) {
+        if (term_f == sci->s_begin) {
             /* (begin) is a NOP */
             if (NIL == term_args) return STATE(VALUE(VOID), k);
             // if (FALSE == IS_PAIR(term_args)) goto syntax_error;
@@ -400,7 +409,7 @@ static _ _sc_step(sc *sc, _ o_state) {
             if (NIL == body->cdr) return STATE(body->car, k);
             return STATE(body->car, sc_make_k_seq(sc, k, body->cdr));
         }                
-        if (term_f == ((sc_interpreter*)sc)->s_letcc) {
+        if (term_f == sci->s_letcc) {
             if (NIL == term_args) goto syntax_error;
             if (NIL == CDR(term_args)) goto syntax_error;
             _ var = CAR(term_args);
@@ -530,7 +539,8 @@ static prim_def scheme_prims[] = vm1_table_init;
 
 
 sc *_sc_new(int argc, const char **argv) {
-    sc *sc = calloc(1, sizeof(sc_interpreter));
+    sc_interpreter *sci = calloc(1, sizeof(sc_interpreter));
+    sc *sc = &sci->super;
     sc_bootinfo info;
     if (_sc_init(sc, argc, argv, &info)) {
         free(sc);
@@ -538,12 +548,12 @@ sc *_sc_new(int argc, const char **argv) {
     }
 
     /* Cached identifiers for use in interpreter. */
-    ((sc_interpreter*)sc)->s_lambda   = SYMBOL("%lambda");
-    ((sc_interpreter*)sc)->s_if       = SYMBOL("if");
-    ((sc_interpreter*)sc)->s_bang_set = SYMBOL("set!");
-    ((sc_interpreter*)sc)->s_quote    = SYMBOL("quote");
-    ((sc_interpreter*)sc)->s_begin    = SYMBOL("begin");
-    ((sc_interpreter*)sc)->s_letcc    = SYMBOL("letcc");
+    sci->s_lambda   = SYMBOL("%lambda");
+    sci->s_if       = SYMBOL("if");
+    sci->s_bang_set = SYMBOL("set!");
+    sci->s_quote    = SYMBOL("quote");
+    sci->s_begin    = SYMBOL("begin");
+    sci->s_letcc    = SYMBOL("letcc");
 
     /* Primitive defs */
     _sc_def_prims(sc, scheme_prims);
