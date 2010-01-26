@@ -200,11 +200,10 @@ void _sc_mark_roots(sc *sc, gc_finalize fin) {
     }
     MARK(sc->global);
     MARK(sc->error);
-#ifdef SC_NEW_VM
+
     MARK(sc->c);
     MARK(sc->e);
     MARK(sc->k);
-#endif
 
     if (fin) {
         /* We're given a finalizer continuation to aid us in aborting

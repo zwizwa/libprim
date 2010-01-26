@@ -12,12 +12,6 @@
 #include <sc/sc.h_prims>
 
 
-static inline void _sc_set_state(sc *sc, _ state) {
-    sc_bang_set_global(sc, _sc_slot_state, state);
-}
-static inline _ _sc_get_state(sc *sc) {
-    return sc_global(sc, _sc_slot_state);
-}
 _ _sc_value_as_term(sc *sc, _ value) {
     return CONS(SYMBOL("quote"),  CONS(value, NIL));
 }
@@ -94,7 +88,6 @@ _ sc_write_stderr(sc *sc,  _ o) {
     vector *v = object_to_vector(o);
     if (TRUE == sc_is_state(sc, o))   return _ex_write_vector(EX, "state", v);
     if (TRUE == sc_is_redex(sc, o))   return _ex_write_vector(EX, "redex", v);
-    // if (TRUE == sc_is_value(sc, o))   return _ex_write_vector(EX, "value", v);
     if (TRUE == sc_is_error(sc, o))   return _ex_write_vector(EX, "error", v);
 
     if (TRUE == sc_is_k_args(sc, o))  return _ex_write_vector(EX, "k_args", v);
@@ -179,53 +172,25 @@ _ sc_error_undefined(sc *sc, _ o) { return ERROR("undefined", o); }
 
 
 // #define STATE_RETURN(v, k)      STATE(VALUE(v), k)
-#define STATE_REDEX(c, e, k)    STATE(REDEX(c,e),k)
-#define NEXT_STATE(r, k)        return STATE(r, k)
+// #define STATE_REDEX(c, e, k)    STATE(REDEX(c,e),k)
+// #define NEXT_STATE(r, k)        return STATE(r, k)
 
+#define NEXT_STATE_REDEX(_c, _e, _k)  { sc->c = _c; sc->e = _e; sc->k = _k; goto next_state; }
+#define VM_RETURN(v, _k)              { term = v; sc->k = k = _k; goto return_value; }
 
-// #define NEXT_STATE_REDEX(c, e, k)  return STATE_REDEX(c, e, k)
-#define NEXT_STATE_REDEX(_c, _e, _k)  { term = _c; env = _e; k = _k; goto next_state; }
-
-// #define NEXT_STATE_RETURN(v, k)    return STATE_RETURN(v, k)
-#define VM_RETURN(v, _k)    { term = v; k = _k; goto return_value; }
-
+#define NEXT_STATE(r,k) { redex *x = CAST(redex, r); NEXT_STATE_REDEX(x->term, x->env, k); }
 
 
 static inline _ _sc_step(sc *sc) {
 
-    _ term;      // C
-    _ env;       // E
-    _ k;         // K
-    
-
-    _ o_state = _sc_get_state(sc);
-
-
-    /* The state consists of:
-
-       - a closure: a possibly reducible (redex or value), open term
-                    and its environment
-       
-       - a continuation: a data structure that encodes what to do with
-                         a fully reduced value.
-
-       The machine tries to either reduce the redex, or update the
-       current continuation with the current value (= non-reducible
-       closure). */
-
-
-    state *s = CAST(state, o_state);
-    k = s->continuation;
-
-    /* Determine term and environment: The redex can contain naked
-       values with an implied empty envionment. */
-    redex *r = CAST(redex, s->redex_or_value);
-    env  = r->env;
-    term = r->term;
-
+    _ term, env, k;
     /* This is a jump target to enter the next state without saving
      * the global state registers. */
   next_state:
+
+    term = sc->c;
+    env  = sc->e;
+    k    = sc->k;
 
     /* From here up to the invocation of primitive code it is OK to
        perform a restart when a garbage collection occurs.  Reserve
@@ -234,8 +199,6 @@ static inline _ _sc_step(sc *sc) {
 
     EX->stateful_context = 0;
     if (gc_available(EX->gc) < EX->gc_guard_cells) gc_collect(EX->gc);
-
-
 
 
     /* Abstract Syntax: perform a single reduction step.
@@ -260,10 +223,7 @@ static inline _ _sc_step(sc *sc) {
 
     /* Literal Value */
     if (FALSE==IS_PAIR(term)) {
-        _ val = (TRUE==sc_is_lambda(sc, term)) 
-            ? s->redex_or_value : term;
-
-        VM_RETURN(val,k);
+        VM_RETURN(term,k);
     }
 
     _ term_f    = CAR(term);
@@ -489,9 +449,9 @@ static inline _ _sc_step(sc *sc) {
 /* GC: set continuation manually, since since the interpreter aborts
    and restarts the current step. */
 _ sc_gc(sc* sc) {
-    state *s = CAST(state, _sc_get_state(sc));
-    _ k = sc_k_parent(sc, s->continuation);    // drop `gc' k_apply frame
-    _sc_set_state(sc, STATE_REDEX(_sc_value_as_term(sc, VOID), NIL, k)); // update state manually    
+    sc->k = sc_k_parent(sc, sc->k);    // drop `gc' k_apply frame
+    sc->c = _sc_value_as_term(sc, VOID);
+    sc->e = NIL;
     EX->stateful_context = 0;  // enable restarts
     gc_collect(sc->m.gc);      // collect will restart at sc->state
     return NIL; // not reached
@@ -528,13 +488,14 @@ void _sc_loop(sc *sc) {
         /* The _sc_step() function will perform a single state
            update, or exit through sc->m.except in which case
            the sc_slot_state field is not updated. */
-        _sc_set_state(sc, _sc_step(sc));
+        _sc_step(sc);
     }
 }
 
 void _sc_abort(sc *sc) {
-    _sc_set_state(sc, STATE_REDEX(_sc_value_as_term(sc, sc->error), NIL,
-                                  sc_global(sc, sc_slot_abort_k)));
+    sc->c = _sc_value_as_term(sc, sc->error);
+    sc->e = NIL;
+    sc->k = sc_global(sc, sc_slot_abort_k);
 }
 
 /* Run the above loop in a dynamic context. */
@@ -545,7 +506,9 @@ _ _sc_continue(sc *sc) {
 
 /* Set the current VM state to start evaluating an expression on _sc_continue() */
 void _sc_prepare(sc *sc, _ expr) {
-    _sc_set_state(sc, STATE_REDEX(expr,NIL,MT));
+    sc->c = expr;
+    sc->e = NIL;
+    sc->k = MT;
 }
 
 _ _sc_top(sc *sc, _ expr) {

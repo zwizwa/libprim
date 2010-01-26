@@ -27,12 +27,10 @@ struct _scheme {
        leaf types and a garbage collector. */
     ex m;
 
-#ifdef SC_NEW_VM
     /* Machine state */
     _ c;   // code 
     _ e;   // environment
     _ k;   // continuation
-#endif
 
     /* Highlevel global state data is accessible from Scheme. */
     _ global;
