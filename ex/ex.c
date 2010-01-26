@@ -224,7 +224,7 @@ long _ex_unwrap_integer(ex *ex, object o) {
 }
 _ _ex_restart(ex *ex) {
     if (ex->entries) {
-        longjmp(ex->except, EXCEPT_GC);
+        longjmp(ex->except, EXCEPT_RESTART);
     }
     _ex_printf(ex, "ERROR: attempt restart outside of the main loop.\n");
     ex_trap(ex);

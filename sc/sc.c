@@ -305,7 +305,7 @@ _ _sc_continue_dynamic(sc *sc, sc_loop _sc_loop, sc_abort _sc_abort) {
             sc->error = FALSE;
         }
 
-        case EXCEPT_GC:
+        case EXCEPT_RESTART:
             /* Continue with current state = restart step. */
             sc->m.prim = NULL;
         }

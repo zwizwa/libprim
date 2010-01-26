@@ -78,7 +78,6 @@
           (list 'quote (cadr form))
           (caddr form))))
 
-(define apply1 (lambda (fn args) (letcc k ((apply-ktx k args) fn))))
 (define apply apply1)
 
 

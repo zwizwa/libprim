@@ -124,10 +124,10 @@ long _ex_unwrap_integer(ex *ex, object o);
 #define CAST_INTEGER(x) _ex_unwrap_integer(EX, x)
 #define CAST_CHAR(x)    _ex_unwrap_char(EX, x)
 
-#define EXCEPT_TRY   0
-#define EXCEPT_ABORT 1 /* abort to default toplevel continuation. */
-#define EXCEPT_GC    2 /* garbage collection finished: restart primitive */
-#define EXCEPT_HALT  3 /* machine halt */
+#define EXCEPT_TRY     0
+#define EXCEPT_ABORT   1 /* abort to default toplevel continuation. */
+#define EXCEPT_RESTART 2 /* restart primitive (i.e. garbage collection finished) */
+#define EXCEPT_HALT    3 /* machine halt */
 
 _ _ex_make_bytes(ex *ex, int size);
 _ _ex_make_string(ex *ex, const char *str);

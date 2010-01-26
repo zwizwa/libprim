@@ -8549,3 +8549,10 @@ real	0m1.106s
 user	0m1.062s
 sys	0m0.001s
 
+
+
+Entry: Compilation
+Date: Tue Jan 26 20:30:52 CET 2010
+
+Speedup isn't so great.  I'm surprised.  So what's next?  Speedup
+varrefs.  This requires compilation to some intermediate structure.

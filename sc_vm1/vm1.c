@@ -13,7 +13,8 @@
 
 
 _ _sc_value_as_term(sc *sc, _ value) {
-    return CONS(SYMBOL("quote"),  CONS(value, NIL));
+    return CONS(((sc_interpreter*)sc)->s_quote,
+                CONS(value, NIL));
 }
 
 
@@ -24,7 +25,6 @@ _ _sc_value_as_term(sc *sc, _ value) {
 
 /* Predicates */
 _ sc_is_lambda(sc *sc, _ o)  { return _is_vector_type(o, TAG_LAMBDA); }
-_ sc_is_state(sc *sc, _ o)   { return _is_vector_type(o, TAG_STATE); }
 _ sc_is_redex(sc *sc, _ o)   { return _is_vector_type(o, TAG_REDEX); }
 
 _ sc_is_k_if(sc *sc, _ o)    { return _is_vector_type(o, TAG_K_IF); }
@@ -112,12 +112,6 @@ _ sc_gc_used(sc *sc) {
 _ sc_bang_abort_k(sc *sc, _ k) {
     return sc_bang_set_global(sc, sc_slot_abort_k, k);
 }
-/* A ktx allows modification of a continuation frame.  The result can
-   be invoked as a continuation.  FIXME: change these to primitives
-   that update VM state. */
-_ sc_apply_ktx(sc* sc, _ k, _ args) {
-    return sc_make_k_args(sc, k, args, NIL);
-}
 _ sc_eval_ktx(sc *sc, _ k, _ expr) {
     // sc_write_stderr(sc, expr);
     return sc_make_k_seq(sc, k, CONS(REDEX(expr, NIL),NIL));
@@ -132,9 +126,6 @@ _ sc_eval_ktx(sc *sc, _ k, _ expr) {
 /* Some operations are best performed only once.  We transform the
  * code into a form that makes interpretation more efficient. */
 
-_ sc_compile_vm1(sc *sc, _ form) {
-    return form;
-}
 
 
 
@@ -457,6 +448,15 @@ _ sc_gc(sc* sc) {
     gc_collect(sc->m.gc);      // collect will restart at sc->state
     return NIL; // not reached
 }
+
+_ sc_apply1(sc *sc, _ fn, _ args) {
+    sc->k = sc_k_parent(sc, sc->k);  // drop `apply1' k_apply frame
+    sc->k = sc_make_k_args(sc, sc->k, args, NIL);
+    sc->c = _sc_value_as_term(sc, fn);
+    _ex_restart(EX); // bypass normal primitive return
+}
+
+
 
 
 
