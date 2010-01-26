@@ -112,10 +112,7 @@ _ sc_gc_used(sc *sc) {
 _ sc_bang_abort_k(sc *sc, _ k) {
     return sc_bang_set_global(sc, sc_slot_abort_k, k);
 }
-_ sc_eval_ktx(sc *sc, _ k, _ expr) {
-    // sc_write_stderr(sc, expr);
-    return sc_make_k_seq(sc, k, CONS(REDEX(expr, NIL),NIL));
-}
+
 
 
 
@@ -456,6 +453,12 @@ _ sc_apply1(sc *sc, _ fn, _ args) {
     _ex_restart(EX); // bypass normal primitive return
 }
 
+_ sc_eval_core(sc *sc, _ expr) {
+    sc->c = expr;
+    sc->e = NIL;
+    sc->k = sc_k_parent(sc, sc->k);  // drop `apply1' k_apply frame
+    _ex_restart(EX);
+}
 
 
 

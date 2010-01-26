@@ -47,8 +47,10 @@
          (car expr))
         expr)))
 ;; Implemented in terms of primitive continuation transformers (ktx).
+;(def-toplevel! 'eval
+;  (%lambda (expr) (letcc k ((eval-ktx k (expand expr))))))
 (def-toplevel! 'eval
-  (%lambda (expr) (letcc k ((eval-ktx k (expand expr))))))
+  (%lambda (expr) (eval-core (expand expr))))
 
 ;; Evaluate expressions in sequence.  This makes sure macros take
 ;; effect immediately after definition.
