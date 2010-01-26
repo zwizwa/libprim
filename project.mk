@@ -70,7 +70,7 @@ _CC := $(CC) $(CPPFLAGS) $(CFLAGS) $(OPTI_CFLAGS) $(DEBUG_CFLAGS)
 $(B)/%.o: $(S)/%.c 
 	$(call build, $(_CC) -o $@ -c $<)
 $(B)/%.test: $(S)/%.c
-	$(call build, $(_CC) $< -o $@ $(LDFLAGS))
+	$(call build, $(_CC) $(LDFLAGS) $< -o $@)
 
 $(B)/%.h_prims: $(S)/%.c
 	$(call build, $(MZSCHEME) $(dir $<)gen_prims.ss $< >$@)

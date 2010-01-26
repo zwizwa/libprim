@@ -63,7 +63,7 @@ $var{target} = $target;
 sub troubles {
     my $testname = shift;
     my @args = 
-        ($var{make}, "-s", "test/$testname\.test");
+        ($var{make}, "-s", "$var{builddir}/test/$testname\.test");
         #($var{make}, "-s", "-C", "test", "$testname\.test");
     my $retval = system (@args);
     return $retval;

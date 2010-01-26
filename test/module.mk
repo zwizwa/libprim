@@ -1,1 +1,1 @@
-SRC = $(TESTS)
+MODULE_OBJ = $(TESTS)
