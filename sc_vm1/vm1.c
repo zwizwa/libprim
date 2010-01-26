@@ -237,7 +237,7 @@ static inline _ _sc_step(sc *sc) {
                 return ERROR_UNDEFINED(term);
             }
         }
-        return STATE_RETURN(CDR(slot), k);
+        NEXT_STATE_RETURN(CDR(slot), k);
     }
 
     /* Literal Value */
@@ -245,7 +245,7 @@ static inline _ _sc_step(sc *sc) {
         _ val = (TRUE==sc_is_lambda(sc, term)) 
             ? s->redex_or_value : term;
 
-        return STATE_RETURN(val,k);
+        NEXT_STATE_RETURN(val,k);
     }
 
     _ term_f    = CAR(term);
@@ -272,11 +272,11 @@ static inline _ _sc_step(sc *sc) {
             if (NIL == CDR(body)) body = CAR(body);
             else body = CONS(sci->s_begin, body);
             _ l = sc_make_lambda(sc, formals, rest, body, env);
-            return STATE_RETURN(l, k);
+            NEXT_STATE_RETURN(l, k);
         }
         if (term_f == sci->s_quote) {
             if (NIL == term_args) goto syntax_error;
-            return STATE_RETURN(CAR(term_args), k);
+            NEXT_STATE_RETURN(CAR(term_args), k);
         }
         if (term_f == sci->s_if) {
             if (NIL == term_args) goto syntax_error;
@@ -287,7 +287,7 @@ static inline _ _sc_step(sc *sc) {
             /*     (NIL == _CDDR(term_args)) ?  */
             /*     VALUE(VOID) : */
             /*     REDEX(_CADDR(term_args),env); */
-            return STATE_REDEX(CAR(term_args), env, sc_make_k_if(sc, k, yes,no));
+            NEXT_STATE_REDEX(CAR(term_args), env, sc_make_k_if(sc, k, yes,no));
         }
         if (term_f == sci->s_bang_set) {
             if (NIL == term_args) goto syntax_error;
@@ -295,26 +295,26 @@ static inline _ _sc_step(sc *sc) {
             if (FALSE == IS_SYMBOL(var)) goto syntax_error;
             if (NIL == CDR(term_args)) goto syntax_error;
             _ expr = CADR(term_args);
-            return STATE_REDEX(expr, env,
+            NEXT_STATE_REDEX(expr, env,
                                sc_make_k_set(sc, k, var, env, sc_slot_toplevel));
         }
         if (term_f == sci->s_begin) {
             /* (begin) is a NOP */
-            if (NIL == term_args) return STATE_RETURN(VOID, k);
+            if (NIL == term_args) NEXT_STATE_RETURN(VOID, k);
             // if (FALSE == IS_PAIR(term_args)) goto syntax_error;
             _ todo = sc_close_args(sc, term_args, env);
             pair *body = object_to_pair(todo);
             /* Don't create a contination frame if there's only a
                single expression. */
-            if (NIL == body->cdr) return STATE(body->car, k);
-            return STATE(body->car, sc_make_k_seq(sc, k, body->cdr));
+            if (NIL == body->cdr) NEXT_STATE(body->car, k);
+            NEXT_STATE(body->car, sc_make_k_seq(sc, k, body->cdr));
         }                
         if (term_f == sci->s_letcc) {
             if (NIL == term_args) goto syntax_error;
             if (NIL == CDR(term_args)) goto syntax_error;
             _ var = CAR(term_args);
             env   = CONS(CONS(var,k),env);
-            return STATE_REDEX(CADR(term_args),env, k);
+            NEXT_STATE_REDEX(CADR(term_args),env, k);
         }
         /* Fallthrough: symbol must be bound to applicable values. */
     }
@@ -328,7 +328,7 @@ static inline _ _sc_step(sc *sc) {
 
     
     _ closed = sc_close_args(sc, REVERSE(term), env);
-    return STATE(CAR(closed),
+    NEXT_STATE(CAR(closed),
                  sc_make_k_args(sc, k, NIL, 
                                 CDR(closed)));
   syntax_error:
@@ -354,7 +354,7 @@ static inline _ _sc_step(sc *sc) {
     if (TRUE == sc_is_k_if(sc, k)) {
         k_if *kx = object_to_k_if(k);
         _ rc = (FALSE == value) ? kx->no : kx->yes;
-        return STATE(rc, kx->k.parent);
+        NEXT_STATE(rc, kx->k.parent);
     }
     if (TRUE == sc_is_k_set(sc, k)) {
         k_set *kx = object_to_k_set(k);
@@ -364,7 +364,7 @@ static inline _ _sc_step(sc *sc) {
                 return ERROR_UNDEFINED(kx->var);
             }
         }
-        return STATE_RETURN(VOID, kx->k.parent);
+        NEXT_STATE_RETURN(VOID, kx->k.parent);
     }
     if (TRUE == sc_is_k_seq(sc, k)) {
         k_seq *kx = object_to_k_seq(k);
@@ -372,15 +372,15 @@ static inline _ _sc_step(sc *sc) {
         pair *top = CAST(pair, kx->todo);
         /* If this is the last one, replace the continuation, else
            update k_seq. */
-        if (NIL == top->cdr) return STATE(top->car, kx->k.parent);
-        return STATE(top->car, sc_make_k_seq(sc, kx->k.parent, top->cdr));
+        if (NIL == top->cdr) NEXT_STATE(top->car, kx->k.parent);
+        NEXT_STATE(top->car, sc_make_k_seq(sc, kx->k.parent, top->cdr));
     }
     if (TRUE == sc_is_k_args(sc, k)) {
         /* If there are remaining closures to evaluate, push the value
            to the update value list and pop the next closure. */
         k_args *kx = object_to_k_args(k);
         if (TRUE==IS_PAIR(kx->todo)) {
-            return STATE(CAR(kx->todo),
+            NEXT_STATE(CAR(kx->todo),
                          sc_make_k_args(sc, kx->k.parent,
                                         CONS(value, kx->done),
                                         CDR(kx->todo)));
@@ -404,7 +404,7 @@ static inline _ _sc_step(sc *sc) {
                    small number of cells are guaranteed to exist. */
                 EX->stateful_context = 1;
                 _ rv = _sc_call(sc, prim_fn(p), prim_nargs(p), args);
-                return STATE_RETURN(rv, kx->k.parent);
+                NEXT_STATE_RETURN(rv, kx->k.parent);
             }
 
             /* Application of abstraction extends the fn_env environment. */
@@ -426,7 +426,7 @@ static inline _ _sc_step(sc *sc) {
                 else {
                     if (args != NIL) return ERROR("nargs", fn);
                 }
-                return STATE_REDEX(l->term, fn_env,  // close term
+                NEXT_STATE_REDEX(l->term, fn_env,  // close term
                                    kx->k.parent);    // drop frame
             } 
 
@@ -441,7 +441,7 @@ static inline _ _sc_step(sc *sc) {
                     arg = p->car;
                     if (p->cdr != NIL) ERROR("nargs", fn);
                 }
-                return STATE_RETURN(arg, fn);
+                NEXT_STATE_RETURN(arg, fn);
             }
 
             /* Unknown applicant type */
