@@ -230,12 +230,9 @@ _ _sc_step_value(sc *sc, _ v, _ k) {
                    illegal.  Code that allocates a large amount of
                    cells needs to re-enable restarts explicitly.  A
                    small number of cells are guaranteed to exist. */
-                _ value = VALUE(VOID);
-                _ state = STATE(value, kx->k.parent);
                 EX->stateful_context = 1;
                 _ rv = _sc_call(sc, prim_fn(p), prim_nargs(p), args);
-                object_to_value(value)->datum = rv;
-                return state;
+                return STATE(VALUE(rv), kx->k.parent);
             }
 
             /* Application of abstraction extends the fn_env environment. */

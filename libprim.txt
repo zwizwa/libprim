@@ -8487,4 +8487,7 @@ LOG:
 
   this might be an important step to return simplicity to the VM!
 
-something went wrong.. reverting
+  something went wrong.. reverting: found it: forgot to wrap VALUE on
+  prim return.
+
+
