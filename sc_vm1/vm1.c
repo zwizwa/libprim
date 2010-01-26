@@ -12,8 +12,8 @@
 #include <sc/sc.h_prims>
 
 
-#define STATE_RETURN(value, k) STATE(VALUE(value), k)
-
+#define STATE_RETURN(v, k)   STATE(VALUE(v), k)
+#define STATE_REDEX(c, e, k) STATE(REDEX(c,e),k)
 
 /* A treewalking interpreter implemented as a CEK machine w/o
    compiler. */
@@ -255,8 +255,8 @@ _ _sc_return(sc *sc, _ value, _ k) {
                 else {
                     if (args != NIL) return ERROR("nargs", fn);
                 }
-                return STATE(REDEX(l->term, fn_env),  // close term
-                             kx->k.parent);           // drop frame
+                return STATE_REDEX(l->term, fn_env,  // close term
+                                   kx->k.parent);    // drop frame
             } 
 
             /* Continuation */
@@ -393,8 +393,8 @@ static _ _sc_step(sc *sc, _ o_state) {
             if (FALSE == IS_SYMBOL(var)) goto syntax_error;
             if (NIL == CDR(term_args)) goto syntax_error;
             _ expr = CADR(term_args);
-            return STATE(REDEX(expr, env),
-                         sc_make_k_set(sc, k, var, env, sc_slot_toplevel));
+            return STATE_REDEX(expr, env,
+                               sc_make_k_set(sc, k, var, env, sc_slot_toplevel));
         }
         if (term_f == sci->s_begin) {
             /* (begin) is a NOP */
@@ -412,8 +412,7 @@ static _ _sc_step(sc *sc, _ o_state) {
             if (NIL == CDR(term_args)) goto syntax_error;
             _ var = CAR(term_args);
             env   = CONS(CONS(var,k),env);
-            _ cl  = REDEX(CADR(term_args),env);
-            return STATE(cl, k);
+            return STATE_REDEX(CADR(term_args),env, k);
         }
         /* Fallthrough: symbol must be bound to applicable values. */
     }
@@ -524,7 +523,7 @@ _ _sc_continue(sc *sc) {
 
 /* Set the current VM state to start evaluating an expression on _sc_continue() */
 void _sc_prepare(sc *sc, _ expr) {
-    sc_bang_set_global(sc, sc_slot_state, STATE(REDEX(expr,NIL),MT));
+    sc_bang_set_global(sc, sc_slot_state, STATE_REDEX(expr,NIL,MT));
 }
 
 _ _sc_top(sc *sc, _ expr) {
