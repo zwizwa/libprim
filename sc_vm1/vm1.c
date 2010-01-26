@@ -86,7 +86,6 @@ _ sc_abort_k(sc *sc)        { _GLOBAL(abort_k); }
 
 _ sc_write_stderr(sc *sc,  _ o) {
     vector *v = object_to_vector(o);
-    if (TRUE == sc_is_state(sc, o))   return _ex_write_vector(EX, "state", v);
     if (TRUE == sc_is_redex(sc, o))   return _ex_write_vector(EX, "redex", v);
     if (TRUE == sc_is_error(sc, o))   return _ex_write_vector(EX, "error", v);
 
@@ -113,6 +112,17 @@ _ sc_gc_used(sc *sc) {
 _ sc_bang_abort_k(sc *sc, _ k) {
     return sc_bang_set_global(sc, sc_slot_abort_k, k);
 }
+/* A ktx allows modification of a continuation frame.  The result can
+   be invoked as a continuation.  FIXME: change these to primitives
+   that update VM state. */
+_ sc_apply_ktx(sc* sc, _ k, _ args) {
+    return sc_make_k_args(sc, k, args, NIL);
+}
+_ sc_eval_ktx(sc *sc, _ k, _ expr) {
+    // sc_write_stderr(sc, expr);
+    return sc_make_k_seq(sc, k, CONS(REDEX(expr, NIL),NIL));
+}
+
 
 
 
@@ -171,17 +181,13 @@ _ sc_close_args(sc *sc, _ lst, _ E) {
 _ sc_error_undefined(sc *sc, _ o) { return ERROR("undefined", o); }
 
 
-// #define STATE_RETURN(v, k)      STATE(VALUE(v), k)
-// #define STATE_REDEX(c, e, k)    STATE(REDEX(c,e),k)
-// #define NEXT_STATE(r, k)        return STATE(r, k)
-
 #define NEXT_STATE_REDEX(_c, _e, _k)  { sc->c = _c; sc->e = _e; sc->k = _k; goto next_state; }
 #define VM_RETURN(v, _k)              { term = v; sc->k = k = _k; goto return_value; }
 
 #define NEXT_STATE(r,k) { redex *x = CAST(redex, r); NEXT_STATE_REDEX(x->term, x->env, k); }
 
 
-static inline _ _sc_step(sc *sc) {
+static _ _sc_loop(sc *sc) {
 
     _ term, env, k;
     /* This is a jump target to enter the next state without saving
@@ -433,15 +439,9 @@ static inline _ _sc_step(sc *sc) {
 
 
 // no longer valid outside of _sc_tep()
-#undef STATE_RETURN
-// #undef STATE_REDEX
-
 #undef NEXT_STATE
 #undef NEXT_STATE_REDEX
 #undef VM_RETURN
-
-
-
 
 
 /** STATE UPDATE HACKS **/
@@ -458,39 +458,12 @@ _ sc_gc(sc* sc) {
 }
 
 
-/* A ktx allows modification of a continuation frame.  The result can
-   be invoked as a continuation.  FIXME: change these to primitives
-   that update VM state. */
-_ sc_apply_ktx(sc* sc, _ k, _ args) {
-    return sc_make_k_args(sc, k, args, NIL);
-}
-_ sc_eval_ktx(sc *sc, _ k, _ expr) {
-    // sc_write_stderr(sc, expr);
-    return sc_make_k_seq(sc, k, CONS(REDEX(expr, NIL),NIL));
-}
-
-
-
-
-
 
 
 
 
 
 /* --- SETUP & GC --- */
-
-
-
-
-void _sc_loop(sc *sc) {
-    for(;;) {
-        /* The _sc_step() function will perform a single state
-           update, or exit through sc->m.except in which case
-           the sc_slot_state field is not updated. */
-        _sc_step(sc);
-    }
-}
 
 void _sc_abort(sc *sc) {
     sc->c = _sc_value_as_term(sc, sc->error);
@@ -500,7 +473,7 @@ void _sc_abort(sc *sc) {
 
 /* Run the above loop in a dynamic context. */
 _ _sc_continue(sc *sc) { 
-    return _sc_continue_dynamic(sc, _sc_loop, _sc_abort); 
+    return _sc_continue_dynamic(sc, (sc_loop)_sc_loop, _sc_abort); 
 }
 
 

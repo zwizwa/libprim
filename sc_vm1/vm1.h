@@ -51,16 +51,6 @@
 
 
 
-/* The machine will attempt to reduce the current term (which is a
-   closure = open term + variable bindings) or continue with the
-   computation context (a list of reducible closures). */
-typedef struct {
-    vector v;
-    _ redex_or_value;  // naked value or reducible/value closure
-    _ continuation;    // current continuation
-} state;
-
-
 typedef struct {
     vector v;
     _ formals;
@@ -70,6 +60,7 @@ typedef struct {
 } lambda;
 
 
+/* Closure: term and free variable environment. */
 typedef struct {
     vector v;
     _ term;
@@ -119,7 +110,6 @@ typedef struct {
 
 
 // conversion from vector object -> C type
-DEF_STRUCT(state,  TAG_STATE)
 DEF_STRUCT(lambda, TAG_LAMBDA)
 DEF_STRUCT(redex,  TAG_REDEX)
 
@@ -148,12 +138,7 @@ DEF_STRUCT(k_seq,   TAG_K_SEQ)
 //#define SC_EX_CK      4  /* wrap up C continuation */
 
 /* Macros valid in sc context. */
-#define STATE(c,k)   sc_make_state(sc,c,k)
 #define REDEX(t,e)   sc_make_redex(sc,t,e)
-
-// #define VALUE(d)     sc_make_value(sc,d)
-
-
     
 /* Toplevel evaluation */
 #define EVAL(expr)    POST(_sc_top((sc*)EX, expr))

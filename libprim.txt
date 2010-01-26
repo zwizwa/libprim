@@ -8510,6 +8510,9 @@ TODO
 - eliminate the STATE structure.  all constructors need to be
   converted to jumps to the next_state entry point.  
 
+  wow this seems to work.
+
+
 - flip STATE and STATE_RETURN / STATE_REDEX: make the latter two fast
   and have STATE unpack a redex and call STATE_REDEX.
 
