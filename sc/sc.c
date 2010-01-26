@@ -365,10 +365,9 @@ int _sc_init(sc *sc, int argc, const char **argv, sc_bootinfo *info) {
     _ err = _ex_make_file_port(EX, stderr, "stderr");
     sc->global = gc_make_tagged(sc->m.gc, 
                                 TAG_VECTOR,
-                                7,
+                                6,
                                 NIL,  // toplevel
                                 NIL,  // macro
-                                NIL,  // state
                                 NIL,  // abort
                                 in,
                                 out,
