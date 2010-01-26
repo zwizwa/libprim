@@ -8515,3 +8515,36 @@ LOG:
   OK
 
 
+Entry: improvements
+Date: Tue Jan 26 18:03:42 CET 2010
+
+Some very slight improvements:
+
+
+DEBUG:
+
+$ time build/sc_vm1/sc_vm1 --boot sc_vm1/boot.scm --eval '(begin)'
+
+real	0m3.989s
+user	0m3.789s
+sys	0m0.005s
+
+$ time build/sc_vm3/sc_vm3 --boot sc_vm1/boot.scm --eval '(begin)'
+
+real	0m4.540s
+user	0m4.333s
+sys	0m0.008s
+
+
+RELEASE:
+$ time build/sc_vm1/sc_vm1 --boot sc_vm1/boot.scm --eval '(begin)'
+
+real	0m0.874s
+user	0m0.846s
+sys	0m0.003s
+
+$ time build/sc_vm3/sc_vm3 --boot sc_vm1/boot.scm --eval '(begin)'
+
+real	0m1.106s
+user	0m1.062s
+sys	0m0.001s
