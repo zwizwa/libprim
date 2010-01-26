@@ -51,8 +51,9 @@
                      (vm-macros)))
 
 (define (vm-run bytecode)
-  (vm-init (vm-compile-anf bytecode))
-  (vm-continue))
+  (let ((bc (vm-compile-anf bytecode)))
+    (gc)
+    (vm-eval-bytecode bc)))
 
 (define (vm-eval expr)
   (vm-run (car (vm-compile expr))))    ;; sexpr -> anf

@@ -88,7 +88,7 @@
                     (car args)))))))
 
 (define-macro lambda
-  (lambda (form)
+  (lambda (lambda-form)
     (define expand-define
       (lambda (form)
         (let ((name (cadr form))

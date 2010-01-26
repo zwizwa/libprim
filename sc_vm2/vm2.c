@@ -55,7 +55,7 @@ static kf_base *_sc_extend_kf_base(sc *sc, int slots, void *tag) {
 
 typedef kf_base kf_halt;
 static void _kf_halt(sc *sc, _ v) {
-    ERROR("vm-halt", v);
+    HALT_VM(v);
 }
 
 
@@ -297,19 +297,34 @@ static void _vm_let(sc *sc, vm_let *op) {
 }
 
 /* Trampoline. */
-_ sc_vm_continue(sc *sc) {
-    for(;;) {
-        vm_op *op = (vm_op*)GC_POINTER(sc->c);
-        op->fn(sc, op);
-    }
-}
+_ sc_vm_eval_bytecode(sc *sc, _ expr) {
+    _ c = sc->c;  sc->c = expr;
+    _ e = sc->e;  sc->e = NIL;
+    _ k = sc->k;  sc->k = NIL; EXTEND_K(kf_halt, f);
+    int err;
+    typeof(sc->m.except) save;
 
-_ sc_vm_init(sc *sc, _ c) {
-    sc->e = NIL;
-    sc->k = NIL;
-    sc->c = c;
-    EXTEND_K(kf_halt, f);
-    return VOID;
+
+    // _ex_printf(EX, "Saved %d bytes\n", sizeof(save));
+
+    memcpy(&save, &sc->m.except, sizeof(save));
+
+
+    switch((err = setjmp(sc->m.except))) {
+    case EXCEPT_TRY:
+        for(;;) {
+            vm_op *op = (vm_op*)GC_POINTER(sc->c);
+            op->fn(sc, op);
+        }
+    default:
+        sc->c = c;
+        sc->e = e;
+        sc->k = k;
+        memcpy(&sc->m.except, &save, sizeof(save));
+        if (err == EXCEPT_HALT) return sc->m.error_arg;
+        _ex_printf(EX, "Exception %d during vm-eval\n", err);
+        longjmp(sc->m.except, err);
+    }
 }
 
 /* Compile s-expression representation of byte code to internal

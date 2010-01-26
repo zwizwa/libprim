@@ -33,11 +33,17 @@
 
 
 
+
 .PHONY: all clean targets
 all: targets
 
 # Include build variables.
 include Makefile.defs
+
+# FIXME: do this somewhere else
+CFLAGS += -falign-functions=4
+
+
 
 # Setup environment
 B := $(BUILDDIR)

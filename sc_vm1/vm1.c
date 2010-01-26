@@ -181,15 +181,14 @@ _ sc_close_args(sc *sc, _ lst, _ E) {
 _ sc_error_undefined(sc *sc, _ o) { return ERROR("undefined", o); }
 
 
+static _ _sc_loop(sc *sc) {
+
 // jump to next state
 #define NEXT(_c, _e, _k)  { sc->c = _c; sc->e = _e; sc->k = _k; goto next_state; }
 #define NEXT_REDEX(r,k)   { redex *x = CAST(redex, r); NEXT(x->term, x->env, k); }
 
 // return value at end of reduction
 #define VM_RETURN(v, _k)  { term = v; sc->k = k = _k; goto return_value; }
-
-
-static _ _sc_loop(sc *sc) {
 
     _ term, env, k;
     /* This is a jump target to enter the next state without saving
@@ -435,13 +434,15 @@ static _ _sc_loop(sc *sc) {
     /* Unknown continuation type */
     return ERROR("cont", k);
 #undef value
-}
 
-
-// no longer valid outside of _sc_tep()
+// no longer valid outside of _sc_loop()
 #undef NEXT_REDEX
 #undef NEXT
 #undef VM_RETURN
+}
+
+
+
 
 
 /** STATE UPDATE HACKS **/
