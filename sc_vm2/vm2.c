@@ -124,7 +124,7 @@ typedef struct {
     _ id_variable;
     _ id_value;
 } vm_assign;
-static _ _vm_assign(sc *sc, vm_assign *op) {
+static void _vm_assign(sc *sc, vm_assign *op) {
     *_sc_box(sc, op->id_variable) = _unpack_value(sc, op->id_value);
     _return_value(sc, VOID);
 }

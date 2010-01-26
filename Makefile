@@ -4,7 +4,7 @@ DELEGATE = all install clean sc_vm1_test sc_vm2_test sc_vm3_test
 
 # Generate delegate rules
 define tobuild
-$(1):
+$(1): build
 	@$$(MAKE) -sC build $(1)
 endef
 $(foreach target,$(DELEGATE),$(eval $(call tobuild,$(target))))
@@ -12,6 +12,13 @@ $(foreach target,$(DELEGATE),$(eval $(call tobuild,$(target))))
 # Clean build + config.
 mrproper:
 	rm -rf build
-# Error: this Makefile needs build/ dir.
+
+# Run ./configure automatically if there's no build dir.
 build:
-	@echo Run ./configure first ; false
+	./configure
+
+release: 
+	rm -rf build && ./configure && make -j4
+
+debug: 
+	rm -rf build && ./configure --enable-debug && make -j4

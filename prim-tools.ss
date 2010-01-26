@@ -80,10 +80,10 @@
     ;; Tag names with nb of arguments.  This allows non-tagged names
     ;; in C source code, but places tgged names in objects.
     ;; I.e. #define ex_foo ex_3_foo
-    (for-each*
-     (lambda (name n)
-       (printf "#define ~a ~a_~a_~a\n" name namespace n (remove-ctx name)))
-     dict)
+    ;; (for-each*
+    ;;  (lambda (name n)
+    ;;    (printf "#define ~a ~a_~a_~a\n" name namespace n (remove-ctx name)))
+    ;;  dict)
     ;; Create bound macros.  I.e. #define EX_FOO(a,b,c) ex_foo(EX, a, b, c)
     (for-each*
      (lambda (name n)

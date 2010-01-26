@@ -348,7 +348,7 @@ int _sc_init(sc *sc, int argc, const char **argv, sc_bootinfo *info) {
                       (gc_overflow)_ex_overflow);
 
     /* Nb of cells guaranteed to be available to primitive. */
-    EX->gc_guard_cells = 40;
+    EX->gc_guard_cells = 100;
 
                     
 
