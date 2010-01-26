@@ -181,10 +181,12 @@ _ sc_close_args(sc *sc, _ lst, _ E) {
 _ sc_error_undefined(sc *sc, _ o) { return ERROR("undefined", o); }
 
 
-#define NEXT_STATE_REDEX(_c, _e, _k)  { sc->c = _c; sc->e = _e; sc->k = _k; goto next_state; }
-#define VM_RETURN(v, _k)              { term = v; sc->k = k = _k; goto return_value; }
+// jump to next state
+#define NEXT(_c, _e, _k)  { sc->c = _c; sc->e = _e; sc->k = _k; goto next_state; }
+#define NEXT_REDEX(r,k)   { redex *x = CAST(redex, r); NEXT(x->term, x->env, k); }
 
-#define NEXT_STATE(r,k) { redex *x = CAST(redex, r); NEXT_STATE_REDEX(x->term, x->env, k); }
+// return value at end of reduction
+#define VM_RETURN(v, _k)  { term = v; sc->k = k = _k; goto return_value; }
 
 
 static _ _sc_loop(sc *sc) {
@@ -271,7 +273,7 @@ static _ _sc_loop(sc *sc) {
             /*     (NIL == _CDDR(term_args)) ?  */
             /*     VALUE(VOID) : */
             /*     REDEX(_CADDR(term_args),env); */
-            NEXT_STATE_REDEX(CAR(term_args), env, sc_make_k_if(sc, k, yes,no));
+            NEXT(CAR(term_args), env, sc_make_k_if(sc, k, yes,no));
         }
         if (term_f == sci->s_bang_set) {
             if (NIL == term_args) goto syntax_error;
@@ -279,8 +281,7 @@ static _ _sc_loop(sc *sc) {
             if (FALSE == IS_SYMBOL(var)) goto syntax_error;
             if (NIL == CDR(term_args)) goto syntax_error;
             _ expr = CADR(term_args);
-            NEXT_STATE_REDEX(expr, env,
-                               sc_make_k_set(sc, k, var, env, sc_slot_toplevel));
+            NEXT(expr, env, sc_make_k_set(sc, k, var, env, sc_slot_toplevel));
         }
         if (term_f == sci->s_begin) {
             /* (begin) is a NOP */
@@ -290,15 +291,15 @@ static _ _sc_loop(sc *sc) {
             pair *body = object_to_pair(todo);
             /* Don't create a contination frame if there's only a
                single expression. */
-            if (NIL == body->cdr) NEXT_STATE(body->car, k);
-            NEXT_STATE(body->car, sc_make_k_seq(sc, k, body->cdr));
+            if (NIL == body->cdr) NEXT_REDEX(body->car, k);
+            NEXT_REDEX(body->car, sc_make_k_seq(sc, k, body->cdr));
         }                
         if (term_f == sci->s_letcc) {
             if (NIL == term_args) goto syntax_error;
             if (NIL == CDR(term_args)) goto syntax_error;
             _ var = CAR(term_args);
             env   = CONS(CONS(var,k),env);
-            NEXT_STATE_REDEX(CADR(term_args),env, k);
+            NEXT(CADR(term_args),env, k);
         }
         /* Fallthrough: symbol must be bound to applicable values. */
     }
@@ -312,9 +313,8 @@ static _ _sc_loop(sc *sc) {
 
     
     _ closed = sc_close_args(sc, REVERSE(term), env);
-    NEXT_STATE(CAR(closed),
-                 sc_make_k_args(sc, k, NIL, 
-                                CDR(closed)));
+    NEXT_REDEX(CAR(closed),
+               sc_make_k_args(sc, k, NIL, CDR(closed)));
   syntax_error:
     return ERROR("syntax",term);
 
@@ -338,7 +338,7 @@ static _ _sc_loop(sc *sc) {
     if (TRUE == sc_is_k_if(sc, k)) {
         k_if *kx = object_to_k_if(k);
         _ rc = (FALSE == value) ? kx->no : kx->yes;
-        NEXT_STATE(rc, kx->k.parent);
+        NEXT_REDEX(rc, kx->k.parent);
     }
     if (TRUE == sc_is_k_set(sc, k)) {
         k_set *kx = object_to_k_set(k);
@@ -356,18 +356,18 @@ static _ _sc_loop(sc *sc) {
         pair *top = CAST(pair, kx->todo);
         /* If this is the last one, replace the continuation, else
            update k_seq. */
-        if (NIL == top->cdr) NEXT_STATE(top->car, kx->k.parent);
-        NEXT_STATE(top->car, sc_make_k_seq(sc, kx->k.parent, top->cdr));
+        if (NIL == top->cdr) NEXT_REDEX(top->car, kx->k.parent);
+        NEXT_REDEX(top->car, sc_make_k_seq(sc, kx->k.parent, top->cdr));
     }
     if (TRUE == sc_is_k_args(sc, k)) {
         /* If there are remaining closures to evaluate, push the value
            to the update value list and pop the next closure. */
         k_args *kx = object_to_k_args(k);
         if (TRUE==IS_PAIR(kx->todo)) {
-            NEXT_STATE(CAR(kx->todo),
-                         sc_make_k_args(sc, kx->k.parent,
-                                        CONS(value, kx->done),
-                                        CDR(kx->todo)));
+            NEXT_REDEX(CAR(kx->todo),
+                       sc_make_k_args(sc, kx->k.parent,
+                                      CONS(value, kx->done),
+                                      CDR(kx->todo)));
         }
         /* No more expressions to be reduced in the current k_apply:
            perform application. */
@@ -410,8 +410,8 @@ static _ _sc_loop(sc *sc) {
                 else {
                     if (args != NIL) return ERROR("nargs", fn);
                 }
-                NEXT_STATE_REDEX(l->term, fn_env,  // close term
-                                   kx->k.parent);    // drop frame
+                NEXT(l->term, fn_env,  // close term
+                     kx->k.parent);    // drop frame
             } 
 
             /* Continuation */
@@ -439,8 +439,8 @@ static _ _sc_loop(sc *sc) {
 
 
 // no longer valid outside of _sc_tep()
-#undef NEXT_STATE
-#undef NEXT_STATE_REDEX
+#undef NEXT_REDEX
+#undef NEXT
 #undef VM_RETURN
 
 
