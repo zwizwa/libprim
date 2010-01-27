@@ -8559,3 +8559,36 @@ varrefs.  This requires compilation to some intermediate structure.
 
 Implemented `apply1' and `eval-core' without the weird ktx trampoline.
 Using direct state modification and EXCEPT_RESTART instead.
+
+
+Entry: Closure conversion
+Date: Wed Jan 27 07:38:13 CET 2010
+
+Simple lambda lifting turns first class functions into first order
+functions by adding extra parameters at the definition side, and
+providing extra parameters at the call site.
+
+  (lambda (x y)
+    (let ((f (lambda (a b)
+               (+ (* a x) (* b y)))))
+      (f 1 2)))
+=>
+
+  (define f (lambda (a b x y)
+              (+ (* a x) (* b y))))
+  (lambda (a b x y)
+    (f 1 2 x y))
+
+This works only for downward closures; not for escaping closures.
+
+Closure conversion turns each function into a first order function by
+adding an extra argument: a vector of free variables.  Function
+objects are then represented as function body + free variable vector.
+
+This is similar to "Display Closures" idea by Dybvig.  However, there
+seems to be some difference as the latter needs assignment conversion.
+Or maybe [1] does too?  It looks like it.  It is not mentioned how to
+create the vector of free variable values in the first place.
+
+
+[1] http://www.iro.umontreal.ca/~boucherd/mslug/meetings/20041020/90-min-scc/90-min-scc.pdf
