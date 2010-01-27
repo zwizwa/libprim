@@ -8592,3 +8592,14 @@ create the vector of free variable values in the first place.
 
 
 [1] http://www.iro.umontreal.ca/~boucherd/mslug/meetings/20041020/90-min-scc/90-min-scc.pdf
+
+
+Entry: Defunctionalization
+Date: Wed Jan 27 16:33:02 CET 2010
+
+Chapter 4: an interpreter is the output of defunctionalization, and
+contexts (stacks) correspond to defunctionalized CPS converted code.
+
+
+[1] http://www.brics.dk/RS/01/23/BRICS-RS-01-23.pdf
+
