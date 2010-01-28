@@ -15,7 +15,7 @@
 #include <elf.h>
 #include <link.h>
 #include <fnmatch.h>
-#include "elfhacks.h"
+#include <mz/elfhacks.h>
 
 /**
  *  \addtogroup elfhacks

@@ -1,4 +1,4 @@
-MODULE_OBJ := mz.o
+MODULE_OBJ := mz.o elfhacks.o
 
 TARGET := mz
 TARGET_LDFLAGS := -ldl
