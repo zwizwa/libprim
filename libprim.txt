@@ -8603,3 +8603,14 @@ contexts (stacks) correspond to defunctionalized CPS converted code.
 
 [1] http://www.brics.dk/RS/01/23/BRICS-RS-01-23.pdf
 
+
+Entry: EX
+Date: Thu Jan 28 17:09:25 CET 2010
+
+Thinking about it, what is really useful about this project is the
+garbage collector: it's simple.
+
+It's also small.
+
+25528 ex.o  -O3 -fomit-frame-pointer ...
+14396 ex.o  -Os -fomit-frame-pointer

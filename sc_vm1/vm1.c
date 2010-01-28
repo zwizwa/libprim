@@ -347,6 +347,12 @@ static _ _sc_loop(sc *sc) {
                    small number of cells are guaranteed to exist. */
                 EX->stateful_context = 1;
                 _ rv = _sc_call(sc, prim_fn(p), prim_nargs(p), args);
+
+                /* Primitives that change the machine state will use
+                   _ex_restart() to re-enter the machine loop.
+                   Primitives that return properly will cause the
+                   return value to be passed to the current
+                   continuaion. */
                 VM_RETURN(rv, kx->k.parent);
             }
 
@@ -410,7 +416,7 @@ static _ _sc_loop(sc *sc) {
 /* GC: set continuation manually, since since the interpreter aborts
    and restarts the current step. */
 _ sc_gc(sc* sc) {
-    sc->k = sc_k_parent(sc, sc->k);    // drop `gc' k_apply frame
+    sc->k = sc_k_parent(sc, sc->k);    // drop k_apply frame
     sc->c = _sc_value_as_term(sc, VOID);
     sc->e = NIL;
     EX->stateful_context = 0;  // enable restarts
@@ -421,7 +427,7 @@ _ sc_gc(sc* sc) {
 /* Eval and apply both modify the current continuation and thus cannot
    use the default return path; they restart instead. */
 _ sc_apply1(sc *sc, _ fn, _ args) {
-    sc->k = sc_k_parent(sc, sc->k);  // drop `apply1' k_apply frame
+    sc->k = sc_k_parent(sc, sc->k);  // drop k_apply frame
     sc->k = sc_make_k_args(sc, sc->k, args, NIL);
     sc->c = _sc_value_as_term(sc, fn);
     _ex_restart(EX); // bypass normal primitive return
@@ -429,7 +435,7 @@ _ sc_apply1(sc *sc, _ fn, _ args) {
 _ sc_eval_core(sc *sc, _ expr) {
     sc->c = expr;
     sc->e = NIL;
-    sc->k = sc_k_parent(sc, sc->k);  // drop `apply1' k_apply frame
+    sc->k = sc_k_parent(sc, sc->k);  // drop k_apply frame
     _ex_restart(EX);
 }
 

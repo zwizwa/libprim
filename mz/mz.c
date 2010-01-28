@@ -66,6 +66,7 @@ int eh_syms(eh_sym_t *sym, void *arg) {
 int eh_objs(eh_obj_t *obj, void *arg) {
     eh_iterate_sym(obj, eh_syms, NULL);
 }
+
 int main(int argc, char **argv) {
     eh_obj_t obj;
     eh_find_obj(&obj, "libm.so.6");
