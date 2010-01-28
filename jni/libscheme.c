@@ -9,7 +9,7 @@
 
 
 /* For test scripts we use a small embedded Scheme interpreter. */
-#include <sc/scheme.h>
+#include <sc_vm1/vm1.h>
 #include <leaf/tuple.h>
 
 

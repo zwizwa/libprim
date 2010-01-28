@@ -1,6 +1,0 @@
-make clean
-./configure --enable-debug --prefix=`pwd`/local && make && make install
-
-
-
-
