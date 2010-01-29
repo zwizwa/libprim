@@ -408,7 +408,15 @@ static _ _sc_loop(sc *sc) {
 }
 
 
-
+/* Operations that modify the current continuation cannot use the
+   default return path; they restart instead, and pop their own
+   k_apply frame before modifying the state. */
+static inline void _sc_op_begin(sc *sc) { 
+    sc->k = sc_k_parent(sc, sc->k); // drop k_apply frame
+}
+static inline void _sc_op_end(sc *sc) { 
+    _ex_restart(EX); // bypass normal primitive return
+}
 
 
 /** STATE UPDATE HACKS **/
@@ -416,7 +424,7 @@ static _ _sc_loop(sc *sc) {
 /* GC: set continuation manually, since since the interpreter aborts
    and restarts the current step. */
 _ sc_gc(sc* sc) {
-    sc->k = sc_k_parent(sc, sc->k);    // drop k_apply frame
+    _sc_op_begin(sc);
     sc->c = _sc_value_as_term(sc, VOID);
     sc->e = NIL;
     EX->stateful_context = 0;  // enable restarts
@@ -424,19 +432,17 @@ _ sc_gc(sc* sc) {
     return NIL; // not reached
 }
 
-/* Eval and apply both modify the current continuation and thus cannot
-   use the default return path; they restart instead. */
 _ sc_apply1(sc *sc, _ fn, _ args) {
-    sc->k = sc_k_parent(sc, sc->k);  // drop k_apply frame
+    _sc_op_begin(sc);
     sc->k = sc_make_k_args(sc, sc->k, args, NIL);
     sc->c = _sc_value_as_term(sc, fn);
-    _ex_restart(EX); // bypass normal primitive return
+    _sc_op_end(sc);
 }
 _ sc_eval_core(sc *sc, _ expr) {
+    _sc_op_begin(sc);
     sc->c = expr;
     sc->e = NIL;
-    sc->k = sc_k_parent(sc, sc->k);  // drop k_apply frame
-    _ex_restart(EX);
+    _sc_op_end(sc);
 }
 
 
