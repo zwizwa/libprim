@@ -147,8 +147,7 @@ install: $(TARGETS)
 	install -m 644 libprim.pc $(PREFIX)/lib/pkgconfig
 
 	install -d $(PREFIX)/share/prim/
-	install -m 644 $(S)/sc/*.scm $(PREFIX)/share/prim/
-	install -m 644 $(B)/sc/boot12.scm_ $(PREFIX)/share/prim/boot.scm
+	install -m 644 $(S)/sc*/*.scm $(PREFIX)/share/prim/
 	install -m 644 $(S)/pf/*.pf $(PREFIX)/share/prim/
 
 	$(foreach dir, ex leaf sc media, \
@@ -159,8 +158,7 @@ install: $(TARGETS)
 #	install -m 755 */libprim_*.a $(PREFIX)/lib/
 
 	install -d $(PREFIX)/bin
-	install -m 755 sc/sc $(PREFIX)/bin
-	install -m 755 pf/pf $(PREFIX)/bin
+	install -m 755 $(TARGETS) $(PREFIX)/bin
 
 uninstall:
 	rm -rf $(PREFIX)/share/prim
