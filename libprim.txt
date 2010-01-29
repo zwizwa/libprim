@@ -8736,3 +8736,12 @@ doesn't look too bad overall.  It's even usable in the ARM simulator:
 4.5 seconds startup time.
 
 
+
+Entry: SC VM1 done?
+Date: Fri Jan 29 20:24:09 CET 2010
+
+It doesn't look like there is much else to do without changing the VM
+code drastically and introducing a compiler.
+
+It's cute, isn't it?
+
