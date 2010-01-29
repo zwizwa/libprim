@@ -1,0 +1,14 @@
+cd `dirname $0`/../
+CROSS=arm-linux-uclibcgnueabi
+DIR=build-arm
+rm -rf $DIR
+mkdir $DIR
+cd $DIR
+../configure --cross=$CROSS --prefix=`pwd` && \
+             make -j4 && make install
+
+
+
+
+
+

@@ -8684,3 +8684,55 @@ _ ex_find_slot(ex *ex, _ E, _ var) {
         E = _CDR(E);
     }
 }
+
+The result is now:
+
+Each sample counts as 0.01 seconds.
+  %   cumulative   self              self     total           
+ time   seconds   seconds    calls  ms/call  ms/call  name    
+ 24.24      0.08     0.08     1645     0.05     0.05  gc_mark
+ 15.15      0.13     0.05   414186     0.00     0.00  ex_find_slot
+  9.09      0.16     0.03     1554     0.02     0.21  _sc_loop
+  6.06      0.18     0.02   399153     0.00     0.00  object_to_redex
+  6.06      0.20     0.02   146816     0.00     0.00  sc_close_args
+  4.55      0.22     0.02  3156824     0.00     0.00  object_to_pair
+  3.03      0.23     0.01  2042892     0.00     0.00  _is_vector_type
+  3.03      0.24     0.01  1888451     0.00     0.00  gc_alloc
+  3.03      0.25     0.01  1435184     0.00     0.00  ex_cdr
+  3.03      0.26     0.01  1198433     0.00     0.00  ex_car
+  3.03      0.27     0.01   857956     0.00     0.00  gc_make_tagged
+  3.03      0.28     0.01   706757     0.00     0.00  ex_is_symbol
+  3.03      0.29     0.01   572557     0.00     0.00  ex_is_pair
+  3.03      0.30     0.01   345584     0.00     0.00  sc_is_k_set
+  3.03      0.31     0.01      327     0.03     0.03  _gc_finalize
+  3.03      0.32     0.01      327     0.03     0.31  gc_collect
+  1.52      0.32     0.01  1005671     0.00     0.00  ex_is_null
+  1.52      0.33     0.01   140147     0.00     0.00  object_to_vector
+  1.52      0.33     0.01                             ex_is_void
+
+
+Each sample counts as 0.01 seconds.
+  %   cumulative   self              self     total           
+ time   seconds   seconds    calls  ms/call  ms/call  name    
+ 21.21      0.07     0.07   414186     0.00     0.00  ex_find_slot
+ 18.18      0.13     0.06     1645     0.04     0.04  gc_mark
+ 12.12      0.17     0.04  1888451     0.00     0.00  gc_alloc
+ 12.12      0.21     0.04     1554     0.03     0.20  _sc_loop
+  9.09      0.24     0.03  3156824     0.00     0.00  object_to_pair
+  6.06      0.26     0.02   857956     0.00     0.00  gc_make_tagged_v
+  3.03      0.27     0.01  2042892     0.00     0.00  _is_vector_type
+  3.03      0.28     0.01  1024440     0.00     0.00  ex_cons
+  3.03      0.29     0.01   706757     0.00     0.00  ex_is_symbol
+  3.03      0.30     0.01   452726     0.00     0.00  sc_make_redex
+  3.03      0.31     0.01      327     0.03     0.03  _gc_finalize
+  3.03      0.32     0.01                             __i686.get_pc_thunk.bx
+  3.03      0.33     0.01                             ex_lcar
+
+
+
+So name lookup is quite expensive still, but not overly dominant.  GC
+cost reduces significantly when increasing the memory size.  This
+doesn't look too bad overall.  It's even usable in the ARM simulator:
+4.5 seconds startup time.
+
+

@@ -342,7 +342,7 @@ int _sc_init(sc *sc, int argc, const char **argv, sc_bootinfo *info) {
     pthread_mutex_init(&EX->machine_lock, NULL);
 
     /* Garbage collector. */
-    sc->m.gc = gc_new(20000, sc, 
+    sc->m.gc = gc_new(10000, sc, 
                       (gc_mark_roots)_sc_mark_roots,
                       (gc_overflow)_ex_overflow);
 
