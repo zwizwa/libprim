@@ -414,8 +414,8 @@ static _ _sc_loop(sc *sc) {
 static inline void _sc_op_begin(sc *sc) { 
     sc->k = sc_k_parent(sc, sc->k); // drop k_apply frame
 }
-static inline void _sc_op_end(sc *sc) { 
-    _ex_restart(EX); // bypass normal primitive return
+static inline _ _sc_op_end(sc *sc) { 
+    return _ex_restart(EX); // bypass normal primitive return
 }
 
 
@@ -436,13 +436,13 @@ _ sc_apply1(sc *sc, _ fn, _ args) {
     _sc_op_begin(sc);
     sc->k = sc_make_k_args(sc, sc->k, args, NIL);
     sc->c = _sc_value_as_term(sc, fn);
-    _sc_op_end(sc);
+    return _sc_op_end(sc);
 }
 _ sc_eval_core(sc *sc, _ expr) {
     _sc_op_begin(sc);
     sc->c = expr;
     sc->e = NIL;
-    _sc_op_end(sc);
+    return _sc_op_end(sc);
 }
 
 
