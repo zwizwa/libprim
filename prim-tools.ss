@@ -20,7 +20,8 @@
 (define (remove-ctx x)
   (regexp-replace #px"^\\S*?_" x ""))
 
-(define (arg0) (vector-ref (current-command-line-arguments) 0))
+
+(define (arg n) (vector-ref (current-command-line-arguments) n))
 
 (define (scan filename)
   (with-input-from-file filename
@@ -105,15 +106,18 @@
   (format "~a~a" (car (regexp-split #rx"\\." f)) postfix))
 
 (define (gen)
-  (let ((file-path (arg0)))
+  (let ((file-path (arg 0)))
+
     (let-values (((dir filename-p _) (split-path file-path)))
       (let ((filename (path->string filename-p)))
         ;; (printf "F:~a\n" filename)
-        (gen-header
-         (mprefix (filename->name filename "_table_init"))
-         (mprefix (string-upcase (filename->name filename "")))
-         (scan file-path)
-         (ctx))))))
+        (parameterize ((current-output-port
+                        (open-output-file (arg 1))))
+          (gen-header
+           (mprefix (filename->name filename "_table_init"))
+           (mprefix (string-upcase (filename->name filename "")))
+           (scan file-path)
+           (ctx)))))))
 
 (define (gen-header init guard ds ctx)
   (let ((dict (declarations->dict ds)))

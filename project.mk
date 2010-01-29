@@ -79,7 +79,7 @@ $(B)/%.test: $(S)/%.c
 	$(call build, $(_CC) $(LDFLAGS) $< -o $@)
 
 $(B)/%.h_prims: $(S)/%.c
-	$(call build, $(MZSCHEME) $(dir $<)gen_prims.ss $< >$@)
+	$(call build, $(MZSCHEME) $(dir $<)gen_prims.ss $< $@)
 
 # $(B) -> $(B) rules can use simpler patterns.
 %.syms: %.so
