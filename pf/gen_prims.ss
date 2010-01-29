@@ -4,12 +4,11 @@
 
 ;; Bootstrap primitive init from C file.
 (parameterize
-    ((re-def  (pregexp "_\\s+?px_\\S*?\\(pf\\s*?\\*.*?\\)"))
-     (re-name (pregexp "px_\\S*?(?=\\()"))
+    ((re-def  (pregexp "void\\s+?pf_\\S*?\\(pf\\s*?\\*.*?\\)"))
+     (re-name (pregexp "pf_\\S*?(?=\\()"))
      (ctx "pf")
+     (macro-prefix "_") ;; stack semantics (no prefix = EX semantics)
      )
   (gen))
-
-
 
 

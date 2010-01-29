@@ -4,9 +4,9 @@
 #include <signal.h>
 
 #include <pf/pf.h>
-#include <pf/px.h>
-#include <pf/pf.h_pf_prims>
-#include <pf/px.h_prims>
+#include <px/px.h>
+#include <pf/pf.h_prims>
+#include <px/px.h_prims>
 #include <config.h>
 
 /* 

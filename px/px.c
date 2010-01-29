@@ -33,7 +33,7 @@
 #include <signal.h>
 
 #include <pf/pf.h>
-#include <pf/px.h>
+#include <px/px.h>
 
 /* Leaf object wrappers. */
 DEF_RC_TYPE(port)
