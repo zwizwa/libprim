@@ -31,6 +31,7 @@ $var{finkpath} = "/sw";
 # TODO: these are not saved in reconfigure
 $var{cc}        = "cc";
 $var{make}      = "make";
+$var{ar}        = "ar";
 
 $var{static}    = "no";
 
@@ -127,6 +128,19 @@ while ($a = shift) {
 }
 
 
+# Is there a standard way of doing this?
+if ($var{cross} eq "") {
+    # print "Not using GCC cross compiler: $var{cross}\n";
+}
+else {
+    print "cross:   $var{cross}\n";
+    $var{cc} = "$var{cross}-cc";
+    $var{ar} = "$var{cross}-ar";
+}
+
+
+
+
 # all options parsed: start config
 
 
@@ -168,8 +182,9 @@ sub makefile {
 }
 
 # config tools
-if ($ENV{CC}){$var{cc} = $ENV{CC};} # get CC, MAKE from environment if defined
+if ($ENV{CC})  {$var{cc}   = $ENV{CC};} # get CC, MAKE from environment if defined
 if ($ENV{MAKE}){$var{make} = $ENV{MAKE};}
+if ($ENV{AR})  {$var{ar}   = $ENV{AR};}
 
 
 makefile "LDFLAGS = $var{ldflags}" ;
@@ -231,6 +246,7 @@ sub check_dl {
 
 sub toolchain {
     makefile "CC = $var{cc}" ;
+    makefile "AR = $var{ar}" ;
     makefile "MAKE = $var{make}" ;
     if ($var{silent} eq "yes"){
 	makefile "MAKE += -s"; # have a bit less verbose build

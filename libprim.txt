@@ -8638,3 +8638,12 @@ The VM code is essentially a vector of non-tail calls, and a tail expression.
 
 The context needs to be saved whenever an (e_ ...) is a non-primitive.
       
+
+Entry: Cross compilation
+Date: Fri Jan 29 14:18:52 CET 2010
+
+Needs some more options to work except for setting gcc.  I.e. AR is
+needed, and seemingly also special linker flags.
+
+
+

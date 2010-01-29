@@ -123,11 +123,11 @@ DEPS := $$(DEPS) $$($(1)_OBJ:.o=.d)
 
 # Each module is bundled in an .a archive.
 $(B)/$(1)/$(1).a: $$($(1)_OBJ)
-	$$(call build, ar rcs $$@ $$($(1)_OBJ))
+	$$(call build, $(AR) rcs $$@ $$($(1)_OBJ))
 
 # Create rule for target if defined.
 $$(if $$(TARGET), $$(call target_rule, \
-	$(1), \
+	$(B)/$(1), \
 	$$(TARGET), \
 	$$($(1)_OBJ), \
 	$$(TARGET_MODULES), \
