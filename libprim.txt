@@ -8614,3 +8614,27 @@ It's also small.
 
 25528 ex.o  -O3 -fomit-frame-pointer ...
 14396 ex.o  -Os -fomit-frame-pointer
+
+
+
+Entry: A stack VM
+Date: Fri Jan 29 07:57:27 CET 2010
+
+So, what about writing a stack VM?  The main difficulty in the current
+approach seems to be interaction with the garbage collector.
+
+
+Entry: ANF: let* code
+Date: Fri Jan 29 08:16:17 CET 2010
+
+Assuming (begin a b) -> (let* ((_ a)) b)
+
+The VM code is essentially a vector of non-tail calls, and a tail expression.
+
+(let* ((v1 (e1 ...))
+       (v2 (e2 ...))
+       ...)
+  (t ...))
+
+The context needs to be saved whenever an (e_ ...) is a non-primitive.
+      
