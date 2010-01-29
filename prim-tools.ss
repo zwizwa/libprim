@@ -106,6 +106,8 @@
   (format "~a~a" (car (regexp-split #rx"\\." f)) postfix))
 
 (define (gen)
+  (with-handlers ((void void))
+    (delete-file (arg 1)))
   (let ((file-path (arg 0)))
 
     (let-values (((dir filename-p _) (split-path file-path)))

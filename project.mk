@@ -43,8 +43,6 @@ include Makefile.defs
 # FIXME: do this somewhere else
 CFLAGS += -falign-functions=4
 
-
-
 # Setup environment
 B := $(BUILDDIR)
 S := $(SRCDIR)

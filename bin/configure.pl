@@ -394,6 +394,7 @@ header "#endif";
 
 
 # DEBUG
+
 if ($var{debug} eq "yes"){
     makefile "CC += $EXTRA_DEBUG_CFLAGS";
     makefile "DEBUG_CFLAGS = -g -Wall -Wno-unused -Wno-parentheses -Werror";
@@ -408,7 +409,7 @@ else{
 	makefile "LDFLAGS += -pg";
     }
     else {
-	makefile "OPTI_CFLAGS += -fomit-frame-pointer";
+        makefile "OPTI_CFLAGS += -fomit-frame-pointer";
     }
     header "#define PRIM_DEBUG 0";
 }

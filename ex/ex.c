@@ -955,13 +955,28 @@ _ ex_bang_set_cdr(ex *ex, _ op, _ o) {
     pair *p = CAST(pair, op); p->cdr = o; return VOID;
 }
 
-_ ex_find_slot(ex *ex, _ E, _ var) {
+_ ex_find_slot_safe(ex *ex, _ E, _ var) {
     if (TRUE == ex_is_null(ex, E)) return FALSE;
     _ slot = CAR(E);
     _ name = CAR(slot);
     if (name == var) return slot;
     else return ex_find_slot(ex, CDR(E), var);
 }
+
+/* This leads to a 2.5 x speedup, but is unsafe if environment is
+   replaced by a different data structure. */
+_ ex_find_slot(ex *ex, _ E, _ var) {
+    for(;;) {
+        if (NIL == E) return FALSE;
+        _ slot = _CAR(E);
+        _ name = _CAR(slot);
+        if (name == var) return slot;
+        E = _CDR(E);
+    }
+}
+
+
+
 _ ex_find(ex *ex, _ E, _ var) {
     _ rv = ex_find_slot(ex, E, var);
     if (FALSE == IS_PAIR(rv)) return FALSE;
