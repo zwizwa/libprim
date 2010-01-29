@@ -5,16 +5,6 @@
 ;; statement that uses lambda for list deconstruction and dispatches
 ;; on the first list element (symbol) is already quite powerful.
 
-(define-macro (let-names form)
-  (let ((names (cadr form))
-        (body  (cddr form)))
-    `(let ,(map (lambda (name) `(,name (gensym))) names)
-       ,@body)))
-
-(define-macro (defmacro form)
-  (let-names (frm)
-    `(define-macro (,(cadr form) ,frm)
-       (apply (lambda ,(caddr form) ,@(cdr (cddr form))) (cdr ,frm)))))
 
 (defmacro switch (var . clauses)
   (let-names (tag args)

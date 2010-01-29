@@ -328,8 +328,19 @@
 
 (define-macro quasiquote expand-quasiquote)
 
+;; Generate names with gensym
+(define-macro (let-names form)
+  (let ((names (cadr form))
+        (body  (cddr form)))
+    `(let ,(map (lambda (name) `(,name (gensym))) names)
+       ,@body)))
 
-
+;; After this macros are simpler with defmacro, quasiquote and
+;; let-names.
+(define-macro (defmacro form)
+  (let-names (frm)
+    `(define-macro (,(cadr form) ,frm)
+       (apply (lambda ,(caddr form) ,@(cdr (cddr form))) (cdr ,frm)))))
 
 
 (define (list-tail lst k) (if (zero? k) lst (list-tail (cdr lst) (sub1 k))))
