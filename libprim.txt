@@ -8745,3 +8745,24 @@ code drastically and introducing a compiler.
 
 It's cute, isn't it?
 
+
+
+Entry: Guaranteed tail calls
+Date: Sat Jan 30 08:05:15 CET 2010
+
+How to guarantee proper tail calls with a stack model?
+
+(let* ((a ...)
+       (b ...))
+  (t ...))
+
+Essentially, the space alloted to store the arguments of `t' should be
+below the space alloted to store `a' and `b'.  This is the `shift'
+opcode in Dybvig's dissertation[1].
+
+
+Optionally so that any of the local variables gets stored in its
+proper place.
+
+
+[1] http://www.cs.unm.edu/~williams/cs491/three-imp.pdf
