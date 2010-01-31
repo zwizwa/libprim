@@ -8745,3 +8745,63 @@ code drastically and introducing a compiler.
 
 It's cute, isn't it?
 
+
+
+Entry: Guaranteed tail calls
+Date: Sat Jan 30 08:05:15 CET 2010
+
+How to guarantee proper tail calls with a stack model?
+
+(let* ((a ...)
+       (b ...))
+  (t ...))
+
+Essentially, the space alloted to store the arguments of `t' should be
+below the space alloted to store `a' and `b'.  This is the `shift'
+opcode in Dybvig's dissertation[1].
+
+Essentially, upon entry of a function one should allocate necessary
+space to perform argument passing to the next function.
+
+
+[1] http://www.cs.unm.edu/~williams/cs491/three-imp.pdf
+
+
+Entry: The future of libprim
+Date: Sat Jan 30 09:32:32 CET 2010
+
+It's time for a sabbatical and work on something else.  VM1 is good
+enough for now.  Efforts are best spent elsewhere, like automatic
+wrapping, and moving some code to a higher level.
+
+I'd like to resume with Staapl, or MetaOCaml based code generation.
+
+
+
+Entry: Back to the basic idea
+Date: Sat Jan 30 17:29:18 CET 2010
+
+libleaf.so
+
+Automate wrapper generation.  This is mostly about mapping argument
+types in both directions:
+
+      object_to_xxx     -> pointer or NULL
+      xxx_to_object     -> EX object
+
+Special cases: all scalar C types.  It is exactly those that make this
+problem difficult or at least tedious and non-orthogonal.  Is there an
+interesting problem to solve?
+
+The main problem: C's data types. (aside: funny that Java simply
+inherited that!).
+
+
+
+
+Entry: Automatic wrapping: reifying LEAF type information at run time.
+Date: Sun Jan 31 09:01:04 CET 2010
+
+The idea is that a run-time process should be able to collect type
+information by either inspecting the names in the .so or by inspecting
+the header file.
