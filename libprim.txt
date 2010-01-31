@@ -8845,3 +8845,16 @@ The main reason: i want composition without GC.  For this it's really
 not necessary to use a different object model.
 
 Exceptions need to be more primitive.
+
+
+Entry: Fixed exceptions
+Date: Sun Jan 31 16:27:09 CET 2010
+
+Leaf code can now throw exceptions through the leaf_ctx object.
+
+
+Entry: Tasks
+Date: Sun Jan 31 16:27:34 CET 2010
+
+Maybe it's time to revive the old idea of tasks.  The region of the
+stack from the top down to the setjmp point can be saved.

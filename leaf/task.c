@@ -1,33 +1,20 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
-#include "task.h"
+#include <leaf/task.h>
+#include <leaf/port.h>
 
-
-/* Context that needs to survive stack switching needs to be stored
-   somewhere other than the C stack.  To be (preemptibly) thread-safe
-   this needs to be thread-local storage.  In an -O build the variable
-   will (most likely?) be in a register.  (Note that the `register'
-   attribute doesn't guarantee this!).  In debug mode we use a static
-   var, which means it is not thread-safe! */
-#ifndef TASK_DEBUG
-#warning TASK_DEBUG not defined.  Default to non-thread-safe behaviour.
-#define TASK_DEBUG 1
-#endif
-
-#if TASK_DEBUG
-#define thread_static static
-#else
-#define thread_static register
-#endif
 
 /* Note that memory allocated by a task cannot be reclaimed.  Either a
    task needs to use only the C stack for storage, or it needs to
    cleanup after itself _and_ be run until exit by the host. */
-static void default_free(ck *x) {
+static void ck_free(ck *x) {
     printf("task_free(%p)\n", (void*)x);
     free(x->segment);
     free(x);
+}
+static int ck_write(ck *x, port *p) {
+    return port_printf(p, "#<ck:%p>", x);
 }
 static void default_jump(ck_class *m) {
     longjmp(m->prompt, 1);
@@ -35,40 +22,61 @@ static void default_jump(ck_class *m) {
 static void *default_dont_convert(ck_class *m, void *x) { 
     return x; 
 }
-ck_class *ck_class_new(void) {
+static ck_class *ck_class_new(void) {
     ck_class *x  = malloc(sizeof(*x));
-    x->free      = default_free;
+    leaf_class_init((leaf_class*)x,
+                    (leaf_free_m)ck_free,
+                    (leaf_write_m)ck_write);
     x->jump      = default_jump;
     x->to_task   = default_dont_convert;
     x->from_task = default_dont_convert;
     x->base      = NULL; /* filled in on first invoke */
     return x;
 }
+/* One "class" per thread.  FIXME: this needs to be rethought. */
+__thread ck_class *thread_ck_class;
+leaf_class *ck_type(void) {
+    if (!thread_ck_class) thread_ck_class = ck_class_new();
+    return (leaf_class*)thread_ck_class;
+}
+
 ck *ck_new(ck_class *ck_class) {
     ck *ck = malloc(sizeof*ck);
-    ck->base.type = ck_class;
+    leaf_init(&ck->base, ck_type());
     return ck;
 }
 
+
+
 /* HOST SIDE */
+
+/* Context that needs to survive stack switching needs to be stored
+   somewhere other than the C stack. */
+__thread ck *thread_ck;
+
+static inline ck_class *ck_cls(ck *ck) {
+    return (ck_class*)leaf_type(&(ck->base));
+}
 static void resume(ck *_ck, void *base) {
     void *sp = NULL;
-    thread_static ck *ck; ck = _ck; /* variable not on C stack. */
+    thread_ck = _ck;  /* variable not on C stack */
 
     /* Copy stack */
-    sp = (void*) ((char*)ck->type->base - ck->size);
+    sp = (void*) ((char*)ck_cls(thread_ck)->base - thread_ck->size);
 
     /* Reserve stack space so function call/return keeps working after
        a part of the stack is overwritten. */
-    void *reserve[ck->size / sizeof(void *)];
+    void *reserve[thread_ck->size / sizeof(void *)];
     
-
-    memcpy(sp, ck->segment, ck->size);
+    fprintf(stderr, "resume: copy %d bytes: %p -> %p\n", thread_ck->size, thread_ck->segment, sp);
+    memcpy(sp, thread_ck->segment, thread_ck->size);
     /* Here 'reserve' is used as a dummy value to make sure it's not
        optimized away. */
-    longjmp(ck->resume, (int)((long)reserve));
+    fprintf(stderr, "longjmp(resume)\n");
+    longjmp(thread_ck->resume, (int)((long)reserve));
 }
-void ck_invoke(ck_class *m, ck_start fn, ck **ck, void **value) {
+
+void ck_invoke_with_class(ck_class *m, ck_start fn, ck **ck, void **value) {
     void *base;
     if (!setjmp(m->prompt)) {
         base = &base;
@@ -82,9 +90,13 @@ void ck_invoke(ck_class *m, ck_start fn, ck **ck, void **value) {
         if (!fn) resume(*ck, base);
         else m->channel = fn(m, *value);
     }
-    *ck = m->ck_new;
-    *value = m->from_task(m, m->channel);
-    return;
+    else {
+        *ck = m->ck_new;
+        *value = m->from_task(m, m->channel);
+    }
+}
+void ck_invoke(ck_start fn, ck **ck, void **value) {
+    ck_invoke_with_class((ck_class*)ck_type(), fn, ck, value);
 }
 
 
@@ -97,6 +109,7 @@ static void suspend(ck_class *m) {
         void *top = &ck;
         ck->size = ((char*)m->base - (char*)top);  /* grows downward */
         ck->segment = malloc(ck->size);
+        fprintf(stderr, "suspend: copy %d bytes: %p -> %p\n", ck->size, top, ck->segment);
         memcpy(ck->segment, top, ck->size);
 
         /* Abort to sequencer. */
@@ -114,49 +127,4 @@ void* ck_yield(ck_class *m, void *value) {
 
 #if 0
 
-// test code from scheme.c
-
-/* Invoke a C continuation 
-   
-   This is a data barrier: C tasks can never have access to Scheme
-   objects.  All data passes through a converter in the ck_manager.
-*/
-
-
-static _ test_ck(ck_class *m, _ o) {
-    printf("1: test_ck()\n"); o = (object)ck_yield(m, (void*)o);
-    printf("2: test_ck()\n"); o = (object)ck_yield(m, (void*)o);
-    printf("3: test_ck()\n");
-    return o;
-}
-
-_ sc_with_ck(sc *sc, _ in_ref, _ value) {
-    ck *task = NULL;
-    ck_start fn = NULL;
-    if (!(task = object_to_ck(in_ref, &sc->m))) {
-        fn = (ck_start)test_ck;
-    }
-    ck *in_task = task;
-
-    // alloc before call
-    _ ref = sc_make_aref(sc, NIL, NIL);
-    _ stream = CONS(NIL, ref);  
-    
-    ck_invoke(TYPES->ck_type, fn, &task, (void**)&value);
-
-    if (!task) return value;
-    else {
-        pair *p = object_to_pair(stream);
-        p->car = value;
-        if (in_task == task) {
-            p->cdr  = in_ref;
-        }
-        else {
-            aref *r = object_to_aref(ref);
-            r->object = const_to_object(task);
-            r->fin    = fin_to_object((fin *)TYPES->ck_type);
-        }
-        return stream;
-    }
-}
 #endif

@@ -1219,3 +1219,34 @@ _ ex_dlsym(ex *ex, _ so, _ name) {
     if (!addr) return ex_dlerror(ex);
     return const_to_object(GC_CHECK_ALIGNED(addr));
 }
+
+
+/* Invoke a C continuation 
+   
+   This is a data barrier: C tasks can never have access to Scheme
+   objects.  All data passes through a converter in the ck_manager.
+*/
+
+
+static _ test_ck(ck_class *m, _ o) {
+    printf("1: test_ck()\n"); o = (object)ck_yield(m, (void*)o);
+    printf("2: test_ck()\n"); o = (object)ck_yield(m, (void*)o);
+    printf("3: test_ck()\n");
+    return o;
+}
+
+_ ex_with_ck(ex *ex, _ in_ref, _ value) {
+    ck *task = NULL;
+    ck_start fn = NULL;
+    if (!(task = object_to_ck(in_ref))) {
+        fn = (ck_start)test_ck;
+    }
+    ck *in_task = task;
+    
+    ck_invoke(fn, &task, (void**)&value);
+
+    if (!task) return value; // task end
+    if (in_task == task) { return CONS(value, in_ref); } // reuse task
+    _ rv = CONS(value, ex->leaf_to_object(ex, (leaf_object*)task)); // create new task
+    return rv;
+}

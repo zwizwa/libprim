@@ -18,6 +18,7 @@
 #include <leaf/inexact.h>
 #include <leaf/channel.h>
 #include <leaf/error.h>
+#include <leaf/task.h>
 #include <ex/pair.h>
 #include <ex/object.h>
 
@@ -181,6 +182,7 @@ DECL_TYPE(inexact)
 DECL_TYPE(bytes)
 typedef char cstring;  // for CAST()
 DECL_TYPE(cstring)
+DECL_TYPE(ck)
 
 // This is not a function, and not defined as an API symbol.
 

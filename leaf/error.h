@@ -32,7 +32,7 @@ static inline void leaf_raise(leaf_ctx *ctx, int rv, void *data) {
 #include <leaf/symbol.h>
 
 typedef struct {
-    symbol *tag;
+    symbol *sym;
     leaf_object *obj;
 } leaf_error_info;
 

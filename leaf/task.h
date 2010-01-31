@@ -9,13 +9,12 @@
 typedef struct _ck ck;
 typedef struct _ck_class ck_class;
 typedef void* (*ck_start)(ck_class *, void *);
-typedef void (*ck_free)(ck *);
 typedef void (*ck_jump)(ck_class *);
 typedef void* (*ck_convert)(ck_class *, void*);
 
 /* It feels wrong to call this `class' because of the data fields. */
 struct _ck_class {
-    ck_free free;
+    leaf_class super;
     ck_jump jump;
     ck_convert to_task;
     ck_convert from_task;
@@ -34,13 +33,14 @@ struct _ck {
     int size;
 };
 
-ck_class* ck_class_new(void);
+// ck_class* ck_class_new(void);
+leaf_class* ck_type(void);
 
 /* C side */
 void *ck_yield(ck_class *m, void *value);
 
 /* Host side */
-void ck_invoke(ck_class *m, ck_start fn, ck **ck, void **value);
+void ck_invoke(ck_start fn, ck **ck, void **value);
 
 
 

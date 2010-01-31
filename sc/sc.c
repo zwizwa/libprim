@@ -34,11 +34,11 @@
 
 
 // GC finalized objects
-// DEF_AREF_TYPE(ck)
 DEF_AREF_TYPE(port)
 DEF_AREF_TYPE(bytes)
 DEF_AREF_TYPE(inexact)
 DEF_AREF_TYPE(channel)
+DEF_AREF_TYPE(ck)
 
 
 _ sc_make_aref(sc *sc, _ F, _ O)       {return STRUCT(TAG_AREF,    2, F,O);}
@@ -257,7 +257,7 @@ void _sc_set_error(sc *sc, int rv, void *data) {
 
     if (rv == EXCEPT_LEAF) {
         leaf_error_info *info = data;
-        e->tag = const_to_object(info->tag);
+        e->tag = const_to_object(info->sym);
         e->arg = sc->m.leaf_to_object(EX, info->obj);
     }
     else if (rv == EXCEPT_ABORT) {
