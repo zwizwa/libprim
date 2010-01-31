@@ -29,16 +29,6 @@
 typedef struct _ex ex;
 #include <ex/ex.h_prims>
 
-typedef struct {
-    symbol_class *symbol_type;
-    // ck_class *ck_type;
-    prim_class *prim_type;
-    port_class *port_type;
-    bytes_class *bytes_type;
-    rc_class *rc_type;
-    inexact_class *inexact_type;
-} base_types;
-
 typedef object (*ex_m_write)(ex *ex, object ob);
 typedef port*  (*_ex_m_port)(ex *ex);
 typedef object (*_ex_m_leaf_to_object)(ex *ex, leaf_object*);

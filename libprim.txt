@@ -8826,3 +8826,22 @@ The point being: it might be too restrictive to require alignment of
 all pointers to be able to use tag bits..  This is OK on risc
 platforms, but on x86 not all (code) pointers are word-aligned.
 
+
+Entry: PF
+Date: Sun Jan 31 11:12:50 CET 2010
+
+What about building PF on top of LEAF?  Won't work, as it uses some of
+the linear primitives in EX.
+
+Maybe the real question is: can some of the linear primitives in EX be
+written in LEAF?
+
+Let's think about this a bit.  Is it possible to construct a tree
+memory for LEAF objects that is optimized for storage size?
+
+I already have tuples, but what this would do is to not use malloc().
+
+The main reason: i want composition without GC.  For this it's really
+not necessary to use a different object model.
+
+Exceptions need to be more primitive.
