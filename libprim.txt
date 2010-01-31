@@ -8863,4 +8863,16 @@ Fixed.
 Also fixed proper stack growing for resume.
 
 
+Entry: Automatic wrapping
+Date: Sun Jan 31 21:50:31 CET 2010
+
+Problem pops up again with the ck (C continuations).  The idea is to
+abstract C code as lazy lists / generators, so C code can be free of
+scripting language's memory model which would represent concrete
+lists.
+
+I'm currently stuck at defining an interface for such functions.  The
+simplest is probably to require generators to be single input / single
+output leaf transformers.
+
 
