@@ -56,24 +56,16 @@ struct _ex {
     pthread_mutex_t machine_lock; // unlock machine struct during select() call
     
     long stateful_context; // if set, GC restarts are illegal
+    int fatal;             // if set, all errors are fatal (i.e. during boot)
 
     /* VIRTUAL METHODS */
-    _ex_m_set_error set_error;
-
-    /* Printing: delegate + current port. */
-    ex_m_write write;
-    _ex_m_port port;
-
-    /* Parsing */
-    ex_m_make_pair make_pair;
-
-    /* Object wrapping */
-    _ex_m_leaf_to_object leaf_to_object;
-    _ex_m_object_to_leaf object_to_leaf;
+    _ex_m_set_error         set_error;         // ex_raise_error()
+    ex_m_write              write;             // ex_write()
+    _ex_m_port              port;              // ex_write()
+    ex_m_make_pair          make_pair;         // ex_read()
+    _ex_m_leaf_to_object    leaf_to_object;    // object wraps
+    _ex_m_object_to_leaf    object_to_leaf;
     _ex_m_object_erase_leaf object_erase_leaf;
-
-    /* Debug flags */
-    int fatal;
 };
 
 #define DEF_ATOM(name)                                         \
