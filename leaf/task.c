@@ -53,18 +53,20 @@ ck *ck_new(ck_class *ck_class) {
 static inline ck_class *ck_cls(ck *ck) {
     return (ck_class*)leaf_type(&(ck->base));
 }
+
+#define D_PAD if(0)
 static int resume(ck *ck, char *base, long *pad) {
-    /* Grow the stack. */
+    /* Grow the stack by recursing.  This code is inspired by:
+       http://homepage.mac.com/sigfpe/Computing/continuations.html */
     int margin = (base - (char*)&base) - ck->size;
-    fprintf(stderr, "margin %p %d\n", &base, margin);
+    D_PAD fprintf(stderr, "margin %p %d\n", &base, margin);
     if (margin < 0) {
         long pad[30];
         resume(ck, base, pad);
     }
-
-
-    /* Copy the saved segment over the active stack and resume. */
-    fprintf(stderr, "resume: copy %d bytes: %p -> %p\n", ck->size, ck->segment, base - ck->size);
+    /* At this point the current call frame doesn't overlap with the
+       segment we're about to overwrite. */
+    D_PAD fprintf(stderr, "resume: copy %d bytes: %p -> %p\n", ck->size, ck->segment, base - ck->size);
     memcpy(base - ck->size, ck->segment, ck->size); 
     longjmp(ck->resume, 1);
 }
