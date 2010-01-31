@@ -37,7 +37,6 @@ typedef struct {
    cache footprint small. */
 
 /* VM ops creating continuation frames. */
-#define CHECK_ALIGNED(x) { if(((void*)x) != GC_POINTER((object)x)) TRAP(); }
 
 static kf_base *_sc_extend_kf_base(sc *sc, int slots, void *tag) {
     kf_base *kf = (kf_base*)gc_alloc(EX->gc, slots);
@@ -45,7 +44,7 @@ static kf_base *_sc_extend_kf_base(sc *sc, int slots, void *tag) {
     kf->env    = sc->e;
     sc->k = vector_to_object((vector*)kf);
     kf->tag = (k_code)tag;
-    CHECK_ALIGNED(tag);
+    GC_CHECK_ALIGNED(tag);
     return kf;
 }
 

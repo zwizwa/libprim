@@ -104,6 +104,7 @@ static inline int gc_available(gc *gc) {
     return gc->slot_total - gc->current_index;
 }
 
+#define GC_CHECK_ALIGNED(x) ({ if(((void*)x) != GC_POINTER((object)x)) TRAP(); x; })
 
 
 #endif

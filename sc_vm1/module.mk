@@ -8,7 +8,7 @@ TARGET_LDFLAGS := -lpthread
 
 # Test target.
 .PHONY: sc_vm1_test
-SC_VM1 := $(MODULE)/sc_vm1
+SC_VM1 := $(BUILDDIR)/$(MODULE)/sc_vm1
 SC_BOOT_SCM := $(SRCDIR)/$(MODULE)/boot.scm
 sc_vm1_test: $(SC_VM1)
 	gdb -x $(SRCDIR)/bin/run.gdb --args $(SC_VM1) --boot $(SC_BOOT_SCM)

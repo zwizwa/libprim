@@ -1205,3 +1205,26 @@ _ _ex_boot_load(ex *ex,  const char *bootfile) {
 
 
 
+
+/* Dynamic libraries */
+
+#include <dlfcn.h>
+_ ex_dlerror(ex *ex) {
+    _ex_printf(ex, dlerror());
+    _ex_printf(ex, "\n");
+    return FALSE;
+}
+_ ex_dlopen(ex *ex, _ filename) {
+    void *handle = dlopen(CAST(cstring, filename), RTLD_NOW);
+    if (!handle) return ex_dlerror(ex);
+    return const_to_object(GC_CHECK_ALIGNED(handle));
+}
+_ ex_dlclose(ex *ex, _ so) {
+    dlclose(object_to_const(so));
+    return VOID;
+}
+_ ex_dlsym(ex *ex, _ so, _ name) {
+    void *addr = dlsym(object_to_const(so), CAST(cstring, name));
+    if (!addr) return ex_dlerror(ex);
+    return const_to_object(GC_CHECK_ALIGNED(addr));
+}

@@ -8805,3 +8805,15 @@ Date: Sun Jan 31 09:01:04 CET 2010
 The idea is that a run-time process should be able to collect type
 information by either inspecting the names in the .so or by inspecting
 the header file.
+
+Really, the next step is a parser that can extract info from the
+header file, or a declaration macro that is easily recognized.
+
+The wrapping (constructing a wrapper function from a type description
+and a function pointer) and obtaining that type description should be
+separated.
+
+The simpler problem to solve is to add a means to define new types in
+Scheme.  It all starts with dlsym: OK.
+
+
