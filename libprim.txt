@@ -8817,3 +8817,12 @@ The simpler problem to solve is to add a means to define new types in
 Scheme.  It all starts with dlsym: OK.
 
 
+Entry: No restriction on pointers?
+Date: Sun Jan 31 09:33:56 CET 2010
+
+Is it possible to not restrict pointers?  If the heap storage is kept
+in one piece, GC vectors can be recognized directly by their address.
+The point being: it might be too restrictive to require alignment of
+all pointers to be able to use tag bits..  This is OK on risc
+platforms, but on x86 not all (code) pointers are word-aligned.
+
