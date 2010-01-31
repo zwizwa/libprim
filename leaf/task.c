@@ -9,7 +9,7 @@
    task needs to use only the C stack for storage, or it needs to
    cleanup after itself _and_ be run until exit by the host. */
 static void ck_free(ck *x) {
-    printf("task_free(%p)\n", (void*)x);
+    // printf("task_free(%p)\n", (void*)x);
     free(x->segment);
     free(x);
 }
@@ -50,30 +50,23 @@ ck *ck_new(ck_class *ck_class) {
 
 /* HOST SIDE */
 
-/* Context that needs to survive stack switching needs to be stored
-   somewhere other than the C stack. */
-__thread ck *thread_ck;
-
 static inline ck_class *ck_cls(ck *ck) {
     return (ck_class*)leaf_type(&(ck->base));
 }
-static void resume(ck *_ck, void *base) {
-    void *sp = NULL;
-    thread_ck = _ck;  /* variable not on C stack */
+static int resume(ck *ck, char *base, long *pad) {
+    /* Grow the stack. */
+    int margin = (base - (char*)&base) - ck->size;
+    fprintf(stderr, "margin %p %d\n", &base, margin);
+    if (margin < 0) {
+        long pad[30];
+        resume(ck, base, pad);
+    }
 
-    /* Copy stack */
-    sp = (void*) ((char*)ck_cls(thread_ck)->base - thread_ck->size);
 
-    /* Reserve stack space so function call/return keeps working after
-       a part of the stack is overwritten. */
-    void *reserve[thread_ck->size / sizeof(void *)];
-    
-    fprintf(stderr, "resume: copy %d bytes: %p -> %p\n", thread_ck->size, thread_ck->segment, sp);
-    memcpy(sp, thread_ck->segment, thread_ck->size);
-    /* Here 'reserve' is used as a dummy value to make sure it's not
-       optimized away. */
-    fprintf(stderr, "longjmp(resume)\n");
-    longjmp(thread_ck->resume, (int)((long)reserve));
+    /* Copy the saved segment over the active stack and resume. */
+    fprintf(stderr, "resume: copy %d bytes: %p -> %p\n", ck->size, ck->segment, base - ck->size);
+    memcpy(base - ck->size, ck->segment, ck->size); 
+    longjmp(ck->resume, 1);
 }
 
 void ck_invoke_with_class(ck_class *m, ck_start fn, ck **ck, void **value) {
@@ -87,7 +80,7 @@ void ck_invoke_with_class(ck_class *m, ck_start fn, ck **ck, void **value) {
         }
         m->ck_new = NULL;
         m->channel = m->to_task(m, *value);
-        if (!fn) resume(*ck, base);
+        if (!fn) resume(*ck, base, NULL);
         else m->channel = fn(m, *value);
     }
     *ck = m->ck_new;
