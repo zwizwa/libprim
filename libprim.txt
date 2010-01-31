@@ -8858,3 +8858,9 @@ Date: Sun Jan 31 16:27:34 CET 2010
 
 Maybe it's time to revive the old idea of tasks.  The region of the
 stack from the top down to the setjmp point can be saved.
+
+Fixed.
+Also fixed proper stack growing for resume.
+
+
+

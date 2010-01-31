@@ -14,7 +14,7 @@ static void ck_free(ck *x) {
     free(x);
 }
 static int ck_write(ck *x, port *p) {
-    return port_printf(p, "#<ck:%p>", x);
+    return port_printf(p, "#<ck:%p:%d>", x, x->size);
 }
 static void default_jump(ck_class *m) {
     longjmp(m->prompt, 1);
@@ -54,19 +54,16 @@ static inline ck_class *ck_cls(ck *ck) {
     return (ck_class*)leaf_type(&(ck->base));
 }
 
-#define D_PAD if(0)
 static int resume(ck *ck, char *base, long *pad) {
     /* Grow the stack by recursing.  This code is inspired by:
        http://homepage.mac.com/sigfpe/Computing/continuations.html */
     int margin = (base - (char*)&base) - ck->size;
-    D_PAD fprintf(stderr, "margin %p %d\n", &base, margin);
     if (margin < 0) {
         long pad[30];
         resume(ck, base, pad);
     }
     /* At this point the current call frame doesn't overlap with the
        segment we're about to overwrite. */
-    D_PAD fprintf(stderr, "resume: copy %d bytes: %p -> %p\n", ck->size, ck->segment, base - ck->size);
     memcpy(base - ck->size, ck->segment, ck->size); 
     longjmp(ck->resume, 1);
 }
@@ -102,12 +99,10 @@ static void suspend(ck_class *m) {
         void *top = &ck;
         ck->size = ((char*)m->base - (char*)top);  /* grows downward */
         ck->segment = malloc(ck->size);
-        fprintf(stderr, "suspend: copy %d bytes: %p -> %p\n", ck->size, top, ck->segment);
         memcpy(ck->segment, top, ck->size);
 
         /* Abort to sequencer. */
         m->jump(m);
-        exit(1); /* not reached */
     }
 }
 void* ck_yield(ck_class *m, void *value) {
