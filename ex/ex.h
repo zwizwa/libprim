@@ -45,21 +45,20 @@ typedef object (*_ex_m_leaf_to_object)(ex *ex, leaf_object*);
 typedef leaf_object *(*_ex_m_object_to_leaf)(ex *ex, object);
 typedef void (*_ex_m_object_erase_leaf)(ex *ex, object);
 typedef object (*ex_m_make_pair)(ex *ex, object car, object cdr); // reader
+typedef void (*_ex_m_set_error)(ex *ex, prim *prim, _ error_tag, _ error_arg);
 struct _ex {
     struct _gc *gc;      // garbage collected graph memory manager
     int gc_guard_cells;  // guard buffer for primitives
     prim *prim;          // current primitive
     void *ctx;           // any other user context associated with VM (i.e. JNIEnv)
 
-    long entries;                 // multiple entry semaphore
     jmp_buf except;               // GC unwind + exceptions
     pthread_mutex_t machine_lock; // unlock machine struct during select() call
     
     long stateful_context; // if set, GC restarts are illegal
-    _ error_tag;
-    _ error_arg;
 
     /* VIRTUAL METHODS */
+    _ex_m_set_error set_error;
 
     /* Printing: delegate + current port. */
     ex_m_write write;

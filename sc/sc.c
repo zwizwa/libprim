@@ -245,6 +245,18 @@ _ sc_script_dir(sc *sc) {
 }
 
 
+/* Called by ex_raise_error.  This stores the error parameters in a
+   pre-allocated error struct. */
+
+_ _sc_set_error(sc *sc, prim *p, _ tag, _ arg) {
+    error *e = object_to_error(sc->error);
+    if (unlikely(NULL == e)) { TRAP(); }
+    e->tag  = tag;
+    e->arg  = arg;
+    e->prim = const_to_object(p);
+}
+
+
 /* Toplevel VM loop.  This function captures the GC restart and
    primitive error exceptions.
 
@@ -263,12 +275,8 @@ _ sc_script_dir(sc *sc) {
 
 _ _sc_continue_dynamic(sc *sc, sc_loop _sc_loop, sc_abort _sc_abort) {
 
-    if (sc->m.entries) {
-        _ex_printf(EX, "WARNING: multiple _sc_top() entries.\n");
-        return NIL;
-    }
+    EX->set_error = (_ex_m_set_error)_sc_set_error;
     pthread_mutex_lock(&EX->machine_lock);
-    sc->m.entries++;
     for(;;) {
 
         switch(setjmp(sc->m.except)) {
@@ -284,19 +292,12 @@ _ _sc_continue_dynamic(sc *sc, sc_loop _sc_loop, sc_abort _sc_abort) {
             _sc_loop(sc);
 
         case EXCEPT_HALT: {
-            sc->m.entries--;
+            EX->set_error = NULL;
             pthread_mutex_unlock(&EX->machine_lock);
-            return sc->m.error_arg;
+            return CAST(error, sc->error)->arg;
         }
 
         case EXCEPT_ABORT: {
-            error *e = object_to_error(sc->error);
-            if (unlikely(NULL == e)) { TRAP(); }
-            
-            /* Wrap error info and clear the low level error state. */
-            e->tag  = sc->m.error_tag;              sc->m.error_tag = NIL;
-            e->arg  = sc->m.error_arg;              sc->m.error_arg = NIL;
-            e->prim = const_to_object(sc->m.prim);  sc->m.prim = NULL;
 
             /* Run the error handler defined elsewhere. */
             _sc_abort(sc);
@@ -322,7 +323,6 @@ int _sc_init(sc *sc, int argc, const char **argv, sc_bootinfo *info) {
 
     memset(info, 0, sizeof(*info));
     info->args = NIL;
-    sc->m.entries = 0;
 
     /* Read command line interpreter options options. */
     SHIFT(1); // skip program name

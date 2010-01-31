@@ -223,12 +223,8 @@ long _ex_unwrap_integer(ex *ex, object o) {
     return object_to_integer(o);
 }
 _ _ex_restart(ex *ex) {
-    if (ex->entries) {
-        longjmp(ex->except, EXCEPT_RESTART);
-    }
-    _ex_printf(ex, "ERROR: attempt restart outside of the main loop.\n");
-    ex_trap(ex);
-    exit(1);
+    longjmp(ex->except, EXCEPT_RESTART);
+    return VOID;
 }
 
 void _ex_overflow(ex *ex, long extra) {
@@ -1154,12 +1150,10 @@ _ ex_fatal_print_error(ex *ex, _ tag_o, _ arg_o) {
     TRAP();
     exit(1);
 }
-
-_ ex_raise_error(ex *ex, _ tag_o, _ arg_o) {
-    ex->error_tag = tag_o;
-    ex->error_arg = arg_o;
-    if (likely((!ex->fatal) && (ex->entries))) {
-        longjmp(ex->except, EXCEPT_ABORT);
+_ _ex_interrupt(ex *ex, int rv, prim* p, _ tag_o, _ arg_o) {
+    if (ex->set_error && likely((!ex->fatal))) {
+        ex->set_error(ex, p, tag_o, arg_o);
+        longjmp(ex->except, rv);
     }
     else if (ex->fatal) {
         return ex_fatal_print_error(ex, tag_o, arg_o);
@@ -1169,12 +1163,12 @@ _ ex_raise_error(ex *ex, _ tag_o, _ arg_o) {
         return ex_fatal_print_error(ex, tag_o, arg_o);
     }
 }
-_ ex_halt_vm(ex *ex, _ value) {
-    ex->error_tag = SYMBOL("halt");
-    ex->error_arg = value;
-    longjmp(ex->except, EXCEPT_HALT);
+_ ex_raise_error(ex *ex,  _ tag_o, _ arg_o) {
+    return _ex_interrupt(ex, EXCEPT_ABORT, ex->prim, tag_o, arg_o);
 }
-
+_ ex_halt_vm(ex *ex, _ value) {
+    return _ex_interrupt(ex, EXCEPT_HALT, NULL, NIL, value);
+}
 _ ex_raise_type_error(ex *ex, _ arg_o) {
     return ex_raise_error(ex, SYMBOL("type"), arg_o);
 }

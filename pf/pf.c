@@ -34,6 +34,15 @@
 */
 typedef void (*pf_prim)(pf*);
 
+_ _pf_set_error(sc *sc, prim *p, _ tag, _ arg) {
+    error *e = object_to_error(sc->error);
+    if (unlikely(NULL == e)) { TRAP(); }
+    e->tag  = tag;
+    e->arg  = arg;
+    e->prim = const_to_object(prim);
+}
+
+
 void _px_run(pf *pf) {
     seq *s;
     prim *p;
@@ -45,6 +54,8 @@ void _px_run(pf *pf) {
     int ex_id;
 
     EX->entries++;
+
+    EX->set_error = (_ex_m_set_error)_pf_set_error;
 
   top_loop:
     switch(ex_id = setjmp(pf->m.except)) {
