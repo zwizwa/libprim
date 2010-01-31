@@ -222,10 +222,6 @@ long _ex_unwrap_integer(ex *ex, object o) {
         return ex_raise_type_error(ex, o);
     return object_to_integer(o);
 }
-_ _ex_restart(ex *ex) {
-    longjmp(ex->except, EXCEPT_RESTART);
-    return VOID;
-}
 
 void _ex_overflow(ex *ex, long extra) {
     /* At this point, the heap is compacted, but the requested
@@ -461,7 +457,7 @@ _ ex_tcp_connect(ex *ex, _ host, _ port) {
     char *hostname  = CAST(cstring, host);
     int port_number = CAST_INTEGER(port);
     int fd;
-    if (-1 == (fd = fd_socket(hostname, port_number, 0))) {
+    if (-1 == (fd = fd_socket(&ex->l, hostname, port_number, 0))) {
         ERROR("invalid", CONS(host, CONS(port, NIL)));
     }
     char name[20 + strlen(hostname)];
@@ -477,7 +473,7 @@ _ ex_tcp_bind(ex *ex, _ host, _ port) {
     char *hostname  = CAST(cstring, host);
     int port_number = CAST_INTEGER(port);
     int fd;
-    if (-1 == (fd = fd_socket(hostname, port_number, PORT_SOCKET_SERVER))) {
+    if (-1 == (fd = fd_socket(&ex->l, hostname, port_number, PORT_SOCKET_SERVER))) {
         ERROR("invalid", CONS(host, CONS(port, NIL)));
     }
     return integer_to_object(fd);
@@ -491,7 +487,8 @@ _ ex_unix_bind(ex *ex, _ node, _ force_delete) {
             // _ex_printf(EX, "removed socket %s\n", nodename);
         }
     }
-    if (-1 == (fd = fd_socket(nodename, 0, 
+    if (-1 == (fd = fd_socket(&ex->l,
+                              nodename, 0, 
                               PORT_SOCKET_UNIX | 
                               PORT_SOCKET_SERVER))) {
         ERROR("invalid", node);
@@ -501,7 +498,7 @@ _ ex_unix_bind(ex *ex, _ node, _ force_delete) {
 
 _ ex_socket_accept(ex *ex, _ ob) {
     int server_fd = CAST_INTEGER(ob);
-    int connection_fd = fd_accept(server_fd);
+    int connection_fd = fd_accept(&ex->l, server_fd);
     if (-1 == connection_fd) ERROR("invalid-fd", ob);
     return CONS(_ex_fd_open(ex, connection_fd, "r", "I:tcp-accept"),
                 _ex_fd_open(ex, connection_fd, "w", "O:tcp-accept"));
@@ -1150,24 +1147,20 @@ _ ex_fatal_print_error(ex *ex, _ tag_o, _ arg_o) {
     TRAP();
     exit(1);
 }
-_ _ex_interrupt(ex *ex, int rv, prim* p, _ tag_o, _ arg_o) {
-    if (ex->set_error && likely((!ex->fatal))) {
-        ex->set_error(ex, p, tag_o, arg_o);
-        longjmp(ex->except, rv);
+_ _ex_interrupt(ex *ex, int rv, ex_error_info *info) {
+    if (ex->l.set_error && likely((!ex->fatal))) {
+        leaf_raise(&ex->l, rv, info);
+        return VOID;
     }
-    else if (ex->fatal) {
-        return ex_fatal_print_error(ex, tag_o, arg_o);
-    }
-    else {
-        _ex_printf(ex, "(out-of-context) ");
-        return ex_fatal_print_error(ex, tag_o, arg_o);
-    }
+    if (!ex->fatal) _ex_printf(ex, "(out-of-context) ");
+    return ex_fatal_print_error(ex, info->tag, info->arg);
 }
 _ ex_raise_error(ex *ex,  _ tag_o, _ arg_o) {
-    return _ex_interrupt(ex, EXCEPT_ABORT, ex->prim, tag_o, arg_o);
+    ex_error_info info = {tag_o, arg_o};
+    return _ex_interrupt(ex, EXCEPT_ABORT, &info);
 }
 _ ex_halt_vm(ex *ex, _ value) {
-    return _ex_interrupt(ex, EXCEPT_HALT, NULL, NIL, value);
+    return _ex_interrupt(ex, EXCEPT_HALT, NULL);
 }
 _ ex_raise_type_error(ex *ex, _ arg_o) {
     return ex_raise_error(ex, SYMBOL("type"), arg_o);
@@ -1175,6 +1168,10 @@ _ ex_raise_type_error(ex *ex, _ arg_o) {
 _ ex_raise_nargs_error(ex *ex, _ arg_o) {
     return ex_raise_error(ex, SYMBOL("nargs"), arg_o);
 }
+_ _ex_restart(ex *ex) {
+    return _ex_interrupt(ex, EXCEPT_RESTART, NULL);
+}
+
 
 
 

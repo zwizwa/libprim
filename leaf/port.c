@@ -10,7 +10,7 @@
 #include <string.h>
 #include "port.h"
 #include <leaf/bytes.h>
-
+#include <leaf/error.h>
 
 
 /* FILE ports */
@@ -84,18 +84,12 @@ void port_methods_file_init(port_methods *p) {
 }
 
 /* Bytes ports */
+
 int port_bytes_vprintf(port *p, const char *fmt, va_list ap) {
     if (!p->stream.b.bytes) return -1;
-    va_list aq;
-    int len;
-    va_copy(aq, ap);
-    len = vsnprintf(NULL, 0, fmt, aq);
-    va_end(aq);
-    if (len < 0) return len;
-    void *data = bytes_allot(p->stream.b.bytes, len);
-    len = vsprintf(data, fmt, ap);
-    return len;
+    return bytes_vprintf(p->stream.b.bytes, fmt, ap);
 }
+
 int port_bytes_getc(port *p) {
     if (!p->stream.b.bytes) return -1;
     int i;
@@ -305,7 +299,10 @@ int port_fd(port *p) {
 /* An all-in-one constructor for TCP/UNIX server/client socket. */
 
 
-#define ERROR(...) { fprintf(stderr, __VA_ARGS__); fprintf(stderr, "\n"); return -1; } // FIXME: leaf error handling
+// #define ERROR(...) { fprintf(stderr, __VA_ARGS__); fprintf(stderr, "\n"); return -1; } // FIXME: leaf error handling
+
+#define ERROR(...) { leaf_raise_error(ctx, "port", __VA_ARGS__); return -1; }
+
 
 union addr {
     struct sockaddr_un un;
@@ -317,7 +314,8 @@ union addr {
    fdopen to create port abstractions. */
 
 // ((host port) mode kind -- stream )
-int fd_socket(const char *sockname,  // hostname | filesystem node
+int fd_socket(leaf_ctx *ctx,
+              const char *sockname,  // hostname | filesystem node
               int port_number,       // only for TCP sockets
               int kind) {
 
@@ -444,7 +442,7 @@ int fd_socket(const char *sockname,  // hostname | filesystem node
 }
 
 
-int fd_accept(int server_fd) {
+int fd_accept(leaf_ctx *ctx, int server_fd) {
     union addr address;  // connection address
     socklen_t addrlen = sizeof(address);
     int fd_server = server_fd;

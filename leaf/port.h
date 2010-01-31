@@ -4,6 +4,7 @@
 #include <stdio.h>
 #include <stdarg.h>
 #include <leaf/leaf.h>
+#include <leaf/error.h>
 
 /* Ports are abstract.  Next to libc FILE ports they can represent
    anything that produces or consumes bytes. */
@@ -73,11 +74,14 @@ bytes *port_get_bytes(port *b); // for string ports
 #define PORT_SOCKET_UNIX      (1<<2)  // 0 = INET
 #define PORT_SOCKET_BROADCAST (1<<3)
 
-int fd_socket(const char *sockname,  // hostname | filesystem node
+/* Functions that take a leaf_ctx parameter can throw exceptions. */
+
+int fd_socket(leaf_ctx *ctx,
+              const char *sockname,  // hostname | filesystem node
               int port_number,       // only for TCP sockets
               int kind);
 
-int fd_accept(int fd);
+int fd_accept(leaf_ctx *ctx, int fd);
 
 int fd_pipe(char **argv, int *pid, int connect_fd);
 int fd_pipe_2(char **argv, int *pid, int *fd_to_stdin, int *fd_from_stdout);

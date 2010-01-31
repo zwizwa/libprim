@@ -24,6 +24,7 @@ you wrap them according to this interface.
 /* Because of cross-deps between the objects, some are declared here. */
 typedef struct _port port;
 typedef struct _bytes bytes;
+typedef struct _leaf_ctx leaf_ctx;
 
 
 typedef struct _leaf_class leaf_class;

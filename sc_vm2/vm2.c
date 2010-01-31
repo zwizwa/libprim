@@ -301,15 +301,15 @@ _ sc_vm_eval_bytecode(sc *sc, _ expr) {
     _ e = sc->e;  sc->e = NIL;
     _ k = sc->k;  sc->k = NIL; EXTEND_K(kf_halt, f);
     int err;
-    typeof(sc->m.except) save;
+    typeof(sc->m.l.buf) save;
 
 
     // _ex_printf(EX, "Saved %d bytes\n", sizeof(save));
 
-    memcpy(&save, &sc->m.except, sizeof(save));
+    memcpy(&save, &sc->m.l.buf, sizeof(save));
 
 
-    switch((err = setjmp(sc->m.except))) {
+    switch((err = leaf_catch(sc))) {
     case EXCEPT_TRY:
         for(;;) {
             vm_op *op = (vm_op*)GC_POINTER(sc->c);
@@ -319,10 +319,10 @@ _ sc_vm_eval_bytecode(sc *sc, _ expr) {
         sc->c = c;
         sc->e = e;
         sc->k = k;
-        memcpy(&sc->m.except, &save, sizeof(save));
+        memcpy(&sc->m.l.buf, &save, sizeof(save));
         if (err == EXCEPT_HALT) return CAST(error, sc->error)->arg;
         _ex_printf(EX, "Exception %d during vm-eval\n", err);
-        longjmp(sc->m.except, err);
+        longjmp(sc->m.l.buf, err);
     }
 }
 

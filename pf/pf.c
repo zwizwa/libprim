@@ -35,11 +35,18 @@
 typedef void (*pf_prim)(pf*);
 
 
-/* Error pushe the parameter and continuation */
-_ _pf_set_error(pf *pf, prim *p, _ tag, _ arg) {
-    PUSH_P(LINEARIZE_EXCEPTION(arg));
-    PUSH_P(LINEARIZE_EXCEPTION(tag));
-    PUSH_K_NEXT(pf->ip_abort);
+/* Error pushes the parameter and continuation */
+void _pf_set_error(pf *pf, int rv, void *data) {
+    if (rv == EXCEPT_LEAF) {
+        leaf_error_info *info = data;
+        TRAP();
+    }
+    else if (rv == EXCEPT_ABORT) {
+        ex_error_info *info = data;
+        PUSH_P(LINEARIZE_EXCEPTION(info->arg));
+        PUSH_P(LINEARIZE_EXCEPTION(info->tag));
+        PUSH_K_NEXT(pf->ip_abort);
+    }
 }
 
 void _px_run(pf *pf) {
@@ -52,10 +59,10 @@ void _px_run(pf *pf) {
     pf_prim fn = NULL;
     int ex_id;
 
-    EX->set_error = (_ex_m_set_error)_pf_set_error;
+    EX->l.set_error = (leaf_set_error)_pf_set_error;
 
   top_loop:
-    switch(ex_id = setjmp(pf->m.except)) {
+    switch(ex_id = leaf_catch(pf)) {
     case EXCEPT_TRY: 
     inner_loop:
     {
@@ -173,7 +180,7 @@ void _px_run(pf *pf) {
 
   halt:
     /* Return to caller. */
-    EX->set_error = NULL;
+    EX->l.set_error = NULL;
     return;
 }
 

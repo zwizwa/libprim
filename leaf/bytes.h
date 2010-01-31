@@ -2,6 +2,7 @@
 #define _BYTES_H_
 
 #include <stdio.h>
+#include <leaf/error.h>
 #include <leaf/leaf.h>
 #include <leaf/port.h>
 
@@ -46,5 +47,6 @@ int bytes_hexdump(bytes *b, port *p);  // human-readable
 /* Allocate a buffer segment + return pointer. */
 char *bytes_allot(bytes *b, size_t size);
 
+int bytes_vprintf(bytes *b, const char *fmt, va_list ap);
 
 #endif

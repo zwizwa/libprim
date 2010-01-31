@@ -2,7 +2,6 @@
 #define _MEM_H_
 
 #include <ctype.h>
-#include <setjmp.h>
 #include <pthread.h>
 
 /* Basic memory model for the Scheme and PF scripting languages.  This
@@ -18,7 +17,7 @@
 #include <leaf/rc.h>
 #include <leaf/inexact.h>
 #include <leaf/channel.h>
-#include <leaf/channel.h>
+#include <leaf/error.h>
 #include <ex/pair.h>
 #include <ex/object.h>
 
@@ -29,6 +28,7 @@
 typedef struct _ex ex;
 #include <ex/ex.h_prims>
 
+
 typedef object (*ex_m_write)(ex *ex, object ob);
 typedef port*  (*_ex_m_port)(ex *ex);
 typedef object (*_ex_m_leaf_to_object)(ex *ex, leaf_object*);
@@ -37,19 +37,18 @@ typedef void (*_ex_m_object_erase_leaf)(ex *ex, object);
 typedef object (*ex_m_make_pair)(ex *ex, object car, object cdr); // reader
 typedef void (*_ex_m_set_error)(ex *ex, prim *prim, _ error_tag, _ error_arg);
 struct _ex {
+    leaf_ctx l;          // The EX context extends the LEAF context
     struct _gc *gc;      // garbage collected graph memory manager
     int gc_guard_cells;  // guard buffer for primitives
     prim *prim;          // current primitive
     void *ctx;           // any other user context associated with VM (i.e. JNIEnv)
 
-    jmp_buf except;               // GC unwind + exceptions
     pthread_mutex_t machine_lock; // unlock machine struct during select() call
     
     long stateful_context; // if set, GC restarts are illegal
     int fatal;             // if set, all errors are fatal (i.e. during boot)
 
     /* VIRTUAL METHODS */
-    _ex_m_set_error         set_error;         // ex_raise_error()
     ex_m_write              write;             // ex_write()
     _ex_m_port              port;              // ex_write()
     ex_m_make_pair          make_pair;         // ex_read()
@@ -105,10 +104,9 @@ long _ex_unwrap_integer(ex *ex, object o);
 #define CAST_INTEGER(x) _ex_unwrap_integer(EX, x)
 #define CAST_CHAR(x)    _ex_unwrap_char(EX, x)
 
-#define EXCEPT_TRY     0
-#define EXCEPT_ABORT   1 /* abort to default toplevel continuation. */
-#define EXCEPT_RESTART 2 /* restart primitive (i.e. garbage collection finished) */
-#define EXCEPT_HALT    3 /* machine halt */
+#define EXCEPT_ABORT   2 /* highlevel EX abort */
+#define EXCEPT_RESTART 3 /* restart primitive (i.e. garbage collection finished) */
+#define EXCEPT_HALT    4 /* machine halt */
 
 _ _ex_make_bytes(ex *ex, int size);
 _ _ex_make_string(ex *ex, const char *str);
@@ -218,6 +216,12 @@ _ _ex_make_file_port(ex *ex, FILE *f, const char *name);
 
 
 double object_to_double(_ ob);
+
+typedef struct {
+    _ tag;
+    _ arg;
+} ex_error_info;
+
 
 #endif
 

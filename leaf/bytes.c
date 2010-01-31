@@ -159,3 +159,16 @@ bytes *bytes_copy(bytes* b) {
     memcpy(new_b->bytes, b->bytes, b->bufsize);
     return new_b;
 }
+
+int bytes_vprintf(bytes *b, const char *fmt, va_list ap) {
+    va_list aq;
+    int len;
+    va_copy(aq, ap);
+    len = vsnprintf(NULL, 0, fmt, aq);
+    va_end(aq);
+    if (len < 0) return len;
+    void *data = bytes_allot(b, len);
+    len = vsprintf(data, fmt, ap);
+    return len;
+}
+

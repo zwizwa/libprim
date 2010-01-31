@@ -245,15 +245,26 @@ _ sc_script_dir(sc *sc) {
 }
 
 
-/* Called by ex_raise_error.  This stores the error parameters in a
-   pre-allocated error struct. */
+/* Called by leaf_raise / ex_raise_error before unwinding the stack.
+   This stores the error parameters in a pre-allocated error
+   struct. */
 
-_ _sc_set_error(sc *sc, prim *p, _ tag, _ arg) {
+
+void _sc_set_error(sc *sc, int rv, void *data) {
     error *e = object_to_error(sc->error);
     if (unlikely(NULL == e)) { TRAP(); }
-    e->tag  = tag;
-    e->arg  = arg;
-    e->prim = const_to_object(p);
+    e->prim = const_to_object(sc->m.prim);
+
+    if (rv == EXCEPT_LEAF) {
+        leaf_error_info *info = data;
+        e->tag = const_to_object(info->tag);
+        e->arg = sc->m.leaf_to_object(EX, info->obj);
+    }
+    else if (rv == EXCEPT_ABORT) {
+        ex_error_info *info = data;
+        e->tag = info->tag;
+        e->arg = info->arg;
+    }
 }
 
 
@@ -275,11 +286,11 @@ _ _sc_set_error(sc *sc, prim *p, _ tag, _ arg) {
 
 _ _sc_continue_dynamic(sc *sc, sc_loop _sc_loop, sc_abort _sc_abort) {
 
-    EX->set_error = (_ex_m_set_error)_sc_set_error;
+    EX->l.set_error = (leaf_set_error)_sc_set_error;
     pthread_mutex_lock(&EX->machine_lock);
     for(;;) {
 
-        switch(setjmp(sc->m.except)) {
+        switch(leaf_catch(sc)) {
         case EXCEPT_TRY:
 
             /* Pre-allocate the error struct before the step() is
@@ -292,11 +303,12 @@ _ _sc_continue_dynamic(sc *sc, sc_loop _sc_loop, sc_abort _sc_abort) {
             _sc_loop(sc);
 
         case EXCEPT_HALT: {
-            EX->set_error = NULL;
+            EX->l.set_error = NULL;
             pthread_mutex_unlock(&EX->machine_lock);
-            return CAST(error, sc->error)->arg;
+            return object_to_error(sc->error)->tag;
         }
 
+        case EXCEPT_LEAF:
         case EXCEPT_ABORT: {
 
             /* Run the error handler defined elsewhere. */
@@ -304,11 +316,17 @@ _ _sc_continue_dynamic(sc *sc, sc_loop _sc_loop, sc_abort _sc_abort) {
             
             /* Unlink error struct, so it won't get overwritten. */
             sc->error = FALSE;
+            break;
         }
 
         case EXCEPT_RESTART:
             /* Continue with current state = restart step. */
             sc->m.prim = NULL;
+            break;
+
+        default:
+            TRAP();
+            exit(1);
         }
     }
 }
