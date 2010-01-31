@@ -90,10 +90,8 @@ void ck_invoke_with_class(ck_class *m, ck_start fn, ck **ck, void **value) {
         if (!fn) resume(*ck, base);
         else m->channel = fn(m, *value);
     }
-    else {
-        *ck = m->ck_new;
-        *value = m->from_task(m, m->channel);
-    }
+    *ck = m->ck_new;
+    *value = m->from_task(m, m->channel);
 }
 void ck_invoke(ck_start fn, ck **ck, void **value) {
     ck_invoke_with_class((ck_class*)ck_type(), fn, ck, value);
@@ -124,7 +122,3 @@ void* ck_yield(ck_class *m, void *value) {
 }
 
 
-
-#if 0
-
-#endif

@@ -1231,9 +1231,10 @@ _ ex_dlsym(ex *ex, _ so, _ name) {
 static _ test_ck(ck_class *m, _ o) {
     printf("1: test_ck()\n"); o = (object)ck_yield(m, (void*)o);
     printf("2: test_ck()\n"); o = (object)ck_yield(m, (void*)o);
-    printf("3: test_ck()\n");
-    return o;
+    printf("3: test_ck()\n"); o = (object)ck_yield(m, (void*)o);
+    return EOF_OBJECT;
 }
+
 
 _ ex_with_ck(ex *ex, _ in_ref, _ value) {
     ck *task = NULL;
