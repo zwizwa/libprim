@@ -6,3 +6,8 @@ TARGET         := pf
 TARGET_MODULES := px ex leaf
 TARGET_LDFLAGS := -lpthread
 
+PF:= $(BUILDDIR)/$(MODULE)/pf
+PF_BOOT := $(SRCDIR)/$(MODULE)/boot.pf
+
+pf_test: $(PF)
+	gdb -x $(SRCDIR)/bin/run.gdb --args $(PF) --boot $(PF_BOOT)

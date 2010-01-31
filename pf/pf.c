@@ -34,14 +34,13 @@
 */
 typedef void (*pf_prim)(pf*);
 
-_ _pf_set_error(sc *sc, prim *p, _ tag, _ arg) {
-    error *e = object_to_error(sc->error);
-    if (unlikely(NULL == e)) { TRAP(); }
-    e->tag  = tag;
-    e->arg  = arg;
-    e->prim = const_to_object(prim);
-}
 
+/* Error pushe the parameter and continuation */
+_ _pf_set_error(pf *pf, prim *p, _ tag, _ arg) {
+    PUSH_P(LINEARIZE_EXCEPTION(arg));
+    PUSH_P(LINEARIZE_EXCEPTION(tag));
+    PUSH_K_NEXT(pf->ip_abort);
+}
 
 void _px_run(pf *pf) {
     seq *s;
@@ -52,8 +51,6 @@ void _px_run(pf *pf) {
 
     pf_prim fn = NULL;
     int ex_id;
-
-    EX->entries++;
 
     EX->set_error = (_ex_m_set_error)_pf_set_error;
 
@@ -165,19 +162,18 @@ void _px_run(pf *pf) {
         goto top_loop;
 
     default:
-        pf->m.error_tag = SYMBOL("unknown-primitive-exception");
-        pf->m.error_arg = integer_to_object(ex_id);
+        _ex_printf(EX, "Unknown primitive exception: %d\n", ex_id);
+        TRAP();
+        exit(1);
     case EXCEPT_ABORT:
-        PUSH_P(LINEARIZE_EXCEPTION(pf->m.error_arg));
-        PUSH_P(LINEARIZE_EXCEPTION(pf->m.error_tag));
-        PUSH_K_NEXT(pf->ip_abort);
+        /* Erros have been pushed to the stack. */
         goto top_loop;
 
     }
 
   halt:
     /* Return to caller. */
-    EX->entries--;
+    EX->set_error = NULL;
     return;
 }
 
@@ -814,7 +810,6 @@ pf* _px_new(int argc, char **argv) {
     pf->k = NIL;
     pf->ip_abort = HALT;
     pf->ip_nop = HALT;
-    pf->m.entries = 0;
 
     // Stdout
     pf->output = _px_make_port(pf, stdout, "stdout");

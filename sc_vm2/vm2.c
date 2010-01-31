@@ -320,7 +320,7 @@ _ sc_vm_eval_bytecode(sc *sc, _ expr) {
         sc->e = e;
         sc->k = k;
         memcpy(&sc->m.except, &save, sizeof(save));
-        if (err == EXCEPT_HALT) return sc->m.error_arg;
+        if (err == EXCEPT_HALT) return CAST(error, sc->error)->arg;
         _ex_printf(EX, "Exception %d during vm-eval\n", err);
         longjmp(sc->m.except, err);
     }
