@@ -15,9 +15,6 @@ typedef void* (*ck_convert)(ck_class *, void*);
 /* It feels wrong to call this `class' because of the data fields. */
 struct _ck_class {
     leaf_class super;
-    ck_jump jump;
-    ck_convert to_task;
-    ck_convert from_task;
     void *base;  /* this needs to be the same for all tasks! */
 
     /* Temp storage for value transport and control transfer. */

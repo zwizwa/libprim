@@ -8876,3 +8876,14 @@ simplest is probably to require generators to be single input / single
 output leaf transformers.
 
 
+Entry: Task communication
+Date: Mon Feb  1 07:52:01 CET 2010
+
+EX vectors are not allowed because references are invisible to the
+garbage collector.
+
+Leaf references aren't allowed either, unless a way can be found to
+add a finalizer to a task: otherwise we'll leak references.
+
+I'm not sure that given these two constraints, this abstraction is at
+all useful.

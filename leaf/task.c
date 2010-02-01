@@ -16,20 +16,11 @@ static void ck_free(ck *x) {
 static int ck_write(ck *x, port *p) {
     return port_printf(p, "#<ck:%p:%d>", x, x->size);
 }
-static void default_jump(ck_class *m) {
-    longjmp(m->prompt, 1);
-}
-static void *default_dont_convert(ck_class *m, void *x) { 
-    return x; 
-}
 static ck_class *ck_class_new(void) {
     ck_class *x  = malloc(sizeof(*x));
     leaf_class_init((leaf_class*)x,
                     (leaf_free_m)ck_free,
                     (leaf_write_m)ck_write);
-    x->jump      = default_jump;
-    x->to_task   = default_dont_convert;
-    x->from_task = default_dont_convert;
     x->base      = NULL; /* filled in on first invoke */
     return x;
 }
@@ -78,12 +69,12 @@ void ck_invoke_with_class(ck_class *m, ck_start fn, ck **ck, void **value) {
             exit(1);
         }
         m->ck_new = NULL;
-        m->channel = m->to_task(m, *value);
+        m->channel = *value;
         if (!fn) resume(*ck, base, NULL);
         else m->channel = fn(m, *value);
     }
     *ck = m->ck_new;
-    *value = m->from_task(m, m->channel);
+    *value = m->channel;
 }
 void ck_invoke(ck_start fn, ck **ck, void **value) {
     ck_invoke_with_class((ck_class*)ck_type(), fn, ck, value);
@@ -102,7 +93,7 @@ static void suspend(ck_class *m) {
         memcpy(ck->segment, top, ck->size);
 
         /* Abort to sequencer. */
-        m->jump(m);
+        longjmp(m->prompt, 1);
     }
 }
 void* ck_yield(ck_class *m, void *value) {
