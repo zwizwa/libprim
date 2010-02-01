@@ -1228,11 +1228,11 @@ _ ex_dlsym(ex *ex, _ so, _ name) {
 */
 
 
-static _ test_ck(ck_class *m, _ o) {
-    printf("1: test_ck()\n"); o = (object)ck_yield(m, (void*)o);
-    printf("2: test_ck()\n"); o = (object)ck_yield(m, (void*)o);
-    printf("3: test_ck()\n"); o = (object)ck_yield(m, (void*)o);
-    return EOF_OBJECT;
+static leaf_object *test_ck(ck_class *m, leaf_object *obj) {
+    printf("1: test_ck()\n"); obj = ck_yield(m, obj);
+    printf("2: test_ck()\n"); obj = ck_yield(m, obj);
+    printf("3: test_ck()\n"); obj = ck_yield(m, obj);
+    return obj;
 }
 
 
@@ -1243,9 +1243,19 @@ _ ex_with_ck(ex *ex, _ in_ref, _ value) {
         fn = (ck_start)test_ck;
     }
     ck *in_task = task;
-    
-    ck_invoke(fn, &task, (void**)&value);
 
+    /* It's our (EX's) responsability to convert the object to/from
+       leaf type.  Note that tasks are not allowed to store EX vector
+       references nor leaf objects during suspend. */
+    leaf_object *obj = ex->object_to_leaf(ex, value);
+    if (!obj) return TYPE_ERROR(value);
+    obj = LEAF_DUP(obj);
+
+    ck_invoke(fn, &task, (void**)&obj);
+
+    value = ex->leaf_to_object(ex, obj);
+
+    /* Return value + context. */
     if (!task) return value; // task end
     if (in_task == task) { return CONS(value, in_ref); } // reuse task
     _ rv = CONS(value, ex->leaf_to_object(ex, (leaf_object*)task)); // create new task
