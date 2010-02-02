@@ -97,9 +97,10 @@ _ _sc_printf(sc *sc, char *fmt, ...);
 
 port *_sc_port(sc *sc);
 
+#if 1
 
 #define A(n) a[n] = CAR(args); args = _CDR(args)
-static inline _ _sc_call_old(sc *sc, void *p, int nargs, _ args) {
+static inline _ _sc_call(sc *sc, void *p, int nargs, _ args) {
     _ a[5];                     
           if (0 == nargs) return ((ex_0)p)(EX);
     A(0); if (1 == nargs) return ((ex_1)p)(EX, a[0]);    
@@ -109,16 +110,22 @@ static inline _ _sc_call_old(sc *sc, void *p, int nargs, _ args) {
     A(4); if (5 == nargs) return ((ex_5)p)(EX, a[0], a[1], a[2], a[3], a[4]);    
     return ERROR("prim", integer_to_object(nargs));
 }
+#undef A
 
+
+#else
+#warning using non-portable __builtin_apply() hack
+
+// This didn't work on x86-64, but worked on i386, arm-eabi
 static _ primcall(void(*fn)(void), void *argv, int argv_bytes) {
     // There can be no other function calls in the function body containing __builtin_apply()
     __builtin_return(__builtin_apply(fn, argv, argv_bytes));
 }
-static _ _sc_call(sc *sc, void *fn, int nargs, _ args) {
+static inline _ _sc_call(sc *sc, void *fn, int nargs, _ args) {
     void* argv[  1 // &argv[1]
                + 1 // sc
                + nargs
-                 // + 1 // return address?
+                 // + 1 // extra?
         ];
 
     int i;
@@ -132,7 +139,9 @@ static _ _sc_call(sc *sc, void *fn, int nargs, _ args) {
     const int nbytes = sizeof(argv);
     return primcall(fn, argv, nbytes);
 }
-#undef A
+#endif
+
+
 
 
 
