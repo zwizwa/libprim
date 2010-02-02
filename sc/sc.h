@@ -99,7 +99,7 @@ port *_sc_port(sc *sc);
 
 
 #define A(n) a[n] = CAR(args); args = _CDR(args)
-static inline _ _sc_call(sc *sc, void *p, int nargs, _ args) {
+static inline _ _sc_call_old(sc *sc, void *p, int nargs, _ args) {
     _ a[5];                     
           if (0 == nargs) return ((ex_0)p)(EX);
     A(0); if (1 == nargs) return ((ex_1)p)(EX, a[0]);    
@@ -109,7 +109,22 @@ static inline _ _sc_call(sc *sc, void *p, int nargs, _ args) {
     A(4); if (5 == nargs) return ((ex_5)p)(EX, a[0], a[1], a[2], a[3], a[4]);    
     return ERROR("prim", integer_to_object(nargs));
 }
+static inline _ _sc_call(sc *sc, void *fn, int nargs, _ args) {
+    void* argv[nargs+1];
+    int i;
+    argv[0] = sc;
+    for (i=0; i<nargs; i++) { 
+        pair *pr = CAST(pair, args); 
+        argv[i+1] = (void*)(pr->car);
+        args = pr->cdr;
+    }
+    const int nbytes = sizeof(argv);
+    void *rv = __builtin_apply(fn, argv, nbytes);
+    __builtin_return(rv);
+}
 #undef A
+
+
 
 
 void _sc_mark_roots(sc *sc, gc_finalize fin);

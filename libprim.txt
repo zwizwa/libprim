@@ -8887,3 +8887,25 @@ add a finalizer to a task: otherwise we'll leak references.
 
 I'm not sure that given these two constraints, this abstraction is at
 all useful.
+
+
+Entry: Wrapping
+Date: Tue Feb  2 08:23:05 CET 2010
+
+Look at lysp[1] for inspiration.  The `dlsym' function seems to be
+able to create functions that call directly into C without any manual
+type conversion.
+
+It passed the pointer from dlsym() to mkPsubr() which stores it in a
+struct tagged with Psubr.  In apply() this tag is used to setup an
+argument vector and dispatch to primcall().  This then uses
+__builtin_apply() and __builtin_return().
+
+I don't understand the arguments to __builtin_appl().  Check here[2]
+for inspiration; eval() and funcall() in dlfcn?
+
+Maybe it's better to use libffi[3]?
+
+[1] http://piumarta.com/software/lysp/
+[2] http://www.google.be/codesearch/p?hl=nl#5ge3gHPB4K4/gnu/glibc/glibc-2.5.tar.bz2%7CHT3Jwvgod1I/glibc-2.5/dlfcn/eval.c&q=__builtin_apply
+[3] http://sourceware.org/libffi/
