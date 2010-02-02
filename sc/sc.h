@@ -109,18 +109,28 @@ static inline _ _sc_call_old(sc *sc, void *p, int nargs, _ args) {
     A(4); if (5 == nargs) return ((ex_5)p)(EX, a[0], a[1], a[2], a[3], a[4]);    
     return ERROR("prim", integer_to_object(nargs));
 }
-static inline _ _sc_call(sc *sc, void *fn, int nargs, _ args) {
-    void* argv[nargs+1];
+
+static _ primcall(void(*fn)(void), void *argv, int argv_bytes) {
+    // There can be no other function calls in the function body containing __builtin_apply()
+    __builtin_return(__builtin_apply(fn, argv, argv_bytes));
+}
+static _ _sc_call(sc *sc, void *fn, int nargs, _ args) {
+    void* argv[  1 // &argv[1]
+               + 1 // sc
+               + nargs
+                 // + 1 // return address?
+        ];
+
     int i;
-    argv[0] = sc;
+    argv[0] = &argv[1];
+    argv[1] = sc;
     for (i=0; i<nargs; i++) { 
         pair *pr = CAST(pair, args); 
-        argv[i+1] = (void*)(pr->car);
+        argv[i+2] = (void*)(pr->car);
         args = pr->cdr;
     }
     const int nbytes = sizeof(argv);
-    void *rv = __builtin_apply(fn, argv, nbytes);
-    __builtin_return(rv);
+    return primcall(fn, argv, nbytes);
 }
 #undef A
 
