@@ -8909,3 +8909,14 @@ Maybe it's better to use libffi[3]?
 [1] http://piumarta.com/software/lysp/
 [2] http://www.google.be/codesearch/p?hl=nl#5ge3gHPB4K4/gnu/glibc/glibc-2.5.tar.bz2%7CHT3Jwvgod1I/glibc-2.5/dlfcn/eval.c&q=__builtin_apply
 [3] http://sourceware.org/libffi/
+
+
+Entry: gdb in emancs
+Date: Wed Feb  3 23:25:07 CET 2010
+
+It seems simpler to load with M-x gdb instead of M-x gud-gdb.  The
+latter doesn't seem to interpret the annotate commands.
+
+Also, it's simpler to use debug scripts:
+
+  (gdb "gdb --annotate=3 -x ~/libprim/bin/tom.gdb")
