@@ -245,6 +245,22 @@ _ sc_script_dir(sc *sc) {
 }
 
 
+#define POPA(n) _ a##n = CAR(args); args = _CDR(args)
+#define CALL(n,...) if (unlikely(n == nargs)) return ((ex_##n)p)(__VA_ARGS__)
+_ _sc_call(sc *sc, void *p, int nargs, _ args) {
+             CALL(0, EX);
+    POPA(0); CALL(1, EX, a0);
+    POPA(1); CALL(2, EX, a0, a1);
+    POPA(2); CALL(3, EX, a0, a1, a2);
+    POPA(3); CALL(4, EX, a0, a1, a2, a3);
+    POPA(4); CALL(5, EX, a0, a1, a2, a3, a4);
+    return ERROR("prim", integer_to_object(nargs));
+}
+#undef POPA
+#undef CALL
+
+
+
 /* Called by leaf_raise / ex_raise_error before unwinding the stack.
    This stores the error parameters in a pre-allocated error
    struct. */
@@ -412,3 +428,5 @@ int _sc_init(sc *sc, int argc, const char **argv, sc_bootinfo *info) {
 
     return 0;
 }
+
+

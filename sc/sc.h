@@ -97,54 +97,8 @@ _ _sc_printf(sc *sc, char *fmt, ...);
 
 port *_sc_port(sc *sc);
 
-#if 1
-
-#define A(n) a[n] = CAR(args); args = _CDR(args)
-static inline _ _sc_call(sc *sc, void *p, int nargs, _ args) {
-    _ a[5];                     
-          if (0 == nargs) return ((ex_0)p)(EX);
-    A(0); if (1 == nargs) return ((ex_1)p)(EX, a[0]);    
-    A(1); if (2 == nargs) return ((ex_2)p)(EX, a[0], a[1]);    
-    A(2); if (3 == nargs) return ((ex_3)p)(EX, a[0], a[1], a[2]);    
-    A(3); if (4 == nargs) return ((ex_4)p)(EX, a[0], a[1], a[2], a[3]);    
-    A(4); if (5 == nargs) return ((ex_5)p)(EX, a[0], a[1], a[2], a[3], a[4]);    
-    return ERROR("prim", integer_to_object(nargs));
-}
-#undef A
-
-
-#else
-#warning using non-portable __builtin_apply() hack
-
-// This didn't work on x86-64, but worked on i386, arm-eabi
-static _ primcall(void(*fn)(void), void *argv, int argv_bytes) {
-    // There can be no other function calls in the function body containing __builtin_apply()
-    __builtin_return(__builtin_apply(fn, argv, argv_bytes));
-}
-static inline _ _sc_call(sc *sc, void *fn, int nargs, _ args) {
-    void* argv[  1 // &argv[1]
-               + 1 // sc
-               + nargs
-                 // + 1 // extra?
-        ];
-
-    int i;
-    argv[0] = &argv[1];
-    argv[1] = sc;
-    for (i=0; i<nargs; i++) { 
-        pair *pr = CAST(pair, args); 
-        argv[i+2] = (void*)(pr->car);
-        args = pr->cdr;
-    }
-    const int nbytes = sizeof(argv);
-    return primcall(fn, argv, nbytes);
-}
-#endif
-
-
-
-
-
+// static inline _ _sc_call(sc *sc, void *p, int nargs, _ args) { ... }
+_ _sc_call(sc *sc, void *p, int nargs, _ args);
 
 void _sc_mark_roots(sc *sc, gc_finalize fin);
 leaf_object *_sc_object_to_leaf(sc *sc, _ o);
