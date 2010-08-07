@@ -8911,7 +8911,7 @@ Maybe it's better to use libffi[3]?
 [3] http://sourceware.org/libffi/
 
 
-Entry: gdb in emancs
+Entry: gdb in emacs
 Date: Wed Feb  3 23:25:07 CET 2010
 
 It seems simpler to load with M-x gdb instead of M-x gud-gdb.  The
@@ -8920,3 +8920,65 @@ latter doesn't seem to interpret the annotate commands.
 Also, it's simpler to use debug scripts:
 
   (gdb "gdb --annotate=3 -x ~/libprim/bin/tom.gdb")
+
+
+
+Entry: gdb as an application console
+Date: Wed Jul 21 12:43:15 CEST 2010
+
+I'm doing a short 1-2 month project on an Atmel ARM7 AT91SAMX512 using
+eCos.  I thought about bringing up a Scheme or PF clone on the
+machine.  My work is mostly of low-level nature, fairly tied to the
+device (Flash storage management), so an interactive on-target
+debugging approach is useful.
+
+However, this would take too long to get going.  Additionally, the
+board I'm working on didn't have a console input, just output for
+logging.  I decided to use just gdb with Segger's J-Link gdbserver on
+an old windows box connected to the target using JTAG.
+
+I did need to tweak some eCos compilation flags to make sure that
+functions that are not referenced in the code still end up on the
+target, preventing them to be tossed out by the linker.  This required
+removal of: (man gcc)
+
+       -ffunction-sections
+       -fdata-sections
+
+           Place each function or data item into its own section in
+           the output file if the target supports arbitrary sections.
+
+It turns out that test-driven development (use a separate eCos test
+application to scaffold the code you're writing) combined with the
+possibility to interactively execute code on the machine is more than
+enough to get the necessary interactivity.
+
+The approach I used:
+
+   - Define some "registers", i.e. instances of the objects under test
+
+   - Define operations on them that have short names, and don't take
+     excessive amount of arguments (i.e. 0 or 1).
+
+This gives you a small working set to use interactively using the gdb
+"p" command, which allows you to execute individual functions on the
+target as long as it has an execution stack setup.
+
+> p x_dump(123)
+
+The x_dump() function in my case would take an integer argument, fetch
+a block from Flash into one of the registers, and display it in
+human-readable formatting.
+
+This makes me wonder: how powerful is the gdb scripting language?  The
+on-target functions can be strung together in sequences like this:
+
+define dump2
+  p dump(0)
+  p dump(1)
+end
+
+Doesn't seem to be very powerful.  There seems to be a Python
+interface though[1].
+
+[1] http://sourceware.org/gdb/current/onlinedocs/gdb/Python.html#Python
