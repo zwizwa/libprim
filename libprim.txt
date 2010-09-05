@@ -9156,3 +9156,57 @@ that doesn't need the GC?
 I'm thinking for embedded use where RAM is scarce it might be best to
 use a more memory-efficient but still simple coloring collector and
 get rid of vectors.  PF doesn't need them (uses only tagged CONS cells).
+
+
+
+
+Entry: A metaprogrammed core
+Date: Wed Sep  1 21:57:44 CEST 2010
+
+It's difficult to leave behind the swiss army knife: C with malloc().
+But, in the presence of some form of metaprogramming, dynamic memory
+allocation isn't necessary.  That is, if you don't count linear CONS
+cells to build tree structures.
+
+Does that actually mean anything?  How to deramble?
+
+Static memory with bounded stacks and queues.
+
+Linear memory, when re-using, is quite fast.  If dynamic allocation is
+needed for CONS cells only, some time is required to "flatten" binary
+trees into linked lists:
+
+  * Either the free list is a list, and the drop() operation flattens
+    a tree data structure.
+
+  * If the free list is a tree, an allocation might need to locally
+    flatten (rotate) a tree until a cell becomes available, or it can
+    decend into it, possibly leaving a caching pointer.
+
+When linear memory is combined with refcounted memory management (lazy
+copy) or external resource finalizers some more degrees of freedom
+arise: execute finalizer on drop() or new().  The answer here is
+probably universally best on drop(), otherwise there is garbage
+floating around.
+
+Problems arise when moving from single cell sizes to vectors of
+arbitrary length (either as pointer-containing cells or as
+pointer-free leaf objects): memory fragmentation can arise.
+
+In theory at least it should be possible to use only a single cell
+size, also for pointer-free raw data.  However this might complicate
+code and reduce data locality.
+
+Is there a way to keep memory semantics equal to binary tree, but
+somehow restrict the form it can take, and allocate it accordingly?
+
+I.e. a program has a certain structure which creates a group of
+transformations on a binary tree.  Can we somehow encode each of these
+states in such a way that the pointer bookkeeping can be "hardcoded"?
+
+Group theory and memory management...
+
+The problem is that it probably gets quite complicated with a couple
+of independent generators.
+
+
