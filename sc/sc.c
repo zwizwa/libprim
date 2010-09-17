@@ -170,6 +170,7 @@ _ sc_exit(sc *sc) {
     exit(0);
 }
 
+#if 0
 static void _sc_check_gc_size(sc *sc) {
     /* Check mem size. */
     gc *gc = EX->gc;
@@ -180,6 +181,7 @@ static void _sc_check_gc_size(sc *sc) {
         gc_alloc(gc, 100); // grow.
     }
 }
+#endif
 
 void _sc_def_prims(sc *sc, prim_def *prims) {
     prim_def *prim;

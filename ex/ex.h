@@ -1,6 +1,7 @@
 #ifndef _MEM_H_
 #define _MEM_H_
 
+#include "config.h"
 #include <ctype.h>
 #include <pthread.h>
 

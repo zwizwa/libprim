@@ -5,6 +5,8 @@
 
 LIBPRIM_CFLAGS = -I$(LIBPRIM)/build -I$(LIBPRIM) 
 LIBPRIM_SOURCES  := \
+	$(LIBPRIM)/leaf/channel.c \
+	$(LIBPRIM)/leaf/port.c \
 	$(LIBPRIM)/leaf/bytes.c  \
 	$(LIBPRIM)/leaf/parser.c \
 	$(LIBPRIM)/leaf/scanner.c \
@@ -19,6 +21,4 @@ LIBPRIM_SOURCES  := \
 	$(LIBPRIM)/sc/sc.c \
 	$(LIBPRIM)/sc_vm1/vm1.c
 
-LIBPRIM_SOURCES_EXTRA := \
-	$(LIBPRIM)/leaf/channel.c \
-	$(LIBPRIM)/leaf/port.c
+

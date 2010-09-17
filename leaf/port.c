@@ -4,6 +4,7 @@
    which is licenced under the GPL.  However, this file is part of
    core libprim and licenced under the LGPL. */
 
+#include "config.h"
 // #include <ulimit.h>
 #include <unistd.h>
 #include <stdlib.h>

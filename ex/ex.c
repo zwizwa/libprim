@@ -14,7 +14,7 @@
 
  */
 
-
+#include "config.h"
 #include <ex/ex.h>
 
 char *object_to_cstring(_ ob) {

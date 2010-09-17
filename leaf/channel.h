@@ -7,6 +7,7 @@
 #ifndef _LEAF_CHANNEL_H_
 #define _LEAF_CHANNEL_H_
 
+#include "config.h"
 #include <pthread.h>
 #include <stdio.h>
 #include <leaf/leaf.h>
