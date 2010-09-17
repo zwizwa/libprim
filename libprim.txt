@@ -9210,3 +9210,42 @@ The problem is that it probably gets quite complicated with a couple
 of independent generators.
 
 
+
+Entry: Port to eCos
+Date: Fri Sep 17 14:35:58 CEST 2010
+
+I'm attempting a port to the eCos operating system.  Start from:
+
+# Android.mk :
+
+LEAF = libprim/leaf
+EX = libprim/ex
+SC = libprim/sc
+SC_VM1 = libprim/sc_vm1
+JNI = libprim/jni
+
+LOCAL_MODULE     := scheme
+LOCAL_SRC_FILES  := \
+	sc_android.c \
+	$(LEAF)/bytes.c  \
+	$(LEAF)/port.c \
+	$(LEAF)/parser.c \
+	$(LEAF)/scanner.c \
+	$(LEAF)/tuple.c \
+	$(LEAF)/leaf.c \
+	$(LEAF)/symbol.c \
+	$(LEAF)/channel.c \
+	$(LEAF)/inexact.c \
+	$(LEAF)/console.c \
+	$(EX)/ex.c  \
+	$(EX)/read_intl.c  \
+	$(EX)/gc.c \
+	$(JNI)/libscheme.c \
+	$(SC)/sc.c \
+	$(SC_VM1)/vm1.c
+
+I've added the file eCos.mk
+
+What are the difficulties?  As with the Android port the main
+challenge is to generate the C files.  Let's ignore that problem now
+and see if the generated files compile.
