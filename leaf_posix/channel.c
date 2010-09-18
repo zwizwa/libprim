@@ -1,6 +1,6 @@
 #include <stdlib.h>
 #include <leaf/leaf.h>
-#include <leaf/channel.h>
+#include <leaf_posix/channel.h>
 #include <pthread.h>
 
 static int channel_write(channel *x, port *p) {

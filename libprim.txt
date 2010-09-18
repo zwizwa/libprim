@@ -9371,3 +9371,10 @@ Should I create leaf_posix and ex_posix modules?
 
 Done that.  This makes config a bit harder though: when to include
 ex_posix in sc.c for example?
+
+
+Entry: separating out posix?
+Date: Sat Sep 18 22:22:52 CEST 2010
+
+Maybe it's not a good idea as this gives multiple dimensions:
+leaf/ex/sc and portable/posix.

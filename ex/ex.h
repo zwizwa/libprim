@@ -202,7 +202,6 @@ DECL_TYPE(cstring)
 DECL_TYPE(ck)
 
 
-// DECL_TYPE(channel)
 
 // This is not a function, and not defined as an API symbol.
 
