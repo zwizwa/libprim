@@ -475,7 +475,7 @@ sub gen {
     my $retval = system (@args);
     return $retval;
 }
-if ("eCos" == $var{target}) {
+if ("eCos" eq $var{target}) {
     print "Generating header files.\n";
     gen();
 }

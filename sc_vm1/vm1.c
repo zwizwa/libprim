@@ -565,6 +565,7 @@ void _sc_eval_cstring(sc *sc, const char *commands) {
 
 #define QUOTE(x) CONS(SYMBOL("quote"), CONS(x, NIL))
 
+#ifdef POSIX
 console *_sc_prepare_console_server(sc *sc, const char *node, int port) {
 
     /* Create bi-directional pipe objects. */
@@ -593,6 +594,7 @@ console *_sc_prepare_console_server(sc *sc, const char *node, int port) {
 
     return c;
 }
+#endif
 
 
 

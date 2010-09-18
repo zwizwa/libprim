@@ -37,8 +37,11 @@
 DEF_AREF_TYPE(port)
 DEF_AREF_TYPE(bytes)
 DEF_AREF_TYPE(inexact)
-DEF_AREF_TYPE(channel)
+
+#ifdef POSIX
 DEF_AREF_TYPE(ck)
+DEF_AREF_TYPE(channel)
+#endif
 
 
 _ sc_make_aref(sc *sc, _ F, _ O)       {return STRUCT(TAG_AREF,    2, F,O);}

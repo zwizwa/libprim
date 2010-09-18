@@ -174,6 +174,7 @@ clean:
 
 GEN = \
 	$(B)/ex/ex.h_prims \
+	$(B)/ex/ex_posix.h_prims \
 	$(B)/pf/pf.h_prims \
 	$(B)/px/px.h_prims \
 	$(B)/sc/sc.h_prims \

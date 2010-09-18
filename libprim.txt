@@ -9289,3 +9289,7 @@ synthetic target.
 
 Removing port.c it compiles.  However, there are some undefined
 symbols.
+
+I've separated port/port_posix and ex/ex_posix + sprinkled some
+"#ifdef POSIX" here and there when things are too hard to separate.
+Seems to work out.

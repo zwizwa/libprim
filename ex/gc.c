@@ -43,9 +43,16 @@ object gc_make_tagged(gc *gc, long tag, long slots, ...) {
     va_end(ap);   
     return o;
 }
+
+static inline void _gc_trap(void) {
+#ifdef POSIX
+    kill(getpid(), SIGTRAP);
+#endif
+}
+
 void _gc_assert(const char *cond, const char *file, int line) {
     fprintf(stderr, "%s: %d: gc_assert(%s)\n", file, line, cond);
-    kill(getpid(), SIGTRAP);
+    _gc_trap();
     exit(1);
 }
 // __FUNCTION__
@@ -170,7 +177,7 @@ vector *gc_alloc(gc *gc, long size) {
 
     if (unlikely(NULL == gc)) {
         fprintf(stderr, "ERROR: GC: Allocation disabled.\n");
-        kill(getpid(), SIGTRAP);
+        _gc_trap();
     }
     // fprintf(stderr, ".");
     long slots = size + 1;
