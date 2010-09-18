@@ -171,10 +171,22 @@ _ _ex_map2_prim(ex *ex, ex_2 fn, _ l_in1, _ l_in2);
 _ _ex_read(ex *ex, port *input_port);
 
 
+
+
 /* Boot file abstraction. */
-typedef _ (*_ex_boot_load_t)(ex *ex, const char *arg);
-_ _ex_boot_file(ex *ex,  const char *filename);
-_ _ex_boot_string(ex *ex,  const char *commands);
+struct ex_bootinfo;
+typedef _ (*_ex_boot_load_t)(ex *ex, struct ex_bootinfo *info);
+struct ex_bootinfo {
+    _ex_boot_load_t load;  // boot parser, using:
+    const char *source;    //  source filename/commands
+    int size;              //  length (commands)
+
+    const char *eval;      // to eval after boot
+    _ args;                // arguments past to scheme
+    int verbose;
+};
+_ _ex_boot_file(ex *ex,  struct ex_bootinfo *info);
+_ _ex_boot_string(ex *ex, struct ex_bootinfo *info);
 
 
 

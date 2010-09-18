@@ -88,10 +88,10 @@ $(B)/%.h_prims: $(S)/%.c
 	$(call build, objdump -T $< | grep '\.text' | awk '{print $$7;}' >$@)
 
 # Wrap scheme files as binary objects.  The "cd $(dir $<)" is to make
-# sure objcopy generates a predictable symbol based only on the base
-# file name.
+# sure objcopy generates a predictable symbol from the base file name,
+# excluding directory.
 $(B)/%.o: $(S)/%.scm
-	$(call build, cd $(dir $<); $(_OBJCOPY) -I binary -O elf32-little --rename-section .data=.rodata $(notdir $<) $@)
+	$(call build, cd $(dir $<); $(_OBJCOPY) -I binary -O elf32-i386 -B i386 --rename-section .data=.rodata $(notdir $<) $@)
 
 
 ### MODULES
@@ -188,5 +188,6 @@ GEN = \
 	$(B)/pf/pf.h_prims \
 	$(B)/px/px.h_prims \
 	$(B)/sc/sc.h_prims \
-	$(B)/sc_vm1/vm1.h_prims
+	$(B)/sc_vm1/vm1.h_prims \
+	$(B)/sc_vm1/boot.o
 gen: $(GEN)

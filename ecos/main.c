@@ -7,14 +7,17 @@
 
 #include <sc_vm1/vm1.h>
 
+/* The boot.scm data embedded using objcopy .scm->.o converson. */
+extern const char _binary_boot_scm_start[];
+extern const void _binary_boot_scm_size;
+static const size_t _binary_boot_scm_nb_bytes = (size_t)&_binary_boot_scm_size;
+
 void _sc_ecos_init(cyg_addrword_t data) {
-    char *script = (char*)data;
-    char *argv[] = {"sc", "--bootstring", script};
-    diag_printf("_sc_new:\n");
-    sc *sc = _sc_new(3, (const char **)argv);
-    diag_printf("_sc_continue:\n");
+    char bootsize[10];
+    sprintf(bootsize, "%d", _binary_boot_scm_nb_bytes);
+    const char *argv[] = {"sc", "--bootstring", _binary_boot_scm_start, "--bootsize", bootsize};
+    sc *sc = _sc_new(5, (const char **)argv);
     _sc_continue(sc);
-    diag_printf("_sc_ecos_init: EXIT\n");
 }
 
 cyg_uint32 app_stack[10240];

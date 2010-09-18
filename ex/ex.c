@@ -957,7 +957,8 @@ _ _ex_boot_port(ex *ex, port *bootport) {
     port_free(bootport);
     return expr;
 }
-_ _ex_boot_file(ex *ex,  const char *bootfile) {
+_ _ex_boot_file(ex *ex,  struct ex_bootinfo *boot) {
+    const char *bootfile = boot->source;
     port *bootport = port_file_new(fopen(bootfile, "r"), bootfile);
     if (!bootport) {
         fprintf(stderr, "Can't load boot file: %s\n", bootfile);
@@ -965,8 +966,9 @@ _ _ex_boot_file(ex *ex,  const char *bootfile) {
     }
     return _ex_boot_port(ex, bootport);
 }
-_ _ex_boot_string(ex *ex,  const char *bootfile) {
-    port *bootport = port_bytes_new(bytes_const_new(bootfile, strlen(bootfile)));
+_ _ex_boot_string(ex *ex,  struct ex_bootinfo *boot) {
+    if (!boot->size) boot->size = strlen(boot->source);
+    port *bootport = port_bytes_new(bytes_const_new(boot->source, boot->size));
     return _ex_boot_port(ex, bootport);
 }
 

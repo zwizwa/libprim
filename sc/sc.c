@@ -359,25 +359,28 @@ static prim_def ex_prims[] = ex_table_init;
 static prim_def sc_prims[] = sc_table_init;
 
 #define SHIFT(n) {argv+=n;argc-=n;}
-int _sc_init(sc *sc, int argc, const char **argv, sc_bootinfo *info) {
+int _sc_init(sc *sc, int argc, const char **argv, struct ex_bootinfo *boot) {
 
-    memset(info, 0, sizeof(*info));
-    info->args = NIL;
+    memset(boot, 0, sizeof(*boot));
+    boot->args = NIL;
 
     /* Read command line interpreter options options. */
     SHIFT(1); // skip program name
     while ((argc > 0) && ('-' == argv[0][0])) {
         if (!strcmp("--boot", argv[0])) { 
-            info->boot = _ex_boot_file;
-            info->bootarg = argv[1]; SHIFT(2); 
+            boot->load = _ex_boot_file;
+            boot->source  = argv[1]; SHIFT(2); 
         }
         else if (!strcmp("--bootstring", argv[0])) { 
-            info->boot = _ex_boot_string;
-            info->bootarg = argv[1]; SHIFT(2); 
+            boot->load = _ex_boot_string;
+            boot->source = argv[1]; SHIFT(2); 
         }
-        else if (!strcmp("--verbose", argv[0])) { SHIFT(1); info->verbose = 1; }
+        else if (!strcmp("--bootsize", argv[0])) { 
+            boot->size = atoi(argv[1]); SHIFT(2);
+        }
+        else if (!strcmp("--verbose", argv[0])) { SHIFT(1); boot->verbose = 1; }
         else if (!strcmp("--fatal", argv[0])) { SHIFT(1); sc->m.fatal = 1; }
-        else if (!strcmp("--eval", argv[0])) { info->evalstr = argv[1]; SHIFT(2); }
+        else if (!strcmp("--eval", argv[0])) { boot->eval = argv[1]; SHIFT(2); }
         else if (!strcmp("--", argv[0])) { SHIFT(1); break; }
         else {
             fprintf(stderr, "option `%s' not recognized\n", argv[0]);
@@ -422,22 +425,22 @@ int _sc_init(sc *sc, int argc, const char **argv, sc_bootinfo *info) {
     sc->error = FALSE;
 
     /* Pass command line arguments to scheme. */
-    while ((argc > 0)) { info->args = CONS(STRING(argv[0]), info->args); SHIFT(1); }
-    info->args = BANG_REVERSE(info->args);
-    sc_bang_def_toplevel(sc, SYMBOL("args"), info->args);
+    while ((argc > 0)) { boot->args = CONS(STRING(argv[0]), boot->args); SHIFT(1); }
+    boot->args = BANG_REVERSE(boot->args);
+    sc_bang_def_toplevel(sc, SYMBOL("args"), boot->args);
 
     /* Highlevel bootstrap. */
-    if (!info->bootarg) {
-        info->boot = _ex_boot_file;
-        if (!(info->bootarg = getenv("PRIM_BOOT_SCM"))) {
-            info->bootarg = PRIM_HOME "boot.scm";
+    if (!boot->source) {
+        boot->load = _ex_boot_file;
+        if (!(boot->source = getenv("PRIM_BOOT_SCM"))) {
+            boot->source = PRIM_HOME "boot.scm";
         }
     }
-    if (info->verbose) _ex_printf(EX, "SC: %s\n", info->bootarg);
+    if (boot->verbose) _ex_printf(EX, "SC: %s\n", boot->source);
     if (sc->m.fatal) _ex_printf(EX, "SC: all errors are fatal: SIGTRAP for bootstrap debugging.\n");
 
     /* Code entry point. */
-    if (!info->evalstr) info->evalstr = "(repl)"; 
+    if (!boot->eval) boot->eval = "(repl)"; 
 
     /* Primitive defs. */
     _sc_def_prims(sc, ex_prims);

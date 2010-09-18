@@ -3,7 +3,7 @@
 # A makefile include for building libprim on eCos / eCosPro.
 # This requires the variable $(LIBPRIM) to be defined.
 
-LIBPRIM_CFLAGS = -I$(LIBPRIM)/build -I$(LIBPRIM) 
+LIBPRIM_ECOS_CFLAGS = -I$(LIBPRIM)/build -I$(LIBPRIM) 
 LIBPRIM_ECOS_SOURCES  := \
 	$(LIBPRIM)/leaf/port.c \
 	$(LIBPRIM)/leaf/bytes.c  \
@@ -26,5 +26,7 @@ LIBPRIM_ECOS_SOURCES  := \
 LIBPRIM_ECOS_MAIN := \
 	$(LIBPRIM)/ecos/main.c
 
-LIBPRIM_ECOS_BOOT_SCM := \
-	$(LIBPRIM)/sc/boot.o
+
+# This is built by the libprim configure step.
+LIBPRIM_ECOS_BOOT_O := \
+	$(LIBPRIM)/build/sc_vm1/boot.o

@@ -485,8 +485,8 @@ static prim_def scheme_prims[] = vm1_table_init;
 sc *_sc_new(int argc, const char **argv) {
     sc_interpreter *sci = calloc(1, sizeof(sc_interpreter));
     sc *sc = &sci->super;
-    sc_bootinfo info;
-    if (_sc_init(sc, argc, argv, &info)) {
+    struct ex_bootinfo boot;
+    if (_sc_init(sc, argc, argv, &boot)) {
         free(sc);
         return NULL;
     }
@@ -513,13 +513,15 @@ sc *_sc_new(int argc, const char **argv) {
     sc_bang_abort_k(sc, MT);  // simply halt
 
 
-    _sc_top(sc, info.boot(EX, info.bootarg));
+    /* Load the boot expression and install it in the VM. */
+    _ boot_expr = boot.load(EX, &boot);
+    _sc_top(sc, boot_expr);
 
 
     /* Set the continuation to continue booting in Scheme when the vm
        is started using _sc_continue() */
     _sc_prepare(sc, CONS(SYMBOL("eval-string"),
-                    CONS(STRING(info.evalstr),
+                    CONS(STRING(boot.eval),
                     NIL)));
 
     return sc;

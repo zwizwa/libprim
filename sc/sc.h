@@ -106,16 +106,8 @@ void _sc_object_erase_leaf(sc *sc, _ o);
 
 
 
-typedef struct {
-    _ex_boot_load_t boot;
-    const char *bootarg;
-    const char *evalstr;
-    int verbose;
-    _ args;
-} sc_bootinfo;
-
 int _sc_init(sc *sc, int argc, const char **argv,
-             sc_bootinfo *info);
+             struct ex_bootinfo *info);
 
 
 typedef struct {
