@@ -218,7 +218,7 @@ sub header {
 header "#ifndef __PF_CONFIG__";
 header "#define __PF_CONFIG__";
 header "#define PRIM_HOME \"$var{prefix}/share/prim/\"";
-
+header "#include \"target/$var{target}.h\"\n";
 
 # start tests and fill config files for base system
 chdir "$var{builddir}/tests"; # dir where we will run the tests
