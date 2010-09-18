@@ -9275,3 +9275,17 @@ Changing it to use quoting works:
 %.d: %.c
 	$(XCC) -MM $(XCFLAGS) $< | sed 's!$(*F)\.o[ :]*!$*.o $@ : !' > $@
 
+
+
+Entry: de-posixification
+Date: Sat Sep 18 10:19:17 CEST 2010
+
+While it should be possible to get libprim to run on top of the posix
+layer, it might also be a good idea to get a smaller subset to run, or
+to make a mini-compat layer.
+
+Currently there is a problem due to inclusion of linux headers in the
+synthetic target.
+
+Removing port.c it compiles.  However, there are some undefined
+symbols.

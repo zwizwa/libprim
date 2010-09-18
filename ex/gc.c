@@ -1,3 +1,4 @@
+#include "config.h"
 #include "gc.h"
 
 /* PRIVATE + implementation */

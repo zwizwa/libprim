@@ -471,7 +471,7 @@ else {
 
 sub gen {
     my @args = 
-        ($var{make}, "-s", "-C", "$var{builddir}", "gen");
+        ($var{make}, "-C", "$var{builddir}", "gen");
     my $retval = system (@args);
     return $retval;
 }

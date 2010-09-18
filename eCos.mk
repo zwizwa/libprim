@@ -1,11 +1,10 @@
 # -*- makefile -*-
 
-# A makefile include for building libprim on eCos.
+# A makefile include for building libprim on eCos / eCosPro.
 # This requires the variable $(LIBPRIM) to be defined.
 
 LIBPRIM_CFLAGS = -I$(LIBPRIM)/build -I$(LIBPRIM) 
 LIBPRIM_SOURCES  := \
-	$(LIBPRIM)/leaf/channel.c \
 	$(LIBPRIM)/leaf/port.c \
 	$(LIBPRIM)/leaf/bytes.c  \
 	$(LIBPRIM)/leaf/parser.c \
@@ -22,3 +21,9 @@ LIBPRIM_SOURCES  := \
 	$(LIBPRIM)/sc_vm1/vm1.c
 
 
+LIBPRIM_SOURCES_EXTRA := \
+	$(LIBPRIM)/leaf/channel.c
+
+
+LIBPRIM_ECOS_SC := \
+	$(LIBPRIM)/ecos/sc_console.c

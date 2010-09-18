@@ -175,5 +175,7 @@ clean:
 GEN = \
 	$(B)/ex/ex.h_prims \
 	$(B)/pf/pf.h_prims \
-	$(B)/px/px.h_prims
+	$(B)/px/px.h_prims \
+	$(B)/sc/sc.h_prims \
+	$(B)/sc_vm1/vm1.h_prims
 gen: $(GEN)
