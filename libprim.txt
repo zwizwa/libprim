@@ -9330,3 +9330,28 @@ Nope, that seems to work just fine; just need to make sure you set a
 breakpoint at the setjmp.
 
 Same problem as for the JNI port: no decent console output.
+
+
+Entry: Strings or pre-parsed source?
+Date: Sat Sep 18 14:59:46 CEST 2010
+
+There are two possiblities now: embed the boot file as a string, or
+use the existing unparse.ss to include it as a constructor.  The
+latter might be interesting when it is actually combined with some
+form of hash consing so part of the scheme code body doesn't need to
+be in RAM.  But it's overkill now; I just need to make it run.
+
+So string.  What's the simplest way to convert a string to a linkable
+object?  I'd go through the C compiler but maybe objdump or objcopy
+can do this to.
+
+Yes, it's quite straightforward with objdump[1]
+
+
+arm-eabi-objcopy -I binary -O elf32-little --rename-section .data=.rodata file.bin file.o
+
+
+It's simple enough, but including it in the build system is a royal pain.
+
+
+[1] entry://../c/20100918-151333

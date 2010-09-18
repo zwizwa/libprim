@@ -33,7 +33,7 @@
 
 
 
-
+# .SUFFIXES: .scm
 .PHONY: all clean targets
 all: targets
 
@@ -71,6 +71,10 @@ $(B)/%.cx: $(S)/%.c
 	$(call build, $(CC) $(CPPFLAGS) -E $< -o $@)
 
 _CC := $(CC) $(CPPFLAGS) $(CFLAGS) $(OPTI_CFLAGS) $(DEBUG_CFLAGS)
+
+OBJCOPY = objcopy
+_OBJCOPY := $(OBJCOPY)
+
 $(B)/%.o: $(S)/%.c 
 	$(call build, $(_CC) -o $@ -c $<)
 $(B)/%.test: $(S)/%.c
@@ -82,6 +86,12 @@ $(B)/%.h_prims: $(S)/%.c
 # $(B) -> $(B) rules can use simpler patterns.
 %.syms: %.so
 	$(call build, objdump -T $< | grep '\.text' | awk '{print $$7;}' >$@)
+
+# Wrap scheme files as binary objects.  The "cd $(dir $<)" is to make
+# sure objcopy generates a predictable symbol based only on the base
+# file name.
+$(B)/%.o: $(S)/%.scm
+	$(call build, cd $(dir $<); $(_OBJCOPY) -I binary -O elf32-little --rename-section .data=.rodata $(notdir $<) $@)
 
 
 ### MODULES
