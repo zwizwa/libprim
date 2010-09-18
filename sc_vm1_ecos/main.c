@@ -1,3 +1,5 @@
+#include "config.h"
+
 #include <pkgconf/system.h>
 #include <pkgconf/hal.h>
 #include <string.h>

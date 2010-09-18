@@ -1,9 +1,9 @@
 # Define objects in this module
-MODULE_OBJ := vm1.o main.o
+MODULE_OBJ := vm1.o main.o boot.o
 
 # Define a new global build target.
 TARGET         := sc_vm1
-TARGET_MODULES := sc ex leaf
+TARGET_MODULES := sc ex ex_posix leaf leaf_posix
 TARGET_LDFLAGS := -lpthread
 
 # Test target.

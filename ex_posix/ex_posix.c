@@ -15,7 +15,8 @@
 
 #include "config.h"
 #include <ex/ex.h>
-#include <ex/ex_posix.h_prims>
+#include <ex/ex.h_prims>
+#include <ex_posix/ex_posix.h_prims>
 
 /* PRIMITIVES */
 #define EX ex

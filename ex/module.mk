@@ -1,1 +1,1 @@
-MODULE_OBJ := ex.o ex_posix.o gc.o read_intl.o
+MODULE_OBJ := ex.o gc.o read_intl.o

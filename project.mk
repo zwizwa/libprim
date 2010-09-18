@@ -72,13 +72,6 @@ $(B)/%.cx: $(S)/%.c
 
 _CC := $(CC) $(CPPFLAGS) $(CFLAGS) $(OPTI_CFLAGS) $(DEBUG_CFLAGS)
 
-OBJCOPY = /opt/xc/ecospro/gnutools/arm-eabi/bin/../lib/gcc/arm-eabi/4.3.2/../../../../arm-eabi/bin/objcopy
-_OBJCOPY := $(OBJCOPY)
-# OBJCOPY_ARCH = -O elf32-i386 -B i386
-OBJCOPY_ARCH = -O elf32-littlearm -B arm
-
-
-
 $(B)/%.o: $(S)/%.c 
 	$(call build, $(_CC) -o $@ -c $<)
 $(B)/%.test: $(S)/%.c
@@ -95,7 +88,7 @@ $(B)/%.h_prims: $(S)/%.c
 # sure objcopy generates a predictable symbol from the base file name,
 # excluding directory.
 $(B)/%.o: $(S)/%.scm
-	$(call build, cd $(dir $<); $(_OBJCOPY) -I binary $(OBJCOPY_ARCH) --rename-section .data=.rodata $(notdir $<) $@)
+	$(call build, cd $(dir $<); $(OBJCOPY) -I binary $(OBJCOPY_ARCH) --rename-section .data=.rodata $(notdir $<) $@)
 
 
 ### MODULES

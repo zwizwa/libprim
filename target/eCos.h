@@ -6,7 +6,7 @@
 #include <stdlib.h>
 #include <cyg/kernel/kapi.h>
 
-#if 1
+#if 0
 
 #include <pthread.h>
 

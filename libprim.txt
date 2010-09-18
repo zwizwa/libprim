@@ -9368,3 +9368,6 @@ After setting the -I (and -L) paths, the show stopper is the current
 module system, as it is not separated into posix/non-posix.
 
 Should I create leaf_posix and ex_posix modules?
+
+Done that.  This makes config a bit harder though: when to include
+ex_posix in sc.c for example?

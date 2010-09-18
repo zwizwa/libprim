@@ -16,7 +16,6 @@
 #include <leaf/prim.h>
 #include <leaf/rc.h>
 #include <leaf/inexact.h>
-#include <leaf/channel.h>
 #include <leaf/error.h>
 #include <leaf/task.h>
 #include <ex/pair.h>
@@ -28,6 +27,7 @@
 
 typedef struct _ex ex;
 #include <ex/ex.h_prims>
+
 
 
 typedef object (*ex_m_write)(ex *ex, object ob);
@@ -195,12 +195,14 @@ _ _ex_boot_string(ex *ex, struct ex_bootinfo *info);
     name *object_to_##name(object ob);
 
 DECL_TYPE(port)
-DECL_TYPE(channel)
 DECL_TYPE(inexact)
 DECL_TYPE(bytes)
 typedef char cstring;  // for CAST()
 DECL_TYPE(cstring)
 DECL_TYPE(ck)
+
+
+// DECL_TYPE(channel)
 
 // This is not a function, and not defined as an API symbol.
 

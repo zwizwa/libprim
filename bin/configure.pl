@@ -32,6 +32,7 @@ $var{finkpath} = "/sw";
 $var{cc}        = "cc";
 $var{make}      = "make";
 $var{ar}        = "ar";
+$var{objcopy}   = "objcopy";
 
 $var{static}    = "no";
 
@@ -196,7 +197,6 @@ makefile "BUILDDIR = $var{builddir}" ;
 makefile "CPPFLAGS += -I$var{builddir} -I$var{srcdir}";
 makefile "LOG = $LOGFILE" ;
 makefile "SDL_CONFIG = $var{sdl}-config" ;
-makefile "CFLAGS += -fPIC" ;
 
 makefile "CEXT = c";  # default is c. for cc see build/plugins/ftgl/Makefile
 makefile "COMPILE = $CC";
@@ -250,6 +250,7 @@ sub toolchain {
     makefile "CC = $var{cc}" ;
     makefile "AR = $var{ar}" ;
     makefile "MAKE = $var{make}" ;
+    makefile "OBJCOPY = $var{objcopy}" ;
     if ($var{silent} eq "yes"){
 	makefile "MAKE += -s"; # have a bit less verbose build
     }
@@ -315,6 +316,7 @@ if ("Linux" eq $var{target}){
     makefile "LDFLAGS_SHARED = -shared";
     makefile "LDFLAGS_MODULE = -shared"; # same on linux
     makefile "OPT_MODULES += v4l rtc SDL";
+    makefile "CFLAGS += -fPIC" ;
     toolchain;
     check_base;
     check_dl;
@@ -376,12 +378,8 @@ elsif ("CYGWIN_NT-5.0" eq $var{target}){
 elsif ("eCos" eq $var{target}){
     # For eCos we just need to generate C files.  The rest should be
     # included in the project build.
-    if (!($var{ecos})) {
-        printf "eCps install dir not defined.  use --ecos=<install-dir>\n";
-        errorexit();
-    }
-    makefile "CPPFLAGS += -I$var{ecos}/include";
-    makefile "LDFLAGS += -I$var{ecos}/lib -Ttarget.ld -nostdlib";
+    makefile "CPPFLAGS += -I$var{prefix}/include";
+    makefile "LDFLAGS += -L$var{prefix}/lib -Ttarget.ld -nostdlib";
     toolchain;
 }
 else {

@@ -50,6 +50,7 @@ echo >>$LOG
 
 
 # Build starting point is a single Makefile.
+rm -f $BUILDDIR/Makefile
 ln -s $SRCDIR/project.mk $BUILDDIR/Makefile
 
 # execute main configure script
