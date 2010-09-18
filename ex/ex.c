@@ -61,6 +61,10 @@ void *object_to_lk(_ ob) {
 }
 typedef void* (*object_to)(_);
 
+_ _ex_make_file_port(ex *ex, FILE *f, const char *name) {
+    return _ex_leaf_to_object(ex, (leaf_object *)port_file_new(f, name));
+}
+
 // This has proper EX semantics, but you most probably want to override it.
 object _ex_write(ex *ex, object o) {
     port *p = ex->port(ex);
@@ -402,27 +406,8 @@ _ ex_bytes_copy(ex *ex, _ ob) {
 }
 
 /* Ports */
-_ _ex_make_file_port(ex *ex, FILE *f, const char *name) {
-    return _ex_leaf_to_object(ex, (leaf_object *)port_file_new(f, name));
-}
 _ _ex_make_bytes_port(ex *ex, bytes *b) {
     return _ex_leaf_to_object(ex, (leaf_object *)port_bytes_new(b));
-}
-_ ex_open_mode_file(ex *ex, _ path, _ mode) {
-    bytes *b_path = CAST(bytes, path);
-    bytes *b_mode = CAST(bytes, mode);
-    FILE *f = fopen(b_path->bytes, b_mode->bytes);
-    if (!f) ERROR("fopen", path);
-    return _ex_make_file_port(ex, f, b_path->bytes);
-}
-_ ex_open_mode_tempfile(ex *ex, _ template, _ mode) {
-    const char *cmode = CAST(cstring, mode);
-    char *name = CAST(cstring, template);
-    int fd = mkstemp(name);
-    FILE *f = fdopen(fd, cmode);
-    if (!f) { ERROR("invalid", CONS(template, CONS(mode, NIL))); }
-    _ rv = _ex_make_file_port(ex, f, name);
-    return rv;
 }
 _ ex_port_name(ex *ex, _ ob) {
     port *p = CAST(port, ob);
@@ -536,6 +521,12 @@ _ ex_quotient(ex *ex, _ a, _ b) {
     int ib = CAST_INTEGER(b);
     if (ib == 0) return ex_raise_type_error(ex, b);
     return integer_to_object(ia / ib);
+}
+_ ex_remainder(ex *ex, _ a, _ b) {
+    int ia = CAST_INTEGER(a);
+    int ib = CAST_INTEGER(b);
+    if (ib == 0) return ex_raise_type_error(ex, b);
+    return integer_to_object(ia % ib);
 }
 
 _ ex_eq(ex *ex, _ a, _ b) { return _ex_binop(ex, a, b, EQ); }
@@ -972,30 +963,5 @@ _ _ex_boot_string(ex *ex,  struct ex_bootinfo *boot) {
     return _ex_boot_port(ex, bootport);
 }
 
-
-
-
-/* Dynamic libraries */
-
-#include <dlfcn.h>
-_ ex_dlerror(ex *ex) {
-    _ex_printf(ex, dlerror());
-    _ex_printf(ex, "\n");
-    return FALSE;
-}
-_ ex_dlopen(ex *ex, _ filename) {
-    void *handle = dlopen(CAST(cstring, filename), RTLD_NOW);
-    if (!handle) return ex_dlerror(ex);
-    return const_to_object(GC_CHECK_ALIGNED(handle));
-}
-_ ex_dlclose(ex *ex, _ so) {
-    dlclose(object_to_const(so));
-    return VOID;
-}
-_ ex_dlsym(ex *ex, _ so, _ name) {
-    void *addr = dlsym(object_to_const(so), CAST(cstring, name));
-    if (!addr) return ex_dlerror(ex);
-    return const_to_object(GC_CHECK_ALIGNED(addr));
-}
 
 

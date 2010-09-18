@@ -145,7 +145,9 @@ void port_methods_bytes_init(port_methods *p) {
 /* Default */
 static port *_default_out = NULL;
 static port *default_out(void) {
+#ifdef POSIX
     if (!_default_out) _default_out = port_file_new(stderr, "<stderr>");
+#endif
     return _default_out;
 }
 
@@ -225,20 +227,6 @@ leaf_class *port_type(void) {
     }
     return (leaf_class*)type;
 }
-port *port_file_new(FILE *f, const char *name) {
-    if (!f) return NULL;
-    port *x = calloc(1, sizeof(*x));
-    leaf_init(&x->base, port_type());
-    x->m = methods_file;
-    x->stream.f.file = f;
-    x->stream.f.fd = fileno(f);
-    x->name = NULL;
-    if (name) {
-        x->name = malloc(1 + strlen(name));
-        strcpy(x->name, name);
-    }
-    return x;
-}
 port *port_bytes_new(bytes *b) {
     if (!b) return NULL;
     port *x = calloc(1, sizeof(*x));
@@ -248,6 +236,21 @@ port *port_bytes_new(bytes *b) {
     x->stream.b.read_index = 0;
     x->name = malloc(9);
     strcpy(x->name, "<string>");
+    return x;
+}
+
+
+port *port_file_new(FILE *f, const char *name) {
+    if (!f) return NULL;
+    port *x = calloc(1, sizeof(*x));
+    leaf_init(&x->base, port_type());
+    x->m = methods_file;
+    x->stream.f.file = f;
+    x->name = NULL;
+    if (name) {
+        x->name = malloc(1 + strlen(name));
+        strcpy(x->name, name);
+    }
     return x;
 }
 
@@ -265,13 +268,6 @@ bytes *port_slurp(port *p) {
     return b;
 }
 
-int port_fd(port *p) {
-    if (p->m == methods_file) {
-        return p->stream.f.fd;
-    }
-    return -1;
-}
-
 bytes *leaf_to_string(leaf_object *o) {
     port *p = port_bytes_new(bytes_buffer_new(100));
     leaf_write(o, p);
@@ -279,3 +275,13 @@ bytes *leaf_to_string(leaf_object *o) {
     leaf_free((leaf_object*)p);
     return b;    
 }
+
+int port_fd(port *p) {
+#ifdef POSIX
+    if (p->m == methods_file) {
+        return fileno(p->stream.f.file);
+    }
+#endif
+    return -1;
+}
+

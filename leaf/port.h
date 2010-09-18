@@ -43,7 +43,6 @@ struct _port {
     union {
         struct {
             FILE* file;
-            int fd;  // for select()
         } f;
         struct {
             bytes *bytes;

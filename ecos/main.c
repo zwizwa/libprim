@@ -7,7 +7,20 @@
 
 #include <sc_vm1/vm1.h>
 
-/* The boot.scm data embedded using objcopy .scm->.o converson. */
+/* The boot.scm data embedded using objcopy .scm->.o converson. 
+
+SYMBOL TABLE:
+00000000 l    d  .rodata    00000000 .rodata
+00000000 g       .rodata    00000000 _binary_boot_scm_start
+00005de4 g       .rodata    00000000 _binary_boot_scm_end
+00005de4 g       *ABS*	    00000000 _binary_boot_scm_size
+
+The *ABS* symbol _binary_boot_scm_size symbol which holds the data
+size is interpreted as the address of some variable, hence the `&'
+operator below.
+
+*/
+
 extern const char _binary_boot_scm_start[];
 extern const void _binary_boot_scm_size;
 static const size_t _binary_boot_scm_nb_bytes = (size_t)&_binary_boot_scm_size;

@@ -3,7 +3,6 @@
 
 #include "config.h"
 #include <ctype.h>
-#include <pthread.h>
 
 /* Basic memory model for the Scheme and PF scripting languages.  This
    includes GCd vectors, and opaque primitive leaf types and

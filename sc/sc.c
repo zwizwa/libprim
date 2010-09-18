@@ -72,7 +72,7 @@ _ _sc_make_aref(sc *sc, void *_x) {
     static fin leaf_free_ptr = (fin)leaf_free;
     leaf_object *x = _x;
     if (!x) ERROR("aref", VOID);
-    leaf_class *t = leaf_type(x);
+    // leaf_class *t = leaf_type(x);
     fin *f = &leaf_free_ptr;
     return sc_make_aref(sc, fin_to_object(f), const_to_object(x));
 }
@@ -122,7 +122,7 @@ _ sc_write_port(sc *sc, _ o, _ o_port) {
     /* This `dynamic-wind' hack only works because we're sure there
        are no aborts in this dynamic extent!  FIXME: use explicit
        lexical variables where possible. */
-    port *p = CAST(port, o_port);
+    port *p = CAST(port, o_port);  // run for side-effect
     _ saved_port = sc_global(sc, sc_slot_error_port);
     sc_bang_set_global(sc, sc_slot_error_port, o_port);
     _ rv = sc->m.write(EX, o);

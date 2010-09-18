@@ -282,5 +282,3 @@ int fd_pipe_2(char **argv, int *_pid, int *fd_to_stdin, int *fd_from_stdout) {
 }
 
 
-
-

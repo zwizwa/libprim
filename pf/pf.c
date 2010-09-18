@@ -857,7 +857,9 @@ pf* _px_new(int argc, char **argv) {
     if (!bootfile) bootfile = getenv("PRIM_BOOT_PF");
     if (!bootfile) bootfile = PRIM_HOME "boot.pf";
     if (!bootfile) bootfile = "boot.pf";
-    _px_interpret_list(pf, _ex_boot_file(EX, bootfile));
+    struct ex_bootinfo  boot;
+    boot.source = bootfile;
+    _px_interpret_list(pf, _ex_boot_file(EX, &boot));
     return pf;
 }
 

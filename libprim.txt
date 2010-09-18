@@ -9355,3 +9355,16 @@ It's simple enough, but including it in the build system is a royal pain.
 
 
 [1] entry://../c/20100918-151333
+
+
+Entry: Compilation to .a for eCos
+Date: Sat Sep 18 20:07:19 CEST 2010
+
+I don't like the eCosPro build system.  Let's make it so that it
+compiles with simple eCos tools, and produces a library that can be
+linked as a whole into the project.
+
+After setting the -I (and -L) paths, the show stopper is the current
+module system, as it is not separated into posix/non-posix.
+
+Should I create leaf_posix and ex_posix modules?

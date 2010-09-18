@@ -35,6 +35,8 @@ $var{ar}        = "ar";
 
 $var{static}    = "no";
 
+$var{arch}      = "i386";
+
 # determine dirs. we use absolute paths for convenience
 # this means that if you move the project, you need to re-run
 # configure, or modify the SRCDIR and BUILDIR variables in Makefile.defs
@@ -374,6 +376,12 @@ elsif ("CYGWIN_NT-5.0" eq $var{target}){
 elsif ("eCos" eq $var{target}){
     # For eCos we just need to generate C files.  The rest should be
     # included in the project build.
+    if (!($var{ecos})) {
+        printf "eCps install dir not defined.  use --ecos=<install-dir>\n";
+        errorexit();
+    }
+    makefile "CPPFLAGS += -I$var{ecos}/include";
+    makefile "LDFLAGS += -I$var{ecos}/lib -Ttarget.ld -nostdlib";
     toolchain;
 }
 else {
@@ -382,6 +390,17 @@ else {
 }
 # tools
  
+
+if ("i386" eq $var{arch}) {
+    makefile "OBJCOPY_ARCH = -O elf32-i386 -B i386";
+}
+elsif ("arm" eq $var{arch}) {
+    makefile "OBJCOPY_ARCH = -O elf32-littlearm -B arm";
+}
+else {
+    printf "Architecture not supported.\n";
+    errorexit();
+}
 
 # create file containing environment variables
 localenv "export $DLIB_PATH=$var{builddir}/libpf";
