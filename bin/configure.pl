@@ -343,7 +343,6 @@ elsif ("Darwin" eq $var{target}){
     check_base;
     check_dl;
 }
-
 # However, if you are building a dll as an export library, 
 # you will probably want to use the complete syntax:
 
@@ -372,12 +371,15 @@ elsif ("CYGWIN_NT-5.0" eq $var{target}){
     check_base;
     #check_dl;  # dlopen is 'just there' on cygwin
 }
+elsif ("eCos" eq $var{target}){
+    # For eCos we just need to generate C files.  The rest should be
+    # included in the project build.
+    toolchain;
+}
 else {
     printf "Target not supported.\n";
     errorexit();
 }
-
-
 # tools
  
 
@@ -463,6 +465,19 @@ if (compare("config.h.new","config.h") == 0) {
 else {
     # print "updating config.h\n";
     copy("config.h.new","config.h");
+}
+
+
+
+sub gen {
+    my @args = 
+        ($var{make}, "-s", "-C", "$var{builddir}", "gen");
+    my $retval = system (@args);
+    return $retval;
+}
+if ("eCos" == $var{target}) {
+    print "Generating header files.\n";
+    gen();
 }
 
 print "Created reconfigure, libprim.pc, Makefile.defs, config.h\n";

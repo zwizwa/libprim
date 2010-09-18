@@ -169,3 +169,11 @@ clean:
 
 
 
+
+## Only generate C files (for eCos and mzscheme-free distro).
+
+GEN = \
+	$(B)/ex/ex.h_prims \
+	$(B)/pf/pf.h_prims \
+	$(B)/px/px.h_prims
+gen: $(GEN)

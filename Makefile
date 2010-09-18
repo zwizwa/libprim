@@ -11,7 +11,8 @@ $(foreach target,$(DELEGATE),$(eval $(call tobuild,$(target))))
 
 # Clean build + config.
 mrproper:
-	rm -rf build
+	rm -rf build 
+	rm -f `find -name '*.d'`
 
 # Run ./configure automatically if there's no build dir.
 build:
