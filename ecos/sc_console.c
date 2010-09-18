@@ -9,16 +9,19 @@
 
 void _sc_ecos_init(cyg_addrword_t data) {
     char *script = (char*)data;
-    char *argv[] = {"sc", script};
-    sc *sc = _sc_new(2, (const char **)argv);
+    char *argv[] = {"sc", "--bootstring", script};
+    diag_printf("_sc_new:\n");
+    sc *sc = _sc_new(3, (const char **)argv);
+    diag_printf("_sc_continue:\n");
     _sc_continue(sc);
+    diag_printf("_sc_ecos_init: EXIT\n");
 }
 
-cyg_uint8 app_stack[1024];
+cyg_uint32 app_stack[10240];
 static cyg_thread app_thread;
 static cyg_handle_t app_handle;
 
-char script[] = "(display 123)";
+char script[] = "(begin (display 123)(newline))";
 
 void cyg_user_start(void)
 {

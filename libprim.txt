@@ -9293,3 +9293,40 @@ symbols.
 I've separated port/port_posix and ex/ex_posix + sprinkled some
 "#ifdef POSIX" here and there when things are too hard to separate.
 Seems to work out.
+
+
+Entry: Booting from string.
+Date: Sat Sep 18 11:47:47 CEST 2010
+
+The VM needs to boot from a "const char[]".
+
+
+Entry: leaf init methods
+Date: Sat Sep 18 12:58:43 CEST 2010
+
+The idea is to allow for local objects that do not need deallocation.
+If an object has an _init() method, it is ok to create one on the
+C-stack.  The guarantee is that _init() methods will not perform
+dynamic allocation using malloc() or other resource aquisition.
+
+
+Entry: const wrapped in bytes
+Date: Sat Sep 18 13:21:46 CEST 2010
+
+Can we do this without introducing an extra field?  Plan: 
+
+* limit the accesses to b->bufsize to things that actually _allocate_ 
+* make that access abstract 
+* set bufsize == 0 to mean it's const data, in which case size is the real size
+
+Ok, this seems to work - pending some weird problems associated to the
+fact that this is an un-intuitive ugly hack..
+
+I think it also uses a bit too much stack space.
+
+Next problem: longjmp
+
+Nope, that seems to work just fine; just need to make sure you set a
+breakpoint at the setjmp.
+
+Same problem as for the JNI port: no decent console output.

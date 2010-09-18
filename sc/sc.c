@@ -311,7 +311,8 @@ _ _sc_continue_dynamic(sc *sc, sc_loop _sc_loop, sc_abort _sc_abort) {
     pthread_mutex_lock(&EX->machine_lock);
     for(;;) {
 
-        switch(leaf_catch(sc)) {
+        int err = leaf_catch(sc);
+        switch(err) {
         case EXCEPT_TRY:
 
             /* Pre-allocate the error struct before the step() is
@@ -366,7 +367,14 @@ int _sc_init(sc *sc, int argc, const char **argv, sc_bootinfo *info) {
     /* Read command line interpreter options options. */
     SHIFT(1); // skip program name
     while ((argc > 0) && ('-' == argv[0][0])) {
-        if (!strcmp("--boot", argv[0])) { info->bootfile = argv[1]; SHIFT(2); }
+        if (!strcmp("--boot", argv[0])) { 
+            info->boot = _ex_boot_file;
+            info->bootarg = argv[1]; SHIFT(2); 
+        }
+        else if (!strcmp("--bootstring", argv[0])) { 
+            info->boot = _ex_boot_string;
+            info->bootarg = argv[1]; SHIFT(2); 
+        }
         else if (!strcmp("--verbose", argv[0])) { SHIFT(1); info->verbose = 1; }
         else if (!strcmp("--fatal", argv[0])) { SHIFT(1); sc->m.fatal = 1; }
         else if (!strcmp("--eval", argv[0])) { info->evalstr = argv[1]; SHIFT(2); }
@@ -419,9 +427,13 @@ int _sc_init(sc *sc, int argc, const char **argv, sc_bootinfo *info) {
     sc_bang_def_toplevel(sc, SYMBOL("args"), info->args);
 
     /* Highlevel bootstrap. */
-    if (!info->bootfile) info->bootfile = getenv("PRIM_BOOT_SCM");
-    if (!info->bootfile) info->bootfile = PRIM_HOME "boot.scm";
-    if (info->verbose) _ex_printf(EX, "SC: %s\n", info->bootfile);
+    if (!info->bootarg) {
+        info->boot = _ex_boot_file;
+        if (!(info->bootarg = getenv("PRIM_BOOT_SCM"))) {
+            info->bootarg = PRIM_HOME "boot.scm";
+        }
+    }
+    if (info->verbose) _ex_printf(EX, "SC: %s\n", info->bootarg);
     if (sc->m.fatal) _ex_printf(EX, "SC: all errors are fatal: SIGTRAP for bootstrap debugging.\n");
 
     /* Code entry point. */

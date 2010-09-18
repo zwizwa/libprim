@@ -329,7 +329,7 @@ _ _ex_make_qstring(ex *ex, const char *str) {
     return _ex_leaf_to_object(ex, bytes_from_qcstring(str));
 }
 _ _ex_make_bytes(ex *ex, int size) {
-    return _ex_leaf_to_object(ex, bytes_new(size));
+    return _ex_leaf_to_object(ex, bytes_new(size, size));
 }
 _ ex_number_to_string(ex *ex, _ num) {
     char str[20];
@@ -437,7 +437,7 @@ _ ex_open_input_string(ex *ex, _ ob_str) {
     return _ex_make_bytes_port(ex, copy_b);
 }
 _ ex_open_output_string(ex *ex) {
-    bytes *b = bytes_new(20);
+    bytes *b = bytes_new(20, 20);
     b->size = 0;
     return _ex_make_bytes_port(ex, b);
 }
@@ -946,12 +946,8 @@ _ _ex_restart(ex *ex) {
 /* IO */
 
 /* Use lowelevel port access to be independent of object wrapping. */
-_ _ex_boot_load(ex *ex,  const char *bootfile) {
-    port *bootport = port_file_new(fopen(bootfile, "r"), bootfile);
-    if (!bootport) {
-        fprintf(stderr, "Can't load boot file: %s\n", bootfile);
-        return ex_raise_error(ex, SYMBOL("boot"), VOID);
-    }
+
+_ _ex_boot_port(ex *ex, port *bootport) {
     _ expr      = _ex_read(ex, bootport);
     _ junk_expr = _ex_read(ex, bootport);
     if (EOF_OBJECT != junk_expr) {
@@ -960,6 +956,18 @@ _ _ex_boot_load(ex *ex,  const char *bootfile) {
     }
     port_free(bootport);
     return expr;
+}
+_ _ex_boot_file(ex *ex,  const char *bootfile) {
+    port *bootport = port_file_new(fopen(bootfile, "r"), bootfile);
+    if (!bootport) {
+        fprintf(stderr, "Can't load boot file: %s\n", bootfile);
+        return ex_raise_error(ex, SYMBOL("boot"), VOID);
+    }
+    return _ex_boot_port(ex, bootport);
+}
+_ _ex_boot_string(ex *ex,  const char *bootfile) {
+    port *bootport = port_bytes_new(bytes_const_new(bootfile, strlen(bootfile)));
+    return _ex_boot_port(ex, bootport);
 }
 
 

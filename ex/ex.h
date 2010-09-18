@@ -169,7 +169,13 @@ _ _ex_map2_prim(ex *ex, ex_2 fn, _ l_in1, _ l_in2);
 #define ONE  integer_to_object(1)
 
 _ _ex_read(ex *ex, port *input_port);
-_ _ex_boot_load(ex *ex,  const char *bootfile);
+
+
+/* Boot file abstraction. */
+typedef _ (*_ex_boot_load_t)(ex *ex, const char *arg);
+_ _ex_boot_file(ex *ex,  const char *filename);
+_ _ex_boot_string(ex *ex,  const char *commands);
+
 
 
 #define VEC(x) (vector_to_object(((void*)(x))))

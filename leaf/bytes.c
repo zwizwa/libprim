@@ -3,7 +3,9 @@
 #include "bytes.h"
 
 static void _bytes_free(bytes *x) {
-    free(x->bytes);
+    if (x->bufsize) { // don't free const
+        free(x->bytes);
+    }
     free(x);
 }
 
@@ -22,33 +24,45 @@ leaf_class *bytes_type(void) {
     return (leaf_class*)type;
 }
 
-// don't use this for strings!
-bytes *bytes_new(size_t bufsize) {
-    bytes *x = malloc(sizeof(*x));
+
+
+
+static void bytes_init(bytes *x, void *buf, size_t size, size_t bufsize) {
     leaf_init(&x->base, bytes_type());
-    x->size = bufsize;
+    x->size = size;
     x->bufsize = bufsize;
-    x->bytes = malloc(bufsize);
-    return x;
+    x->bytes = buf;
+}
+
+// don't use this for strings!
+bytes *bytes_new(size_t size, size_t bufsize) {
+    bytes *b = malloc(sizeof(*b));
+    bytes_init(b, malloc(bufsize), size, bufsize);
+    return b;
 }
 bytes *bytes_buffer_new(size_t bufsize) {
-    bytes *b = bytes_new(bufsize);
-    b->size = 0;
+    return bytes_new(0, bufsize);
+}
+
+/* Wrap a const string in a bytes object. */
+bytes *bytes_const_new(const char *str, size_t size) {
+    bytes *b = malloc(sizeof(*b));
+    bytes_init(b, (char*)str, size, 0 /* const: bufsize == 0 */);
     return b;
 }
 
 
+
 char *cstring_from_bytes(bytes *b) {
-    if ((b->size + 1) > b->bufsize) return NULL;
+    /* Only works for null-terminated strings. */
     if (b->bytes[b->size] != 0) return NULL;
     return b->bytes;
 }
 
 bytes* bytes_from_cstring(const char *str){
     size_t len = strlen(str);
-    bytes *b = bytes_new(1+len);
+    bytes *b = bytes_new(len, 1+len);
     strcpy(b->bytes, str);
-    b->size = len;
     return b;
 }
 
@@ -135,11 +149,18 @@ int bytes_hexdump(bytes *b, port *p) {
 
 
 void bytes_realloc(bytes *b, size_t size) {
-    if (!(b->bytes = realloc(b->bytes, size))) {
-        b->size = b->bufsize = 0;
+    if (b->bufsize == 0) {
+        /* If it's a const, copy to writable memory. */
+        void *buf = calloc(1,size);
+        memcpy(buf, b->bytes, b->size);
+        b->bufsize = size;
+        b->bytes = buf;
+    }
+    else if ((b->bytes = realloc(b->bytes, size))) {
+        b->bufsize = size;
     }
     else {
-        b->bufsize = size;
+        b->size = b->bufsize = 0;
     }
 }
 char *bytes_allot(bytes *b, size_t extra) {
@@ -154,9 +175,9 @@ char *bytes_allot(bytes *b, size_t extra) {
 }
 
 bytes *bytes_copy(bytes* b) {
-    bytes *new_b = bytes_new(b->bufsize);
-    new_b->size = b->size;
-    memcpy(new_b->bytes, b->bytes, b->bufsize);
+    int nb_bytes = b->size + 1;
+    bytes *new_b = bytes_new(b->size, nb_bytes);
+    memcpy(new_b->bytes, b->bytes, nb_bytes);
     return new_b;
 }
 

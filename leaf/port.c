@@ -251,7 +251,6 @@ port *port_bytes_new(bytes *b) {
     return x;
 }
 
-
 bytes *port_slurp(port *p) {
     int bs = 4096, total = 0, chunk = 0;
     bytes *b = bytes_buffer_new(bs);

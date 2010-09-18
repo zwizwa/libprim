@@ -21,8 +21,7 @@ static void *dflt_atom(void *x, const bytes *b) {
     tuple *t = tuple_new(2);
 
     /* Create a new bytes object with stripped token. */
-    bytes *s = bytes_new(b->size);
-    s->size = b->size - 1;
+    bytes *s = bytes_new(b->size-1, b->size);
     memcpy(s->bytes, b->bytes + 1, b->size);
     t->slot[1] = (leaf_object*)s;
 

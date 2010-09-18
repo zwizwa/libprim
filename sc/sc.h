@@ -104,8 +104,11 @@ void _sc_mark_roots(sc *sc, gc_finalize fin);
 leaf_object *_sc_object_to_leaf(sc *sc, _ o);
 void _sc_object_erase_leaf(sc *sc, _ o);
 
+
+
 typedef struct {
-    const char *bootfile;
+    _ex_boot_load_t boot;
+    const char *bootarg;
     const char *evalstr;
     int verbose;
     _ args;

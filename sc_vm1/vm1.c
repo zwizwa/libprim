@@ -513,7 +513,8 @@ sc *_sc_new(int argc, const char **argv) {
     sc_bang_abort_k(sc, MT);  // simply halt
 
 
-    _sc_top(sc, _ex_boot_load(EX, info.bootfile));
+    _sc_top(sc, info.boot(EX, info.bootarg));
+
 
     /* Set the continuation to continue booting in Scheme when the vm
        is started using _sc_continue() */

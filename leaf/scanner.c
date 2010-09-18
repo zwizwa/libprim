@@ -150,7 +150,7 @@ const bytes *scanner_token(scanner *x) {
 }
 void scanner_read(scanner *x) {
     int c;
-    if (!x->b) x->b = bytes_new(20);
+    if (!x->b) x->b = bytes_new(20, 20);
     reset(x);
     save(x, c = first_getc(x));
 
@@ -192,11 +192,11 @@ scanner *scanner_new(port *p) {
     scanner *x = calloc(1, sizeof(*x));
     leaf_init((leaf_object*)x, scanner_type());
     x->p = p;
-    x->b = bytes_new(100);
+    x->b = bytes_new(100,100);
     return x;
 }
 
-#if _SCANNER_TEST_
+#ifdef _SCANNER_TEST_
 int main(void) {
     scanner *x = scanner_new(port_file_new(stdin, "<stdin>"));
     for(;;) {
