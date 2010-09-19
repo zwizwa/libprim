@@ -655,7 +655,11 @@
   (let ((file (car args)))
     (set! args (cdr args)) ;; necessary?  maybe leave script name?
     (load file)))
-    
+
+(define repl-prompt
+  ;; "> "
+  "OK\n"
+  )
 (define (repl)
   ;; (display "libprim/SC") (newline)
   (let loop ()
@@ -664,7 +668,7 @@
                 (abort-k! k)
                 (repl-no-guard
                  (lambda ()
-                   (display "> " (current-error-port))
+                   (display repl-prompt (current-error-port))
                    (flush-output-port (current-error-port)))
                  exit))))
     (flush-output-port (current-error-port))

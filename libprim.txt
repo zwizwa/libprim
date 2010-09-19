@@ -9378,3 +9378,226 @@ Date: Sat Sep 18 22:22:52 CEST 2010
 
 Maybe it's not a good idea as this gives multiple dimensions:
 leaf/ex/sc and portable/posix.
+
+Ok, it's not so hard to manage.  Let's stick with the current
+structure.  The modules per directory approach works quite well.
+
+
+Entry: GC and consts
+Date: Sun Sep 19 00:44:37 CEST 2010
+
+Is it possible to integrate const data with the garbage-collected
+heap?  The point is to store bytecode in Flash.  It doesn't seem to be
+a problem as the heap locations are known.
+
+
+
+Entry: Meta system : which one to pick?
+Date: Sun Sep 19 16:10:36 CEST 2010
+
+The current c preprocessing is a bit ad-hoc.  Libprim should probably
+stay implemented in C, but the meta-system should be converted to a
+single language.
+
+Can we do the pre-pricessing with a real C parser?  I know of 3 that
+are useful.
+
+  * Racket + c.plt : doesn't seem to be maintained
+
+  * OCaml + Frontc (godi) : seems to work + might work in metaocaml too
+
+  * Haskell + Language.C : not tried yet
+
+
+Because I'm a bit afraid of using Haskell in a real-world app that
+might need some stateful hackery, and because c.plt needs more effort
+to get into and fix, it seems that the real alternative is Frontc.  I
+believe MetaOCaml also uses parts of this.
+
+As mentioned [4] there is also LLVM Clang.  
+
+[1] http://planet.plt-scheme.org/package-source/dherman/c.plt/3/2/planet-docs/c/index.html
+[2] entry://../meta/20090227-102018
+[3] http://hackage.haskell.org/package/language-c-0.3.2
+[4] entry://../meta/20090719-164343
+
+
+Entry: .h_prims generation
+Date: Sun Sep 19 16:51:53 CEST 2010
+
+The problem is that there is a nasty feedback loop.  The language
+isn't yet C when the .h_prims generator runs.
+
+So really, I'm not looking for a C parser!
+
+I'm looking for something that can look beyond the holes in the C
+files to be able to fill them in a second pass.
+
+Preprocessing isn't really an option either as this pulls in a huge
+amount of junk from the system header files.
+
+Is there a way to incrementally (lazily?) backtrack into header files
+to resolve what is necessary?  This is mostly about typedefs in
+Frontc.
+
+Also, Frontc doesn't seem to keep track of original source locations
+so replacing parts of syntax is not going to work.
+
+Stick with what I have?  Regexp based foo foo.
+
+
+Entry: Scheme implementation design space
+Date: Sun Sep 19 18:48:48 CEST 2010
+
+It's actually a bit bigger that I thought.  Some issues, thinking
+about space and time.
+
+  * Memory representation:
+     - Garbage collector type
+     - Vectors or CONS cells
+     - Integers, tagged or not?
+     - Opaque objects and finalizers
+
+  * Interpreter:
+     - Byte code or tree walker
+     - Full continuations support?
+     - Stack optimization (complicates tail calls!)
+     - Closure implementation
+     - Boxed values
+
+  * Compiler:
+     - Self hosted compiler? (in case of byte code)
+     - Macro expansion
+     - Macro hygiene
+
+
+The main ideas behind the libprim/SC interpreter are implementation
+simplicity and memory usage.  The latter isn't so good because of:
+     - Semisphere collector
+     - 3 word CONS cells
+     - No hash consing
+     - Code as s-expr instead of byte code
+
+
+Entry: Hack to improve RAM usage
+Date: Sun Sep 19 18:55:37 CEST 2010
+
+Let's say we have plenty of Flash.  And let's say that multiple passes
+are allowed.  Can we dump out the image such that it can be stored in
+Flash and simply resumed?
+
+This requires serialization of the leaf objects.
+
+That is fixable, but it does not work for non-serializable objects
+like OS references (file descriptors).  An image is a tree of memory
+objects where some of the leafs are holes that link it to the OS.
+BOOTING = LINKING with OS.
+
+But if the Scheme _is_ the OS, then there are really no such objects.
+
+The point is: that is wrong.  In fact, going down to the hardware
+there is always going to be hidden state and context-sensitive
+behaviour, simply because a machine is never isolated.
+
+Linking with the OS/hardware is linking with _objects_ not just data.
+
+What is the interesting problem hidden here? [1]
+
+An operating system image has a number of communication channels.
+Whenever an image gets restored/resumed, the communication channels
+need to be restored.
+
+Can we make this explicit?  Have a base object that is a port and a
+standard way to re-initialize.  That way image snapshotting is free.
+
+The trick there is dependency between ports, so let's have a port
+hierarchy (one port initializer is parameterized by several
+initialized ports).
+
+
+[1] entry://../compsci/20100919-193304
+
+
+Entry: Now that..
+Date: Sun Sep 19 20:19:40 CEST 2010
+
+..I'm runnig loose again.  How to 1-up the libprim design?  It's OK,
+but there are some points that are hard to change.
+
+Thinking about things to do with a full machine at disposal.  One of
+the cool things about having no external code that deals with pointers
+is that memory can be moved around freely.
+
+Many of the ideas that are half-baked in my head are more worked out
+in the COLA system.  However, I don't want to give up externally
+hosted compilated. (here-you-go code).
+
+This is again more a Staapl idea.  libprim is about C projects and
+external code.
+
+
+
+Entry: Mark-sweep GC
+Date: Sun Sep 19 20:44:51 CEST 2010
+
+Trade-off: time vs. space.  Apparently it's quite a bit slower than a
+copying collector.  How does it compact?
+
+What about mark-compact?
+
+[1] http://en.wikipedia.org/wiki/Mark-compact_algorithm
+
+
+Entry: Building eCos / arm libprim
+Date: Sun Sep 19 22:07:03 CEST 2010
+
+# Looks like all is well now.  This is how to get it going:
+
+
+cd ~/libprim
+mkdir build_ecos
+cd build_ecos
+../configure --target=eCos --cmdprefix=arm-eabi- --arch=arm --prefix=<ecos-install>
+make VERBOSE=1 ecos_sc_vm1
+
+
+Entry: libprim on ARM7TMDI
+Date: Mon Sep 20 00:12:24 CEST 2010
+
+I'm surprised the .bss is a lot smaller on the arm target than the
+linux synthetic target.
+
+tom@one:~/libprim/build_ecos_arm/ecos_sc$ arm-eabi-objdump -h main
+
+main:     file format elf32-littlearm
+
+Sections:
+Idx Name          Size      VMA       LMA       File off  Algn
+  9 .text         00024118  00100040  00100040  00008040  2**2  CONTENTS, ALLOC, LOAD, READONLY, CODE
+ 10 .rodata       00007664  00124158  00124158  0002c158  2**3  CONTENTS, ALLOC, LOAD, DATA
+ 13 .data         000012ac  00200180  0012b8d4  00038180  2**3  CONTENTS, ALLOC, LOAD, CODE
+ 14 .bss          00006d60  0020142c  0012cb80  0003942c  2**4  ALLOC
+tom@one:~/libprim/build_ecos_arm/ecos_sc$ 
+
+It would be nice to find a way to put some Scheme code in Flash too.
+After macro expansion, code is essentially static.  RAM is only needed
+for continuations and closures.
+
+
+
+
+Entry: Memory opti
+Date: Mon Sep 20 00:23:54 CEST 2010
+
+1. Allow for Flash storage of leaf/ex objects.
+
+This requires a modification of free() for leaf objects (to ignore
+flash pointers), and the GC such that EX vectors stored in flash are
+not taken into account in GC and treated as constants.
+
+2. GC: semisphere -> mark/sweep
+
+3. Hash consing?
+
+The last two introduce more tag bits.  The former should be
+straightforward.

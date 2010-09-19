@@ -100,6 +100,11 @@ static object _gc_move_object(gc *gc, object o_old) {
     /* Keep atom pointers. */
     if (!v_old) return o_old;
 
+    /* Keep Flash ROM pointers.  These need to be identified by
+       address as they are otherwise indistinguishable from RAM
+       vectors. */
+    // if (rom_pointer(v_old)) return o_old;
+
     /* Already moved -> copy forwarding pointer. */
     if (!(o_new = vector_moved(v_old))) {
 

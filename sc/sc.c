@@ -304,7 +304,7 @@ void _sc_set_error(sc *sc, int rv, void *data) {
 _ _sc_continue_dynamic(sc *sc, sc_loop _sc_loop, sc_abort _sc_abort) {
 
     EX->l.set_error = (leaf_set_error)_sc_set_error;
-    pthread_mutex_lock(&EX->machine_lock);
+    mutex_lock(&EX->machine_lock);
     for(;;) {
 
         int err = leaf_catch(sc);
@@ -322,7 +322,7 @@ _ _sc_continue_dynamic(sc *sc, sc_loop _sc_loop, sc_abort _sc_abort) {
 
         case EXCEPT_HALT: {
             EX->l.set_error = NULL;
-            pthread_mutex_unlock(&EX->machine_lock);
+            mutex_unlock(&EX->machine_lock);
             return object_to_error(sc->error)->tag;
         }
 
@@ -385,7 +385,7 @@ int _sc_init(sc *sc, int argc, const char **argv, struct ex_bootinfo *boot) {
     }
     
     /* This is taken during resume() and freed during select() */
-    pthread_mutex_init(&EX->machine_lock, NULL);
+    mutex_init(&EX->machine_lock);
 
     /* Garbage collector. */
     sc->m.gc = gc_new(20000, sc, 

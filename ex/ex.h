@@ -44,7 +44,7 @@ struct _ex {
     prim *prim;          // current primitive
     void *ctx;           // any other user context associated with VM (i.e. JNIEnv)
 
-    pthread_mutex_t machine_lock; // unlock machine struct during select() call
+    mutex_t machine_lock; // unlock machine struct during select() call
     
     long stateful_context; // if set, GC restarts are illegal
     int fatal;             // if set, all errors are fatal (i.e. during boot)

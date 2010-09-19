@@ -14,6 +14,7 @@ $var{prefix}  = "/usr/local";
 
 
 $var{debug}   = "no";
+$var{size}    = "no";
 $var{pthread} = "no";
 $var{profile} = "no";
 $var{static}  = "no";
@@ -188,6 +189,13 @@ sub makefile {
 if ($ENV{CC})  {$var{cc}   = $ENV{CC};} # get CC, MAKE from environment if defined
 if ($ENV{MAKE}){$var{make} = $ENV{MAKE};}
 if ($ENV{AR})  {$var{ar}   = $ENV{AR};}
+
+
+if ($var{cmdprefix}) {
+    $var{cc} = "$var{cmdprefix}gcc";
+    $var{objcopy} = "$var{cmdprefix}objcopy";
+}
+
 
 
 makefile "LDFLAGS = $var{ldflags}" ;
@@ -420,6 +428,9 @@ if ($var{debug} eq "yes"){
     # perantheses warning is actually quite valueable.. i still make mistakes to if (a = b) vs (a == b) things
     # but most of the code triggers warnings here.. clean up some day.
     header "#define PRIM_DEBUG 1";  # this is changed to not conflict with pf
+}
+elsif ($var{size} eq "yes") {
+    makefile  "OPTI_CFLAGS = -Os -fomit-frame-pointer";
 }
 else{
     makefile "OPTI_CFLAGS = -O3 -ffast-math -funroll-loops";
