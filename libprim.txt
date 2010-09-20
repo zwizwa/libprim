@@ -9537,17 +9537,6 @@ external code.
 
 
 
-Entry: Mark-sweep GC
-Date: Sun Sep 19 20:44:51 CEST 2010
-
-Trade-off: time vs. space.  Apparently it's quite a bit slower than a
-copying collector.  How does it compact?
-
-What about mark-compact?
-
-[1] http://en.wikipedia.org/wiki/Mark-compact_algorithm
-
-
 Entry: Building eCos / arm libprim
 Date: Sun Sep 19 22:07:03 CEST 2010
 
