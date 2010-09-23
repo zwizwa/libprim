@@ -496,17 +496,19 @@ else {
 }
 
 
+## It's better to use the build system to create a full distro with
+## headers and binary archives, and package that up in a tar or so.
 
-sub gen {
-    my @args = 
-        ($var{make}, "-C", "$var{builddir}", "gen");
-    my $retval = system (@args);
-    return $retval;
-}
-if ("eCos" eq $var{target}) {
-    print "Generating header files.\n";
-    gen();
-}
+# sub gen {
+#     my @args = 
+#         ($var{make}, "-C", "$var{builddir}", "gen");
+#     my $retval = system (@args);
+#     return $retval;
+# }
+# if ("eCos" eq $var{target}) {
+#     print "Generating header files.\n";
+#     gen();
+# }
 
 print "Created reconfigure, libprim.pc, Makefile.defs, config.h\n";
 print "Type 'make install' to build and install the package.\n\n";

@@ -179,15 +179,3 @@ clean:
 
 
 
-
-## Only generate C files (for eCos and mzscheme-free distro).
-
-GEN = \
-	$(B)/ex/ex.h_prims \
-	$(B)/ex/ex_posix.h_prims \
-	$(B)/pf/pf.h_prims \
-	$(B)/px/px.h_prims \
-	$(B)/sc/sc.h_prims \
-	$(B)/sc_vm1/vm1.h_prims \
-	$(B)/sc_vm1/boot.o
-gen: $(GEN)

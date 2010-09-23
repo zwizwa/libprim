@@ -18,11 +18,15 @@ SYMBOL TABLE:
 00005de4 g       *ABS*	    00000000 _binary_boot_scm_size
 
 The *ABS* symbol _binary_boot_scm_size symbol which holds the data
-size needs to be interpreted as the address of some variable, hence
-the `&' operator below.
+size needs to be interpreted as the address of some variable, i.e. to
+get to the size use:
 
-However, we just assume the data is properly zero-terminated.  Refer
-to project.mk for the .scm0 build rule.
+   void _binary_boot_scm_size;
+   int size = (int)(&_binary_boot_scm_size);
+
+However, we just assume the data is properly zero-terminated which is
+easier to work with in C.  Refer to project.mk for the .scm0 build
+rule.
 
 */
 
