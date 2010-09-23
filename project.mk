@@ -84,10 +84,13 @@ $(B)/%.h_prims: $(S)/%.c
 %.syms: %.so
 	$(call build, objdump -T $< | grep '\.text' | awk '{print $$7;}' >$@)
 
-# Wrap scheme files as binary objects.  The "cd $(dir $<)" is to make
-# sure objcopy generates a predictable symbol from the base file name,
+# Wrap scheme files as binary objects.  In two steps: zero terminate
+# and conversion to object file.  The "cd $(dir $<)" is to make sure
+# objcopy generates a predictable symbol from the base file name,
 # excluding directory.
-$(B)/%.o: $(S)/%.scm
+$(B)/%.scm0: $(S)/%.scm
+	$(call build, cp $< $@; echo -ne '\000' >>$@)
+$(B)/%.o: $(B)/%.scm0
 	$(call build, cd $(dir $<); $(OBJCOPY) -I binary $(OBJCOPY_ARCH) --rename-section .data=.rodata $(notdir $<) $@)
 
 

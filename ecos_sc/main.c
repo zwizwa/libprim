@@ -18,19 +18,19 @@ SYMBOL TABLE:
 00005de4 g       *ABS*	    00000000 _binary_boot_scm_size
 
 The *ABS* symbol _binary_boot_scm_size symbol which holds the data
-size is interpreted as the address of some variable, hence the `&'
-operator below.
+size needs to be interpreted as the address of some variable, hence
+the `&' operator below.
+
+However, we just assume the data is properly zero-terminated.  Refer
+to project.mk for the .scm0 build rule.
 
 */
 
-extern const char _binary_boot_scm_start[];
-extern const void _binary_boot_scm_size;
+extern const char _binary_boot_scm0_start[];
 
 void _sc_ecos_init(cyg_addrword_t data) {
-    char bootsize[10];
-    sprintf(bootsize, "%d", (size_t)&_binary_boot_scm_size);
-    const char *argv[] = {"sc", "--bootstring", _binary_boot_scm_start, "--bootsize", bootsize};
-    sc *sc = _sc_new(5, (const char **)argv);
+    const char *argv[] = {"sc", "--bootstring", _binary_boot_scm0_start};
+    sc *sc = _sc_new(3, (const char **)argv);
     _sc_continue(sc);
 }
 
