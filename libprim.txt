@@ -9590,3 +9590,61 @@ not taken into account in GC and treated as constants.
 
 The last two introduce more tag bits.  The former should be
 straightforward.
+
+
+
+Entry: Dump image w. closures
+Date: Thu Sep 23 18:26:41 CEST 2010
+
+Apart from other serialization problems, how to serialize closures?
+This shouldn't be so difficult:
+
+(let ((a ...)
+      (b ...))
+  (lambda (x y z)
+     ...))
+
+The only problem is that environments can be shared, which is not so
+easy to fix.
+
+
+
+Entry: Know your arena
+Date: Sat Sep 25 17:18:16 CEST 2010
+
+See previous post.  
+
+* For recognizing non-managed vectors it's simplest to just compare
+  with the current arena pointers.  This will always give an exact
+  answer.  It could be optimized with more platform knowledge, but
+  that's not really the point.
+
+* Macro expansion needs to happen before compilation to linkable .o
+  code with expanded ASTs.
+
+So some earlier unparse.ss code can be modified to support Flash
+stored scripts.  The main problem is to work around the ad-hoc
+incremental bootstrap in the boot.scm file.
+
+
+Entry: Boot expand
+Date: Sat Sep 25 18:04:31 CEST 2010
+
+I changed the structure of the boot file to:
+
+    (begin
+        (begin . <boot-1-exprs>)
+        (eval-list (quote <boot-2-exprs>)))
+
+This is a valid core form and makes it simpler to process.  The
+`eval-list' form is defined in <boot-1-exprs>.
+
+This runs the expansion script:
+
+
+~/libprim/build_linux/posix_sc/main \
+       --boot ~/libprim/sc_vm1/boot.scm \
+       --eval '(begin (load "/home/tom/libprim/sc_vm1/boot_expand.scm")(script))'  \
+       ~/libprim/sc_vm1/boot.scm /tmp/boote.scm
+
+
