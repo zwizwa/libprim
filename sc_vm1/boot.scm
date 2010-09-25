@@ -1,27 +1,25 @@
 
 ;;; Bootstrap
 
-;; This is boot phase 1 for libprim/sc VM, which is incrementally
-;; bootstrapped from the C source.  Most code is shared with the other
-;; VM.
-
-;; Note that this file, and the files it loads before boot2.scm are
-;; quite brittle due to incremental bootstrapping.  Be careful when
-;; you change anything.
-
 ;;;
 
-;; A single s-expression will be allocated outside the VM and passed
-;; to the interpretation step.  This means there is no GC during
-;; construction as long as it fits in the initial cell store: see
-;; _sc_init() in scheme.c
-(begin
-
-;; The top level boot expression is of the form:
-;;    (begin <boot-eval-expr> (eval-list '<init-library-exprs>))
+;; The top level boot expression is of the form reflecting 2 phases:
+;;     `(begin
+;;        (begin . ,<boot-1-exprs>)
+;;        (eval-list (quote ,<boot-2-exprs>)))
 ;;
-;; Other code that processes this file relies on that structure, so
-;; don't change it!
+;; The <boot-1-exprs> bootstraps the macro expander `eval' in terms of
+;; the macro-less `eval-core' while <boot-2-exprs> is defined in terms
+;; of the macro-extended language.
+
+;; Code that processes this file other than the macro-less interpreter
+;; relies on this structure, so don't change it!
+
+;; The main reason for this 2-phase approach is to keep the macro
+;; expander out of the core VM avoiding the need for recursion and
+;; garbage collection in C.
+
+(begin
 
 ;;; Macro expander bootstrap.
 (begin
@@ -58,7 +56,8 @@
   (%lambda (expr) (eval-core (expand expr))))
 
 ;; Evaluate expressions in sequence.  This makes sure macros take
-;; effect immediately after definition.
+;; effect immediately after definition so they can be used in the next
+;; expression.
 (def-toplevel! 'eval-list
   (%lambda (expr)
     (if (null? expr) (void)
