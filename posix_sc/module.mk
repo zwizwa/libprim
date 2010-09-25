@@ -9,6 +9,7 @@ TARGET_LDFLAGS := -lpthread
 # Test target.
 SC_VM1_POSIX := $(BUILDDIR)/$(MODULE)/main
 SC_BOOT_SCM := $(SRCDIR)/sc_vm1/boot.scm
+SC_BOOT_EXPAND_SCM=$(SRCDIR)/sc_vm1/boot_expand.scm
 SC_VM1_POSIX_RUN := $(SC_VM1_POSIX) --boot $(SC_BOOT_SCM)
 .PHONY: posix_sc
 posix_sc: $(SC_VM1_POSIX)
@@ -20,8 +21,8 @@ posix_sc: $(SC_VM1_POSIX)
 # expander, then compile for the target.
 
 SC_BOOT_EXPANDED_SCM=$(BUILDDIR)/$(MODULE)/boot-expanded.scm
-SC_BOOT_EXPANDED_SCM: $(SC_BOOT_SCM)
-	$(SC_VM1_POSIX_RUN) --eval '(begin (load "$@")(script))' $< $@
+$(SC_BOOT_EXPANDED_SCM): $(SC_BOOT_SCM) $(SC_BOOT_EXPAND_SCM) $(SC_VM1_POSIX)
+	$(SC_VM1_POSIX_RUN) --eval '(script)' $(SC_BOOT_EXPAND_SCM) $< $@
 
 ,PHONY: posix_boote
 posix_boote: $(SC_BOOT_EXPANDED_SCM)

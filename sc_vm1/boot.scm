@@ -655,11 +655,11 @@
   (gc))
 
          
-           
+(define main #f)
 (define (script)
-  (let ((file (car args)))
-    (set! args (cdr args)) ;; necessary?  maybe leave script name?
-    (load file)))
+  (set! main (lambda () (display "ERROR: No main function defined.\n")))
+  (load (car args))
+  (apply main (cdr args)))
 
 (define repl-prompt
   ;; "> "

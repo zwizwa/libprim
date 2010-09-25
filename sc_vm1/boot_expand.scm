@@ -33,8 +33,7 @@
     (close-port outport)
     (close-port inport)))
 
-(define (script)
-  (apply boot-translate args))
 
+;; For script:
+(define main boot-translate)
 
-        
