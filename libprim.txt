@@ -9590,3 +9590,18 @@ not taken into account in GC and treated as constants.
 
 The last two introduce more tag bits.  The former should be
 straightforward.
+
+
+Entry: Dump image w. closures
+Date: Thu Sep 23 18:26:41 CEST 2010
+
+Apart from other serialization problems, how to serialize closures?
+This shouldn't be so difficult:
+
+(let ((a ...)
+      (b ...))
+  (lambda (x y z)
+     ...))
+
+The only problem is that environments can be shared, which is not so
+easy to fix.
