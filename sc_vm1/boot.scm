@@ -17,7 +17,15 @@
 ;; _sc_init() in scheme.c
 (begin
 
-;; Macro expander + support.
+;; The top level boot expression is of the form:
+;;    (begin <boot-eval-expr> (eval-list '<init-library-exprs>))
+;;
+;; Other code that processes this file relies on that structure, so
+;; don't change it!
+
+;;; Macro expander bootstrap.
+(begin
+
 (def-toplevel! 'assq
   (%lambda (obj lst)
     (if (null? lst) #f
@@ -46,9 +54,6 @@
                 (assq (car expr) (toplevel-macro))))))
          (car expr))
         expr)))
-;; Implemented in terms of primitive continuation transformers (ktx).
-;(def-toplevel! 'eval
-;  (%lambda (expr) (letcc k ((eval-ktx k (expand expr))))))
 (def-toplevel! 'eval
   (%lambda (expr) (eval-core (expand expr))))
 
@@ -59,6 +64,7 @@
     (if (null? expr) (void)
         (begin (eval (car expr)) (eval-list (cdr expr))))))
 
+)
 ;;; Library with macro expansion.
 
 ;; The rest is evaluated in sequence with `eval' defined above, which
