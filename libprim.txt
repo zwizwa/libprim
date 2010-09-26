@@ -9648,3 +9648,5 @@ This runs the expansion script:
        ~/libprim/sc_vm1/boot.scm /tmp/boote.scm
 
 
+Also fixed the makefile + used and changed the standard `script'
+function.
