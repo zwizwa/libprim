@@ -237,6 +237,9 @@ _ _ex_make_file_port(ex *ex, FILE *f, const char *name);
 
 
 double object_to_double(_ ob);
+static inline _ double_to_object(ex *ex, double d) {
+    return _ex_leaf_to_object(ex, (leaf_object*)inexact_new(d));
+}
 
 typedef struct {
     _ tag;
