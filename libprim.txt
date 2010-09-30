@@ -9650,3 +9650,22 @@ This runs the expansion script:
 
 Also fixed the makefile + used and changed the standard `script'
 function.
+
+
+Entry: Serialize core
+Date: Tue Sep 28 10:05:12 CEST 2010
+
+There seems to be little else than to actually try to serialize a
+running core and see where it doesn't work (external refs).
+
+Strategy:
+- collect all nodes (vectors)
+- independently name them
+- generate a list of refs (serve as C declaration)
+- generate a list of defs in terms of refs
+
+
+EDIT: This might work for the bare metal version, but is not quite so
+simple for posix.  There is a lot of state in file descriptors, and it
+definitely needs some form of abstraction of "reconnect" for each
+object type.
