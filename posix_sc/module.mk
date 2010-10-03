@@ -9,10 +9,14 @@ TARGET_LDFLAGS := -lpthread
 # Test target.
 SC_VM1_POSIX := $(BUILDDIR)/$(MODULE)/main
 SC_BOOT_SCM := $(SRCDIR)/sc_vm1/boot.scm
-SC_BOOT_EXPAND_SCM=$(SRCDIR)/sc_vm1/boot_expand.scm
+SC_BOOT_EXPAND_SCM := $(SRCDIR)/sc_vm1/boot_expand.scm
 SC_VM1_POSIX_RUN := $(SC_VM1_POSIX) --boot $(SC_BOOT_SCM)
-.PHONY: posix_sc
-posix_sc: $(SC_VM1_POSIX)
+
+$(BUILDDIR)/$(MODULE)/start: $(SC_VM1_POSIX)
+	$(call build, echo $(SC_VM1_POSIX_RUN) >$@ && chmod +x $@)
+
+.PHONY: posix_sc_gdb
+posix_sc_gdb: $(SC_VM1_POSIX)
 	gdb -x $(SRCDIR)/bin/run.gdb --args $(SC_VM1_POSIX_RUN) 
 
 
@@ -24,6 +28,6 @@ SC_BOOT_EXPANDED_SCM=$(BUILDDIR)/$(MODULE)/boot-expanded.scm
 $(SC_BOOT_EXPANDED_SCM): $(SC_BOOT_SCM) $(SC_BOOT_EXPAND_SCM) $(SC_VM1_POSIX)
 	$(SC_VM1_POSIX_RUN) --eval '(script)' $(SC_BOOT_EXPAND_SCM) $< $@
 
-,PHONY: posix_boote
+.PHONY: posix_boote
 posix_boote: $(SC_BOOT_EXPANDED_SCM)
 

@@ -34,6 +34,7 @@
 
 #include <pf/pf.h>
 #include <px/px.h>
+#include <leaf_posix/channel.h>
 
 /* Leaf object wrappers. */
 DEF_RC_TYPE(port)

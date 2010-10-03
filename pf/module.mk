@@ -9,5 +9,8 @@ TARGET_LDFLAGS := -lpthread
 PF:= $(BUILDDIR)/$(MODULE)/pf
 PF_BOOT := $(SRCDIR)/$(MODULE)/boot.pf
 
+$(BUILDDIR)/$(MODULE)/start: $(PF)
+	$(call build, echo  $(PF) --boot $(PF_BOOT) >$@; chmod +x $@)
+
 pf_test: $(PF)
 	gdb -x $(SRCDIR)/bin/run.gdb --args $(PF) --boot $(PF_BOOT)

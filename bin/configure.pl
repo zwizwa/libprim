@@ -211,6 +211,8 @@ makefile "COMPILE = $CC";
 
 makefile "MZSCHEME = mzscheme"; # FIXME: check this!
 
+makefile "PLATFORM = $var{target}";
+
 if ($var{jobs} > 1){
     makefile "MAKE += -j$var{jobs}"; # run multiple jobs
 }

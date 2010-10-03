@@ -35,10 +35,14 @@
 
 # .SUFFIXES: .scm
 .PHONY: all clean targets
-all: targets
+.PHONY: eCos Posix Linux Darwin
 
 # Include build variables.
 include Makefile.defs
+
+# all: targets
+all: $(PLATFORM)
+
 
 # FIXME: do this somewhere else
 CFLAGS += -falign-functions=4
@@ -50,6 +54,15 @@ build = $(if $(VERBOSE), $(1), @echo "$(patsubst $(B)/%,%,$@)"; $(1))
 MKS :=  $(shell cd $(S); echo */*.mk)
 MODULES := $(patsubst %/module.mk,%,$(MKS))
 $(shell mkdir -p $(MODULES))
+
+# Build target specific rules
+eCos: $(B)/ecos_sc/main
+Posix: $(B)/posix_sc/start $(B)/pf/start
+Linux: Posix
+Darwin: Posix
+
+
+
 
 ### BUILD RULES
 
@@ -146,6 +159,7 @@ $(foreach prog,$(MODULES),$(eval $(call module_template,$(prog))))
 targets: $(TARGETS)
 
 
+
 ### INSTALL & CLEAN
 
 install: $(TARGETS)
@@ -176,6 +190,5 @@ uninstall:
 clean:
 	cd $(B); rm -rf $(MODULES)
 	cd $(S); rm -f `find -name '*~'`
-
 
 
