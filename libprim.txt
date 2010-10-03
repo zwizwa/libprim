@@ -9669,3 +9669,29 @@ EDIT: This might work for the bare metal version, but is not quite so
 simple for posix.  There is a lot of state in file descriptors, and it
 definitely needs some form of abstraction of "reconnect" for each
 object type.
+
+
+Entry: c.plt is fixed
+Date: Sat Oct  2 19:36:58 CEST 2010
+
+Already 13 months ago; immediately after my bug report -- seems I
+missed that!
+
+So, let's see what we can get to work on libprim.
+
+First, some recap:
+
+  * The syntax rep in c.plt uses prefab structs[1], see ast.ss:
+    
+    (define-struct src (start-offset start-line start-col end-offset end-line end-col path) #:prefab)
+
+    Prefab structs can exist without being defined, and a definition
+    as above simply defines standard struct access procedures to
+    access a particular prefab struct.
+
+  * Prettyprinting can be done using dherman/pprint[2].
+
+    
+
+[1] http://docs.racket-lang.org/guide/define-struct.html#%28part._prefab-struct%29
+[2] http://planet.plt-scheme.org/package-source/dherman/pprint.plt/4/4/planet-docs/pprint/index.html

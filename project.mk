@@ -156,7 +156,7 @@ install: $(TARGETS)
 	install -m 644 $(S)/sc*/*.scm $(PREFIX)/share/prim/
 	install -m 644 $(S)/pf/*.pf $(PREFIX)/share/prim/
 
-	$(foreach dir, ex leaf sc media, \
+	$(foreach dir, ex ex_posix leaf leaf_posix sc media, \
 		install -d $(PREFIX)/include/prim/$(dir); \
 		install -m 644 $(S)/$(dir)/*.h* $(PREFIX)/include/prim/$(dir);)
 
