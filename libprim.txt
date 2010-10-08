@@ -9814,12 +9814,13 @@ ANF seems fine if extended with some schemeisms:
         |  VAR
 
 Maybe it's simpler to use VAR instead of VAL, and have a let-lambda
-form that binds the lambda expression.
+form that creates a closure from the lambda expression.
 
 Note that encoding the core language in some weird structure makes it
 harder to store continuations.  The continuations needed above are for
-`let', `begin', `if'.  Note that `let' and `begin' are the same apart
-from `begin' not binding (keeping) the value of the expression.
+`let', `begin'.  Note that `let' and `begin' are the same apart from
+`begin' not binding (keeping) the value of the expression.  The basic
+idea of ANF is that there is only one kind of continuation frame.
 
 Maybe it's best to stick to simple s-expr encoding.  This would work
 better with small integers stored inside the cons cells.  This
@@ -9834,5 +9835,40 @@ Say the first or last 256 cell addresses are used for representing
 small integers.  That sacrifices only 1/128 of the max available cell
 space, and is enough for encoding varrefs, opcodes and continuations.
 
+
+
+Entry: Tagging w. fixed cell store.
+Date: Sat Oct  9 00:41:43 CEST 2010
+
+The fixed cell size also makes tagging simpler: extra tag bits can be
+added in separate tables without having to give up pointer address
+bits.  In fact, it easily scales to other cell store sizes simply
+adding non-aligned memory.
+
+
+Entry: lambda as EXP
+Date: Sat Oct  9 00:59:37 CEST 2010
+
+The modified ANF which only uses variable references as values then
+becomes:
+
+   EXP ::= (app VAR VAR ...)
+        |  (let (VAR EXP) EXP)
+        |  (begin EXP EXP)
+        |  (set! VAR VAR)
+        |  (if VAR EXP EXP)
+        |  (quote DATUM)
+        |  (lambda (VAR ...) EXP)
+
+Of these only `begin' and `let' push continuation frames.
+
+
+Encoding the vm is fairly straightforward. (just need to take care to
+also restore environments!)
+
+It will probably work better with local labels though; encoding as
+functions needs too many trampolines.  But before going on it might be
+best to abstract the data structures a bit more.  CAR and CDR can get
+confusing.
 
 

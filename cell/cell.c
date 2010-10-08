@@ -128,7 +128,6 @@ void mark_used(cell *root) {
     cell *k = NIL;   // continuation
 
     cell *tmp;
-
     cell *heap_endx = heap + heap_size;
 
     goto do_code;
@@ -137,7 +136,7 @@ void mark_used(cell *root) {
   do_code:
 
     /* The unused cell address space is ignored by GC, so it can be
-       used to encode other values like small ints. */
+       used to encode other (const) values like small ints. */
     if (c >= heap_endx) {
         goto do_cont;
     }
