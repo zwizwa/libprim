@@ -11,7 +11,7 @@
 #include "cell.h"
 
 
-
+#if 0
 
 int main(void) {
     heap_clear();
@@ -34,4 +34,6 @@ int main(void) {
     }
     return 0;
 }
+
+#endif
 

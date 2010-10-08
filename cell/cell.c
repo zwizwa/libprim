@@ -20,6 +20,10 @@
    candidate [Edwards 1974].  Not local but that's not a problem for
    SRAM.  Otherwise for ordered compaction LISP2 algo? )
 
+   The upper 256 cell addresses are used for representing bytes.  This
+   is useful for interpreters (bytecodes + lexical varrefs).
+
+
    http://www.slideshare.net/khuonganpt/basic-garbage-collection-techniques
 
 */
@@ -90,12 +94,19 @@ void heap_clear(void) {
 }
 
 #define DISP(...) fprintf(stderr, __VA_ARGS__)
+
+void cell_display(cell c);
+void cell_display_i(int i) {
+    if (i >= 0x7F00) DISP("%d", i & 0xFF);
+    else cell_display(heap[i]);
+}
 void cell_display(cell c) {
+    int i;
     if (cell_is_pair(c)) {
         DISP("(");
-        cell_display(*car(c.pair));
+        cell_display_i(icar(c.pair));
         DISP(" . ");
-        cell_display(*cdr(c.pair));
+        cell_display_i(icdr(c.pair));
         DISP(")");
     }
     else {
@@ -107,8 +118,9 @@ void newline(void) {
     DISP("\n");
 }
 
-void mark_atom(void *ptr) {
+void *mark_atom(void *ptr) {
     DISP("atom: %p\n", ptr);
+    return ptr;
 }
 
 void mark_used(cell *root) {
@@ -117,17 +129,27 @@ void mark_used(cell *root) {
 
     cell *tmp;
 
+    cell *heap_endx = heap + heap_size;
+
     goto do_code;
 
     /* Invoke the current code. */
   do_code:
+
+    /* The unused cell address space is ignored by GC, so it can be
+       used to encode other values like small ints. */
+    if (c >= heap_endx) {
+        goto do_cont;
+    }
+
+    /* Interpret current cell type */
     switch(cell_tag(*c)) {
 
     case TAG_FREE:
         /* Push continuation, reusing CAR slot of code node. */
         tmp = car(c->pair);                             // descend into new code
         c->pair = cons_tag(TAG_K_CAR, k, cdr(c->pair)); // create new k frame
-        k = c;
+        k = c;     
         c = tmp;
         goto do_code;
 
@@ -135,9 +157,8 @@ void mark_used(cell *root) {
         /* Atom mark bits are not stored in the cell.  However, we do
            call a hook here to be able to run finalizers if
            necessary. */
-        if (c != NIL) {
-            mark_atom(c->atom);
-        }
+        if (c != NIL) { c->atom = mark_atom(c->atom); }
+        goto do_cont;
 
     default:
         /* Nothing to do, invoke continuation. */
@@ -219,6 +240,11 @@ cell *heap_atom(void *ptr) {
     c->pair = ((cell)ptr).pair & ~3;
     return c;
 }
+cell *heap_number(int n) {
+    /* This is not a valid cell pointer!  Will be ignored by GC and
+       can be interpreted by user as number. */
+    return heap+0x7F00+n;
+}
 void heap_set_cons(cell *c, cell *a, cell *d) {
     c->pair = cons_tag(TAG_MARKED, a, d);
 }
@@ -226,23 +252,23 @@ void heap_set_root(cell *c) { root = c; }
 
 
 // test
-#if 0
+#if 1
 int main(void) {
     heap_clear();
     cell *x = NIL;
 
-    cell *atom = heap_atom((void*)0xDEADBEEF);
-    cell *circ = heap_cons(NIL, NIL);
-    circ->pair = cons_tag(TAG_MARKED, atom, circ);
-    x = circ;
+    // cell *atom = heap_atom((void*)0xDEADBEEF);
+    // cell *circ = heap_cons(NIL, NIL);
+    // circ->pair = cons_tag(TAG_MARKED, atom, circ);
+    // x = circ;
 
-    x = heap_cons(NIL, x);
-    x = heap_cons(NIL, x);
-    x = heap_cons(NIL, x);
+    x = heap_cons(heap_number(3), x);
+    x = heap_cons(heap_number(2), x);
+    x = heap_cons(heap_number(1), x);
     root = x;
     
     for(;;) {
-        // cell_display(*root); newline();
+        cell_display(*root); newline();
         heap_cons(NIL, NIL);
         // printf("used: %d\n", heap_used());
     }

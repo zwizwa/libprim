@@ -9779,3 +9779,60 @@ on the host?
 Write the whole thing in racket.
 
 Represent code and continuations simply as pairs.
+
+
+Entry: Interpreter on top of CELL
+Date: Fri Oct  8 22:56:09 CEST 2010
+
+Pick up the VM2 idea, but run it on CELL.
+
+Environment: list.
+Varrefs: ints (atom interpreted as number).
+Closure: (cons code env)
+
+Can we make a toplevel-less VM?  Run only VM, keep the
+compilation/interpretation on the host side?
+
+Remember: the goal is to make compact code.  There are only a handful
+of primitive operations and continuations to encode, so best to use
+some compressed format.  No need to use addresses.
+
+
+Question: what kind of VM to use?  Is an ANF machine small and simple,
+or should I pick something from Dybvigs writings.?
+
+ANF seems fine if extended with some schemeisms:
+
+   EXP ::= (app VAL VAL ...)
+        |  (let (VAR EXP) EXP)
+        |  (begin EXP EXP)
+        |  (set! VAR VAL)
+        |  (if VAL EXP EXP)
+        |  (quote DATUM)
+
+   VAL ::= (lambda (VAR ...) EXP)
+        |  VAR
+
+Maybe it's simpler to use VAR instead of VAL, and have a let-lambda
+form that binds the lambda expression.
+
+Note that encoding the core language in some weird structure makes it
+harder to store continuations.  The continuations needed above are for
+`let', `begin', `if'.  Note that `let' and `begin' are the same apart
+from `begin' not binding (keeping) the value of the expression.
+
+Maybe it's best to stick to simple s-expr encoding.  This would work
+better with small integers stored inside the cons cells.  This
+requires one extra bit sacrificed, giving 14 bit cell address space =
+64kBytes.
+
+Another possibility is to take part of the range for small numbers.
+Usually lexical context doesn't go too deep, which is what we would
+use it for: varrefs.
+
+Say the first or last 256 cell addresses are used for representing
+small integers.  That sacrifices only 1/128 of the max available cell
+space, and is enough for encoding varrefs, opcodes and continuations.
+
+
+

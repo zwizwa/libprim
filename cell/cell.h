@@ -59,9 +59,12 @@ static inline int pair_tag(pair p)     { return p & 3; }
 static inline int cell_tag(cell c)     { return pair_tag(c.pair); }
 static inline int cell_is_pair(cell c) { return (TAG_ATOM != cell_tag(c)); }
 
-/* Don't apply these to non-pairs! */
-static inline cell *car(pair c)  { return heap + ((c >> 2)  & (0x7FFF)); }
-static inline cell *cdr(pair c)  { return heap + ((c >> 17) & (0x7FFF)); }
+/* Part of the cell address space can be used for small integers.  The
+   GC ignores cell pointers that point beyond the heap. */
+static inline int   icar(pair c)  { return (c >>  2) & 0x7FFF; }
+static inline int   icdr(pair c)  { return (c >> 17); }
+static inline cell* car(pair c)   { return heap + icar(c); }
+static inline cell* cdr(pair c)   { return heap + icdr(c); }
 
 static inline pair cons_tag(int tag, cell *car, cell *cdr) {
     int icar = (car - heap) & 0x7FFF;

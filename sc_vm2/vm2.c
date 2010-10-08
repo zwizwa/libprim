@@ -21,7 +21,7 @@ typedef struct {
     vector v;
     k_code tag; // VM code point to jump to
     _ parent;   // parent continuation frame
-    _ env;      // lexical context associated w. vale hole
+    _ env;      // lexical context associated w. value hole
     // _ marks;
 } kf_base;
 
