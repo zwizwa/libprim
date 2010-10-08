@@ -51,9 +51,9 @@
 
 // TAG BITS
 #define TAG_ATOM  0  /* External word-aligned pointer. */
-#define TAG_FREE  1  /* Cell is free (not marked). */ 
-#define TAG_CAR   2  /* Reverse pointer in CAR. */
-#define TAG_CDR   3  /* Reverse pointer in CDR. */
+#define TAG_CAR   1  /* Reverse pointer in CAR. */
+#define TAG_CDR   2  /* Reverse pointer in CDR. */
+#define TAG_FREE  3  /* Cell is free (not marked). */ 
 
 /* The CDR and MARKED tags are shared as they are used for tagging for
    different interpretations of the memory graph.
@@ -64,7 +64,8 @@
 
    - Pointer type interpretation knows about ATOM and !ATOM.
 */
-#define TAG_MARKED TAG_CDR
+#define TAG_MARKED    TAG_CDR
+#define TAG_FREE_ATOM TAG_CAR // ???
 
 typedef long long pair;
 typedef void*     atom;
@@ -77,8 +78,10 @@ typedef union {
     atom atom;
 } cell;
 
-#define NB_WORDS 100
-static cell heap[NB_WORDS];
+#define NB_CELLS 100
+static cell heap[NB_CELLS];
+static cell *heap_free;
+#define NIL heap
 
 static inline int pair_tag(pair p)     { return p & 3; }
 static inline int cell_tag(cell c)     { return pair_tag(c.pair); }
@@ -100,7 +103,7 @@ static inline pair cons_tag(int tag, cell *car, cell *cdr) {
    (which is effectively a tree since marked nodes are not traversed).
 
    In order to make sense of the bookkeeping we model it as a CK
-   machine, where the current "code" is an unmarked cell with unknown
+   machine, where the current code is an unmarked cell with unknown
    contents and the current continuation is a previously visited pair
    cell with a back pointer stored in CAR or CDR position.
  
@@ -125,28 +128,44 @@ void trap(void) { exit(1); }
 
  */
 
-void mark(cell *root) {
-    cell *cont;  // abstract representation of continuation
-    cell *code;  // current subtree under investigation
+void mark_free(void) {
+    int i;
+    for (i=0; i<NB_CELLS; i++) {
+        /* Mark non-atom nodes as free. */
+        if (TAG_ATOM != pair_tag(heap[i].pair)) {
+            heap[i].pair |= TAG_FREE;
+        }
+    }
+}
+void heap_clear(void) {
+    int i;
+    for (i=0; i<NB_CELLS; i++) {
+        heap[i].pair = TAG_FREE;
+    }
+    heap_free = heap;
+}
+
+// Arbitrary magic variable that can be encoded as a cell pointer.
+#define K_MT NIL
+
+void mark_used(cell *root) {
+    cell *c = root;   // subtree under investigation
+    cell *k = K_MT;   // continuation
 
     cell *tmp;
 
-    if (TAG_FREE != cell_tag(*root)) return;
-    cont = NULL;
-    code = root;
     goto do_code;
-
-
 
     /* Invoke the current code. */
   do_code:
-    switch(cell_tag(*code)) {
+    switch(cell_tag(*c)) {
 
     case TAG_FREE:
-        /* Update continuation and descend into code. */
-        tmp = car(code->pair);
-        code->pair = cons_tag(TAG_CAR, cont, cdr(code->pair));
-        code = tmp;
+        /* Push continuation, reusing CAR slot of code node. */
+        tmp = car(c->pair);                            // descend into new code
+        c->pair = cons_tag(TAG_CAR, k, cdr(c->pair));  // create new k frame
+        k = c;
+        c = tmp;
         goto do_code;
 
     default:
@@ -155,28 +174,24 @@ void mark(cell *root) {
     }
 
 
-
     /* Invoke the current continuation. */
   do_cont:
-    if (!cont) return;
-    switch(cell_tag(*cont)) {
+    if (k == K_MT) return;
+    switch(cell_tag(*k)) {
 
     case TAG_CAR:
-        /* Don't pop node, but place back pointer in CDR slot. */
-        tmp = cdr(code->pair);
-        cont->pair = cons_tag(TAG_CDR, code, car(code->pair));
-        code = tmp;
-
-        /* Traverse the current subtree. */
+        /* Ajust continuation encoding, moving parent frame link from
+           CAR to CDR node. */
+        tmp = cdr(k->pair);                             // descend into new code
+        k->pair = cons_tag(TAG_CDR, c, car(k->pair));   // update k frame in-place
+        c = tmp;
         goto do_code;
     
     case TAG_CDR:
-        /* Pop node. */
-        tmp = cont;
-        cont = cdr(cont->pair);
-        tmp->pair = cons_tag(TAG_MARKED, car(tmp->pair), code);
-
-        /* Invoke the rest of the continuation chain. */
+        /* Pop continuation frame. */
+        tmp = cdr(k->pair);                               // pop k frame
+        k->pair = cons_tag(TAG_MARKED, car(k->pair), c);  // restore node
+        k = tmp;
         goto do_cont;
 
     default:
@@ -184,10 +199,49 @@ void mark(cell *root) {
         trap();
     }
 
+}
 
-        
-    
-    
-    
+cell *nil;
+cell *root;
 
+void heap_collect(void) {
+    mark_free();
+    mark_used(root);
+    heap_free = heap+1; // skip NIL node
+}
+
+/* Alloc uses lazy free list. */
+cell *heap_alloc(void) {
+  again:
+    while(heap_free < (heap + NB_CELLS)) {
+        if (TAG_FREE == cell_tag(*heap_free++)) {
+            heap_free[-1].pair = TAG_ATOM;
+            return heap_free-1;
+        }
+    }
+    /* Collect garbage. */
+    heap_collect();
+    goto again;
+}
+cell *heap_cons(cell *a, cell *d) {
+    cell *c = heap_alloc();
+    c->pair = cons_tag(TAG_MARKED, a, d);
+    return c;
+}
+cell *heap_atom(void *ptr) {
+    cell *c = heap_alloc();
+    c->atom = ptr;
+    return c;
+}
+
+
+
+int main(void) {
+    heap_clear();
+    nil  = heap_atom(NULL);
+    root = heap_cons(nil, nil);
+    for(;;) {
+        heap_cons(NULL, NULL);
+    }
+    return 0;
 }
