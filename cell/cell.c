@@ -1,105 +1,44 @@
-/* CONS cell storage with GC
+/* Garbage collector for 32 bit small embedded target with:
+     - CELL store: no arbitrary size vectors
+     - Small cell size: 32 bit per cell (1 pair),  
+     - Only for small number of CELLs (15 address bits / 128 kB CELL RAM)
+     - Pointer reversing MARK phase to eliminate stack.
+     - Lazy SWEEP.
 
-   Another graph memory based on 2-element cells (CONS cells).  2-bit
-   tagging is used similarly to the EX GC to distinguish 4 basic
-   types:
+     
+   GC knows about 2 kinds of CELLs:  PAIR and ATOM.
+   
+   ATOM is abstract, low 2 bits need to be zero.
 
-   - integer
-   - cell
-   - external pointer
-   - finalizer
+   ATOMs are marked during GC to allow for atom-specific GC,
+   i.e. refcounting.
 
-   For deeply embedded targets we might only need cell and integer.
+   CELLs are same size, and we're running on SRAM embedded target, so
+   no need for compacting.
 
-   The GC can be of mark/sweep kind as there is no need for
-   compacting.
-
-   Mark needs mark bits.  For equal-size objects these can easily go
-   into a separate bitmap.
-
-   Mark needs a stack (use recursion on CAR as this is most likely the
-   shallow branch).  However there is a way to handle stack overflows
-   (?).
-
-   The stack can be encoded in the graph using pointer reversal
-   (zipper?).  Does this need extra space?
-
-   Sweep can be done lazily.
-
-   ( If compation is necessary the 2-finger algorithm is a good
+   ( If compaction is necessary the 2-finger algorithm is a good
    candidate [Edwards 1974].  Not local but that's not a problem for
-   SRAM. )
+   SRAM.  Otherwise for ordered compaction LISP2 algo? )
 
    http://www.slideshare.net/khuonganpt/basic-garbage-collection-techniques
 
 */
 
-/* Only defined for 32 bits.  
-
-   A cell is either an atom or a pair.
-
-   An atom is an arbitrary pointer, word aligned.
-
-   A pair can address 2 cells: [ CDR:15 | CAR:15 | TAGS:2 ].
-
-   This gives 15 bit addresses or 32k cells (128k bytes for cells).
-
-   The CAR, CDR addresses are indicess into the cell array a.k.a. heap.
-*/
-
 #include <stdlib.h>
 #include <stdio.h>
 
-// TAG BITS
-#define TAG_ATOM  0  /* External word-aligned pointer. */
-#define TAG_CAR   1  /* Reverse pointer in CAR. */
-#define TAG_CDR   2  /* Reverse pointer in CDR. */
-#define TAG_FREE  3  /* Cell is free (not marked). */ 
+#include "cell.h"
 
-/* The CDR and MARKED tags are shared as they are used for tagging for
-   different interpretations of the memory graph.
+#ifdef HEAP_STATIC
+cell heap[heap_size];
+#else
+cell *heap;
+int  heap_size;
+#endif
 
-   - Mark traversal continuations knows about CAR/CDR continuations.
-
-   - Mark traversal tree descent konw about FREE and !FREE.
-
-   - Pointer type interpretation knows about ATOM and !ATOM.
-*/
-#define TAG_MARKED    TAG_CDR
-#define TAG_FREE_ATOM TAG_CAR // ???
-
-typedef long long pair;
-typedef void*     atom;
-
-/* The heap contains cells.  A cell is either an external pointer to
-   an atomic data structure (GC doesn't need to descend), or a pair
-   containing two cell pointers and GC bookkeeping bits. */
-typedef union {
-    pair pair;
-    atom atom;
-} cell;
-
-#define NB_CELLS 100
-static cell heap[NB_CELLS];
 static cell *heap_free;
+static cell *root;
 
-/* NIL is an ATOM encoding a NULL pointer; stored in the first cell of
-   the heap.  It is never collected. */
-#define NIL heap
-
-static inline int pair_tag(pair p)     { return p & 3; }
-static inline int cell_tag(cell c)     { return pair_tag(c.pair); }
-static inline int cell_is_pair(cell c) { return (TAG_ATOM != cell_tag(c)); }
-
-/* Don't apply these to non-pairs! */
-static inline cell *car(pair c)  { return heap + ((c >> 2)  & (0x7FFF)); }
-static inline cell *cdr(pair c)  { return heap + ((c >> 17) & (0x7FFF)); }
-
-static inline pair cons_tag(int tag, cell *car, cell *cdr) {
-    int icar = (car - heap) & 0x7FFF;
-    int icdr = (cdr - heap) & 0x7FFF;
-    return tag | (icar << 2) | (icdr << 17);
-}
 
 /* Pointer reversal. 
 
@@ -134,7 +73,7 @@ void trap(void) { exit(1); }
 
 void mark_free(void) {
     int i;
-    for (i=0; i<NB_CELLS; i++) {
+    for (i=0; i<heap_size; i++) {
         /* Mark non-atom nodes as free. */
         if (TAG_ATOM != pair_tag(heap[i].pair)) {
             heap[i].pair |= TAG_FREE;
@@ -143,7 +82,7 @@ void mark_free(void) {
 }
 void heap_clear(void) {
     int i;
-    for (i=0; i<NB_CELLS; i++) {
+    for (i=0; i<heap_size; i++) {
         heap[i].pair = TAG_FREE;
     }
     heap_free = heap + 1;
@@ -168,9 +107,12 @@ void newline(void) {
     DISP("\n");
 }
 
+void mark_atom(void *ptr) {
+    DISP("atom: %p\n", ptr);
+}
 
 void mark_used(cell *root) {
-    cell *c = root;   // subtree under investigation
+    cell *c = root;  // subtree under investigation
     cell *k = NIL;   // continuation
 
     cell *tmp;
@@ -183,11 +125,19 @@ void mark_used(cell *root) {
 
     case TAG_FREE:
         /* Push continuation, reusing CAR slot of code node. */
-        tmp = car(c->pair);                            // descend into new code
-        c->pair = cons_tag(TAG_CAR, k, cdr(c->pair));  // create new k frame
+        tmp = car(c->pair);                             // descend into new code
+        c->pair = cons_tag(TAG_K_CAR, k, cdr(c->pair)); // create new k frame
         k = c;
         c = tmp;
         goto do_code;
+
+    case TAG_ATOM:
+        /* Atom mark bits are not stored in the cell.  However, we do
+           call a hook here to be able to run finalizers if
+           necessary. */
+        if (c != NIL) {
+            mark_atom(c->atom);
+        }
 
     default:
         /* Nothing to do, invoke continuation. */
@@ -200,15 +150,15 @@ void mark_used(cell *root) {
     if (k == NIL) return;
     switch(cell_tag(*k)) {
 
-    case TAG_CAR:
+    case TAG_K_CAR:
         /* Ajust continuation encoding, moving parent frame link from
            CAR to CDR node. */
         tmp = cdr(k->pair);                             // descend into new code
-        k->pair = cons_tag(TAG_CDR, c, car(k->pair));   // update k frame in-place
+        k->pair = cons_tag(TAG_K_CDR, c, car(k->pair)); // update k frame in-place
         c = tmp;
         goto do_code;
     
-    case TAG_CDR:
+    case TAG_K_CDR:
         /* Pop continuation frame. */
         tmp = cdr(k->pair);                               // pop k frame
         k->pair = cons_tag(TAG_MARKED, car(k->pair), c);  // restore node
@@ -223,8 +173,7 @@ void mark_used(cell *root) {
 
 }
 
-cell *nil;
-cell *root;
+
 
 void heap_collect(void) {
     mark_free();
@@ -232,10 +181,20 @@ void heap_collect(void) {
     heap_free = heap+1; // skip NIL node
 }
 
+int heap_used(void) {
+    int used = 0;
+    int i;
+    for (i = 0; i < heap_size; i++) {
+        if (TAG_FREE != cell_tag(heap[i])) used++;
+    }
+    return used;
+}
+
+
 /* Alloc uses lazy free list. */
 cell *heap_alloc(void) {
   again:
-    while(heap_free < (heap + NB_CELLS)) {
+    while(heap_free < (heap + heap_size)) {
         cell *c = heap_free++;
         if (TAG_FREE == cell_tag(*c)) {
             c->pair = TAG_ATOM;
@@ -244,18 +203,12 @@ cell *heap_alloc(void) {
     }
     /* Collect garbage. */
     heap_collect();
+    DISP("gc: %d cells used\n", heap_used());
     goto again;
 }
 
-int heap_used(void) {
-    int used = 0;
-    int i;
-    for (i = 0; i < NB_CELLS; i++) {
-        if (TAG_FREE != cell_tag(heap[i])) used++;
-    }
-    return used;
-}
 
+/* Public interface */
 cell *heap_cons(cell *a, cell *d) {
     cell *c = heap_alloc();
     c->pair = cons_tag(TAG_MARKED, a, d);
@@ -263,18 +216,24 @@ cell *heap_cons(cell *a, cell *d) {
 }
 cell *heap_atom(void *ptr) {
     cell *c = heap_alloc();
-    c->atom = ptr;
+    c->pair = ((cell)ptr).pair & ~3;
     return c;
 }
+void heap_set_cons(cell *c, cell *a, cell *d) {
+    c->pair = cons_tag(TAG_MARKED, a, d);
+}
+void heap_set_root(cell *c) { root = c; }
 
 
-
+// test
+#if 0
 int main(void) {
     heap_clear();
     cell *x = NIL;
 
+    cell *atom = heap_atom((void*)0xDEADBEEF);
     cell *circ = heap_cons(NIL, NIL);
-    circ->pair = cons_tag(TAG_MARKED, NIL, circ);
+    circ->pair = cons_tag(TAG_MARKED, atom, circ);
     x = circ;
 
     x = heap_cons(NIL, x);
@@ -285,7 +244,22 @@ int main(void) {
     for(;;) {
         // cell_display(*root); newline();
         heap_cons(NIL, NIL);
-        printf("used: %d\n", heap_used());
+        // printf("used: %d\n", heap_used());
     }
     return 0;
 }
+#endif
+
+
+/* TODO
+
+   - Atoms are currently just (abstractly) marked, not collected.
+     This needs to plug into the atom memory manager.  Several are
+     possible:
+
+      - All ATOMS are constant pointers (i.e. Program Flash objects)
+      - All ATOMS are numbers
+      - Use 8-byte aligned atoms and use the extra pointer bit as mark bit.
+      - For refcounted atoms, call RC++ on mark, and RC-- for ATOMS in heap
+      
+ */
