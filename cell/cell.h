@@ -43,8 +43,8 @@ extern int heap_size;
 extern cell *heap;
 #endif
 
-/* NIL is an ATOM encoding a NULL pointer; stored in the first cell of
-   the heap.  It is never collected. */
+/* NIL is an ATOM cell wrapping a NULL pointer; stored in the first
+   cell of the heap.  It is never collected. */
 #define NIL heap
 
 void heap_clear(void);

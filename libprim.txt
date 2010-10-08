@@ -9766,6 +9766,16 @@ Let's use a more interpreter-friendly terminology:
   IP = current subtree under investigation
   RP = location of continuation
 
-Let's call them code and cont.
+Let's call them code and continuation: c, k.
 
 
+Ok, this works pretty well!
+
+Next: either implement struct/vectors on top of binary trees, or build
+a different machine alltogether.  The latter might be best since we
+could keep only run-time on the embedded target, and repl + compiler
+on the host?
+
+Write the whole thing in racket.
+
+Represent code and continuations simply as pairs.
