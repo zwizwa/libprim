@@ -48,6 +48,7 @@
 */
 
 #include <stdlib.h>
+#include <stdio.h>
 
 // TAG BITS
 #define TAG_ATOM  0  /* External word-aligned pointer. */
@@ -81,6 +82,9 @@ typedef union {
 #define NB_CELLS 100
 static cell heap[NB_CELLS];
 static cell *heap_free;
+
+/* NIL is an ATOM encoding a NULL pointer; stored in the first cell of
+   the heap.  It is never collected. */
 #define NIL heap
 
 static inline int pair_tag(pair p)     { return p & 3; }
@@ -142,15 +146,32 @@ void heap_clear(void) {
     for (i=0; i<NB_CELLS; i++) {
         heap[i].pair = TAG_FREE;
     }
-    heap_free = heap;
+    heap_free = heap + 1;
+    heap[0].atom = NULL;  // set NIL
 }
 
-// Arbitrary magic variable that can be encoded as a cell pointer.
-#define K_MT NIL
+#define DISP(...) fprintf(stderr, __VA_ARGS__)
+void cell_display(cell c) {
+    if (cell_is_pair(c)) {
+        DISP("(");
+        cell_display(*car(c.pair));
+        DISP(" . ");
+        cell_display(*cdr(c.pair));
+        DISP(")");
+    }
+    else {
+        if (!c.atom) DISP("()");
+        else DISP("%p", c.atom);
+    }
+}
+void newline(void) {
+    DISP("\n");
+}
+
 
 void mark_used(cell *root) {
     cell *c = root;   // subtree under investigation
-    cell *k = K_MT;   // continuation
+    cell *k = NIL;   // continuation
 
     cell *tmp;
 
@@ -176,7 +197,7 @@ void mark_used(cell *root) {
 
     /* Invoke the current continuation. */
   do_cont:
-    if (k == K_MT) return;
+    if (k == NIL) return;
     switch(cell_tag(*k)) {
 
     case TAG_CAR:
@@ -191,6 +212,7 @@ void mark_used(cell *root) {
         /* Pop continuation frame. */
         tmp = cdr(k->pair);                               // pop k frame
         k->pair = cons_tag(TAG_MARKED, car(k->pair), c);  // restore node
+        c = k;
         k = tmp;
         goto do_cont;
 
@@ -214,9 +236,10 @@ void heap_collect(void) {
 cell *heap_alloc(void) {
   again:
     while(heap_free < (heap + NB_CELLS)) {
-        if (TAG_FREE == cell_tag(*heap_free++)) {
-            heap_free[-1].pair = TAG_ATOM;
-            return heap_free-1;
+        cell *c = heap_free++;
+        if (TAG_FREE == cell_tag(*c)) {
+            c->pair = TAG_ATOM;
+            return c;
         }
     }
     /* Collect garbage. */
@@ -238,10 +261,16 @@ cell *heap_atom(void *ptr) {
 
 int main(void) {
     heap_clear();
-    nil  = heap_atom(NULL);
-    root = heap_cons(nil, nil);
+    cell *x = NIL;
+    x = heap_cons(NIL, x);
+    x = heap_cons(NIL, x);
+    x = heap_cons(NIL, x);
+    root = x;
+    
     for(;;) {
-        heap_cons(NULL, NULL);
+        cell_display(*root);
+        newline();
+        heap_cons(NIL, NIL);
     }
     return 0;
 }
