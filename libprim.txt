@@ -9722,3 +9722,50 @@ During traversal, a cell can be in one of 3 states:
    - marked, right reversed  (DONE)
 
 This leaves one more state to encode full object pointers.
+
+
+
+So how to implement the pointer swapping.  What are the operations on
+a node?
+
+   - recurse left
+   - recurse right
+   - return
+
+My confusion seems to be about return.  Recurse left will swap
+pointers left, recurse right will swap pointers right but return will
+restore pointer + it needs to know where to put it and whether to
+recurse again.
+
+So the marking is really about what state the object is in: did we
+initiate a left recurse or a right recurse.
+
+
+
+Let's write the traversal as an interpreter of the current code.  It
+can be in one of 3 states: TAG_FREE, TAG_CAR, TAG_CDR.
+
+What are the invariants?  The current pointer points to a node that is
+in one of 3 states indicating where the back pointer is.
+
+   FREE                CAR                CDR
+
+   ^   ^                  ^              ^
+   |   |                  |              |
+ [ x | x ]          [ x | x ]          [ x | x ]
+                      |                      |
+                      v                      v   
+
+
+
+In the CAR and CDR cases, an extra storage element is necessary to
+hold the overwritten pointer to the subtree under investigation.
+
+Let's use a more interpreter-friendly terminology:
+
+  IP = current subtree under investigation
+  RP = location of continuation
+
+Let's call them code and cont.
+
+
