@@ -33,3 +33,50 @@
    http://www.slideshare.net/khuonganpt/basic-garbage-collection-techniques
 
 */
+
+/* Only defined for 32 bits.  A cell is [ CDR:15 | CAR:15 | TAGS:2 ]
+   which gives 32k cells (128k bytes for cells).  The CAR,CDR
+   addresses are indicess into the cell array. 
+
+   Mask bits:
+
+   00   External object pointer, not a cell.
+   01   FREE:   not marked
+   10   TODO:   marked, left traversed
+   11   MARKED: marked, right traversed
+
+*/
+
+typedef long long u32;
+typedef u32 cell;
+
+static inline int cell_tags(cell c) { return c & 3; }
+static inline int cell_icar(cell c) { (c >> 2)  & (0x7FFF); }
+static inline int cell_icar(cell c) { (c >> 17) & (0x7FFF); }
+static inline int is_cell(cell c)   { return (0 != cell_tags(c)); }
+static inline cell cell_cons(int icar, int icdr) {
+    return 3 | (icar << 2) | (icdr << 17);
+}
+
+/* Pointer reversal. 
+
+   Before recursing on .car or .cdr pointer, you copy it to a register
+   (current) and flip the pointer to point back to previous current.
+
+   Following back pointers, you need to know whether to re-enter the
+   other (CDR) branch, or whether to return to parent.
+
+*/
+
+void mark(cell *root) {
+    cell *current = root;
+    do {
+        /* It's an unmarked cell, so enter into it. */
+        SWAP(current, current->car);
+        
+
+        if (is_cell(_CAR(current))) {
+        }
+
+    } while (current != root);
+}

@@ -9700,3 +9700,25 @@ First, some recap:
 
 [1] http://docs.racket-lang.org/guide/define-struct.html#%28part._prefab-struct%29
 [2] http://planet.plt-scheme.org/package-source/dherman/pprint.plt/4/4/planet-docs/pprint/index.html
+
+
+Entry: Trying to implement pointer reversal mark GC
+Date: Fri Oct  8 09:27:10 CEST 2010
+
+The point: build a CELL store + GC that is very memory efficient to be
+run on an embedded ARM target with about 64k RAM. It doesn't need to
+be fast.
+
+My eye has fallen on mark/sweep with pointer reversal mark (not using
+a stack) and possibly a lazy sweep (during alloc).
+
+The cell store can use 14-16 bit pointers so we can fit a cell in one
+machine word.
+
+During traversal, a cell can be in one of 3 states:
+
+   - not marked / traversed  (FREE)
+   - marked, left reversed   (TODO)
+   - marked, right reversed  (DONE)
+
+This leaves one more state to encode full object pointers.
