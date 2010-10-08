@@ -246,6 +246,16 @@ cell *heap_alloc(void) {
     heap_collect();
     goto again;
 }
+
+int heap_used(void) {
+    int used = 0;
+    int i;
+    for (i = 0; i < NB_CELLS; i++) {
+        if (TAG_FREE != cell_tag(heap[i])) used++;
+    }
+    return used;
+}
+
 cell *heap_cons(cell *a, cell *d) {
     cell *c = heap_alloc();
     c->pair = cons_tag(TAG_MARKED, a, d);
@@ -262,15 +272,20 @@ cell *heap_atom(void *ptr) {
 int main(void) {
     heap_clear();
     cell *x = NIL;
+
+    cell *circ = heap_cons(NIL, NIL);
+    circ->pair = cons_tag(TAG_MARKED, NIL, circ);
+    x = circ;
+
     x = heap_cons(NIL, x);
     x = heap_cons(NIL, x);
     x = heap_cons(NIL, x);
     root = x;
     
     for(;;) {
-        cell_display(*root);
-        newline();
+        // cell_display(*root); newline();
         heap_cons(NIL, NIL);
+        printf("used: %d\n", heap_used());
     }
     return 0;
 }
