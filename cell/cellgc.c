@@ -29,7 +29,7 @@
 
 */
 
-#include "cell.h"
+#include "cellgc.h"
 
 #ifdef HEAP_STATIC
 cell heap[heap_size];
@@ -187,14 +187,6 @@ void mark_cells(cell *root) {
 
     case TAG_ATOM_FREE:
         cell_set_tag(c, TAG_ATOM);
-        DISP("mark atom %p\n", c->atom);
-        goto k_return;
-
-
-    case TAG_ATOM:
-        /* Atom mark bits are not stored in the cell.  However, we do
-           call a hook here to be able to run finalizers if
-           necessary. */
         goto k_return;
 
     default:
@@ -266,7 +258,10 @@ void heap_collect(void) {
     }
 }
 
-
+/* Finalizers for atoms. */
+void atom_finalize(cell *cell) {
+    // DISP("finalizing %p (cell: %p)\n", cell->atom, cell);
+}
 
 /* Alloc uses lazy free list. */
 cell *heap_alloc(int tag) {
@@ -282,6 +277,13 @@ cell *heap_alloc(int tag) {
                 int t = (w >> ishift) & tag_mask;
                 /* Reclaim free pairs or atoms that can be freed. */
                 if ((TAG_IS_FREE(t))) {
+
+                    /* If it's an atom we might need to run a
+                       finalizer. */
+                    if (t == TAG_ATOM_FREE) {
+                        atom_finalize(heap+i);
+                    }
+
                     TAG_SET(itag, ishift, tag);
                     heap_free = 1 + i;
                     /* Init to something innocent. */

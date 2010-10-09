@@ -1,3 +1,3 @@
-MODULE_OBJ := cell.o  vm.o
+MODULE_OBJ := test.o cellvm.o cellgc.o 
 
 TARGET     := cell
