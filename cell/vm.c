@@ -34,10 +34,6 @@ typedef struct {
 } vm;
 
 
-
-
-
-
 /* Get environment slot and ref. */
 cell* e_slot(cell *e, int i) {
     while(i--) e = CDR(e);

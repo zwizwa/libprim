@@ -40,14 +40,25 @@ union _cell {
 };
 typedef union _cell cell;
 
+
 #define HEAP_STATIC
+
+/* Tag bits are stored in a separate table. */
+typedef unsigned int cell_tag_word;
+#define tag_bits 2
+#define tag_mask ((1<<tag_bits)-1)
+#define tag_store_bit_size (8 * sizeof(cell_tag_word))
+#define tag_div (tag_store_bit_size / tag_bits)
+#define heap_tag_words (heap_size / tag_div)
 
 #ifdef HEAP_STATIC
 #define heap_size 20
 extern cell heap[heap_size];
+extern cell_tag_word heap_tag[heap_tag_words];
 #else
 extern int heap_size;
 extern cell *heap;
+extern heap_tag_word *heap_tag;
 #endif
 
 void heap_clear(void);
@@ -58,25 +69,48 @@ cell *heap_atom(void *ptr);
 void heap_set_cons(cell *c, cell *a, cell *d);
 void heap_set_root(cell *c);
 
-#define CAR_SHIFT 2
-#define CDR_SHIFT 17
-#define CELL_MASK 0x7FFF
+#define CAR_SHIFT 0
+#define CDR_SHIFT 16
+#define CELL_MASK 0xFFFF
 
-static inline int pair_tag(pair p)     { return p & 3; }
-static inline int cell_tag(cell c)     { return pair_tag(c.pair); }
-static inline int cell_is_pair(cell c) { return (TAG_ATOM != cell_tag(c)); }
+#define TAG_ADDR(i, itag, ishift)               \
+    int itag   = i / tag_div;                   \
+    int ishift = (i % tag_div) * tag_bits;
+
+static inline int icell_tag(int i) {
+    TAG_ADDR(i, itag, ishift);
+    int tag = (heap_tag[itag] >> ishift) & tag_mask;
+    return tag;
+}
+static inline void icell_set_tag(int i, int tag) {
+    TAG_ADDR(i, itag, ishift);
+    cell_tag_word w = heap_tag[itag];
+    w &= ~(tag_mask << ishift);
+    w |= (tag & tag_mask) << ishift;
+    heap_tag[itag] = w;
+}
+
+static inline int cell_tag(cell *c) { 
+    return icell_tag(c - heap); 
+}
+static inline void cell_set_tag(cell *c, int tag) {
+    icell_set_tag(c - heap, tag);
+} 
+
+
+static inline int cell_is_pair(cell *c) { return (TAG_ATOM != cell_tag(c)); }
 
 /* Part of the cell address space can be used for small integers.  The
    GC ignores cell pointers that point beyond the heap. */
-static inline int   icar(pair c)  { return (c >> CAR_SHIFT) & CELL_MASK; }
-static inline int   icdr(pair c)  { return (c >> CDR_SHIFT) & CELL_MASK; }
-static inline cell* pcar(pair c)  { return heap + icar(c); }
-static inline cell* pcdr(pair c)  { return heap + icdr(c); }
+static inline int   icar(cell *c)  { return (c->pair >> CAR_SHIFT) & CELL_MASK; }
+static inline int   icdr(cell *c)  { return (c->pair >> CDR_SHIFT) & CELL_MASK; }
+static inline cell* pcar(cell *c)  { return heap + icar(c); }
+static inline cell* pcdr(cell *c)  { return heap + icdr(c); }
 
-static inline pair cons_tag(int tag, cell *car, cell *cdr) {
+static inline pair  make_pair(cell *car, cell *cdr) {
     int icar = (car - heap) & CELL_MASK;
     int icdr = (cdr - heap) & CELL_MASK;
-    return tag | (icar << CAR_SHIFT) | (icdr << CDR_SHIFT);
+    return (icar << CAR_SHIFT) | (icdr << CDR_SHIFT);
 }
 
 /* All cells with index >= heap_size are ignored by GC.  This gives
@@ -108,16 +142,16 @@ static inline cell *heap_number(int n) {
 /* 
    Untyped cell access :: cell* -> cell*
 */
-#define CAR(c)        pcar(c->pair)
-#define CDR(c)        pcdr(c->pair)
+#define CAR(c)        pcar(c)
+#define CDR(c)        pcdr(c)
 #define SET_CAR(c, v) heap_set_cons(c, v, CDR(c))
 #define POP(c)        ({cell *x = CAR(c); c = CDR(c); x;})
 #define PUSH(c,v)     {c = CONS(v,c);}
 #define CONS(a,b)     heap_cons(a,b)
 
 /* Get low 8 bits of cell address. */
-#define NCAR(c)       (icar(c->pair) & 0xFF)
-#define NCDR(c)       (icdr(c->pair) & 0xFF)
+#define NCAR(c)       (icar(c) & 0xFF)
+#define NCDR(c)       (icdr(c) & 0xFF)
 #define NPOP(c)       ({int i = NCAR(c); c = CDR(c); i;})
 
 

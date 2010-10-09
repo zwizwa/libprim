@@ -35,8 +35,10 @@
 
 #ifdef HEAP_STATIC
 cell heap[heap_size];
+cell_tag_word heap_tag[heap_tag_words];
 #else
 cell *heap;
+cell_tag_word *heap_tag;
 int  heap_size;
 #endif
 
@@ -79,22 +81,22 @@ void mark_free(void) {
     int i;
     for (i=0; i<heap_size; i++) {
         /* Mark non-atom nodes as free. */
-        if (TAG_ATOM != pair_tag(heap[i].pair)) {
-            heap[i].pair |= TAG_FREE;
+        if (TAG_ATOM != icell_tag(i)) {
+            icell_set_tag(i, TAG_FREE);
         }
     }
 }
 void heap_clear(void) {
     int i;
     for (i=0; i<heap_size; i++) {
-        heap[i].pair = TAG_FREE;
+        icell_set_tag(i, TAG_FREE);
     }
     heap_free = heap;
 }
 
 #define DISP(...) fprintf(stderr, __VA_ARGS__)
 
-void cell_display(cell c);
+void cell_display(cell *c);
 void cell_display_i(int i) {
     if (i >= heap_size) {
         if (i > HEAP_NUMBER_INDEX) DISP("%d", i & 0xFF);
@@ -110,19 +112,19 @@ void cell_display_i(int i) {
             DISP("%s", magic);
         }
     }
-    else cell_display(heap[i]);
+    else cell_display(heap + i);
 }
-void cell_display(cell c) {
+void cell_display(cell *c) {
     int i;
     if (cell_is_pair(c)) {
         DISP("(");
-        cell_display_i(icar(c.pair));
+        cell_display_i(icar(c));
         DISP(" . ");
-        cell_display_i(icdr(c.pair));
+        cell_display_i(icdr(c));
         DISP(")");
     }
     else {
-        DISP("%p", c.atom);
+        DISP("%p", c->atom);
     }
 }
 void newline(void) {
@@ -153,12 +155,13 @@ void mark_used(cell *root) {
     }
 
     /* Interpret current cell type */
-    switch(cell_tag(*c)) {
+    switch(cell_tag(c)) {
 
     case TAG_FREE:
         /* Push continuation, reusing CAR slot of code node. */
-        tmp = pcar(c->pair);                             // descend into new code
-        c->pair = cons_tag(TAG_K_CAR, k, pcdr(c->pair)); // create new k frame
+        tmp = pcar(c);                   // descend into new code
+        c->pair = make_pair(k, pcdr(c)); // create new k frame
+        cell_set_tag(c, TAG_K_CAR);
         k = c;     
         c = tmp;
         goto c_continue;
@@ -179,20 +182,22 @@ void mark_used(cell *root) {
     /* Invoke the current continuation. */
   k_return:
     if (k == NIL) return;
-    switch(cell_tag(*k)) {
+    switch(cell_tag(k)) {
 
     case TAG_K_CAR:
         /* Ajust continuation encoding, moving parent frame link from
            CAR to CDR node. */
-        tmp = pcdr(k->pair);                             // descend into new code
-        k->pair = cons_tag(TAG_K_CDR, c, pcar(k->pair)); // update k frame in-place
+        tmp = pcdr(k);                   // descend into new code
+        k->pair = make_pair(c, pcar(k)); // update k frame in-place
+        cell_set_tag(k, TAG_K_CDR);
         c = tmp;
         goto c_continue;
     
     case TAG_K_CDR:
         /* Pop continuation frame. */
-        tmp = pcdr(k->pair);                               // pop k frame
-        k->pair = cons_tag(TAG_MARKED, pcar(k->pair), c);  // restore node
+        tmp = pcdr(k);                    // pop k frame
+        k->pair = make_pair(pcar(k), c);  // restore node
+        /* Tag is still TAG_MARKED == TAG_K_CDR */
         c = k;
         k = tmp;
         goto k_return;
@@ -216,7 +221,7 @@ int heap_used(void) {
     int used = 0;
     int i;
     for (i = 0; i < heap_size; i++) {
-        if (TAG_FREE != cell_tag(heap[i])) used++;
+        if (TAG_FREE != icell_tag(i)) used++;
     }
     return used;
 }
@@ -227,7 +232,7 @@ cell *heap_alloc(void) {
   again:
     while(heap_free < (heap + heap_size)) {
         cell *c = heap_free++;
-        if (TAG_FREE == cell_tag(*c)) {
+        if (TAG_FREE == cell_tag(c)) {
             c->pair = TAG_ATOM;
             return c;
         }
@@ -242,7 +247,8 @@ cell *heap_alloc(void) {
 /* Public interface */
 cell *heap_cons(cell *a, cell *d) {
     cell *c = heap_alloc();
-    c->pair = cons_tag(TAG_MARKED, a, d);
+    c->pair = make_pair(a, d);
+    cell_set_tag(c, TAG_MARKED);
     return c;
 }
 cell *heap_atom(void *ptr) {
@@ -251,7 +257,7 @@ cell *heap_atom(void *ptr) {
     return c;
 }
 void heap_set_cons(cell *c, cell *a, cell *d) {
-    c->pair = cons_tag(TAG_MARKED, a, d);
+    c->pair = make_pair(a, d);
 }
 void heap_set_root(cell *c) { root = c; }
 
@@ -277,7 +283,7 @@ int main(void) {
     root = x;
     
     for(;;) {
-        cell_display(*root); newline();
+        cell_display(root); newline();
         heap_cons(NIL, NIL);
         // printf("used: %d\n", heap_used());
     }
