@@ -118,8 +118,12 @@ void newline(void) {
     DISP("\n");
 }
 
-void *mark_atom(void *ptr) {
-    DISP("atom: %p\n", ptr);
+void *mark_atom_inc(void *ptr) {
+    DISP("atom_inc: %p\n", ptr);
+    return ptr;
+}
+void *mark_atom_dec(void *ptr) {
+    DISP("atom_dec: %p\n", ptr);
     return ptr;
 }
 
@@ -196,7 +200,7 @@ void mark_cells(cell *root) {
         /* Atom mark bits are not stored in the cell.  However, we do
            call a hook here to be able to run finalizers if
            necessary. */
-        if (c != NIL) { c->atom = mark_atom(c->atom); }
+        if (c != NIL) { c->atom = mark_atom_inc(c->atom); }
         goto k_return;
 
     default:
@@ -262,19 +266,25 @@ cell *heap_alloc(int tag) {
     while(tries--) {
         /* Scan for a free cell using tag bitmap word access for
            efficiency. */
+        int i = heap_free;
         TAG_INDEX(heap_free, itag, ishift);
         while(itag < heap_tag_words) {
             cell_tag_word w = heap_tag[itag];
             while(ishift < bits_per_tag_word) {
-                if (TAG_FREE == ((w >> ishift) & tag_mask)) {
+                int t = (w >> ishift) & tag_mask;
+                /* Reclaim free pairs or atoms that can be freed. */
+                if ((TAG_FREE == t) |
+                    ((TAG_ATOM == t) && 
+                     (!(heap[i].atom = mark_atom_dec(heap[i].atom))))) {
+
                     TAG_SET(itag, ishift, tag);
-                    int i = CELL_INDEX(itag, ishift);
                     heap_free = 1 + i;
                     /* Init to something innocent. */
                     heap[i].pair = make_ipair(INIL, INIL); 
                     return heap + i;
                 }
                 ishift += tag_bits;
+                i++;
             }
             ishift = 0;
             itag++;
