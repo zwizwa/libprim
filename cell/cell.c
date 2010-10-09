@@ -257,24 +257,30 @@ int heap_used(void) {
 
 /* Alloc uses lazy free list. */
 cell *heap_alloc(void) {
-  again:
-    while(heap_free < (heap + heap_size)) {
-        cell *c = heap_free++;
-        if (TAG_FREE == cell_tag(c)) {
-            c->pair = TAG_ATOM;
-            return c;
+    int tries = 2;
+    while(tries--) {
+        /* Scan the heap for a free cell. */
+        while(heap_free < (heap + heap_size)) {
+            cell *c = heap_free++;
+            if (TAG_FREE == cell_tag(c)) {
+                c->pair = TAG_ATOM;
+                return c;
+            }
+        }
+        /* Collect garbage. */
+        heap_collect();
+        DISP("GC: %d / %d\n", heap_used(), heap_size);
+        DISP("roots: \n");
+        cell **r;
+        for (r = roots; *r; r++) {
+            cell_display(*r); 
+            newline();
         }
     }
-    /* Collect garbage. */
-    heap_collect();
-    DISP("GC: %d / %d\n", heap_used(), heap_size);
-    DISP("roots: \n");
-    cell **r;
-    for (r = roots; *r; r++) {
-        cell_display(*r); 
-        newline();
-    }
-    goto again;
+    /* GC doesn't fix it. */
+    DISP("GC: heap full.\n");
+    trap();
+    return NULL;
 }
 
 
