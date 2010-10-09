@@ -13,10 +13,11 @@
    twiddling tricks in the GC. */
 
 #define TAG_FREE  3  /* Unmarked cell (free) */
-#define TAG_K_CAR 2  /*                     K pointer in CAR. */
+#define TAG_K_CAR 0  /*                     K pointer in CAR. */
 #define TAG_K_CDR 1  /* Fully marked cell / K pointer in CDR. */
 #define TAG_ATOM  0  /* External data. */
 
+#define TAG_ATOM_FREE 2
 
 /* Tag sharing is possible due to different interpretations: 
 

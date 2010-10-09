@@ -56,6 +56,11 @@ void mark_cells_prepare(void) {
             icell_set_tag(i, TAG_FREE);
         }
     }
+#elseif 1
+    for (i=0; i<heap_size; i++) {
+        int t = icel_tag(i);
+        icell_set_tag(i, t | 2);
+    }
 #else
     /* Using the knowledge that
 
@@ -196,11 +201,12 @@ void mark_cells(cell *root) {
         c = tmp;
         goto c_continue;
 
+    case TAG_ATOM_FREE:
+        cell_set_tag(c, TAG_ATOM);
     case TAG_ATOM:
         /* Atom mark bits are not stored in the cell.  However, we do
            call a hook here to be able to run finalizers if
            necessary. */
-        if (c != NIL) { c->atom = mark_atom_inc(c->atom); }
         goto k_return;
 
     default:
@@ -273,10 +279,7 @@ cell *heap_alloc(int tag) {
             while(ishift < bits_per_tag_word) {
                 int t = (w >> ishift) & tag_mask;
                 /* Reclaim free pairs or atoms that can be freed. */
-                if ((TAG_FREE == t) |
-                    ((TAG_ATOM == t) && 
-                     (!(heap[i].atom = mark_atom_dec(heap[i].atom))))) {
-
+                if ((TAG_FREE == t)) {
                     TAG_SET(itag, ishift, tag);
                     heap_free = 1 + i;
                     /* Init to something innocent. */
