@@ -114,22 +114,23 @@ static inline pair  make_pair(cell *car, cell *cdr) {
 }
 
 /* All cells with index >= heap_size are ignored by GC.  This gives
-   some room for encoding magic values. 
+   some room for encoding numbers and other special values. 
 
-   - Numbers are in the last 8 bit slot.
-   - Special values are in the next-to-last 8 bit slot.
+   - Numbers are at the end of the address space
+   - Special values are allocated right before number space.
 */
 
-#define HEAP_NUMBER_INDEX (CELL_MASK - 0xFF)
-#define HEAP_MAGIC_INDEX  (HEAP_NUMBER_INDEX - 0x100)
+#define HEAP_NUMBER_MASK  0xFF
+#define HEAP_NUMBER_INDEX (CELL_MASK - HEAP_NUMBER_MASK)
 static inline cell *heap_number(int n) { 
-    return heap + HEAP_NUMBER_INDEX + (n & 0xFF); 
+    return heap + HEAP_NUMBER_INDEX + (n & HEAP_NUMBER_MASK);
 }
+#define NUMBER(x) heap_number(x)
 
-#define INIL   (HEAP_NUMBER_INDEX-1)
-#define IVOID  (HEAP_NUMBER_INDEX-2)
-#define ITRUE  (HEAP_NUMBER_INDEX-3)
-#define IFALSE (HEAP_NUMBER_INDEX-4)
+#define INIL   (HEAP_NUMBER_INDEX - 1)
+#define IVOID  (HEAP_NUMBER_INDEX - 2)
+#define ITRUE  (HEAP_NUMBER_INDEX - 3)
+#define IFALSE (HEAP_NUMBER_INDEX - 4)
 
 #define NIL    (heap + INIL)
 #define VOID   (heap + IVOID)

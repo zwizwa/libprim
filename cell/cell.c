@@ -1,7 +1,7 @@
-/* Garbage collector for 32 bit small embedded target with:
+/* Garbage collector small RAM (embedded) target with:
      - CELL store: no arbitrary size vectors
      - Small cell size: 32 bit per cell (1 pair),  
-     - Only for small number of CELLs (15 address bits / 128 kB CELL RAM)
+     - Only for small number of CELLs (16 address bits / 256 kB CELL RAM)
      - Pointer reversing MARK phase to eliminate stack.
      - Lazy SWEEP.
 
@@ -239,7 +239,7 @@ cell *heap_alloc(void) {
     }
     /* Collect garbage. */
     heap_collect();
-    DISP("gc: %d cells used\n", heap_used());
+    DISP("GC: %d / %d\n", heap_used(), heap_size);
     goto again;
 }
 
@@ -277,9 +277,9 @@ int main(void) {
     x = heap_cons(TRUE, x);
     x = heap_cons(FALSE, x);
 
-    x = heap_cons(heap_number(3), x);
-    x = heap_cons(heap_number(2), x);
-    x = heap_cons(heap_number(1), x);
+    x = heap_cons(NUMBER(3), x);
+    x = heap_cons(NUMBER(2), x);
+    x = heap_cons(NUMBER(1), x);
     root = x;
     
     for(;;) {
