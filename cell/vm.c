@@ -34,11 +34,11 @@ struct _vm {
     cell *e;
     cell *k;
     cell *v;
-    cell *a;
-    cell *t;
+    cell *t1;
+    cell *t2;
     void *END;
 } __attribute((__packed__));
-#define VM_INIT {NIL,NIL,NIL,NIL,NIL,0};
+#define VM_INIT {VOID,VOID,VOID,VOID,VOID,VOID,0};
 
 typedef struct _vm vm;
 
@@ -87,8 +87,8 @@ void vm_continue(vm *vm) {
 #define e     (vm->e)   // lexical environment
 #define k     (vm->k)   // execution context
 #define v     (vm->v)   // value register
-#define arg   (vm->a)   // argument to op_ or k_
-#define e_ext (vm->t)   // temp env
+#define t1    (vm->t1)  // temp reg
+#define t2    (vm->t2)  // temp reg
 
 /* Opcodes encoded as NUMBER(). */
 #define K_HALT  NUMBER(0)
@@ -125,83 +125,82 @@ void vm_continue(vm *vm) {
     
   c_reduce:
     /* Reduce core form. */
-    i     = NCAR(c);     // get opcode
-    arg   = CDR(c);      // get op arg
+    i     = NPOP(c);     // get opcode
     goto run;
 
   k_return:
     /* Execute top continuation frame, passing it the return value
        (stored in the c register). */
-    arg  = POP(k);      // pop k stack
-    i    = NPOP(arg);   // pop opcode
-    e    = CAR(arg);    // restore env
+    c    = POP(k);      // pop k stack
+    i    = NPOP(c);     // pop opcode
+    e    = POP(c);      // restore env
+    goto run;
 
   run:
     // DISP("run %d\n", i);
     goto *op[i];
 
   op_let: /* (exp1 . exp2) */
-    PUSHK(K_LET, CDR(arg));
-    c = CAR(arg);
+    PUSHK(K_LET, CDR(c));
+    c = CAR(c);
     goto c_reduce;
-  k_let: /* (e . exp2) */
-    // e = CONS(c, CAR(c));  // update env w. value
-    PUSH(e, CAR(c));
-    c = CDR(arg);
+  k_let: /* exp2 */
+    PUSH(e, v);
     goto c_reduce;
 
   op_begin: /* (exp1 . exp2) */
-    PUSHK(K_BEGIN, CDR(arg));
-    c = CAR(arg);
+    PUSHK(K_BEGIN, CDR(c));
+    c = CAR(c);
     goto c_reduce;
   k_begin: /* (e . exp2) */
-    // e = CAR(arg); // don't update env
-    c = CDR(arg);
     goto c_reduce;
 
   op_quote: /* datum */
-    c = arg;
+    v = c;
     goto k_return;
 
   op_set: /* (var_dst . var_src) */
-    e_set(e, NCAR(arg), e_ref(e, NCDR(arg)));
-    c = VOID;
+    e_set(e, NCAR(c), e_ref(e, NCDR(c)));
+    v = VOID;
     goto k_return;
 
-  op_app: /* ((env . (nr . expr)) . v_args) */
+  op_app: /* ((env . (nr . expr)) . v_cs) */
 
-    /* Pop closure info into machine registers. */
-    c   = CAR(arg); // closure
-    arg = CDR(arg); // argument list (varrefs)
-    e   = POP(c);   // pop e=env
-    i   = NPOP(c);  // pop i=nr, c=expr
+    t2 = POP(c);   // closure: (env . (nr . expr))
+    t1 = POP(t2);  // new env to extend
+    i  = NPOP(t2); // (nb_args << 1) | rest_args
 
-    /* nr =  number of arguments + a "rest" flag shifted in LSB. */
-    e_ext = e;
-    /* Ref args and extend environment. */
+    /* Ref args from current env and extend new env. */
     while (i>>1) {
-        PUSH(e_ext, e_ref(e, NPOP(arg)));
+        PUSH(t1, e_ref(e, NPOP(c)));
         i -= 2;
     }
-    /* Push rest args. */
-    if (i) { e_ext = CONS(arg, e_ext); }
-    e = e_ext;
-    e_ext = NIL;  // kill ref for gc
+    /* Ref rest and push as 1 list if desired. */
+    if (i) {
+        /* Push them onto v first. */
+        v = NIL;
+        while(NIL != c) { PUSH(v, e_ref(e, NPOP(c))); }
+        PUSH(t1, v); v = VOID;
+    }
+
+    c = t2;
+    e = t1;
+    t1 = t2 = VOID;  // kill refs for gc
     goto c_reduce;
 
   op_if: /* (var . (exp_t . exp_f)) */
-    c = CDR(e_slot(e, NCDR(arg)));
-    arg = CDR(arg);
-    c = (c != FALSE) ? CAR(arg) : CDR(arg);
+    c = CDR(e_slot(e, NCDR(c)));
+    c = CDR(c);
+    c = (c != FALSE) ? CAR(c) : CDR(c);
     goto c_reduce;
 
   op_ref:   /* number */
-    i = (arg - heap) & 0xFF;   // FIXME: this is ugly: CAR to early
-    c = e_ref(e, i);
+    i = (c - heap) & 0xFF;   // FIXME: this is ugly: CAR to early
+    v = e_ref(e, i);
     goto k_return;
         
   op_prim:  /* atom */
-    ((vm_prim)arg->atom)(vm);
+    ((vm_prim)c->atom)(vm);
     goto k_return;
 
     /* Reification of continuations takes a detour: 
@@ -214,26 +213,25 @@ void vm_continue(vm *vm) {
        in the environment accessible by the op_runc opcode.  The k
        stack is passed as an argument to op_runc. */
   op_letcc: /* () */
-    c = CONS(NIL, CONS(NUMBER(2), CONS(OP_RUNC, k)));
+    v = CONS(NIL, CONS(NUMBER(2), CONS(OP_RUNC, k)));
     goto k_return;
   op_runc:  /* k */
-    c = CAR(e);
-    k = arg;
+    v = CAR(e);
+    k = c;
     e = NIL;
     goto k_return;
 
 
   k_halt:
     /* Clear temps before returning. */
-    arg   = NIL;
-    e_ext = NIL;
     return;
 
 #undef c
 #undef e
 #undef k
-#undef arg
-#undef e_ext
+#undef v
+#undef t1
+#undef t2
 }
 
 
@@ -242,7 +240,7 @@ cell *vm_eval(vm *vm, cell *expr) {
     vm->e = NIL;
     vm->k = MT;
     vm_continue(vm);
-    return vm->c;
+    return vm->v;
 }
 
 

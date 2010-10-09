@@ -57,7 +57,7 @@ typedef unsigned int cell_tag_word;
 #define heap_tag_words (((min_heap_size - 1) / cells_per_tag_word) + 1)
 
 #ifdef HEAP_STATIC
-#define min_heap_size 20  // will be rounded up
+#define min_heap_size 64  // will be rounded up
 #define heap_size (heap_tag_words * cells_per_tag_word)
 extern cell heap[heap_size];
 extern cell_tag_word heap_tag[heap_tag_words];
