@@ -89,7 +89,7 @@ void vm_continue(vm *vm) {
 
 #define K_HALT  NUMBER(0)
 #define K_LET   NUMBER(2)
-#define K_BEGIN NUMBER(3)
+#define K_BEGIN NUMBER(4)
 
     static void *op[] = {
         &&k_halt,   // 0
@@ -192,9 +192,8 @@ void vm_continue(vm *vm) {
     c = e_ref(e, i);
     goto k_return;
         
-
   op_prim:  /* atom */
-    ((vm_prim)arg)(vm);
+    ((vm_prim)arg->atom)(vm);
     goto k_return;
 
   k_halt:
@@ -230,6 +229,12 @@ void test(vm *vm, cell *expr) {
     DISP("in:  "); cell_display(expr); newline();
     DISP("out: "); cell_display(vm_eval(vm, expr)); newline();
 }
+
+void test_prim(vm *vm) {
+    // DISP("test_prim\n");
+    vm->c = VOID;
+}
+
 int main(void) {
 
     /* init VM + GC */
@@ -238,12 +243,33 @@ int main(void) {
     heap_set_roots((cell**)&vm);
 
 
-    cell *a = ATOM((void*)0xF00F000);
+    cell *atom = ATOM((void*)0xF00F000);
+    cell *prim = ATOM((void*)&test_prim);
     while (1) {
 #define OP(n,x) CONS(NUMBER(n),x)
-        cell *q;
-        TEST (q = OP(5, a));  // (quote atom)
+        cell *q, *p;
+        TEST (q = OP(5, atom));   // (quote atom)
+        TEST (q = OP(5, prim));   // (quote atom)
+        TEST (p = OP(10, prim));  // (prim  atom)
         TEST (OP(1, CONS(q, OP(11, NUMBER(0))))); // (let (var atom) var)
+        TEST (OP(3, CONS(q, q)));
+     
+
+        {
+            /* Apply closure: (let ((v0 123)) (lambda () v0)) */            
+            cell *env  = CONS(NUMBER(123), NIL);
+            cell *body = OP(11, NUMBER(0)); // (ref v0)
+            cell *closure = CONS(env, CONS(NUMBER(0), body));
+            TEST (OP(7, CONS(closure, NIL)));
+        }
+
+        {
+            /* Apply closure: (let ((v1 234) (v0 123)) (lambda () v1)) */
+            cell *env  = CONS(NUMBER(123), CONS(NUMBER(234), NIL));
+            cell *body = OP(11, NUMBER(1)); // (ref v1)
+            cell *closure = CONS(env, CONS(NUMBER(0), body));
+            TEST (OP(7, CONS(closure, NIL)));
+        }
     }
     
     return 0;

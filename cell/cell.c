@@ -261,7 +261,7 @@ int heap_used(void) {
 cell *heap_alloc(int tag) {
     int tries = 2;
     while(tries--) {
-        /* Scan for a free cell using direct tag array indexing for
+        /* Scan for a free cell using tag bitmap word access for
            efficiency. */
         TAG_INDEX(heap_free, itag, ishift);
         while(itag < heap_tag_words) {
