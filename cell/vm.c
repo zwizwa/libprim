@@ -90,8 +90,9 @@ void vm_continue(vm *vm) {
 #define K_HALT  NUMBER(0)
 #define K_LET   NUMBER(2)
 #define K_BEGIN NUMBER(4)
+#define OP_RUNC NUMBER(12)
 
-    static void *op[] = {
+    static const void *op[] = {
         &&k_halt,   // 0
         &&op_let,   // 1
         &&k_let,    // 2
@@ -104,6 +105,7 @@ void vm_continue(vm *vm) {
         &&op_letcc, // 9
         &&op_prim,  // 10
         &&op_ref,   // 11
+        &&op_runc,  // 12
     };
 
     /* If we start with an empty contination, push an explicit halt
@@ -183,10 +185,6 @@ void vm_continue(vm *vm) {
     c = (c != FALSE) ? CAR(arg) : CDR(arg);
     goto c_reduce;
 
-  op_letcc: /* () */
-    c = k;
-    goto k_return;
-
   op_ref:   /* number */
     i = (arg - heap) & 0xFF;   // FIXME: this is ugly: CAR to early
     c = e_ref(e, i);
@@ -195,6 +193,24 @@ void vm_continue(vm *vm) {
   op_prim:  /* atom */
     ((vm_prim)arg->atom)(vm);
     goto k_return;
+
+    /* Continuations take a detour: op_letcc wraps the continuation as
+       a closure over an empty environment and a op_runc primitive.
+       This ensures that the continuation object can be applied to a
+       value.
+
+       After application this value ends up as the only element in the
+       environment accessible by the op_runc opcode.  The k stack is
+       passed as an argument to op_runc. */
+  op_letcc: /* () */
+    c = CONS(NIL, CONS(NUMBER(2), CONS(OP_RUNC, k)));
+    goto k_return;
+  op_runc:  /* k */
+    c = CAR(e);
+    k = arg;
+    e = NIL;
+    goto k_return;
+
 
   k_halt:
     /* Clear temps before returning. */
@@ -248,8 +264,8 @@ int main(void) {
     while (1) {
 #define OP(n,x) CONS(NUMBER(n),x)
         cell *q, *p;
+        TEST (OP(5, prim));       // (quote atom)
         TEST (q = OP(5, atom));   // (quote atom)
-        TEST (q = OP(5, prim));   // (quote atom)
         TEST (p = OP(10, prim));  // (prim  atom)
         TEST (OP(1, CONS(q, OP(11, NUMBER(0))))); // (let (var atom) var)
         TEST (OP(3, CONS(q, q)));

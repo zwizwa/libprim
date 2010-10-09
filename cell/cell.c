@@ -47,18 +47,6 @@ static cell **roots;
 
 void trap(void) { exit(1); }
 
-/*
-
-   FREE                CAR                CDR
-
-   ^   ^                  ^              ^
-   |   |                  |              |
- [ x | x ]          [ x | x ]          [ x | x ]
-                      |                      |
-                      v                      v   
-
- */
-
 void mark_cells_prepare(void) {
     int i;
 #if 0
@@ -160,7 +148,18 @@ void *mark_atom(void *ptr) {
      - invoke code, which descends into the tree, updating the contination
      - invoke (update) continuation
 
-*/
+
+
+   FREE                CAR                CDR
+
+   ^   ^                  ^              ^
+   |   |                  |              |
+ [ x | x ]          [ x | x ]          [ x | x ]
+                      |                      |
+                      v                      v   
+
+ */
+
 
 
 void mark_cells(cell *root) {
