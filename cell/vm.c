@@ -257,7 +257,7 @@ void test(vm *vm, cell *expr) {
 
 void test_prim(vm *vm) {
     // DISP("test_prim\n");
-    vm->c = VOID;
+    vm->v = VOID;
 }
 
 void tests(vm *vm);
@@ -269,7 +269,7 @@ int main(void) {
     heap_clear();
     heap_set_roots((cell**)&vm);
 
-    looptest(&vm);
+    // looptest(&vm);
     while (1) { tests(&vm); }
 }
 

@@ -51,45 +51,20 @@ void mark_cells_prepare(void) {
     int i;
 #if 0
     for (i=0; i<heap_size; i++) {
-        /* Mark non-atom nodes as free. */
-        if (TAG_ATOM != icell_tag(i)) {
-            icell_set_tag(i, TAG_FREE);
-        }
-    }
-#endif
-#if 0
-    for (i=0; i<heap_size; i++) {
         int t = icell_tag(i);
-        // DISP("tag = %d\n", t);
         icell_set_tag(i, t | 2);
     }
-#endif
-#if 0
-    /* Using the knowledge that
-
-       ATOM   = 00
-       !ATOM  = 01 or 11
-
-       we can use the following trick to "smear out" the bits to mark
-       all non-atoms as free. */
-    
-    for (i=0; i<heap_tag_words; i++) {
-        cell_tag_word w = heap_tag[i] & 0x55555555;
-        heap_tag[i] = w | (w << 1);
-    }
-    
-#endif
-#if 1
+#else
+    /* Switch on the free bits all at once. */
     for (i=0; i<heap_tag_words; i++) {
         heap_tag[i] |= 0xAAAAAAAA;
     }
-    
 #endif
 }
 void heap_clear(void) {
     int i;
     for (i=0; i<heap_size; i++) {
-        icell_set_tag(i, TAG_FREE);
+        icell_set_tag(i, TAG_PAIR_FREE);
     }
     heap_free = 0;
 }
@@ -201,7 +176,7 @@ void mark_cells(cell *root) {
     /* Handle current subtree rooted at c. */
     switch(cell_tag(c)) {
 
-    case TAG_FREE:
+    case TAG_PAIR_FREE:
         /* Push continuation, reusing CAR slot of code node. */
         tmp = pcar(c);                   // descend into new code
         c->pair = make_pair(k, pcdr(c)); // create new k frame

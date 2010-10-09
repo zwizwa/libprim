@@ -9,31 +9,40 @@
    [1] http://w3.ift.ulaval.ca/~dadub100/files/picbit.pdf
  */
 
-/* Cell tag bits.  Don't change these as the patterns are used for bit
-   twiddling tricks in the GC. */
+/* Cell tag bits.  
 
-#define TAG_FREE  3  /* Unmarked cell (free) */
-#define TAG_K_CAR 0  /*                     K pointer in CAR. */
-#define TAG_K_CDR 1  /* Fully marked cell / K pointer in CDR. */
-#define TAG_ATOM  0  /* External data. */
+   DONT MESS WITH THESE!
 
-#define TAG_ATOM_FREE 2
-
-#define TAG_IS_FREE(t) ((t>>1)&1)
-
-/* Tag sharing is possible due to different interpretations: 
+   The patterns are used for bit twiddling tricks in the GC, which
+   don't refer to the value of these constants.  Also, tags are reused
+   for different interpretations:
 
    - Mark traversal continuations knows about K_CAR / K_CDR continuations.
 
    - Mark traversal tree descent konw about FREE, ATOM and MARKED (other).
 
    - Pointer type interpretation knows about ATOM and !ATOM.
+
 */
 
-/* The CDR and MARKED tags are shared which saves tags and eliminates
-   one tag update in the mark phase. */
-#define TAG_MARKED TAG_K_CDR
-#define TAG_PAIR   TAG_MARKED
+
+
+#define TAG_ATOM      0  /* External data. */
+#define TAG_PAIR      1  /* CONS cell */
+#define TAG_ATOM_FREE 2
+#define TAG_PAIR_FREE 3  
+
+#define TAG_IS_FREE(t) ((t>>1)&1)
+
+/* The CDR and PAIR tags are shared: the CDR tag is simply not updated
+   after pointer reversal which results in a properly marked node.
+
+   The ATOM and CAR tags can be shared because atom nodes can never
+   become part of the mark trace (continuation).  */
+
+#define TAG_K_CAR 0  /*                     K pointer in CAR. */
+#define TAG_K_CDR 1  /* Fully marked cell / K pointer in CDR. */
+
 
 typedef long long pair;
 typedef void*     atom;
