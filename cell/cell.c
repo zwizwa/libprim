@@ -259,7 +259,17 @@ void mark_cells(cell *root) {
 }
 
 
+int heap_used(void) {
+    int used = 0;
+    int i;
+    for (i = 0; i < heap_size; i++) {
+        if (!TAG_IS_FREE(icell_tag(i))) used++;
+    }
+    return used;
+}
 
+static const int gc_stat = 1;
+static const int gc_debug = 0;
 void heap_collect(void) {
     mark_cells_prepare();
     cell **r;
@@ -267,16 +277,20 @@ void heap_collect(void) {
         mark_cells(*r); 
     }
     heap_free = 0; // lazy sweep
+
+    if (gc_stat) {
+        DISP("GC: %d / %d\n", heap_used(), heap_size);
+    }
+    if (gc_debug) {
+        DISP("roots: \n");
+        for (r = roots; *r; r++) {
+            DISP("    ");
+            cell_display(*r); 
+            newline();
+        }
+    }
 }
 
-int heap_used(void) {
-    int used = 0;
-    int i;
-    for (i = 0; i < heap_size; i++) {
-        if (TAG_FREE != icell_tag(i)) used++;
-    }
-    return used;
-}
 
 
 /* Alloc uses lazy free list. */
@@ -308,14 +322,6 @@ cell *heap_alloc(int tag) {
 
         /* None found, collect garbage. */
         heap_collect();
-        DISP("GC: %d / %d\n", heap_used(), heap_size);
-        DISP("roots: \n");
-        cell **r;
-        for (r = roots; *r; r++) {
-            DISP("    ");
-            cell_display(*r); 
-            newline();
-        }
     }
     /* GC doesn't fix it. */
     DISP("GC: heap full.\n");

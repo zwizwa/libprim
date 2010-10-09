@@ -172,6 +172,7 @@ static inline cell *heap_number(int n) {
 #define CAR(c)        pcar(c)
 #define CDR(c)        pcdr(c)
 #define SET_CAR(c, v) heap_set_cons(c, v, CDR(c))
+#define SET_CDR(c, v) heap_set_cons(c, CAR(c), v)
 #define POP(c)        ({cell *x = CAR(c); c = CDR(c); x;})
 #define PUSH(c,v)     {c = CONS(v,c);}
 #define CONS(a,b)     heap_cons(a,b)
