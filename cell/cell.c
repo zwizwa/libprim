@@ -97,7 +97,7 @@ void heap_clear(void) {
 
 void cell_display(cell c);
 void cell_display_i(int i) {
-    if (i >= 0x7F00) DISP("%d", i & 0xFF);
+    if (i >= HEAP_NUMBER_INDEX) DISP("%d", i & 0xFF);
     else cell_display(heap[i]);
 }
 void cell_display(cell c) {
@@ -242,7 +242,7 @@ cell *heap_atom(void *ptr) {
 cell *heap_number(int n) {
     /* This is not a valid cell pointer!  Will be ignored by GC and
        can be interpreted by user as number. */
-    return heap+0x7F00+n;
+    return heap+HEAP_NUMBER_INDEX+n;
 }
 void heap_set_cons(cell *c, cell *a, cell *d) {
     c->pair = cons_tag(TAG_MARKED, a, d);

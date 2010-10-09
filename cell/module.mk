@@ -1,3 +1,3 @@
-MODULE_OBJ := struct.o cell.o 
+MODULE_OBJ := cell.o  vm.o
 
 TARGET     := cell

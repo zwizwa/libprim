@@ -55,6 +55,11 @@ cell *heap_atom(void *ptr);
 void heap_set_cons(cell *c, cell *a, cell *d);
 void heap_set_root(cell *c);
 
+/* 8 bit numbers mapped to cell addresses. */
+#define HEAP_NUMBER_INDEX 0x7F00
+cell *heap_number(int n);
+
+
 static inline int pair_tag(pair p)     { return p & 3; }
 static inline int cell_tag(cell c)     { return pair_tag(c.pair); }
 static inline int cell_is_pair(cell c) { return (TAG_ATOM != cell_tag(c)); }
