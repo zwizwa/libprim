@@ -39,6 +39,8 @@ struct _vm {
 } __attribute((__packed__));
 typedef struct _vm vm;
 
+typedef void (*vm_prim)(vm *vm);
+
 
 /* Get environment slot and ref. */
 cell* e_slot(cell *e, int i) {

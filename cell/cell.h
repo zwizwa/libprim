@@ -32,7 +32,6 @@
 #define TAG_MARKED TAG_K_CDR
 #define TAG_PAIR   TAG_MARKED
 
-
 typedef long long pair;
 typedef void*     atom;
 

@@ -9924,6 +9924,9 @@ To have "more code" in the Flash, not consuming cell address space,
 the simplest approach is probably to just compile to machine code or
 other internal data/code reps.  Anything goes there.
 
+
+
+
 Entry: C primtives in new VM
 Date: Sat Oct  9 17:41:39 CEST 2010
 
@@ -9933,3 +9936,12 @@ other code is untyped (pre-checked statically typed).
 Instead of thinking of primitives as functions, it might be
 interesting to think of them as closures, i.e. with a full lexical
 context.
+
+
+
+Entry: Arbitrary cell sizes
+Date: Sat Oct  9 17:56:43 CEST 2010
+
+It doesn't seem to be so hard to now move to arbitrary cell sizes.
+Everything should really be just the same.
+
