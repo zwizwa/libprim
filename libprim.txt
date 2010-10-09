@@ -9872,3 +9872,34 @@ best to abstract the data structures a bit more.  CAR and CDR can get
 confusing.
 
 
+Ok, got computed goto VM written out.  It seems quite simple
+actually. Now I only need op_app.
+
+
+Entry: Application
+Date: Sat Oct  9 12:07:51 CEST 2010
+
+The remaining degree of freedom is function application.  Issues:
+
+- What order?
+
+  Let's put them in a way that is simplest to implement in the
+  interpreter.  Order of evaluation is handled in the compiler anyway.
+  By moving around the args in the opcode we can still play with
+  encoding in the compiler.
+
+- Use ridges or flat list?
+
+  Flat lists seem simpler.  The remaining question is then the order
+  of arguments.
+
+
+
+Entry: Cleanup
+Date: Sat Oct  9 13:24:36 CEST 2010
+
+* Moving more code to cell.h
+
+* Put tag bits in separate table?  Morale: interpreter does not need
+  tags: bytecode has been type-checked.
+

@@ -34,32 +34,20 @@ typedef struct {
 } vm;
 
 
-/* For the VM we use only PAIR, and small integers encoded in the pair
-   address space (using icar and icdr).  All types are known so we
-   don't perform any checks. */
-
-#define CAR(c) car(c->pair)
-#define CDR(c) cdr(c->pair)
-#define SET_CAR(c, v) heap_set_cons(c, v, CDR(c))
-
-#define CONS(a,b) heap_cons(a,b)
-
-/* FIXME: provide some default magic values. */
-#define FALSE NIL
-#define VOID  NIL
-
-/* Fetch an opcode from a cell.  We repurpose an unused part of the
-   address space for this.  During interpretation only low bits are
-   kept. */
-#define NCAR(c) (icar(c->pair) & 0xFF)
-#define NCDR(c) (icdr(c->pair) & 0xFF)
 
 
 
-/* Get environment slot. */
-static inline cell* e_slot(cell *e, int i) {
+
+/* Get environment slot and ref. */
+cell* e_slot(cell *e, int i) {
     while(i--) e = CDR(e);
     return e;
+}
+cell* e_ref(cell *e, int i) {
+    return CDR(e_ref(e, i));
+}
+void e_set(cell *e, int i, cell *v) {
+    SET_CAR(e_ref(e, i), v);
 }
 
 
@@ -85,7 +73,7 @@ static inline cell* e_slot(cell *e, int i) {
 */
 
 typedef void* op;
-struct opcodes {
+struct opcodes { 
     op op_halt;
     op op_let;    op k_let;
     op op_begin;  op k_begin;
@@ -93,6 +81,7 @@ struct opcodes {
     op op_set;
     op op_app;
     op op_if;
+    op op_letcc;
 } __attribute((__packed__));;
 #define OP(name)                                                    \
     ({struct opcodes opc;                                           \
@@ -103,8 +92,9 @@ void vm_continue(vm *vm) {
     cell *e = vm->e;
     cell *k = vm->k;
 
-    cell *arg; // argument to op_ or k_
-    int i;     // current opcode / variable index
+    cell *arg;   // argument to op_ or k_
+    int i;       // current opcode / variable index
+    cell *e_ext; // temp env var
 
     static struct opcodes op = {
         .op_halt  = &&op_halt, 
@@ -116,17 +106,19 @@ void vm_continue(vm *vm) {
         .op_set   = &&op_set, 
         .op_app   = &&op_app, 
         .op_if    = &&op_if, 
-        .op_quote = &&op_quote
+        .op_quote = &&op_quote,
+        .op_letcc = &&op_letcc,
     };
 
     
-  next:
+  c_reduce:
     /* Reduce current expression. */
     i    = NCAR(c);     // get opcode
     arg  = CDR(c);      // get op arg
     goto run;
-  ret:
-    /* Execute top continuation frame.  Value is in c register. */
+  k_return:
+    /* Execute top continuation frame, passing return value stored in
+       the c register. */
     arg  = CAR(k);
     i    = NCAR(arg);   // get opcode
     arg  = CDR(arg);    // get k args
@@ -136,39 +128,60 @@ void vm_continue(vm *vm) {
     goto **(((void **)(&op))+i);
 
   op_let: /* (exp1 . exp2) */
-    k = CONS(CONS(OP(k_let), CONS(e, CDR(arg))), k);
+    PUSH(k, CONS(OP(k_let), CONS(e, CDR(arg))));
     c = CDR(arg);
-    goto next;
+    goto c_reduce;
   k_let: /* (e . exp2) */
     e = CONS(c, CAR(arg));  // update env w. value
     c = CDR(arg);
-    goto next;
+    goto c_reduce;
 
   op_begin: /* (exp1 . exp2) */
-    k = CONS(CONS(OP(k_begin), CONS(e, CDR(arg))), k);
+    PUSH(k, CONS(OP(k_begin), CONS(e, CDR(arg))));
     c = CAR(arg);
-    goto next;
+    goto c_reduce;
   k_begin: /* (e . exp2) */
     e = CAR(arg); // don't update env
     c = CDR(arg);
-    goto next;
+    goto c_reduce;
 
   op_quote: /* datum */
-    goto ret;
+    goto k_return;
 
   op_set: /* (var_dst . var_src) */
-    SET_CAR(e_slot(e, NCAR(arg)), CDR(e_slot(e, NCDR(arg)))); 
+    e_set(e, NCAR(arg), e_ref(e, NCDR(arg)));
     c = VOID;
-    goto ret;
+    goto k_return;
 
-  op_app: /* (v_closure . v_args) */
-    // ???
+  op_app: /* ((env . (nr . expr)) . v_args) */
+
+    /* Pop closure info into machine registers. */
+    c   = CAR(arg); // closure
+    arg = CDR(arg); // argument list (varrefs)
+    e   = POP(c);   // pop e=env
+    i   = NPOP(c);  // pop i=nr, c=expr
+
+    /* nr =  number of arguments + a "rest" flag shifted in LSB. */
+    e_ext = e;
+    /* Ref args and extend environment. */
+    while (i>>1) {
+        PUSH(e_ext, e_ref(e, NPOP(arg)));
+        i -= 2;
+    }
+    /* Push rest args. */
+    if (i) { e_ext = CONS(arg, e_ext); }
+    e = e_ext;
+    goto c_reduce;
 
   op_if: /* (var . (exp_t . exp_f)) */
     c = CDR(e_slot(e, NCDR(arg)));
     arg = CDR(arg);
     c = (c != FALSE) ? CAR(arg) : CDR(arg);
-    goto next;
+    goto c_reduce;
+
+  op_letcc: /* () */
+    c = k;
+    goto k_return;
 
   op_halt:
     /* Stop interpreting. */

@@ -89,15 +89,27 @@ void heap_clear(void) {
     for (i=0; i<heap_size; i++) {
         heap[i].pair = TAG_FREE;
     }
-    heap_free = heap + 1;
-    heap[0].atom = NULL;  // set NIL
+    heap_free = heap;
 }
 
 #define DISP(...) fprintf(stderr, __VA_ARGS__)
 
 void cell_display(cell c);
 void cell_display_i(int i) {
-    if (i >= HEAP_NUMBER_INDEX) DISP("%d", i & 0xFF);
+    if (i >= heap_size) {
+        if (i > HEAP_NUMBER_INDEX) DISP("%d", i & 0xFF);
+        else {
+            const char *magic;
+            switch (i) {
+            case IVOID:  magic = "#<void>"; break;
+            case INIL:   magic = "()"; break;
+            case IFALSE: magic = "#f"; break;
+            case ITRUE:  magic = "#t"; break;
+            default:     magic = "#<invalid>"; break;
+            }
+            DISP("%s", magic);
+        }
+    }
     else cell_display(heap[i]);
 }
 void cell_display(cell c) {
@@ -110,8 +122,7 @@ void cell_display(cell c) {
         DISP(")");
     }
     else {
-        if (!c.atom) DISP("()");
-        else DISP("%p", c.atom);
+        DISP("%p", c.atom);
     }
 }
 void newline(void) {
@@ -130,15 +141,15 @@ void mark_used(cell *root) {
     cell *tmp;
     cell *heap_endx = heap + heap_size;
 
-    goto do_code;
+    goto c_continue;
 
     /* Invoke the current code. */
-  do_code:
+  c_continue:
 
     /* The unused cell address space is ignored by GC, so it can be
        used to encode other (const) values like small ints. */
     if (c >= heap_endx) {
-        goto do_cont;
+        goto k_return;
     }
 
     /* Interpret current cell type */
@@ -146,45 +157,45 @@ void mark_used(cell *root) {
 
     case TAG_FREE:
         /* Push continuation, reusing CAR slot of code node. */
-        tmp = car(c->pair);                             // descend into new code
-        c->pair = cons_tag(TAG_K_CAR, k, cdr(c->pair)); // create new k frame
+        tmp = pcar(c->pair);                             // descend into new code
+        c->pair = cons_tag(TAG_K_CAR, k, pcdr(c->pair)); // create new k frame
         k = c;     
         c = tmp;
-        goto do_code;
+        goto c_continue;
 
     case TAG_ATOM:
         /* Atom mark bits are not stored in the cell.  However, we do
            call a hook here to be able to run finalizers if
            necessary. */
         if (c != NIL) { c->atom = mark_atom(c->atom); }
-        goto do_cont;
+        goto k_return;
 
     default:
         /* Nothing to do, invoke continuation. */
-        goto do_cont;
+        goto k_return;
     }
 
 
     /* Invoke the current continuation. */
-  do_cont:
+  k_return:
     if (k == NIL) return;
     switch(cell_tag(*k)) {
 
     case TAG_K_CAR:
         /* Ajust continuation encoding, moving parent frame link from
            CAR to CDR node. */
-        tmp = cdr(k->pair);                             // descend into new code
-        k->pair = cons_tag(TAG_K_CDR, c, car(k->pair)); // update k frame in-place
+        tmp = pcdr(k->pair);                             // descend into new code
+        k->pair = cons_tag(TAG_K_CDR, c, pcar(k->pair)); // update k frame in-place
         c = tmp;
-        goto do_code;
+        goto c_continue;
     
     case TAG_K_CDR:
         /* Pop continuation frame. */
-        tmp = cdr(k->pair);                               // pop k frame
-        k->pair = cons_tag(TAG_MARKED, car(k->pair), c);  // restore node
+        tmp = pcdr(k->pair);                               // pop k frame
+        k->pair = cons_tag(TAG_MARKED, pcar(k->pair), c);  // restore node
         c = k;
         k = tmp;
-        goto do_cont;
+        goto k_return;
 
     default:
         /* Not reached. */
@@ -198,7 +209,7 @@ void mark_used(cell *root) {
 void heap_collect(void) {
     mark_free();
     mark_used(root);
-    heap_free = heap+1; // skip NIL node
+    heap_free = heap; // lazy sweep
 }
 
 int heap_used(void) {
@@ -239,11 +250,6 @@ cell *heap_atom(void *ptr) {
     c->pair = ((cell)ptr).pair & ~3;
     return c;
 }
-cell *heap_number(int n) {
-    /* This is not a valid cell pointer!  Will be ignored by GC and
-       can be interpreted by user as number. */
-    return heap+HEAP_NUMBER_INDEX+n;
-}
 void heap_set_cons(cell *c, cell *a, cell *d) {
     c->pair = cons_tag(TAG_MARKED, a, d);
 }
@@ -260,6 +266,10 @@ int main(void) {
     // cell *circ = heap_cons(NIL, NIL);
     // circ->pair = cons_tag(TAG_MARKED, atom, circ);
     // x = circ;
+
+    x = heap_cons(VOID, x);
+    x = heap_cons(TRUE, x);
+    x = heap_cons(FALSE, x);
 
     x = heap_cons(heap_number(3), x);
     x = heap_cons(heap_number(2), x);
