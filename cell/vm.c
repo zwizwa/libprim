@@ -81,12 +81,14 @@ void e_set(cell *e, int i, cell *v) {
 void vm_continue(vm *vm) {
     int i;              // current opcode / variable index
 
+/* Registers are in the vm struct so the GC can see them. */
 #define c     (vm->c)   // expression
 #define e     (vm->e)   // lexical environment
 #define k     (vm->k)   // execution context
 #define arg   (vm->a)   // argument to op_ or k_
 #define e_ext (vm->t)   // temp env
 
+/* Opcodes encoded as NUMBER(). */
 #define K_HALT  NUMBER(0)
 #define K_LET   NUMBER(2)
 #define K_BEGIN NUMBER(4)
@@ -108,10 +110,13 @@ void vm_continue(vm *vm) {
         &&op_runc,  // 12
     };
 
+/* Some convenience macros. */
+#define PUSHK(tag, arg) PUSH(k, CONS(tag, CONS(e, arg)));
+
     /* If we start with an empty contination, push an explicit halt
        frame to the k stack. */
     if (MT == k) {
-        PUSH(k, CONS(K_HALT, NIL));
+        PUSHK(K_HALT, NIL);
     }
     
   c_reduce:
@@ -126,26 +131,28 @@ void vm_continue(vm *vm) {
     i    = NCAR(arg);   // get opcode
     arg  = CDR(arg);    // get k args
     k    = CDR(k);      // pop k stack
+    e    = CAR(arg);    // restore env
 
   run:
     // DISP("run %d\n", i);
     goto *op[i];
 
   op_let: /* (exp1 . exp2) */
-    PUSH(k, CONS(K_LET, CONS(e, CDR(arg))));
+    PUSHK(K_LET, CDR(arg));
     c = CAR(arg);
     goto c_reduce;
   k_let: /* (e . exp2) */
-    e = CONS(c, CAR(c));  // update env w. value
+    // e = CONS(c, CAR(c));  // update env w. value
+    PUSH(e, CAR(c));
     c = CDR(arg);
     goto c_reduce;
 
   op_begin: /* (exp1 . exp2) */
-    PUSH(k, CONS(K_BEGIN, CONS(e, CDR(arg))));
+    PUSHK(K_BEGIN, CDR(arg));
     c = CAR(arg);
     goto c_reduce;
   k_begin: /* (e . exp2) */
-    e = CAR(arg); // don't update env
+    // e = CAR(arg); // don't update env
     c = CDR(arg);
     goto c_reduce;
 
