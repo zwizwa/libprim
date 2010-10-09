@@ -19,6 +19,8 @@
 
 #define TAG_ATOM_FREE 2
 
+#define TAG_IS_FREE(t) ((t>>1)&1)
+
 /* Tag sharing is possible due to different interpretations: 
 
    - Mark traversal continuations knows about K_CAR / K_CDR continuations.

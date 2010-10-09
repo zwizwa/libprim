@@ -57,7 +57,7 @@ void mark_cells_prepare(void) {
         }
     }
 #endif
-#if 1
+#if 0
     for (i=0; i<heap_size; i++) {
         int t = icell_tag(i);
         // DISP("tag = %d\n", t);
@@ -76,6 +76,12 @@ void mark_cells_prepare(void) {
     for (i=0; i<heap_tag_words; i++) {
         cell_tag_word w = heap_tag[i] & 0x55555555;
         heap_tag[i] = w | (w << 1);
+    }
+    
+#endif
+#if 1
+    for (i=0; i<heap_tag_words; i++) {
+        heap_tag[i] |= 0xAAAAAAAA;
     }
     
 #endif
@@ -286,7 +292,7 @@ cell *heap_alloc(int tag) {
             while(ishift < bits_per_tag_word) {
                 int t = (w >> ishift) & tag_mask;
                 /* Reclaim free pairs or atoms that can be freed. */
-                if ((TAG_FREE == t)) {
+                if ((TAG_IS_FREE(t))) {
                     TAG_SET(itag, ishift, tag);
                     heap_free = 1 + i;
                     /* Init to something innocent. */

@@ -267,9 +267,9 @@ int main(void) {
     heap_clear();
     heap_set_roots((cell**)&vm);
 
+#define atom ATOM((void*)0xF00F000)
+#define prim ATOM((void*)&test_prim)
 
-    cell *atom = ATOM((void*)0xF00F000);
-    cell *prim = ATOM((void*)&test_prim);
     while (1) {
 #define OP(n,x) CONS(NUMBER(n),x)
         cell *q, *p;
