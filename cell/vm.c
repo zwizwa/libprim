@@ -1,25 +1,15 @@
 /* VM on top of CELL.  
 
    The main idea behind the CELL graph memory is to run on ARM cores
-   with little memory (around 32-128 kB).
+   with little memory (up to 256 kB RAM).
 
    For the interpreter it would be convenient to:
      - have compact byte code
      - run code in graph memory
      - run code in flat (constant) Flash memory
 
-   The core language is ANF[1], possibly written in `let*' form which
-   collapses nested `let' in one form.
-
-
-   EXP ::= (app VAL VAL ...)
-        |  (let (VAR EXP) EXP)
-        |  (begin EXP EXP)
-        |  (set! VAR VAL)
-        |  (if VAL EXP EXP)
-
-   VAL ::= (lambda (VAR ...) EXP)
-        |  VAR
+   The core language is a variant of ANF[1] where all values are
+   acessed indirectly through variable references.
 
    [1] http://en.wikipedia.org/wiki/Administrative_normal_form
 
@@ -27,11 +17,15 @@
 
 #include "cell.h"
 
-typedef struct {
+struct _vm {
     cell *c;
     cell *e;
     cell *k;
-} vm;
+    cell *a;
+    cell *t;
+    void *END;
+} __attribute((__packed__));
+typedef struct _vm vm;
 
 
 /* Get environment slot and ref. */
@@ -68,63 +62,57 @@ void e_set(cell *e, int i, cell *v) {
      whenever evaluation finishes, and the top K frame is invoked.
 */
 
-typedef void* op;
-struct opcodes { 
-    op op_halt;
-    op op_let;    op k_let;
-    op op_begin;  op k_begin;
-    op op_quote;
-    op op_set;
-    op op_app;
-    op op_if;
-    op op_letcc;
-} __attribute((__packed__));;
-#define OP(name)                                                    \
-    ({struct opcodes opc;                                           \
-        heap_number((&(opc.name)-&(opc.op_halt)) / sizeof(op)); })
-
 void vm_continue(vm *vm) {
-    cell *c = vm->c;
-    cell *e = vm->e;
-    cell *k = vm->k;
+    int i;              // current opcode / variable index
 
-    cell *arg;   // argument to op_ or k_
-    int i;       // current opcode / variable index
-    cell *e_ext; // temp env var
+#define c     (vm->c)   // expression
+#define e     (vm->e)   // lexical environment
+#define k     (vm->k)   // execution context
+#define arg   (vm->a)   // argument to op_ or k_
+#define e_ext (vm->t)   // temp env
 
-    static struct opcodes op = {
-        .op_halt  = &&op_halt, 
-        .op_let   = &&op_let, 
-        .k_let    = &&k_let, 
-        .op_begin = &&op_begin, 
-        .k_begin  = &&k_begin,
-        .op_quote = &&op_quote,
-        .op_set   = &&op_set, 
-        .op_app   = &&op_app, 
-        .op_if    = &&op_if, 
-        .op_quote = &&op_quote,
-        .op_letcc = &&op_letcc,
+#define K_HALT  NUMBER(0)
+#define K_LET   NUMBER(2)
+#define K_BEGIN NUMBER(3)
+
+    static void *op[] = {
+        &&k_halt,   // 0
+        &&op_let,   // 1
+        &&k_let,    // 2
+        &&op_begin, // 3
+        &&k_begin,  // 4
+        &&op_quote, // 5
+        &&op_set,   // 6
+        &&op_app,   // 7
+        &&op_if,    // 8
+        &&op_letcc, // 9
     };
 
+    /* If we start with an empty contination, push an explicit halt
+       frame to the k stack. */
+    if (MT == k) {
+        PUSH(k, CONS(K_HALT, NIL));
+    }
     
   c_reduce:
-    /* Reduce current expression. */
-    i    = NCAR(c);     // get opcode
-    arg  = CDR(c);      // get op arg
+    /* Reduce core form. */
+    i     = NCAR(c);     // get opcode
+    arg   = CDR(c);      // get op arg
     goto run;
   k_return:
-    /* Execute top continuation frame, passing return value stored in
-       the c register. */
+    /* Execute top continuation frame, passing it the return value
+       (stored in the c register). */
     arg  = CAR(k);
     i    = NCAR(arg);   // get opcode
     arg  = CDR(arg);    // get k args
     k    = CDR(k);      // pop k stack
 
   run:
-    goto **(((void **)(&op))+i);
+    DISP("run %d\n", i);
+    goto *op[i];
 
   op_let: /* (exp1 . exp2) */
-    PUSH(k, CONS(OP(k_let), CONS(e, CDR(arg))));
+    PUSH(k, CONS(K_LET, CONS(e, CDR(arg))));
     c = CDR(arg);
     goto c_reduce;
   k_let: /* (e . exp2) */
@@ -133,7 +121,7 @@ void vm_continue(vm *vm) {
     goto c_reduce;
 
   op_begin: /* (exp1 . exp2) */
-    PUSH(k, CONS(OP(k_begin), CONS(e, CDR(arg))));
+    PUSH(k, CONS(K_BEGIN, CONS(e, CDR(arg))));
     c = CAR(arg);
     goto c_reduce;
   k_begin: /* (e . exp2) */
@@ -142,6 +130,7 @@ void vm_continue(vm *vm) {
     goto c_reduce;
 
   op_quote: /* datum */
+    c = arg;
     goto k_return;
 
   op_set: /* (var_dst . var_src) */
@@ -167,6 +156,7 @@ void vm_continue(vm *vm) {
     /* Push rest args. */
     if (i) { e_ext = CONS(arg, e_ext); }
     e = e_ext;
+    e_ext = NIL;  // kill ref for gc
     goto c_reduce;
 
   op_if: /* (var . (exp_t . exp_f)) */
@@ -179,11 +169,43 @@ void vm_continue(vm *vm) {
     c = k;
     goto k_return;
 
-  op_halt:
-    /* Stop interpreting. */
-    vm->c = c;
-    vm->e = e;
-    vm->k = k;
+  k_halt:
     return;
+#undef c
+#undef e
+#undef k
+#undef arg
+#undef e_ext
 }
 
+
+cell *eval(cell *expr) {
+    vm vm = {
+        .c   = expr, 
+        .e   = NIL, 
+        .k   = MT, 
+        .a   = NIL,
+        .t   = NIL,
+        .END = 0
+    };
+    heap_set_roots((cell**)&vm);
+    vm_continue(&vm);
+    return vm.c;
+}
+
+#if 0
+#define TEST(expr) {heap_collect(); test(expr); } // GC before CONS
+void test(cell *expr) {
+    DISP("in:  "); cell_display(expr); newline();
+    DISP("out: "); cell_display(eval(expr)); newline();
+}
+int main(void) {
+    heap_clear();
+
+    while (1) {
+        TEST (CONS(NUMBER(5), ATOM((void*)0xF00F000)));  // (quote atom)
+    }
+    
+    return 0;
+}
+#endif

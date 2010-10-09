@@ -28,9 +28,6 @@
 
 */
 
-#include <stdlib.h>
-#include <stdio.h>
-
 #include "cell.h"
 
 #ifdef HEAP_STATIC
@@ -43,24 +40,8 @@ int  heap_size;
 #endif
 
 static cell *heap_free;
-static cell *root;
+static cell **roots;
 
-
-/* Pointer reversal. 
-
-   It is possible to store the traversal context in the pair graph
-   (which is effectively a tree since marked nodes are not traversed).
-
-   In order to make sense of the bookkeeping we model it as a CK
-   machine, where the current code is an unmarked cell with unknown
-   contents and the current continuation is a previously visited pair
-   cell with a back pointer stored in CAR or CDR position.
- 
-   The machine has 2 operations:
-     - invoke code, which descends into the tree, updating the contination
-     - invoke (update) continuation
-
-*/
 
 
 void trap(void) { exit(1); }
@@ -77,14 +58,30 @@ void trap(void) { exit(1); }
 
  */
 
-void mark_free(void) {
+void mark_cells_prepare(void) {
     int i;
+#if 0
     for (i=0; i<heap_size; i++) {
         /* Mark non-atom nodes as free. */
         if (TAG_ATOM != icell_tag(i)) {
             icell_set_tag(i, TAG_FREE);
         }
     }
+#else
+    /* Using the knowledge that
+
+       ATOM   = 00
+       !ATOM  = 01 or 11
+
+       we can use the following trick to "smear out" the bits to mark
+       all non-atoms as free. */
+    
+    for (i=0; i<heap_tag_words; i++) {
+        cell_tag_word w = heap_tag[i] & 0x55555555;
+        heap_tag[i] = w | (w << 1);
+    }
+    
+#endif
 }
 void heap_clear(void) {
     int i;
@@ -94,7 +91,6 @@ void heap_clear(void) {
     heap_free = heap;
 }
 
-#define DISP(...) fprintf(stderr, __VA_ARGS__)
 
 void cell_display(cell *c);
 void cell_display_i(int i) {
@@ -107,6 +103,7 @@ void cell_display_i(int i) {
             case INIL:   magic = "()"; break;
             case IFALSE: magic = "#f"; break;
             case ITRUE:  magic = "#t"; break;
+            case IMT:    magic = "#<mt>"; break;
             default:     magic = "#<invalid>"; break;
             }
             DISP("%s", magic);
@@ -136,9 +133,37 @@ void *mark_atom(void *ptr) {
     return ptr;
 }
 
-void mark_used(cell *root) {
+
+/* MARK using pointer reversal. 
+
+   The GC mark phase needs to visit all nodes reachable from the root.
+   This can be done using a depth first search which in general needs
+   a descent stack to keep track of the return path.
+
+   However if we're allowed to modify the graph in-place, it is
+   possible to store the traversal context in the graph nodes, as long
+   as we can save extra information about where the pointer is stored.
+   For CONS cells this is just one bit: store in CAR or CDR.
+
+   It turns out that we don't need an extra bit, just one extra state
+   in the tag space that indicates a "half-visited" node.
+
+   In order to make sense of the bookkeeping we model the graph (tree)
+   traversal as a CK machine, where the current code is a cell to be
+   interpreted and the current continuation is a previously visited
+   pair cell with a back pointer stored in CAR or CDR position as
+   indicated by its tag bit.
+ 
+   The machine has 2 operations:
+     - invoke code, which descends into the tree, updating the contination
+     - invoke (update) continuation
+
+*/
+
+
+void mark_cells(cell *root) {
     cell *c = root;  // subtree under investigation
-    cell *k = NIL;   // continuation
+    cell *k = NIL;   // continuation encoding the rest of traversal
 
     cell *tmp;
     cell *heap_endx = heap + heap_size;
@@ -154,7 +179,7 @@ void mark_used(cell *root) {
         goto k_return;
     }
 
-    /* Interpret current cell type */
+    /* Handle current subtree rooted at c. */
     switch(cell_tag(c)) {
 
     case TAG_FREE:
@@ -179,7 +204,7 @@ void mark_used(cell *root) {
     }
 
 
-    /* Invoke the current continuation. */
+    /* Invoke the continuation at k when the current subtree is done. */
   k_return:
     if (k == NIL) return;
     switch(cell_tag(k)) {
@@ -212,8 +237,11 @@ void mark_used(cell *root) {
 
 
 void heap_collect(void) {
-    mark_free();
-    mark_used(root);
+    mark_cells_prepare();
+    cell **r;
+    for (r = roots; *r; r++) { 
+        mark_cells(*r); 
+    }
     heap_free = heap; // lazy sweep
 }
 
@@ -240,6 +268,12 @@ cell *heap_alloc(void) {
     /* Collect garbage. */
     heap_collect();
     DISP("GC: %d / %d\n", heap_used(), heap_size);
+    DISP("roots: \n");
+    cell **r;
+    for (r = roots; *r; r++) {
+        cell_display(*r); 
+        newline();
+    }
     goto again;
 }
 
@@ -253,13 +287,14 @@ cell *heap_cons(cell *a, cell *d) {
 }
 cell *heap_atom(void *ptr) {
     cell *c = heap_alloc();
-    c->pair = ((cell)ptr).pair & ~3;
+    c->atom = ptr;
+    cell_set_tag(c, TAG_ATOM);
     return c;
 }
 void heap_set_cons(cell *c, cell *a, cell *d) {
     c->pair = make_pair(a, d);
 }
-void heap_set_root(cell *c) { root = c; }
+void heap_set_roots(cell **r) { roots = r; }
 
 
 // test
@@ -273,18 +308,21 @@ int main(void) {
     // circ->pair = cons_tag(TAG_MARKED, atom, circ);
     // x = circ;
 
-    x = heap_cons(VOID, x);
-    x = heap_cons(TRUE, x);
-    x = heap_cons(FALSE, x);
+    x = CONS(VOID, x);
+    x = CONS(TRUE, x);
+    x = CONS(FALSE, x);
 
-    x = heap_cons(NUMBER(3), x);
-    x = heap_cons(NUMBER(2), x);
-    x = heap_cons(NUMBER(1), x);
-    root = x;
+    x = CONS(NUMBER(3), x);
+    x = CONS(NUMBER(2), x);
+    x = CONS(NUMBER(1), x);
+
+    cell *_roots[] = {x, NULL};
+
+    heap_set_roots(_roots);
     
     for(;;) {
-        cell_display(root); newline();
-        heap_cons(NIL, NIL);
+        // cell_display(root); newline();
+        CONS(NIL, NIL);
         // printf("used: %d\n", heap_used());
     }
     return 0;

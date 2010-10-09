@@ -9,14 +9,16 @@
    [1] http://w3.ift.ulaval.ca/~dadub100/files/picbit.pdf
  */
 
-// TAG BITS
-#define TAG_ATOM  0  /* External data. */
-#define TAG_K_CAR 1  /*                     K pointer in CAR. */
-#define TAG_K_CDR 2  /* Fully marked cell / K pointer in CDR. */
-#define TAG_FREE  3  /* Unmarked cell (free) */
+/* Cell tag bits.  Don't change these as the patterns are used for bit
+   twiddling tricks in the GC. */
 
-/* The CDR and MARKED tags are shared as they are used for tagging for
-   different interpretations of the memory graph.
+#define TAG_FREE  3  /* Unmarked cell (free) */
+#define TAG_K_CAR 2  /*                     K pointer in CAR. */
+#define TAG_K_CDR 1  /* Fully marked cell / K pointer in CDR. */
+#define TAG_ATOM  0  /* External data. */
+
+
+/* Tag sharing is possible due to different interpretations: 
 
    - Mark traversal continuations knows about K_CAR / K_CDR continuations.
 
@@ -24,7 +26,10 @@
 
    - Pointer type interpretation knows about ATOM and !ATOM.
 */
-#define TAG_MARKED    TAG_K_CDR
+
+/* The CDR and MARKED tags are shared which saves tags and eliminates
+   one tag update in the mark phase. */
+#define TAG_MARKED TAG_K_CDR
 
 
 typedef long long pair;
@@ -49,7 +54,7 @@ typedef unsigned int cell_tag_word;
 #define tag_mask ((1<<tag_bits)-1)
 #define tag_store_bit_size (8 * sizeof(cell_tag_word))
 #define tag_div (tag_store_bit_size / tag_bits)
-#define heap_tag_words (heap_size / tag_div)
+#define heap_tag_words (((heap_size - 1) / tag_div) + 1)
 
 #ifdef HEAP_STATIC
 #define heap_size 20
@@ -62,12 +67,13 @@ extern heap_tag_word *heap_tag;
 #endif
 
 void heap_clear(void);
+void heap_collect(void);
 
 cell *heap_cons(cell *a, cell *d);
 cell *heap_atom(void *ptr);
 
 void heap_set_cons(cell *c, cell *a, cell *d);
-void heap_set_root(cell *c);
+void heap_set_roots(cell **r);
 
 #define CAR_SHIFT 0
 #define CDR_SHIFT 16
@@ -98,7 +104,10 @@ static inline void cell_set_tag(cell *c, int tag) {
 } 
 
 
-static inline int cell_is_pair(cell *c) { return (TAG_ATOM != cell_tag(c)); }
+static inline int cell_is_pair(cell *c) { 
+    if (c > (heap + heap_size)) return 0;
+    return (TAG_ATOM != cell_tag(c)); 
+}
 
 /* Part of the cell address space can be used for small integers.  The
    GC ignores cell pointers that point beyond the heap. */
@@ -107,10 +116,14 @@ static inline int   icdr(cell *c)  { return (c->pair >> CDR_SHIFT) & CELL_MASK; 
 static inline cell* pcar(cell *c)  { return heap + icar(c); }
 static inline cell* pcdr(cell *c)  { return heap + icdr(c); }
 
-static inline pair  make_pair(cell *car, cell *cdr) {
-    int icar = (car - heap) & CELL_MASK;
-    int icdr = (cdr - heap) & CELL_MASK;
+static inline pair  make_ipair(int car, int cdr) {
+    int icar = car & CELL_MASK;
+    int icdr = cdr & CELL_MASK;
     return (icar << CAR_SHIFT) | (icdr << CDR_SHIFT);
+}
+
+static inline pair  make_pair(cell *car, cell *cdr) {
+    return make_ipair(car - heap, cdr - heap);
 }
 
 /* All cells with index >= heap_size are ignored by GC.  This gives
@@ -126,16 +139,19 @@ static inline cell *heap_number(int n) {
     return heap + HEAP_NUMBER_INDEX + (n & HEAP_NUMBER_MASK);
 }
 #define NUMBER(x) heap_number(x)
+#define ATOM(x) heap_atom(x)
 
 #define INIL   (HEAP_NUMBER_INDEX - 1)
 #define IVOID  (HEAP_NUMBER_INDEX - 2)
 #define ITRUE  (HEAP_NUMBER_INDEX - 3)
 #define IFALSE (HEAP_NUMBER_INDEX - 4)
+#define IMT    (HEAP_NUMBER_INDEX - 5)
 
 #define NIL    (heap + INIL)
 #define VOID   (heap + IVOID)
 #define TRUE   (heap + ITRUE)
 #define FALSE  (heap + IFALSE)
+#define MT     (heap + IMT)
 
 
 
@@ -155,6 +171,13 @@ static inline cell *heap_number(int n) {
 #define NCDR(c)       (icdr(c) & 0xFF)
 #define NPOP(c)       ({int i = NCAR(c); c = CDR(c); i;})
 
+#include <stdlib.h>
+#include <stdio.h>
+
+
+#define DISP(...) fprintf(stderr, __VA_ARGS__)
+void cell_display(cell *c);
+void newline(void);
 
 
 #endif
