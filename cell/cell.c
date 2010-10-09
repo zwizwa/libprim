@@ -56,12 +56,15 @@ void mark_cells_prepare(void) {
             icell_set_tag(i, TAG_FREE);
         }
     }
-#elseif 1
+#endif
+#if 1
     for (i=0; i<heap_size; i++) {
-        int t = icel_tag(i);
+        int t = icell_tag(i);
+        // DISP("tag = %d\n", t);
         icell_set_tag(i, t | 2);
     }
-#else
+#endif
+#if 0
     /* Using the knowledge that
 
        ATOM   = 00
@@ -203,6 +206,10 @@ void mark_cells(cell *root) {
 
     case TAG_ATOM_FREE:
         cell_set_tag(c, TAG_ATOM);
+        DISP("mark atom %p\n", c->atom);
+        goto k_return;
+
+
     case TAG_ATOM:
         /* Atom mark bits are not stored in the cell.  However, we do
            call a hook here to be able to run finalizers if
