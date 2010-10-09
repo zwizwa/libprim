@@ -33,11 +33,12 @@ struct _vm {
     cell *c;
     cell *e;
     cell *k;
+    cell *v;
     cell *a;
     cell *t;
     void *END;
 } __attribute((__packed__));
-#define VM_INIT {NIL,NIL,NIL,NIL,0};
+#define VM_INIT {NIL,NIL,NIL,NIL,NIL,0};
 
 typedef struct _vm vm;
 
@@ -85,6 +86,7 @@ void vm_continue(vm *vm) {
 #define c     (vm->c)   // expression
 #define e     (vm->e)   // lexical environment
 #define k     (vm->k)   // execution context
+#define v     (vm->v)   // value register
 #define arg   (vm->a)   // argument to op_ or k_
 #define e_ext (vm->t)   // temp env
 
@@ -110,7 +112,9 @@ void vm_continue(vm *vm) {
         &&op_runc,  // 12
     };
 
-/* Some convenience macros. */
+
+/* A continuation frame contains a code tag, the environment and an
+   arbitrary argument. */
 #define PUSHK(tag, arg) PUSH(k, CONS(tag, CONS(e, arg)));
 
     /* If we start with an empty contination, push an explicit halt
@@ -124,13 +128,12 @@ void vm_continue(vm *vm) {
     i     = NCAR(c);     // get opcode
     arg   = CDR(c);      // get op arg
     goto run;
+
   k_return:
     /* Execute top continuation frame, passing it the return value
        (stored in the c register). */
-    arg  = CAR(k);
-    i    = NCAR(arg);   // get opcode
-    arg  = CDR(arg);    // get k args
-    k    = CDR(k);      // pop k stack
+    arg  = POP(k);      // pop k stack
+    i    = NPOP(arg);   // pop opcode
     e    = CAR(arg);    // restore env
 
   run:
