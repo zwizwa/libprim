@@ -194,14 +194,15 @@ void vm_continue(vm *vm) {
     ((vm_prim)arg->atom)(vm);
     goto k_return;
 
-    /* Continuations take a detour: op_letcc wraps the continuation as
-       a closure over an empty environment and a op_runc primitive.
-       This ensures that the continuation object can be applied to a
-       value.
+    /* Reification of continuations takes a detour: 
 
-       After application this value ends up as the only element in the
-       environment accessible by the op_runc opcode.  The k stack is
-       passed as an argument to op_runc. */
+       First op_letcc wraps the continuation as a closure over an
+       empty environment and a op_runc primitive.  This ensures that
+       the continuation object can be applied to a value.
+
+       After such application this value ends up as the only element
+       in the environment accessible by the op_runc opcode.  The k
+       stack is passed as an argument to op_runc. */
   op_letcc: /* () */
     c = CONS(NIL, CONS(NUMBER(2), CONS(OP_RUNC, k)));
     goto k_return;
