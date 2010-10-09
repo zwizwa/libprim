@@ -30,6 +30,7 @@
 /* The CDR and MARKED tags are shared which saves tags and eliminates
    one tag update in the mark phase. */
 #define TAG_MARKED TAG_K_CDR
+#define TAG_PAIR   TAG_MARKED
 
 
 typedef long long pair;
@@ -51,13 +52,14 @@ typedef union _cell cell;
 /* Tag bits are stored in a separate table. */
 typedef unsigned int cell_tag_word;
 #define tag_bits 2
-#define tag_mask ((1<<tag_bits)-1)
-#define tag_store_bit_size (8 * sizeof(cell_tag_word))
-#define tag_div (tag_store_bit_size / tag_bits)
-#define heap_tag_words (((heap_size - 1) / tag_div) + 1)
+#define tag_mask ((1 << tag_bits) - 1)
+#define bits_per_tag_word (8 * sizeof(cell_tag_word))
+#define cells_per_tag_word (bits_per_tag_word / tag_bits)
+#define heap_tag_words (((min_heap_size - 1) / cells_per_tag_word) + 1)
 
 #ifdef HEAP_STATIC
-#define heap_size 20
+#define min_heap_size 20  // will be rounded up
+#define heap_size (heap_tag_words * cells_per_tag_word)
 extern cell heap[heap_size];
 extern cell_tag_word heap_tag[heap_tag_words];
 #else
@@ -79,21 +81,28 @@ void heap_set_roots(cell **r);
 #define CDR_SHIFT 16
 #define CELL_MASK 0xFFFF
 
-#define TAG_ADDR(i, itag, ishift)               \
-    int itag   = i / tag_div;                   \
-    int ishift = (i % tag_div) * tag_bits;
+#define TAG_INDEX(i, itag, ishift)                         \
+    int itag   = i / cells_per_tag_word;                   \
+    int ishift = (i % cells_per_tag_word) * tag_bits;
+
+#define CELL_INDEX(itag, ishift) \
+    ((itag * cells_per_tag_word) + (ishift / tag_bits))
 
 static inline int icell_tag(int i) {
-    TAG_ADDR(i, itag, ishift);
+    TAG_INDEX(i, itag, ishift);
     int tag = (heap_tag[itag] >> ishift) & tag_mask;
     return tag;
 }
+#define TAG_SET(itag, ishift, tag) {            \
+    cell_tag_word w = heap_tag[itag];           \
+    w &= ~(tag_mask << ishift);                 \
+    w |= (tag & tag_mask) << ishift;            \
+    heap_tag[itag] = w;                         \
+}
+
 static inline void icell_set_tag(int i, int tag) {
-    TAG_ADDR(i, itag, ishift);
-    cell_tag_word w = heap_tag[itag];
-    w &= ~(tag_mask << ishift);
-    w |= (tag & tag_mask) << ishift;
-    heap_tag[itag] = w;
+    TAG_INDEX(i, itag, ishift);
+    TAG_SET(itag, ishift, tag);
 }
 
 static inline int cell_tag(cell *c) { 
@@ -173,6 +182,11 @@ static inline cell *heap_number(int n) {
 
 #include <stdlib.h>
 #include <stdio.h>
+
+
+/* Reserve a part of CELL address space for constant references to
+   objects stored in Flash memory. */
+
 
 
 #define DISP(...) fprintf(stderr, __VA_ARGS__)

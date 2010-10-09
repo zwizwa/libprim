@@ -1,15 +1,27 @@
 /* VM on top of CELL.  
 
    The main idea behind the CELL graph memory is to run on ARM cores
-   with little memory (up to 256 kB RAM).
+   with little memory (up to 64k cells using 256 kB RAM).
 
    For the interpreter it would be convenient to:
      - have compact byte code
      - run code in graph memory
-     - run code in flat (constant) Flash memory
+     - run code in flat (constant) Flash memory (*)
 
    The core language is a variant of ANF[1] where all values are
    acessed indirectly through variable references.
+
+
+   The VM is in the first place simple: all structures are represented
+   as pair based binary trees.  This means it generates a lot of
+   garbage in the form of environments and continuations.
+
+   However the cell.c GC has mark phase complexity proportional to the
+   live set, and a separate tag store.  The latter uses optimized
+   traversal during pre-mark cell tagging and lazy allocation phases.
+
+   (*) Running code in Flash or other non-managed memory requires
+   re-directing implemenations of CAR/CDR and NCAR/NCDR.
 
    [1] http://en.wikipedia.org/wiki/Administrative_normal_form
 
@@ -86,6 +98,7 @@ void vm_continue(vm *vm) {
         &&op_app,   // 7
         &&op_if,    // 8
         &&op_letcc, // 9
+        &&op_prim,  // 10
     };
 
     /* If we start with an empty contination, push an explicit halt
@@ -167,6 +180,10 @@ void vm_continue(vm *vm) {
 
   op_letcc: /* () */
     c = k;
+    goto k_return;
+
+  op_prim:  /* atom */
+    ((vm_prim)arg)(vm);
     goto k_return;
 
   k_halt:

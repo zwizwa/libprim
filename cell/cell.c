@@ -13,8 +13,9 @@
    ATOMs are marked during GC to allow for atom-specific GC,
    i.e. refcounting.
 
-   CELLs are same size, and we're running on SRAM embedded target, so
-   no need for compacting.
+   No need for compacting:
+      - CELLs are same size so no fragmentation
+      - designing for SRAM embedded target: no need for locality
 
    ( If compaction is necessary the 2-finger algorithm is a good
    candidate [Edwards 1974].  Not local but that's not a problem for
@@ -39,7 +40,7 @@ cell_tag_word *heap_tag;
 int  heap_size;
 #endif
 
-static cell *heap_free;
+static int heap_free;
 static cell **roots;
 
 
@@ -88,7 +89,7 @@ void heap_clear(void) {
     for (i=0; i<heap_size; i++) {
         icell_set_tag(i, TAG_FREE);
     }
-    heap_free = heap;
+    heap_free = 0;
 }
 
 
@@ -242,7 +243,7 @@ void heap_collect(void) {
     for (r = roots; *r; r++) { 
         mark_cells(*r); 
     }
-    heap_free = heap; // lazy sweep
+    heap_free = 0; // lazy sweep
 }
 
 int heap_used(void) {
@@ -256,18 +257,30 @@ int heap_used(void) {
 
 
 /* Alloc uses lazy free list. */
-cell *heap_alloc(void) {
+cell *heap_alloc(int tag) {
     int tries = 2;
     while(tries--) {
-        /* Scan the heap for a free cell. */
-        while(heap_free < (heap + heap_size)) {
-            cell *c = heap_free++;
-            if (TAG_FREE == cell_tag(c)) {
-                c->pair = TAG_ATOM;
-                return c;
+        /* Scan for a free cell using direct tag array indexing for
+           efficiency. */
+        TAG_INDEX(heap_free, itag, ishift);
+        while(itag < heap_tag_words) {
+            cell_tag_word w = heap_tag[itag];
+            while(ishift < bits_per_tag_word) {
+                if (TAG_FREE == ((w >> ishift) & tag_mask)) {
+                    TAG_SET(itag, ishift, tag);
+                    int i = CELL_INDEX(itag, ishift);
+                    heap_free = 1 + i;
+                    /* Init to something innocent. */
+                    heap[i].pair = make_ipair(INIL, INIL); 
+                    return heap + i;
+                }
+                ishift += tag_bits;
             }
+            ishift = 0;
+            itag++;
         }
-        /* Collect garbage. */
+
+        /* None found, collect garbage. */
         heap_collect();
         DISP("GC: %d / %d\n", heap_used(), heap_size);
         DISP("roots: \n");
@@ -286,15 +299,13 @@ cell *heap_alloc(void) {
 
 /* Public interface */
 cell *heap_cons(cell *a, cell *d) {
-    cell *c = heap_alloc();
+    cell *c = heap_alloc(TAG_PAIR);
     c->pair = make_pair(a, d);
-    cell_set_tag(c, TAG_MARKED);
     return c;
 }
 cell *heap_atom(void *ptr) {
-    cell *c = heap_alloc();
+    cell *c = heap_alloc(TAG_ATOM);
     c->atom = ptr;
-    cell_set_tag(c, TAG_ATOM);
     return c;
 }
 void heap_set_cons(cell *c, cell *a, cell *d) {

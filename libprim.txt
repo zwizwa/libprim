@@ -9903,3 +9903,33 @@ Date: Sat Oct  9 13:24:36 CEST 2010
 * Put tag bits in separate table?  Morale: interpreter does not need
   tags: bytecode has been type-checked.
 
+
+
+Entry: Cells in flash for storing VM code.
+Date: Sat Oct  9 17:24:42 CEST 2010
+
+What is necessary?  Something that supports CAR/CDR and NCAR/NCDR for
+representing code in Flash memory.
+
+The problem is that CONS needs to work on such references: any object
+or part of an object that eventually gets stored in a RAM pair needs
+an address that maps into RAM cell space.  That's quite a constraint.
+
+However, just storing pairs like is done in RAM isn't a problem as
+long as relative<->absolute translation is done properly.  For an
+embedded target with known memory map this can probably be done
+efficiently.
+
+To have "more code" in the Flash, not consuming cell address space,
+the simplest approach is probably to just compile to machine code or
+other internal data/code reps.  Anything goes there.
+
+Entry: C primtives in new VM
+Date: Sat Oct  9 17:41:39 CEST 2010
+
+This poses a problem as the primitives need run-time tagging; all the
+other code is untyped (pre-checked statically typed).
+
+Instead of thinking of primitives as functions, it might be
+interesting to think of them as closures, i.e. with a full lexical
+context.
