@@ -111,7 +111,6 @@ static inline void cell_set_tag(cell *c, int tag) {
     icell_set_tag(c - heap, tag);
 } 
 
-
 static inline int cell_is_pair(cell *c) { 
     if (c > (heap + heap_size)) return 0;
     return (TAG_ATOM != cell_tag(c)); 

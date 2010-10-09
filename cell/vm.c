@@ -37,6 +37,8 @@ struct _vm {
     cell *t;
     void *END;
 } __attribute((__packed__));
+#define VM_INIT {NIL,NIL,NIL,NIL,0};
+
 typedef struct _vm vm;
 
 typedef void (*vm_prim)(vm *vm);
@@ -48,7 +50,7 @@ cell* e_slot(cell *e, int i) {
     return e;
 }
 cell* e_ref(cell *e, int i) {
-    return CDR(e_ref(e, i));
+    return CAR(e_slot(e, i));
 }
 void e_set(cell *e, int i, cell *v) {
     SET_CAR(e_ref(e, i), v);
@@ -101,6 +103,7 @@ void vm_continue(vm *vm) {
         &&op_if,    // 8
         &&op_letcc, // 9
         &&op_prim,  // 10
+        &&op_ref,   // 11
     };
 
     /* If we start with an empty contination, push an explicit halt
@@ -123,15 +126,15 @@ void vm_continue(vm *vm) {
     k    = CDR(k);      // pop k stack
 
   run:
-    DISP("run %d\n", i);
+    // DISP("run %d\n", i);
     goto *op[i];
 
   op_let: /* (exp1 . exp2) */
     PUSH(k, CONS(K_LET, CONS(e, CDR(arg))));
-    c = CDR(arg);
+    c = CAR(arg);
     goto c_reduce;
   k_let: /* (e . exp2) */
-    e = CONS(c, CAR(arg));  // update env w. value
+    e = CONS(c, CAR(c));  // update env w. value
     c = CDR(arg);
     goto c_reduce;
 
@@ -184,12 +187,22 @@ void vm_continue(vm *vm) {
     c = k;
     goto k_return;
 
+  op_ref:   /* number */
+    i = (arg - heap) & 0xFF;   // FIXME: this is ugly: CAR to early
+    c = e_ref(e, i);
+    goto k_return;
+        
+
   op_prim:  /* atom */
     ((vm_prim)arg)(vm);
     goto k_return;
 
   k_halt:
+    /* Clear temps before returning. */
+    arg   = NIL;
+    e_ext = NIL;
     return;
+
 #undef c
 #undef e
 #undef k
@@ -198,31 +211,39 @@ void vm_continue(vm *vm) {
 }
 
 
-cell *eval(cell *expr) {
-    vm vm = {
-        .c   = expr, 
-        .e   = NIL, 
-        .k   = MT, 
-        .a   = NIL,
-        .t   = NIL,
-        .END = 0
-    };
-    heap_set_roots((cell**)&vm);
-    vm_continue(&vm);
-    return vm.c;
+cell *vm_eval(vm *vm, cell *expr) {
+    vm->c = expr;
+    vm->e = NIL;
+    vm->k = MT;
+    vm_continue(vm);
+    return vm->c;
 }
 
-#if 0
-#define TEST(expr) {heap_collect(); test(expr); } // GC before CONS
-void test(cell *expr) {
+
+
+
+
+
+#if 1
+#define TEST(expr) { test(&vm, expr); }
+void test(vm *vm, cell *expr) {
     DISP("in:  "); cell_display(expr); newline();
-    DISP("out: "); cell_display(eval(expr)); newline();
+    DISP("out: "); cell_display(vm_eval(vm, expr)); newline();
 }
 int main(void) {
-    heap_clear();
 
+    /* init VM + GC */
+    vm vm = VM_INIT;
+    heap_clear();
+    heap_set_roots((cell**)&vm);
+
+
+    cell *a = ATOM((void*)0xF00F000);
     while (1) {
-        TEST (CONS(NUMBER(5), ATOM((void*)0xF00F000)));  // (quote atom)
+#define OP(n,x) CONS(NUMBER(n),x)
+        cell *q;
+        TEST (q = OP(5, a));  // (quote atom)
+        TEST (OP(1, CONS(q, OP(11, NUMBER(0))))); // (let (var atom) var)
     }
     
     return 0;

@@ -9945,3 +9945,4 @@ Date: Sat Oct  9 17:56:43 CEST 2010
 It doesn't seem to be so hard to now move to arbitrary cell sizes.
 Everything should really be just the same.
 
+Hmm..  Not _that_ trivial.  Let's leave for later when it's necessary.

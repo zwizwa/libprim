@@ -93,38 +93,39 @@ void heap_clear(void) {
 }
 
 
-void cell_display(cell *c);
+void cell_display_i(int i);
+void cell_display_pair(cell *c) {
+    DISP("(");
+    cell_display_i(icar(c));
+    DISP(" . ");
+    cell_display_i(icdr(c));
+    DISP(")");
+}
 void cell_display_i(int i) {
     if (i >= heap_size) {
-        if (i > HEAP_NUMBER_INDEX) DISP("%d", i & 0xFF);
+        if (i >= HEAP_NUMBER_INDEX) DISP("%d", i & 0xFF);
         else {
             const char *magic;
             switch (i) {
-            case IVOID:  magic = "#<void>"; break;
-            case INIL:   magic = "()"; break;
-            case IFALSE: magic = "#f"; break;
-            case ITRUE:  magic = "#t"; break;
-            case IMT:    magic = "#<mt>"; break;
-            default:     magic = "#<invalid>"; break;
+            case IVOID:  DISP("#<void>"); break;
+            case INIL:   DISP("()"); break;
+            case IFALSE: DISP("#f"); break;
+            case ITRUE:  DISP("#t"); break;
+            case IMT:    DISP("#<mt>"); break;
+            default:     DISP("#<invalid:%x>",i); break;
             }
-            DISP("%s", magic);
         }
     }
-    else cell_display(heap + i);
-}
-void cell_display(cell *c) {
-    int i;
-    if (cell_is_pair(c)) {
-        DISP("(");
-        cell_display_i(icar(c));
-        DISP(" . ");
-        cell_display_i(icdr(c));
-        DISP(")");
+    else if (cell_is_pair(heap + i)) {
+        cell_display_pair(heap + i);
     }
     else {
-        DISP("%p", c->atom);
+        DISP("%p", heap[i].atom);
     }
+
 }
+void cell_display(cell *c) { cell_display_i(c - heap); }
+
 void newline(void) {
     DISP("\n");
 }
@@ -286,6 +287,7 @@ cell *heap_alloc(int tag) {
         DISP("roots: \n");
         cell **r;
         for (r = roots; *r; r++) {
+            DISP("    ");
             cell_display(*r); 
             newline();
         }
@@ -315,7 +317,7 @@ void heap_set_roots(cell **r) { roots = r; }
 
 
 // test
-#if 1
+#if 0
 int main(void) {
     heap_clear();
     cell *x = NIL;
