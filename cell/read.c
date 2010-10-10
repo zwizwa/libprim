@@ -25,7 +25,7 @@ static cell *_nil(vm *vm) {
     return NIL;
 }
 static cell *_eof(vm *vm) {
-    return EOFOBJ;
+    return EOF_OBJECT;
 }
 static cell *_vector(vm *vm, cell *lst) {
     return lst;

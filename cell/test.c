@@ -73,9 +73,16 @@ void readtest(vm *vm) {
     while(1) {
         heap_collect();
         cell *expr = vm_read_stdin(vm);
-        if (EOFOBJ == expr) break;
-        if (NUMBER(123) != test(vm, expr)) {
-            DISP("FAIL!\n");
+        if (EOF_OBJECT == expr) break;
+
+        if (0) {
+            cell_display(expr);
+            newline();
+        }
+        else {
+            if (NUMBER(123) != test(vm, expr)) {
+                DISP("FAIL!\n");
+            }
         }
     }
 }

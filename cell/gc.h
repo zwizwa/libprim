@@ -165,14 +165,15 @@ static inline cell *heap_number(int n) {
 #define ITRUE   (HEAP_NUMBER_INDEX - 3)
 #define IFALSE  (HEAP_NUMBER_INDEX - 4)
 #define IMT     (HEAP_NUMBER_INDEX - 5)
-#define IEOFOBJ (HEAP_NUMBER_INDEX - 6)
 
 #define NIL     (heap + INIL)
 #define VOID    (heap + IVOID)
 #define TRUE    (heap + ITRUE)
 #define FALSE   (heap + IFALSE)
 #define MT      (heap + IMT)
-#define EOFOBJ  (heap + IEOFOBJ)
+
+#define IEOF_OBJECT (HEAP_NUMBER_INDEX - 6)
+#define EOF_OBJECT  (heap + IEOF_OBJECT)
 
 
 

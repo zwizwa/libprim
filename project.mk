@@ -189,6 +189,6 @@ uninstall:
 
 clean:
 	cd $(B); rm -rf $(MODULES)
+
+cleansrc:
 	cd $(S); rm -f `find -name '*~'`
-
-

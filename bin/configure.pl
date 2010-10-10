@@ -108,7 +108,9 @@ sub save_reconfigure {
     print STATE "cd `dirname \$0`\n"; # return to the builddir where reconfigure is located
     print STATE "exec $var{srcdir}/configure \\\n";
     foreach $key (keys %var){
-	print STATE "\t--$key=$var{$key} \\\n";
+        if ($var{$key}) {
+            print STATE "\t--$key=$var{$key} \\\n";
+        }
     }
     print STATE "\t\$*\n";
     close STATE;
@@ -432,7 +434,7 @@ if ($var{debug} eq "yes"){
     header "#define PRIM_DEBUG 1";  # this is changed to not conflict with pf
 }
 elsif ($var{size} eq "yes") {
-    makefile  "OPTI_CFLAGS = -Os -fomit-frame-pointer";
+    makefile  "OPTI_CFLAGS = -Os -fomit-frame-pointer -fdata-sections  -ffunction-sections";
 }
 else{
     makefile "OPTI_CFLAGS = -O3 -ffast-math -funroll-loops";

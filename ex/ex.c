@@ -17,11 +17,6 @@
 #include "config.h"
 #include <ex/ex.h>
 
-char *object_to_cstring(_ ob) {
-    bytes *b = object_to_bytes(ob);
-    if (!b) return NULL;
-    return cstring_from_bytes(b);
-}
 
 object _ex_write_vector(ex *ex, const char *type, vector *v) {
     port *p = ex->port(ex);
@@ -42,6 +37,13 @@ object _ex_write_vector(ex *ex, const char *type, vector *v) {
     port_printf(p, "%s", close);
     return VOID;
 }
+
+char *object_to_cstring(_ ob) {
+    bytes *b = object_to_bytes(ob);
+    if (!b) return NULL;
+    return cstring_from_bytes(b);
+}
+
 
 /* FIXME: It's probably best to unify this with sequence printing,
    where all the elements in the list are printed by name, and then

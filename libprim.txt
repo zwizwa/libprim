@@ -10011,3 +10011,39 @@ Date: Sun Oct 10 15:13:23 CEST 2010
 
   balanced tree representation of n slots + header (size + type tag).
   SC vm needs:  
+
+
+
+Does it make sense to run the old VM1 on a limited cell store?  It is
+quite inefficient with memory already.  However it might be possible
+to reuse the part of EX that doesn't rely on structs and vectors.
+
+
+Entry: EX on top of CELL?  NO  -> split EX code
+Date: Sun Oct 10 16:12:37 CEST 2010
+
+It doesn't seem to make much sense to port EX on top of CELL.  It
+makes more sense to centralize pair processing code since it is used
+in LEAF, EX, CELL (and PF).
+
+1. It seems that most code in EX can be auto-generated: it's really
+   mostly wrappers.  The beef is in LEAF anyway.
+
+2. The PAIR processing code can be abstracted and possibly reused in
+   LEAF for its linear / RC cells.
+
+
+
+Entry: Answer original question: better GC for SC?  NO.
+Date: Sun Oct 10 16:29:30 CEST 2010
+
+It doesn't seem to be straightforward to add a CELL based GC to SC.
+It seems better to write a compacting GC, which will make it even
+slower.
+
+I think I'm going to give up on the idea.  EX/SC/PF are for
+"linux-size" hosts: couple of MB of RAM.  Small embedded hosts need a
+different architecture like CELL.
+
+CELL can use LEAF, but probably it's best to refactor LEAF to remove
+the dependency on malloc.
