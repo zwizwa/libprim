@@ -141,7 +141,7 @@ void vm_continue(vm *vm) {
     PUSHK(K_LET, POP(c));
     goto c_reduce;
   k_let: /* exp_later */
-    PUSH(e, v);  // store value in environment, exp_later is already in c.
+    PUSH(e, v);  // add binding to environment
     v = VOID;
     goto c_reduce;
 
@@ -149,7 +149,7 @@ void vm_continue(vm *vm) {
     PUSHK(K_BEGIN, POP(c));
     goto c_reduce;
   k_begin: /* exp_later */
-    v = VOID; // exp_later is alredy in c and we ignore the value.
+    v = VOID;  // ignore the value.
     goto c_reduce;
 
   op_quote: /* datum */

@@ -10038,8 +10038,9 @@ Entry: Answer original question: better GC for SC?  NO.
 Date: Sun Oct 10 16:29:30 CEST 2010
 
 It doesn't seem to be straightforward to add a CELL based GC to SC.
-It seems better to write a compacting GC, which will make it even
-slower.
+It seems better to write a compacting vector GC, which will make it
+even slower.  Then it really needs a more compact code representation
+in the form of a byte code interpreter.
 
 I think I'm going to give up on the idea.  EX/SC/PF are for
 "linux-size" hosts: couple of MB of RAM.  Small embedded hosts need a
@@ -10047,3 +10048,119 @@ different architecture like CELL.
 
 CELL can use LEAF, but probably it's best to refactor LEAF to remove
 the dependency on malloc.
+
+So where am I at?  Is it worth writing a compacting vector GC?
+Probably not, as I don't think it would bring me to the real target:
+run the whole interpreter on an ARM target using about 32kB of RAM.
+That really needs a different approach.
+
+It would be interesting to figure out how much memory it uses on a
+linux arm target with static libc.
+
+Anyways..  It was a fun detour but the original idea seems to be a
+no-no: there is no simple way to make it work on the AT91.  That needs
+a different approach.  There are 2 interesting other things that came
+out though:
+
+  - cell based GC is quite simple to implement
+
+  - a tree-walking ANF interpreter is also simple
+
+  - the road to a working byte-code version doesn't seem too hard to
+    walk, but is paved with a million trade-offs if efficiency is key.
+
+Possible roads:
+
+  - find the relation between the ANF treewalker and a straightforward
+    byte code version.
+
+  - see how this relates to the compiler.  can the ANF be an
+    intermediate form so we can compile to a treewalker and a byte
+    code version without much extra effort?
+
+  - do the same for VM2 on top of EX.
+
+  - once the bytecode machine can work on SC _and_ reduce memory usage
+    (and increase speed?) then see about implementing a memory
+    efficient compacting vector GC.
+
+
+Entry: arm uClibc
+Date: Sun Oct 10 18:31:40 CEST 2010
+
+Using a buildroot install in /opt/xc/android/buildroot-2009.08/
+
+configure --cmdprefix=/opt/xc/android/buildroot-2009.08/build_arm/staging_dir/usr/bin/arm-linux-
+qemu-arm -L /opt/xc/android/buildroot-2009.08/project_build_arm/uclibc/root/ ./cell
+
+
+
+Entry: Tree walking vs byte code
+Date: Sun Oct 10 18:49:53 CEST 2010
+
+Is ANF byte code just CDR-coded treewalking?  Looks like it.  Code
+takes the form of a sequence of LET and BEGIN forms.  You only need
+one bit to distinguish between both, so let's focus on LET only.
+
+So byte code would look like this:
+
+
+       PUSHK(ex1_r)     // start of let
+       jump code_ex1    // compute value (this code jumps to k_return)
+ex1_r: PUSH(e, v)       // continuation code pops value to env stack
+       ...              // execute body of let
+
+/* This code can also just be inlined. */
+code_ex1:  ...
+           v = some_data
+           goto k_return
+
+k_return:  c = POP(k)
+           i = NPOP(c)  // address of ex1_r
+           e = POP(c)   // restore env
+
+
+
+The above is a bit informal but the idea is quite simple: 
+
+Before jumping into a machine code procedure that computes a value v
+to be added to the environment as a new binding, push a continuation
+frame that saves the environment, and the code address to resume
+operation.
+
+The environment is caller-saved because the callee might be an
+application of a closure which destroys the environment.
+
+In the current vm.c the continuation needs 3 args instead: syntax (c)
++ interpreter (continuation bytecode such as k_let and k_begin).
+
+
+Entry: CALL and RETURN
+Date: Sun Oct 10 19:24:21 CEST 2010
+
+So effectively, we're implementing a fairly standard CALL and RETURN
+with the following additions:
+
+     - CALL saves return address and environment pointer
+     - RETURN restores environment and jumps back to saved address
+
+How does this then lead to proper tail calls?  If after a sequence of
+CALLs to build an environment (the RHSs of `let*') an application is
+invoked, there is no frame created: only the environment changes as it
+comes from the closure, but the continuation stack is "passed on".
+
+WOW.
+
+I finally got it!
+
+
+
+Entry: Scheme is Forth with data stack swapping
+Date: Sun Oct 10 19:33:33 CEST 2010
+
+Indeed!
+
+
+
+
+
