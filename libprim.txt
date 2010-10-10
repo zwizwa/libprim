@@ -9976,11 +9976,12 @@ The main pull is the conversion from expressions to flat code.  The
 code pointer becomes specialized.
 
 One thing to note though is that the compiler itself really isn't
-trivial either.
+trivial either!  I'm far from done!!
 
 Roadmap:
-  1. add reader to cellvm to make testing easier
-  2. copy to cellvm2.c and convert the code pointer to byte code
+  1. add reader to cellvm to make testing easier (OK)
+  2. don't use c reg for storing "continuation code"
+  3. copy to cellvm2.c and convert the code pointer to byte code
 
 Would it be possible to describe the VM in scheme such that it can be
 easily translated to C, so at least the VM can run also in a
