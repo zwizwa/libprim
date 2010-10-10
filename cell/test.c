@@ -1,5 +1,6 @@
 
 #include "cellvm.h"
+#include "cellread.h"
 
 #if 1
 #define TEST(expr) { test(&vm, expr); }
@@ -15,18 +16,6 @@ void test_prim(vm *vm) {
     vm->v = VOID;
 }
 
-void tests(vm *vm);
-void looptest(vm *vm);
-int main(void) {
-
-    /* init VM + GC */
-    vm vm = VM_INIT;
-    heap_clear();
-    heap_set_roots((cell**)&vm);
-
-    // looptest(&vm);
-    while (1) { tests(&vm); }
-}
 
 void tests(vm *vm) {
     
@@ -76,6 +65,27 @@ void looptest(vm *vm) {
     SET_CDR(c1, expr);
     vm_eval(vm, expr);
 
+}
+
+void readtest(vm *vm) {
+    while(1) {
+        heap_collect();
+        cell *expr = vm_read_stdin(vm);
+        test(vm, expr);
+    }
+}
+
+int main(void) {
+
+    /* init VM + GC */
+    vm vm = VM_INIT;
+    heap_clear();
+    heap_set_roots((cell**)&vm);
+
+    // looptest(&vm);
+    // while (1) { tests(&vm); }
+    readtest(&vm);
+    return 0;
 }
 
 #endif

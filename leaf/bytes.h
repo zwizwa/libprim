@@ -45,7 +45,7 @@ int bytes_write_string(bytes *b, port *p);
    It's necessary to check if it is properly terminated, or access it
    through this function.  */
 
-char *cstring_from_bytes(bytes *b);
+char *cstring_from_bytes(const bytes *b);
 int bytes_dump(bytes *b, port *p);     // raw dump
 int bytes_hexdump(bytes *b, port *p);  // human-readable
 

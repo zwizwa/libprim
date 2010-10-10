@@ -67,7 +67,7 @@ void vm_continue(vm *vm) {
     int i;              // current opcode / variable index
 
 /* Registers are in the vm struct so the GC can see them. */
-#define c     (vm->c)   // expression
+#define c     (vm->c)   // expression to reduce
 #define e     (vm->e)   // lexical environment
 #define k     (vm->k)   // execution context
 #define v     (vm->v)   // value register
@@ -94,6 +94,7 @@ void vm_continue(vm *vm) {
         &&op_prim,  // 10
         &&op_ref,   // 11
         &&op_runc,  // 12
+        &&op_close, // 13
     };
 
 
@@ -109,34 +110,36 @@ void vm_continue(vm *vm) {
     
   c_reduce:
     /* Reduce core form. */
-    i     = NPOP(c);     // get opcode
+    i = NPOP(c); // opcode
+    v = VOID;    // kill old value ref
     goto run;
 
   k_return:
     /* Execute top continuation frame, passing it the return value
        (stored in the c register). */
-    c    = POP(k);      // pop k stack
-    i    = NPOP(c);     // pop opcode
-    e    = POP(c);      // restore env
+    c = POP(k);  // k frame
+    i = NPOP(c); // opcode
+    e = POP(c);  // environment
     goto run;
 
   run:
-    // DISP("run %d\n", i);
     goto *op[i];
 
   op_let: /* (exp1 . exp2) */
-    PUSHK(K_LET, CDR(c));
-    c = CAR(c);
+    PUSHK(K_LET, CDR(c)); // exp2 is for later
+    c = CAR(c);           // exp1 is next
     goto c_reduce;
   k_let: /* exp2 */
-    PUSH(e, v);
+    PUSH(e, v);  // store value in environment
+                 // exp2 is already in c.
     goto c_reduce;
 
   op_begin: /* (exp1 . exp2) */
     PUSHK(K_BEGIN, CDR(c));
     c = CAR(c);
     goto c_reduce;
-  k_begin: /* (e . exp2) */
+  k_begin: /* exp2 */
+    // exp2 is alredy in c and we ignore the value.
     goto c_reduce;
 
   op_quote: /* datum */
@@ -164,13 +167,18 @@ void vm_continue(vm *vm) {
         /* Push them onto v first. */
         v = NIL;
         while(NIL != c) { PUSH(v, e_ref(e, NPOP(c))); }
-        PUSH(t1, v); v = VOID;
+        PUSH(t1, v);
     }
 
     c = t2;
     e = t1;
-    t1 = t2 = VOID;  // kill refs for gc
+    t1 = t2 = v = VOID;  // kill refs for gc
     goto c_reduce;
+
+
+  op_close: /* (nr . expr) */
+    v = CONS(e, c);
+    goto k_return;
 
   op_if: /* (var . (exp_t . exp_f)) */
     c = CDR(e_slot(e, NCDR(c)));

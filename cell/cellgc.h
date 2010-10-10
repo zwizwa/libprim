@@ -160,17 +160,19 @@ static inline cell *heap_number(int n) {
 #define NUMBER(x) heap_number(x)
 #define ATOM(x) heap_atom(x)
 
-#define INIL   (HEAP_NUMBER_INDEX - 1)
-#define IVOID  (HEAP_NUMBER_INDEX - 2)
-#define ITRUE  (HEAP_NUMBER_INDEX - 3)
-#define IFALSE (HEAP_NUMBER_INDEX - 4)
-#define IMT    (HEAP_NUMBER_INDEX - 5)
+#define INIL    (HEAP_NUMBER_INDEX - 1)
+#define IVOID   (HEAP_NUMBER_INDEX - 2)
+#define ITRUE   (HEAP_NUMBER_INDEX - 3)
+#define IFALSE  (HEAP_NUMBER_INDEX - 4)
+#define IMT     (HEAP_NUMBER_INDEX - 5)
+#define IEOFOBJ (HEAP_NUMBER_INDEX - 6)
 
-#define NIL    (heap + INIL)
-#define VOID   (heap + IVOID)
-#define TRUE   (heap + ITRUE)
-#define FALSE  (heap + IFALSE)
-#define MT     (heap + IMT)
+#define NIL     (heap + INIL)
+#define VOID    (heap + IVOID)
+#define TRUE    (heap + ITRUE)
+#define FALSE   (heap + IFALSE)
+#define MT      (heap + IMT)
+#define EOFOBJ  (heap + IEOFOBJ)
 
 
 
@@ -187,16 +189,13 @@ static inline cell *heap_number(int n) {
 #define CONS(a,b)     heap_cons(a,b)
 
 /* Get low 8 bits of cell address. */
-#define NCAR(c)       (icar(c) & 0xFF)
-#define NCDR(c)       (icdr(c) & 0xFF)
+#define NCELL(c)      ((c - heap) & HEAP_NUMBER_MASK)
+#define NCAR(c)       (icar(c) & HEAP_NUMBER_MASK)
+#define NCDR(c)       (icdr(c) & HEAP_NUMBER_MASK)
 #define NPOP(c)       ({int i = NCAR(c); c = CDR(c); i;})
 
 #include <stdlib.h>
 #include <stdio.h>
-
-
-/* Reserve a part of CELL address space for constant references to
-   objects stored in Flash memory. */
 
 
 

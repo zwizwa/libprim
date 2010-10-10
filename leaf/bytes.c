@@ -53,7 +53,7 @@ bytes *bytes_const_new(const char *str, size_t size) {
 
 
 
-char *cstring_from_bytes(bytes *b) {
+char *cstring_from_bytes(const bytes *b) {
     /* Only works for null-terminated strings. */
     if (b->bytes[b->size] != 0) return NULL;
     return b->bytes;

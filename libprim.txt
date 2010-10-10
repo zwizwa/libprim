@@ -9946,3 +9946,44 @@ It doesn't seem to be so hard to now move to arbitrary cell sizes.
 Everything should really be just the same.
 
 Hmm..  Not _that_ trivial.  Let's leave for later when it's necessary.
+
+
+
+Entry: PICOBIT
+Date: Sun Oct 10 02:13:47 CEST 2010
+
+Interesting read[1].  Also read[2].
+
+In [1] it mentions a C dialect with non-recursive functions combined
+with global register allocation.  Apparently MicroChip's Hi-Tech C
+compiler uses this technique.
+
+To brutally summarize, PICBIT[2] is mostly about compact data encoding
+while PICOBIT[1] focusses on compact byte code representation.
+
+[1] http://www.ccs.neu.edu/home/stamourv/picobit.pdf
+[2] http://www.ift.ulaval.ca/~dadub100/files/picbit.pdf
+
+
+Entry: Byte code
+Date: Sun Oct 10 09:04:29 CEST 2010
+
+What I conclude from [1] is that the current direct ANF-in-tree
+approach can be simplified a bit.  Is it possible to distill a byte
+code from simply observing the pattern of push/pop instructions?
+
+The main pull is the conversion from expressions to flat code.  The
+code pointer becomes specialized.
+
+One thing to note though is that the compiler itself really isn't
+trivial either.
+
+Roadmap:
+  1. add reader to cellvm to make testing easier
+  2. copy to cellvm2.c and convert the code pointer to byte code
+
+Would it be possible to describe the VM in scheme such that it can be
+easily translated to C, so at least the VM can run also in a
+scaffolded setup?
+
+[1] entry://20101010-021347
