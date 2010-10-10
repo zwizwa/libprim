@@ -2,13 +2,24 @@
 #include <leaf/port.h>
 #include <leaf/bytes.h>
 
-#include <cell/cellvm.h>
+#include <cell/vm.h>
+
+#include <string.h>
+#include <stdlib.h>
 
 static cell *_cons(vm *vm, cell *a, cell *d) { 
     return CONS(a,d); 
 }
 static cell *_atom(vm *vm, const bytes *b) {
-    return NUMBER(atoi(cstring_from_bytes(b)));
+    char *s = cstring_from_bytes(b);
+    char tok = *s++;
+    
+    switch(tok) {
+    case TOK_TRUE:   return TRUE;
+    case TOK_FALSE:  return FALSE;
+    case TOK_NUMBER: return NUMBER(atoi(s));
+    default:         return VOID;
+    }
 }
 static cell *_nil(vm *vm) {
     return NIL;

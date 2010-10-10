@@ -27,7 +27,7 @@
 
 */
 
-#include "cellvm.h"
+#include <cell/vm.h>
 
 /* Get environment slot and ref. */
 cell* e_slot(cell *e, int i) {
@@ -66,19 +66,26 @@ void e_set(cell *e, int i, cell *v) {
 void vm_continue(vm *vm) {
     int i;              // current opcode / variable index
 
-    /* Registers are in the vm struct which is set as GC root. */
-#define c     (vm->c)   // expression to reduce
-#define e     (vm->e)   // lexical environment
-#define k     (vm->k)   // execution context
-#define v     (vm->v)   // value register
-#define t1    (vm->t1)  // temp reg
-#define t2    (vm->t2)  // temp reg
+    /* Registers are in the vm struct which is set as GC root.  Care
+       needs to be taken that cell refs never go into local variables
+       only.  This includes expression intermediates!  
+
+       Meaning: the arguments of cons need to refer to values that are
+       referenced in registers, and the cell pointer goes into a
+       register. */
+
+    #define c  (vm->c)   // expression to reduce
+    #define e  (vm->e)   // lexical environment
+    #define k  (vm->k)   // execution context
+    #define v  (vm->v)   // value register
+    #define t1 (vm->t1)  // temp reg
+    #define t2 (vm->t2)  // temp reg
 
     /* Opcodes encoded as NUMBER(). */
-#define K_HALT  NUMBER(0)
-#define K_LET   NUMBER(2)
-#define K_BEGIN NUMBER(4)
-#define OP_RUNC NUMBER(12)
+    #define K_HALT  NUMBER(0)
+    #define K_LET   NUMBER(2)
+    #define K_BEGIN NUMBER(4)
+    #define OP_RUNC NUMBER(12)
 
     static const void *op[] = {
         &&k_halt,   // 0
@@ -102,8 +109,12 @@ void vm_continue(vm *vm) {
        - r : machine code return address
        - e : environment
        - c : code body */
-#define PUSHK(r, c) PUSH(k, CONS(r, CONS(e, c)));
-
+    #define PUSHK(r, c) {    \
+            t1 = CONS(e, c); \
+            PUSH(t1, r);     \
+            PUSH(k, t1);     \
+            t1 = VOID; }
+    
     /* If we start with an empty contination, push an explicit halt
        frame to the k stack. */
     if (MT == k) {
@@ -113,7 +124,6 @@ void vm_continue(vm *vm) {
   c_reduce:
     /* Reduce core form. */
     i = NPOP(c); // opcode
-    v = VOID;    // kill old value ref
     goto run;
 
   k_return:
@@ -130,16 +140,16 @@ void vm_continue(vm *vm) {
   op_let: /* (exp_later . exp_now) */
     PUSHK(K_LET, POP(c));
     goto c_reduce;
-  k_let: /* exp2 */
-    PUSH(e, v);  // store value in environment
-                 // exp2 is already in c.
+  k_let: /* exp_later */
+    PUSH(e, v);  // store value in environment, exp_later is already in c.
+    v = VOID;
     goto c_reduce;
 
   op_begin: /* (exp_later . exp_now) */
     PUSHK(K_BEGIN, POP(c));
     goto c_reduce;
-  k_begin: /* exp2 */
-    // exp2 is alredy in c and we ignore the value.
+  k_begin: /* exp_later */
+    v = VOID; // exp_later is alredy in c and we ignore the value.
     goto c_reduce;
 
   op_quote: /* datum */
@@ -154,9 +164,9 @@ void vm_continue(vm *vm) {
   op_app: /* ((env . (nr . expr)) . v_cs) */
 
     /* Name temp regs. */
-#define closure t2
-#define e_ext   t1
-#define dotarg  v
+    #define closure t2
+    #define e_ext   t1
+    #define dotarg  v
 
     closure = POP(c);      // (env . (nr . expr))
     e_ext = POP(closure);  // new env to extend
@@ -167,10 +177,10 @@ void vm_continue(vm *vm) {
         PUSH(e_ext, e_ref(e, NPOP(c)));
         i -= 2;
     }
-    /* Ref rest and push as 1 list if desired. */
+    /* Ref rest and push as a list if desired. */
     if (i) {
         /* Push them onto v first. */
-        v = NIL;
+        dotarg = NIL;
         while(NIL != c) { PUSH(dotarg, e_ref(e, NPOP(c))); }
         PUSH(e_ext, dotarg);
     }
@@ -180,22 +190,23 @@ void vm_continue(vm *vm) {
     e_ext = closure = dotarg = VOID;  // kill refs for gc
     goto c_reduce;
 
-#undef closure
-#undef e_ext
-#undef dotarg
+    /* Name cleanup */
+    #undef closure
+    #undef e_ext
+    #undef dotarg
 
   op_close: /* (nr . expr) */
     v = CONS(e, c);
     goto k_return;
 
   op_if: /* (var . (exp_t . exp_f)) */
-    c = CDR(e_slot(e, NCDR(c)));
-    c = CDR(c);
-    c = (c != FALSE) ? CAR(c) : CDR(c);
+    v = e_ref(e, NPOP(c));
+    c = (v != FALSE) ? CAR(c) : CDR(c);
+    v = VOID;
     goto c_reduce;
 
   op_ref:   /* number */
-    i = (c - heap) & 0xFF;   // FIXME: this is ugly: CAR to early
+    i = NCELL(c);
     v = e_ref(e, i);
     goto k_return;
         
@@ -225,12 +236,12 @@ void vm_continue(vm *vm) {
     /* Clear temps before returning. */
     return;
 
-#undef c
-#undef e
-#undef k
-#undef v
-#undef t1
-#undef t2
+    #undef c
+    #undef e
+    #undef k
+    #undef v
+    #undef t1
+    #undef t2
 }
 
 

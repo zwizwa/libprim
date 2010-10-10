@@ -9988,3 +9988,26 @@ easily translated to C, so at least the VM can run also in a
 scaffolded setup?
 
 [1] entry://20101010-021347
+
+
+Entry: Cell questions
+Date: Sun Oct 10 15:13:23 CEST 2010
+
+- vectors as balanced trees to support EX, PF and SC?
+
+  cells: simple gc, no need for compacting (also: SRAM: no need for
+  locality).
+
+  vectors: either compacting but memory-inefficient (semi-sphere
+  copying) or run-time inefficient (mark/sweep + compact).
+
+  for low mem cells seem to be quite the winner.  how to properly
+  abstract structs on top of cells?
+
+- convert current tree walker interpreter to bytecode interpreter
+
+  basic idea: instead of representing code as cells, use byte code,
+  which is +- cdr-coded lists.
+
+  balanced tree representation of n slots + header (size + type tag).
+  SC vm needs:  

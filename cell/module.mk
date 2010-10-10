@@ -1,4 +1,4 @@
-MODULE_OBJ := test.o cellread.o cellvm.o cellgc.o 
+MODULE_OBJ := test.o read.o vm.o gc.o 
 
 TARGET         := cell
 TARGET_MODULES := leaf

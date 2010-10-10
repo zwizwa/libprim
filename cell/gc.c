@@ -29,7 +29,7 @@
 
 */
 
-#include "cellgc.h"
+#include <cell/gc.h>
 
 #ifdef HEAP_STATIC
 cell heap[heap_size];

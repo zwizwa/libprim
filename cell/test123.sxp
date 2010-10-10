@@ -1,6 +1,6 @@
 ;; -*- scheme -*-
 
-;; Test expressions for cellvm.c
+;; Test expressions for vm.c
 ;; All tests return the number 123 on success.
 
 ;; (quote 123)
@@ -22,6 +22,10 @@
 ;; apply closure:  (let (v0 123) ((lambda (x0) x0) v0))
 (1 (7 (() 2 11 . 0) 0) 5 . 123)
 
+;; (if 1 123 234)
+(1 (8 0 (5 . 123) 5 . 234) 5 . 1)
+;; (if #f 234 123)
+(1 (8 0 (5 . 234) 5 . 123) 5 . #f)
 
 ;; parser problem? the following parses as: (3 . ((5 . 234) . ((5 . (0 . ())) . ())))
 ;; (3 . ((5 . 234) . (5 . 123))) ;; -> 123

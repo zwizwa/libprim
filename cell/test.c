@@ -1,6 +1,6 @@
 
-#include "cellvm.h"
-#include "cellread.h"
+#include <cell/vm.h>
+#include <cell/read.h>
 
 #if 1
 #define TEST(expr) { test(&vm, expr); }

@@ -1,7 +1,7 @@
 #ifndef _CELL_VM_H_
 #define _CELL_VM_H_
 
-#include "cellgc.h"
+#include <cell/gc.h>
 
 struct _vm {
     cell *c;
