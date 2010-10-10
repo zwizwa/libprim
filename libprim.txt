@@ -10141,8 +10141,8 @@ Date: Sun Oct 10 19:24:21 CEST 2010
 So effectively, we're implementing a fairly standard CALL and RETURN
 with the following additions:
 
-     - CALL saves return address and environment pointer
-     - RETURN restores environment and jumps back to saved address
+     - CALL environment pointer
+     - RETURN restores environment pointer
 
 How does this then lead to proper tail calls?  If after a sequence of
 CALLs to build an environment (the RHSs of `let*') an application is
@@ -10158,9 +10158,43 @@ I finally got it!
 Entry: Scheme is Forth with data stack swapping
 Date: Sun Oct 10 19:33:33 CEST 2010
 
-Indeed!
+Save data stack on the return stack on every call as data stacks are
+replaced by each closure application.  Return restores data stack.
 
 
 
+Entry: Generating byte code from ANF trees..
+Date: Sun Oct 10 20:10:14 CEST 2010
+
+..is then of course very straightforward (it's the whole point of
+ANF).  The idea is to flatten the tree and use jumps, return address
+pushes or combinations (calls) to implement it, depending on what is
+simplest for the architecture.
+
+Generating C code it's probably best to stick to calls, and return
+environment on primitive return.  However if continuation capture is
+to be implemented, a CELL stack is necessary.
 
 
+
+Entry: PICOBIT VM
+Date: Sun Oct 10 23:54:44 CEST 2010
+
+The stack-based VM uses instructions like:
+- Push constant, stack element, global
+- Push closure with entry point x
+- Set global to TOS
+- Call/Tailcall closure at TOS with x arguments
+- Call (toplevel?) procedure
+- Jump if TOS is #f
+- Jump
+- Return
+
+
+I wonder where the value goes on return.  Checked in code[2]: It goes
+on the stack (env) and is placed in a temp reg when the env gets
+restored from the continuation frame.
+
+
+[1] http://www.ccs.neu.edu/home/stamourv/picobit.pdf
+[2] http://repo.or.cz/w/picobit.git

@@ -179,7 +179,6 @@ void vm_continue(vm *vm) {
     }
     /* Ref rest and push as a list if desired. */
     if (i) {
-        /* Push them onto v first. */
         dotarg = NIL;
         while(NIL != c) { PUSH(dotarg, e_ref(e, NPOP(c))); }
         PUSH(e_ext, dotarg);
