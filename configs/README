@@ -1,0 +1,3 @@
+Each of these contains a "reconfigure" script produced by an
+invokation of configure.  Paths are absolute, hardcoded to
+/home/tom/libprim

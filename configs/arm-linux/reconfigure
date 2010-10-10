@@ -1,0 +1,26 @@
+#/bin/bash
+cd `dirname $0`
+exec /home/tom/libprim/configure \
+	--profile=no \
+	--builddir=/home/tom/libprim/configs/arm-linux \
+	--sc=yes \
+	--arch=i386 \
+	--pf=yes \
+	--static=no \
+	--size=yes \
+	--target=Linux \
+	--jobs=1 \
+	--efence=no \
+	--cc=arm-linux-gnu-gcc \
+	--debug=no \
+	--cmdprefix=arm-linux-gnu- \
+	--silent=yes \
+	--pthread=no \
+	--make=make \
+	--ex=yes \
+	--ar=ar \
+	--srcdir=/home/tom/libprim \
+	--objcopy=arm-linux-gnu-objcopy \
+	--finkpath=/sw \
+	--prefix=/usr/local \
+	$*
