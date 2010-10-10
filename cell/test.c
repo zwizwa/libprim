@@ -6,9 +6,11 @@
 #define TEST(expr) { test(&vm, expr); }
 
 
-void test(vm *vm, cell *expr) {
+cell *test(vm *vm, cell *expr) {
+    cell *rv;
     DISP("in:  "); cell_display(expr); newline();
-    DISP("out: "); cell_display(vm_eval(vm, expr)); newline();
+    DISP("out: "); cell_display(rv = vm_eval(vm, expr)); newline();
+    return rv;
 }
 
 void test_prim(vm *vm) {
@@ -71,7 +73,10 @@ void readtest(vm *vm) {
     while(1) {
         heap_collect();
         cell *expr = vm_read_stdin(vm);
-        test(vm, expr);
+        if (EOFOBJ == expr) break;
+        if (NUMBER(123) != test(vm, expr)) {
+            DISP("FAIL!\n");
+        }
     }
 }
 

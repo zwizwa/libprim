@@ -1,0 +1,28 @@
+;; -*- scheme -*-
+
+;; Test expressions for cellvm.c
+;; All tests return the number 123 on success.
+
+;; (quote 123)
+(5 . 123)
+
+;; (begin (quote 234) (quote 123))
+(3 (5 . 234) 5 . 123) 
+
+;; (let (v (quote 123)) v)
+(1 (5 . 123) 11 . 0)
+
+;; apply closure:  ((let (v0 123) (lambda () v0)))
+(7 ((123) 0 11 . 0))
+
+;; apply closure
+(7 ((1 2 3 123) 0 11 . 3))
+
+;; apply closure:  (let (v0 123) ((lambda (x0) x0) v0))
+(1 (5 . 123) 7 (() 2 11 . 0) 0)
+
+;; parser problem? the following parses as: (3 . ((5 . 234) . ((5 . (0 . ())) . ())))
+;; (3 . ((5 . 234) . (5 . 123))) ;; -> 123
+
+
+
