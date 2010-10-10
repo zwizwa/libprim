@@ -66,7 +66,7 @@ void e_set(cell *e, int i, cell *v) {
 void vm_continue(vm *vm) {
     int i;              // current opcode / variable index
 
-/* Registers are in the vm struct so the GC can see them. */
+    /* Registers are in the vm struct which is set as GC root. */
 #define c     (vm->c)   // expression to reduce
 #define e     (vm->e)   // lexical environment
 #define k     (vm->k)   // execution context
@@ -74,7 +74,7 @@ void vm_continue(vm *vm) {
 #define t1    (vm->t1)  // temp reg
 #define t2    (vm->t2)  // temp reg
 
-/* Opcodes encoded as NUMBER(). */
+    /* Opcodes encoded as NUMBER(). */
 #define K_HALT  NUMBER(0)
 #define K_LET   NUMBER(2)
 #define K_BEGIN NUMBER(4)
@@ -98,9 +98,11 @@ void vm_continue(vm *vm) {
     };
 
 
-/* A continuation frame contains a code tag, the environment and an
-   arbitrary argument. */
-#define PUSHK(tag, arg) PUSH(k, CONS(tag, CONS(e, arg)));
+    /* A continuation frame is an improper list (r e . c)
+       - r : machine code return address
+       - e : environment
+       - c : code body */
+#define PUSHK(r, c) PUSH(k, CONS(r, CONS(e, c)));
 
     /* If we start with an empty contination, push an explicit halt
        frame to the k stack. */
@@ -125,18 +127,16 @@ void vm_continue(vm *vm) {
   run:
     goto *op[i];
 
-  op_let: /* (exp1 . exp2) */
-    PUSHK(K_LET, CDR(c)); // exp2 is for later
-    c = CAR(c);           // exp1 is next
+  op_let: /* (exp_later . exp_now) */
+    PUSHK(K_LET, POP(c));
     goto c_reduce;
   k_let: /* exp2 */
     PUSH(e, v);  // store value in environment
                  // exp2 is already in c.
     goto c_reduce;
 
-  op_begin: /* (exp1 . exp2) */
-    PUSHK(K_BEGIN, CDR(c));
-    c = CAR(c);
+  op_begin: /* (exp_later . exp_now) */
+    PUSHK(K_BEGIN, POP(c));
     goto c_reduce;
   k_begin: /* exp2 */
     // exp2 is alredy in c and we ignore the value.
@@ -153,28 +153,36 @@ void vm_continue(vm *vm) {
 
   op_app: /* ((env . (nr . expr)) . v_cs) */
 
-    t2 = POP(c);   // closure: (env . (nr . expr))
-    t1 = POP(t2);  // new env to extend
-    i  = NPOP(t2); // (nb_args << 1) | rest_args
+    /* Name temp regs. */
+#define closure t2
+#define e_ext   t1
+#define dotarg  v
+
+    closure = POP(c);      // (env . (nr . expr))
+    e_ext = POP(closure);  // new env to extend
+    i = NPOP(closure);     // (nb_args << 1) | rest_args
 
     /* Ref args from current env and extend new env. */
     while (i>>1) {
-        PUSH(t1, e_ref(e, NPOP(c)));
+        PUSH(e_ext, e_ref(e, NPOP(c)));
         i -= 2;
     }
     /* Ref rest and push as 1 list if desired. */
     if (i) {
         /* Push them onto v first. */
         v = NIL;
-        while(NIL != c) { PUSH(v, e_ref(e, NPOP(c))); }
-        PUSH(t1, v);
+        while(NIL != c) { PUSH(dotarg, e_ref(e, NPOP(c))); }
+        PUSH(e_ext, dotarg);
     }
 
-    c = t2;
-    e = t1;
-    t1 = t2 = v = VOID;  // kill refs for gc
+    c = closure;
+    e = e_ext;
+    e_ext = closure = dotarg = VOID;  // kill refs for gc
     goto c_reduce;
 
+#undef closure
+#undef e_ext
+#undef dotarg
 
   op_close: /* (nr . expr) */
     v = CONS(e, c);
@@ -208,9 +216,8 @@ void vm_continue(vm *vm) {
     v = CONS(NIL, CONS(NUMBER(2), CONS(OP_RUNC, k)));
     goto k_return;
   op_runc:  /* k */
-    v = CAR(e);
+    v = POP(e);
     k = c;
-    e = NIL;
     goto k_return;
 
 
