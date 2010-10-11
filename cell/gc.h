@@ -72,12 +72,24 @@ typedef unsigned int cell_tag_word;
 #define min_heap_size 64  // will be rounded up
 #define heap_size (heap_tag_words * cells_per_tag_word)
 extern cell heap[heap_size];
-extern cell_tag_word heap_tag[heap_tag_words];
+extern cell_tag_word _heap_tag[heap_tag_words];
 #else
 extern int heap_size;
 extern cell *heap;
-extern heap_tag_word *heap_tag;
+extern heap_tag_word *_heap_tag;
 #endif
+
+/* Contains a XOR bit pattern encoding the current FREE bit encoding.
+   This is to avoid a sweep over the tag table before collection. */
+extern cell_tag_word heap_tag_phase;
+#define HEAP_TAG_FREE_MASK 0xAAAAAAAA
+
+static inline cell_tag_word heap_tag(int wi) { 
+    return _heap_tag[wi] ^ heap_tag_phase;
+}
+static inline void heap_tag_set(int wi, cell_tag_word w) {
+    _heap_tag[wi] = w ^ heap_tag_phase;
+}
 
 void heap_clear(void);
 void heap_collect(void);
@@ -101,14 +113,14 @@ void heap_set_roots(cell **r);
 
 static inline int icell_tag(int i) {
     TAG_INDEX(i, itag, ishift);
-    int tag = (heap_tag[itag] >> ishift) & tag_mask;
+    int tag = (heap_tag(itag) >> ishift) & tag_mask;
     return tag;
 }
 #define TAG_SET(itag, ishift, tag) {            \
-    cell_tag_word w = heap_tag[itag];           \
+   cell_tag_word w = heap_tag(itag);            \
     w &= ~(tag_mask << ishift);                 \
     w |= (tag & tag_mask) << ishift;            \
-    heap_tag[itag] = w;                         \
+    heap_tag_set(itag, w);                      \
 }
 
 static inline void icell_set_tag(int i, int tag) {

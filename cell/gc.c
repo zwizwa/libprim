@@ -30,43 +30,55 @@
 */
 
 #include <cell/gc.h>
+#include <string.h>
 
 #ifdef HEAP_STATIC
 cell heap[heap_size];
-cell_tag_word heap_tag[heap_tag_words];
+cell_tag_word _heap_tag[heap_tag_words];
 #else
 cell *heap;
-cell_tag_word *heap_tag;
+cell_tag_word *_heap_tag;
 int  heap_size;
 #endif
 
 static int heap_free;
 static cell **roots;
 
+cell_tag_word heap_tag_phase = 0;
 
 
 void trap(void) { exit(1); }
 
 void mark_cells_prepare(void) {
-    int i;
-#if 0
-    for (i=0; i<heap_size; i++) {
-        int t = icell_tag(i);
-        icell_set_tag(i, t | 2);
+    /* Before marking from root cells, set all cells to free. */
+
+    /* 1. All cells < heap_free are marked as used.  Physically mark
+       _used_ the remaining cells.  This step is necessary when the GC
+       is called manually.  */
+
+    if (heap_free < heap_size) {
+        int i, tag_free = heap_free / cells_per_tag_word;
+        if (heap_tag_phase == 0) {
+            for (i=tag_free; i<heap_tag_words; i++) {
+                _heap_tag[i] &= ~HEAP_TAG_FREE_MASK;
+            }
+        }
+        else {
+            for (i=tag_free; i<heap_tag_words; i++) {
+                _heap_tag[i] |= HEAP_TAG_FREE_MASK;
+            }
+        }
     }
-#else
-    /* Switch on the free bits all at once. */
-    for (i=0; i<heap_tag_words; i++) {
-        heap_tag[i] |= 0xAAAAAAAA;
-    }
-#endif
+
+    /* 2. Change the whole heap from used to free. */
+    heap_tag_phase ^= HEAP_TAG_FREE_MASK;
 }
 void heap_clear(void) {
+    /* Mark all cells as TAG_PAIR_FREE. */
     int i;
-    for (i=0; i<heap_size; i++) {
-        icell_set_tag(i, TAG_PAIR_FREE);
-    }
+    heap_tag_phase = 0;
     heap_free = 0;
+    memset(_heap_tag, 0xFF, sizeof(_heap_tag));
 }
 
 
@@ -272,7 +284,7 @@ cell *heap_alloc(int tag) {
         int i = heap_free;
         TAG_INDEX(heap_free, itag, ishift);
         while(itag < heap_tag_words) {
-            cell_tag_word w = heap_tag[itag];
+            cell_tag_word w = heap_tag(itag);
             while(ishift < bits_per_tag_word) {
                 int t = (w >> ishift) & tag_mask;
                 /* Reclaim free pairs or atoms that can be freed. */
