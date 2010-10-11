@@ -10193,8 +10193,18 @@ The stack-based VM uses instructions like:
 
 I wonder where the value goes on return.  Checked in code[2]: It goes
 on the stack (env) and is placed in a temp reg when the env gets
-restored from the continuation frame.
+restored from the continuation frame, then goes back on the stack.
 
 
 [1] http://www.ccs.neu.edu/home/stamourv/picobit.pdf
 [2] http://repo.or.cz/w/picobit.git
+
+
+Entry: Kelsey Scheme48 papers
+Date: Mon Oct 11 01:12:38 CEST 2010
+
+The stack VM described in [3] refers to Clinger's 311 paper.
+
+[1] http://mumble.net/~kelsey/
+[2] http://mumble.net/~kelsey/papers/prescheme.ps.gz
+[3] http://repository.readscheme.org/ftp/papers/vlisp-lasc/scheme48.pdf
