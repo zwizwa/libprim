@@ -64,8 +64,6 @@ void e_set(cell *e, int i, cell *v) {
 */
 
 void vm_continue(vm *vm) {
-    int i;              // current opcode / variable index
-
     /* Registers are in the vm struct which is set as GC root.  Care
        needs to be taken that cell refs never go into local variables
        only.  This includes expression intermediates!  
@@ -82,10 +80,10 @@ void vm_continue(vm *vm) {
     #define t2 (vm->t2)  // temp reg
 
     /* Opcodes encoded as NUMBER(). */
-    #define K_HALT  NUMBER(0)
-    #define K_LET   NUMBER(2)
-    #define K_BEGIN NUMBER(4)
-    #define OP_RUNC NUMBER(12)
+    #define K_HALT  0
+    #define K_LET   2
+    #define K_BEGIN 4
+    #define OP_RUNC 12
 
     static const void *op[] = {
         &&k_halt,   // 0
@@ -105,16 +103,23 @@ void vm_continue(vm *vm) {
     };
 
 
-    /* A continuation frame is an improper list (r e . c)
+    /* A continuation frame is an improper list (e r . c)
        - r : machine code return address
        - e : environment
        - c : code body */
-    #define PUSHK(r, c) {    \
-            t1 = CONS(e, c); \
-            PUSH(t1, r);     \
-            PUSH(k, t1);     \
-            t1 = VOID; }
-    
+    #define PUSHK(r, c) {                       \
+        t1 = CONS(NUMBER(r), c);                \
+        PUSH(t1, e);                            \
+        PUSH(k, t1);                            \
+        t1 = VOID; }
+
+    #define POPK() ({                           \
+        c = POP(k);                             \
+        e = POP(c);                             \
+        NPOP(c);})
+        
+
+
     /* If we start with an empty contination, push an explicit halt
        frame to the k stack. */
     if (MT == k) {
@@ -122,20 +127,13 @@ void vm_continue(vm *vm) {
     }
     
   c_reduce:
-    /* Reduce core form. */
-    i = NPOP(c); // opcode
-    goto run;
+    /* Reduce current core form; interpreter opcode is in CAR. */
+    goto *op[NPOP(c)]; // opcode
 
   k_return:
-    /* Execute top continuation frame, passing it the return value
-       (stored in the c register). */
-    c = POP(k);  // k frame
-    i = NPOP(c); // opcode
-    e = POP(c);  // environment
-    goto run;
+    /* Return from call, restoring environment. */
+    goto *op[POPK()];
 
-  run:
-    goto *op[i];
 
   op_let: /* (exp_later . exp_now) */
     PUSHK(K_LET, POP(c));
@@ -161,7 +159,7 @@ void vm_continue(vm *vm) {
     v = VOID;
     goto k_return;
 
-  op_app: /* ((env . (nr . expr)) . v_cs) */
+  op_app: { /* ((env . (nr . expr)) . v_cs) */
 
     /* Name temp regs. */
     #define closure t2
@@ -170,7 +168,7 @@ void vm_continue(vm *vm) {
 
     closure = POP(c);      // (env . (nr . expr))
     e_ext = POP(closure);  // new env to extend
-    i = NPOP(closure);     // (nb_args << 1) | rest_args
+    int i = NPOP(closure); // (nb_args << 1) | rest_args
 
     /* Ref args from current env and extend new env. */
     while (i>>1) {
@@ -193,6 +191,7 @@ void vm_continue(vm *vm) {
     #undef closure
     #undef e_ext
     #undef dotarg
+    }
 
   op_close: /* (nr . expr) */
     v = CONS(e, c);
@@ -205,8 +204,7 @@ void vm_continue(vm *vm) {
     goto c_reduce;
 
   op_ref:   /* number */
-    i = NCELL(c);
-    v = e_ref(e, i);
+    v = e_ref(e, NCELL(c));
     goto k_return;
         
   op_prim:  /* atom */
@@ -223,7 +221,7 @@ void vm_continue(vm *vm) {
        in the environment accessible by the op_runc opcode.  The k
        stack is passed as an argument to op_runc. */
   op_letcc: /* () */
-    v = CONS(NIL, CONS(NUMBER(2), CONS(OP_RUNC, k)));
+    v = CONS(NIL, CONS(NUMBER(2), CONS(NUMBER(OP_RUNC), k)));
     goto k_return;
   op_runc:  /* k */
     v = POP(e);

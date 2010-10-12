@@ -10208,3 +10208,50 @@ The stack VM described in [3] refers to Clinger's 311 paper.
 [1] http://mumble.net/~kelsey/
 [2] http://mumble.net/~kelsey/papers/prescheme.ps.gz
 [3] http://repository.readscheme.org/ftp/papers/vlisp-lasc/scheme48.pdf
+
+
+
+Entry: Out of steam..
+Date: Mon Oct 11 17:49:33 CEST 2010
+
+I'm probably going to stop here to think about it a bit.  This morning
+I changed the free/used bit to a phased version to avoid a full
+used->free update of the entire map before marking.
+
+Or maybe a little more..
+
+About the VM, there are 2 things to decide:
+  - The opcodes + general structure
+  - The opcode encoding
+
+It should be straightforward to solve these problems separately.
+Let's assume that each instruction takes one machine word as argument.
+And let's start with the opcodes from PIC(O)BIT.
+
+I don't need a flat decoder for this: cell store is fine.
+
+The only problem in the implementation is this:
+
+  k_return:
+    /* Execute top continuation frame, passing it the return value
+       (stored in the c register). */
+    c = POP(k);  // k frame
+    i = NPOP(c); // opcode
+    e = POP(c);  // environment
+    goto run;
+
+Which is an artefact of using cell store for the k stack, and c being
+a cell itself (so it's the improper tail of the list..)
+
+
+In a bytecode VM it will probably look more like:
+
+    c = TOP_CODE(k)
+    e = TOP_ENV(k)
+    DROP(k)
+
+Where c already has the i part of vm.c which needs to distinguish
+between s-expression form and the "interpreter" code.
+
+Ok, removed the integer intermediate variables.  Only cell* registers
+remain.  

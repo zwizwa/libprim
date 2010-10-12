@@ -69,11 +69,12 @@ void looptest(vm *vm) {
 
 }
 
-void readtest(vm *vm) {
+int readtest(vm *vm) {
+    int rv = 0;
     while(1) {
         heap_collect();
         cell *expr = vm_read_stdin(vm);
-        if (EOF_OBJECT == expr) break;
+        if (EOF_OBJECT == expr) return rv;
 
         if (0) {
             cell_display(expr);
@@ -82,6 +83,7 @@ void readtest(vm *vm) {
         else {
             if (NUMBER(123) != test(vm, expr)) {
                 DISP("FAIL!\n");
+                rv++;
             }
         }
     }
@@ -96,8 +98,9 @@ int main(void) {
 
     // looptest(&vm);
     // while (1) { tests(&vm); }
-    readtest(&vm);
-    return 0;
+    // return 0;
+    return readtest(&vm);
+    
 }
 
 #endif

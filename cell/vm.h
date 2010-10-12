@@ -4,10 +4,10 @@
 #include <cell/gc.h>
 
 struct _vm {
-    cell *c;
-    cell *e;
-    cell *k;
-    cell *v;
+    cell *c;   // code pointer (IP)
+    cell *e;   // lexical environment
+    cell *k;   // continuation
+    cell *v;   // return value
     cell *t1;
     cell *t2;
     void *END;
