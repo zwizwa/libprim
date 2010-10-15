@@ -10255,3 +10255,24 @@ between s-expression form and the "interpreter" code.
 
 Ok, removed the integer intermediate variables.  Only cell* registers
 remain.  
+
+
+Entry: Separate interpreter from decoder
+Date: Fri Oct 15 20:38:35 CEST 2010
+
+Currently the VM runs on s-expressions.  This needs to be made
+abstract such that the code format doesn't matter.  Start with writing
+the decoder interface on top of s-expressions.
+
+There is a small nuance with the current implementation (which creates
+"smart" continuations) and a VM that would simply push a return
+address.  Can this be eliminated while still working with s-expr?
+It's really about push RV or not (let vs. begin).
+
+So it looks like it's an either/or:
+
+ - Use scheme-like syntax trees and have different continuation types.
+
+ - Use a source representation which allows a single continuation type
+   (equivalent to that of `begin') and provide explicit pushes.  (Or
+   alternatively, `let' with explicit pops.)
