@@ -10276,3 +10276,25 @@ So it looks like it's an either/or:
  - Use a source representation which allows a single continuation type
    (equivalent to that of `begin') and provide explicit pushes.  (Or
    alternatively, `let' with explicit pops.)
+
+
+Entry: Sweet spot: simple self-bootstrapping VM (without BC compiler).
+Date: Sat Oct 16 21:51:19 CEST 2010
+
+What is the sweet spot for a self-bootstrappable VM, one that can read
+Scheme forms and interpret them.  Full core forms?  Maybe I can modify
+the VM1 to use vectors + code addresses in continuations so no tags
+are necessary.  This would make the memory model simpler.
+
+Alternatively, it might not be so difficult to build a simple core
+form compiler in C.
+
+
+
+Entry: ANF vs. CPS
+Date: Sat Oct 16 22:54:49 CEST 2010
+
+One thing I didn't look at.  Isn't it simpler to use a CPS core form?
+Then there is no distinction between continuation and closure.
+
+I forgot how ANF can solve the "administrative redex" problem of CPS.
