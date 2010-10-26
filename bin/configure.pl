@@ -192,11 +192,16 @@ if ($ENV{CC})  {$var{cc}   = $ENV{CC};} # get CC, MAKE from environment if defin
 if ($ENV{MAKE}){$var{make} = $ENV{MAKE};}
 if ($ENV{AR})  {$var{ar}   = $ENV{AR};}
 
-
 if ($var{cmdprefix}) {
     $var{cc} = "$var{cmdprefix}gcc";
+    $var{gdb} = "$var{cmdprefix}gdb";
     $var{objcopy} = "$var{cmdprefix}objcopy";
 }
+
+$gdb =  "$var{gdb} -x $var{srcdir}/bin/$var{target}.gdb $var{gdbargs}";
+open GDB, ">gdb";
+print GDB "exec $gdb \"\$@\"\n";
+chmod 0755, "./gdb";
 
 
 
@@ -262,6 +267,7 @@ sub toolchain {
     makefile "CC = $var{cc}" ;
     makefile "AR = $var{ar}" ;
     makefile "MAKE = $var{make}" ;
+    makefile "GDB = $var{gdb} $var{gdbargs}" ;
     makefile "OBJCOPY = $var{objcopy}" ;
     if ($var{silent} eq "yes"){
 	makefile "MAKE += -s"; # have a bit less verbose build
@@ -295,14 +301,14 @@ print "gcc:     ";
 $gccver = `$var{cc} -dumpversion`;
 chomp $gccver;
 if (not $gccver){
-    print "WARNING: C compiler is not gcc.\n";
-    # exit(1);
+    print "C compiler is not gcc.\n";
+    exit(1);
 }
 @gccver = split '\.', $gccver;
 
 if ($gccver[0] < 3){
-    print "WARNING: Need gcc version >= 3\n";
-    # exit(1);
+    print "Need gcc version >= 3\n";
+    exit(1);
 }
 elsif ($gccver[0] == 3){
     header "#define GCC3";
