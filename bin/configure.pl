@@ -295,14 +295,14 @@ print "gcc:     ";
 $gccver = `$var{cc} -dumpversion`;
 chomp $gccver;
 if (not $gccver){
-    print "C compiler is not gcc.\n";
-    exit(1);
+    print "WARNING: C compiler is not gcc.\n";
+    # exit(1);
 }
 @gccver = split '\.', $gccver;
 
 if ($gccver[0] < 3){
-    print "Need gcc version >= 3\n";
-    exit(1);
+    print "WARNING: Need gcc version >= 3\n";
+    # exit(1);
 }
 elsif ($gccver[0] == 3){
     header "#define GCC3";
