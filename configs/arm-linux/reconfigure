@@ -4,10 +4,10 @@ exec /home/tom/libprim/configure \
 	--profile=no \
 	--builddir=/home/tom/libprim/configs/arm-linux \
 	--sc=yes \
-	--arch=i386 \
+	--arch=arm \
 	--pf=yes \
 	--static=no \
-	--size=yes \
+	--size=no \
 	--target=Linux \
 	--jobs=1 \
 	--efence=no \
@@ -22,5 +22,6 @@ exec /home/tom/libprim/configure \
 	--srcdir=/home/tom/libprim \
 	--objcopy=arm-linux-gnu-objcopy \
 	--finkpath=/sw \
+	--gdb=arm-linux-gnu-gdb \
 	--prefix=/usr/local \
 	$*

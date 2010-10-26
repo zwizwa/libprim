@@ -17,7 +17,8 @@ $(BUILDDIR)/$(MODULE)/start: $(SC_VM1_POSIX)
 
 .PHONY: posix_sc_gdb
 posix_sc_gdb: $(SC_VM1_POSIX)
-	gdb -x $(SRCDIR)/bin/run.gdb --args $(SC_VM1_POSIX_RUN) 
+	# gdb -x $(SRCDIR)/bin/run.gdb --args $(SC_VM1_POSIX_RUN) 
+	$(GDB) --args $(SC_VM1_POSIX_RUN) 
 
 
 # For expanding boot file a bootstrap is necessary.  When
