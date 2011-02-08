@@ -10298,3 +10298,57 @@ One thing I didn't look at.  Isn't it simpler to use a CPS core form?
 Then there is no distinction between continuation and closure.
 
 I forgot how ANF can solve the "administrative redex" problem of CPS.
+
+
+
+Entry: Cell on ARM
+Date: Mon Feb  7 14:24:32 EST 2011
+
+Let's try to get it to work on ecos + AT91SAM7S256.
+
+To setup the build dir, 
+
+mkdir ~/libprim/build_ecos_at91sam7sek
+cd ~/libprim/build_ecos_at91sam7sek
+. /opt/xc/ecos/ecosenv-3.0.sh 
+../configure --target=eCos --cmdprefix=arm-eabi- --arch=arm --prefix=/opt/xc/ecos/build_3.0_at91sam7sek/install
+make ecos_sc
+
+The ecos is built using "ecosbuild 3.0 at91sam7sek" [1].
+
+This currently fails due to relyance on M_PI in grid.c which probably
+leaks through in the linux synthetic target.
+
+
+. /opt/xc/ecos/ecosenv-cvs.sh 
+../configure --target=eCos --prefix=/opt/xc/ecos/build_cvs_linux/install
+make VERBOSE=1 ecos_sc
+
+
+Nope, that one also fails on the M_PI error.
+
+I removed grid.o in leaf/module.mk to see if that fixes it.  It does
+fix the arm build.  Linux synthetic build complains about vectors.o
+(part of eCos).
+
+
+[1] http://zwizwa.be/darcs/ecos/ecos_build
+
+
+Entry: Running on the AT91
+Date: Mon Feb  7 15:17:37 EST 2011
+
+I'm getting OCD errors trying to upload the ELF:
+
+Info : accepting 'gdb' connection from 3333
+Warn : acknowledgment received, but no packet pending
+Error: status register: 0x30005
+Error: Lock Error Bit Detected, Operation Abort
+Error: failed erasing sectors 0 to 11
+Error: flash_erase returned -902
+Info : dropped 'gdb' connection
+
+The gdb console says:
+Error erasing flash with vFlashErase packet
+
+[1] http://ecos.sourceware.org/docs-3.0/user-guide/modifying-the-memory-layout.html

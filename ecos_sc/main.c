@@ -9,6 +9,9 @@
 
 #include <sc_vm1/vm1.h>
 
+#include CYGHWR_MEMORY_LAYOUT_H
+
+
 /* The boot.scm data embedded using objcopy .scm->.o converson. 
 
 SYMBOL TABLE:
