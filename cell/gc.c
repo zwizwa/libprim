@@ -258,7 +258,7 @@ void heap_collect(void) {
     heap_free = 0; // lazy sweep
 
     if (gc_stat) {
-        DISP("GC: %d / %d\n", heap_used(), heap_size);
+        DISP("GC: %d / %d\n", heap_used(), (int)heap_size);
     }
     if (gc_debug) {
         DISP("roots: \n");

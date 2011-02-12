@@ -10351,4 +10351,23 @@ Info : dropped 'gdb' connection
 The gdb console says:
 Error erasing flash with vFlashErase packet
 
+EDIT: problem was flash write protection bits
+
 [1] http://ecos.sourceware.org/docs-3.0/user-guide/modifying-the-memory-layout.html
+
+
+Entry: AT91
+Date: Fri Feb 11 17:20:10 EST 2011
+
+As it looks like I'm going to be friends with the AT91 for a while,
+I'd like to get a minimal version of a scripted language up and
+running.  The new cell-based VM might be an interesting candidate.
+
+Stepping through the eCos boot sequence gives a good idea about what
+is necessary to get it running: oscillator, stack, ...
+
+
+Entry: eCos CVS
+Date: Sat Feb 12 09:57:57 EST 2011
+
+../configure --cmdprefix=arm-eabi- --prefix=/opt/xc/ecos/build_3.0_at91sam7sek/install --target=eCos --enable-debug
