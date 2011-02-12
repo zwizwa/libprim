@@ -10370,4 +10370,32 @@ is necessary to get it running: oscillator, stack, ...
 Entry: eCos CVS
 Date: Sat Feb 12 09:57:57 EST 2011
 
-../configure --cmdprefix=arm-eabi- --prefix=/opt/xc/ecos/build_3.0_at91sam7sek/install --target=eCos --enable-debug
+../configure --cmdprefix=arm-eabi- --prefix=/opt/xc/ecos/build_cvs_at91sam7sek/install --target=eCos --enable-debug
+
+
+Entry: cell123 on AT91
+Date: Sat Feb 12 10:31:20 EST 2011
+
+I'm trying to run the cel123 test program on the AT91.  It seems to
+compile fine, but there is something wrong with the IO.
+
+Q: When using the main() start point in eCos as opposed to
+   cyg_user_start(), does the scheduler get started to enable blocking
+   IO?
+
+It seems main is a thread[1].  In retrospect it's apparent from the
+stack trace as there is no caller of main() in the backtrace.
+
+Anyway, somewhere in this i->o data gets lost:
+
+    while(1) {
+        putchar(getchar());
+    }
+
+Ok, it is using the debug input port, but it doesn't get any data, so
+I suspect something else is also reading from this port.
+
+Ok, changing main -> cyg_user_start gives me a working console.  That
+might be the trick.
+
+[1] http://sourceware.org/ml/ecos-discuss/2008-11/msg00034.html

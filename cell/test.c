@@ -89,7 +89,14 @@ int readtest(vm *vm) {
     }
 }
 
-int main(void) {
+#if 0
+int main(void) 
+#else 
+int cyg_user_start(void)
+#endif
+{
+
+    // while(1) { putchar(getchar()); }
 
     /* init VM + GC */
     vm vm = VM_INIT;
