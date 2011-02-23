@@ -10399,3 +10399,4 @@ Ok, changing main -> cyg_user_start gives me a working console.  That
 might be the trick.
 
 [1] http://sourceware.org/ml/ecos-discuss/2008-11/msg00034.html
+

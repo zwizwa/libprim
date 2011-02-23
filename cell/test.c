@@ -88,6 +88,7 @@ int readtest(vm *vm) {
         }
     }
 }
+#include <cyg/infra/diag.h>
 
 #if 0
 int main(void) 
@@ -95,6 +96,7 @@ int main(void)
 int cyg_user_start(void)
 #endif
 {
+    printf("foo!\n");
 
     // while(1) { putchar(getchar()); }
 
