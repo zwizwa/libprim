@@ -88,11 +88,11 @@ int readtest(vm *vm) {
         }
     }
 }
-#include <cyg/infra/diag.h>
 
-#if 0
+#if 1
 int main(void) 
 #else 
+#include <cyg/infra/diag.h>
 int cyg_user_start(void)
 #endif
 {
