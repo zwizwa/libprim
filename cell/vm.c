@@ -100,6 +100,7 @@ void vm_continue(vm *vm) {
         &&op_ref,   // 11
         &&op_runc,  // 12
         &&op_close, // 13
+        &&op_dump,  // 14
     };
 
 
@@ -159,16 +160,17 @@ void vm_continue(vm *vm) {
     v = VOID;
     goto k_return;
 
-  op_app: { /* ((env . (nr . expr)) . v_cs) */
+  op_app: { /* (v_fn . v_cs) */  /* WAS: ((env . (nr . expr)) . v_cs) */
 
     /* Name temp regs. */
     #define closure t2
     #define e_ext   t1
     #define dotarg  v
 
-    closure = POP(c);      // (env . (nr . expr))
-    e_ext = POP(closure);  // new env to extend
-    int i = NPOP(closure); // (nb_args << 1) | rest_args
+    v = POP(c);                    // var: fn
+    closure = e_ref(e, NCELL(v));  // (env . (nr . expr))
+    e_ext = POP(closure);          // new env to extend
+    int i = NPOP(closure);         // (nb_args << 1) | rest_args
 
     /* Ref args from current env and extend new env. */
     while (i>>1) {
@@ -205,6 +207,14 @@ void vm_continue(vm *vm) {
 
   op_ref:   /* number */
     v = e_ref(e, NCELL(c));
+    goto k_return;
+
+  op_dump: /* var */
+    v = e_ref(e, NCELL(c));
+    DISP("[op_dump: ");
+    cell_display(v);
+    DISP("] ");
+    v = VOID;
     goto k_return;
         
   op_prim:  /* atom */

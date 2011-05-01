@@ -6,28 +6,33 @@
 ;; (quote 123)
 (5 . 123)
 
-;; (begin (quote 321) (quote 123))
-;; NOTE: args are reversed to simplify VM!
+;; (begin (quote 321) (quote 123))  ;; NOTE: args are reversed to simplify VM!
 (3 (5 . 123) 5 . 321) 
 
 ;; (let (v (quote 123)) v)
 (1 (11 . 0) 5 . 123)
-
-;; apply closure:  ((let (v0 123) (lambda () v0)))
-(7 ((123) 0 11 . 0))
-
-;; apply closure
-(7 ((1 2 3 123) 0 11 . 3))
-
-;; apply closure:  (let (v0 123) ((lambda (x0) x0) v0))
-(1 (7 (() 2 11 . 0) 0) 5 . 123)
 
 ;; (if 1 123 234)
 (1 (8 0 (5 . 123) 5 . 234) 5 . 1)
 ;; (if #f 234 123)
 (1 (8 0 (5 . 234) 5 . 123) 5 . #f)
 
-;; parser problem? the following parses as: (3 . ((5 . 234) . ((5 . (0 . ())) . ())))
-;; fixed??
-;; (3 . ((5 . 234) . (5 . 123))) ;; -> 123
-(3 . ((5 . 123) . (5 . #f)))
+
+;; (begin (let v '(1 . 2) (dump v)) 123)
+(3 (5 . 123) 1 (14 . 0) 5 1 . 2)
+
+;; (let fn (lambda () 123) (fn))
+(1 (7 (11 . 0)) 13 0 5 . 123)
+
+;; (let v 123 (let fn (lambda () v) (fn)))
+(1 (1 (7 (11 . 0)) 13 0 11 . 0) 5 . 123)
+
+;; (let v 123 (let dummy 321 (let fn (lambda () v) (fn))))
+(1 (1 (1 (7 (11 . 0)) 13 0 11 . 1) 5 . 321) 5 . 123)
+
+;; (let v 123 (let d1 111 (let d2 222 v)))
+(1 (1 (1 (11 . 2) 5 . 222) 5 . 111) 5 . 123)
+
+;; (let v 123 (let dummy 234 (let fn (lambda () v) v)))
+(1 (1 (1 (11 . 2) 13 0 11 . 1) 5 . 234) 5 . 123)
+
