@@ -54,11 +54,11 @@ void e_set(cell *e, int i, cell *v) {
 */
 
 /* Read a number from the code stream. */
-#define NREADC  NPOP(c) 
+#define READ_NUM  NPOP(c) 
 
 /* Read a structured data item from the stream: try to avoid this as
    it hinders abstraction.  Replace with other typed reads.  */
-#define READC   POP(c)    // read code data structure
+#define READ_ADDR   POP(c)    // read code data structure
 
 
 /* VM main loop.
@@ -138,7 +138,7 @@ void vm_continue(vm *vm) {
     
   c_reduce:
     /* Reduce current core form; interpreter opcode is in CAR. */
-    goto *op[NREADC]; // opcode
+    goto *op[READ_NUM]; // opcode
 
   op_call: /* (exp_later . exp_now) */
     /* Code sequencing: take some code to evaluate later in the
@@ -146,7 +146,7 @@ void vm_continue(vm *vm) {
        purpose of storing the value it produces in the environment. */
 
     /* Push closure for exp_later to continuation stack. */
-    t1 = READC; 
+    t1 = READ_ADDR; 
     PUSH(t1, e); // (e . c) == closure
     PUSH(k, t1); // k -> ((e . c) . k)
     t1 = VOID;
@@ -156,8 +156,10 @@ void vm_continue(vm *vm) {
     /* Return from call.  Restore closure (environment and code to
        evaluate) and extend restored environment with the return value
        of a previous evaluation. */
-    c = POP(k);
-    e = READC;
+    t1 = POP(k);
+    e = CAR(t1);
+    c = CDR(t1);
+    t1 = VOID;
     PUSH(e, v);  // add binding to environment
     v = VOID;
     goto c_reduce;
@@ -189,19 +191,19 @@ void vm_continue(vm *vm) {
     #define e_ext   t1
     #define dotarg  v
 
-    closure = e_ref(e, NREADC);    // (env . (nr . expr))
+    closure = e_ref(e, READ_NUM);    // (env . (nr . expr))
     e_ext = POP(closure);          // new env to extend
     int i = NPOP(closure);         // (nb_args << 1) | rest_args
 
     /* Ref args from current env and extend new env. */
     while (i>>1) {
-        PUSH(e_ext, e_ref(e, NREADC));
+        PUSH(e_ext, e_ref(e, READ_NUM));
         i -= 2;
     }
     /* Ref rest and push as a list if desired. */
     if (i) {
         dotarg = NIL;
-        while(NIL != c) { PUSH(dotarg, e_ref(e, NREADC)); }
+        while(NIL != c) { PUSH(dotarg, e_ref(e, READ_NUM)); }
         PUSH(e_ext, dotarg);
     }
 
@@ -221,7 +223,7 @@ void vm_continue(vm *vm) {
     goto k_return;
 
   op_if: /* (var . (exp_t . exp_f)) */
-    v = e_ref(e, NREADC);
+    v = e_ref(e, READ_NUM);
     c = (v != FALSE) ? CAR(c) : CDR(c);
     v = VOID;
     goto c_reduce;
