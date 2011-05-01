@@ -36,13 +36,13 @@
 (define (comp-vm expr)
   (let ((OP_HALT   0)
         (OP_LET    1)
+        (OP_CLOSE  2)
         (OP_DUMP   3)
         (OP_DROP   4)
         (OP_QUOTE  5)
         (OP_APP    7)
         (OP_IF     8)
         (OP_REF   11)
-        (OP_CLOSE 13)
         )
 
  

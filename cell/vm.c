@@ -80,14 +80,13 @@ void vm_continue(vm *vm) {
     #define t2 (vm->t2)  // temp reg
 
     /* Opcodes encoded as NUMBER(). */
-    #define K_LET   2
     #define OP_RUNC 12
     #define OP_HALT  0
 
     static const void *op[] = {
         &&op_halt,  // 0
-        &&op_let,   // 1
-        &&k_let,    // 2
+        &&op_call,  // 1
+        &&op_close, // 2
 
         &&op_dump,  // 3
         &&op_drop,  // 4
@@ -100,55 +99,55 @@ void vm_continue(vm *vm) {
         &&op_prim,  // 10
         &&op_ref,   // 11
         &&op_runc,  // 12
-        &&op_close, // 13
     };
 
 
-    /* A continuation frame is an improper list (e r . c)
-       - r : machine code return address
-       - e : environment
-       - c : code body */
-#define PUSHK(c) {                              \
-        t1 = c;                                 \
-        PUSH(t1, e);                            \
-        PUSH(k, t1);                            \
-        t1 = VOID; }
-
-        
-
-
-    /* If we start with an empty contination, push an explicit halt
-       frame to the k stack. */
     if (MT == k) {
-        t1 = CONS(NUMBER(OP_HALT), NIL);
+        /* If we start with an empty contination, push an explicit
+           halt frame to the k stack.  If `exp' is the code to
+           evaluate, this behaves as (let ((v exp)) (halt v)). */
+        t1 = CONS(NUMBER(OP_HALT), 
+                  NIL // dummy, not reached
+            );
         PUSH(c, t1);
         t1 = VOID;
-        goto op_let;
+        goto op_call;
+    }
+    else {
+        /* Otherwise assume proper continuation and run VM. */
+        goto c_reduce;
     }
     
   c_reduce:
     /* Reduce current core form; interpreter opcode is in CAR. */
     goto *op[NPOP(c)]; // opcode
 
+  op_call: /* (exp_later . exp_now) */
+    /* Code sequencing: take some code to evaluate later in the
+       extended environment, and some code to evaluate now with the
+       purpose of storing the value it produces in the environment. */
+
+    /* Push closure for exp_later to continuation stack. */
+    t1 = POP(c); 
+    PUSH(t1, e); // (e . c) == closure
+    PUSH(k, t1); // k -> ((e . c) . k)
+    t1 = VOID;
+    goto c_reduce;
+
   k_return:
-    /* Return from call, restoring environment. */
+    /* Return from call.  Restore closure (environment and code to
+       evaluate) and extend restored environment with the return value
+       of a previous evaluation. */
     c = POP(k);
     e = POP(c);
-    goto k_let;
-
+    PUSH(e, v);  // add binding to environment
+    v = VOID;
+    goto c_reduce;
 
   op_drop: /* exp */
     /* Ignore top element in the environment and continue reducing.
-       Used to implement `begin' in terms of op_let. */
+       Used to implement `begin' in terms of op_call. */
     POP(e);
-    goto c_reduce;
-
-  op_let: /* (exp_later . exp_now) */
-    PUSHK(POP(c));
-    goto c_reduce;
-  k_let: /* exp_later */
-    PUSH(e, v);  // add binding to environment
-    v = VOID;
     goto c_reduce;
 
   op_quote: /* datum */
