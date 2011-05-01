@@ -10541,6 +10541,17 @@ abstract and the code representation doesn't actually matter, i.e. it
 can be CDR-coded.
 
 
+/* Read a number from the code stream. */
+#define NREADC  NPOP(c) 
+
+/* Read a structured data item from the stream: try to avoid this as
+   it hinders abstraction.  Replace with other typed reads.  */
+#define READC   POP(c)    // read code data structure
 
 
+It seems that READC is only used to create closures.  What is really
+necessary is a way to represent code addresses in code, and abstract
+the representation of code addresses in the continuation stack.
 
+
+Still, this doesn't seem to lead to very flat code, except for calls.

@@ -52,9 +52,13 @@ void e_set(cell *e, int i, cell *v) {
    representation can be made abstract too and code representation can
    be optimized to other specifications.
 */
-#define READC   POP(c)    // read code data structure
-#define NREADC  NPOP(c)   // read code number
 
+/* Read a number from the code stream. */
+#define NREADC  NPOP(c) 
+
+/* Read a structured data item from the stream: try to avoid this as
+   it hinders abstraction.  Replace with other typed reads.  */
+#define READC   POP(c)    // read code data structure
 
 
 /* VM main loop.
@@ -185,8 +189,7 @@ void vm_continue(vm *vm) {
     #define e_ext   t1
     #define dotarg  v
 
-    v = READC;                     // var: fn
-    closure = e_ref(e, NCELL(v));  // (env . (nr . expr))
+    closure = e_ref(e, NREADC);    // (env . (nr . expr))
     e_ext = POP(closure);          // new env to extend
     int i = NPOP(closure);         // (nb_args << 1) | rest_args
 
