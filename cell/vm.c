@@ -108,16 +108,12 @@ void vm_continue(vm *vm) {
        - r : machine code return address
        - e : environment
        - c : code body */
-    #define PUSHK(r, c) {                       \
-        t1 = CONS(NUMBER(r), c);                \
+#define PUSHK(r, c) {                           \
+        t1 = c;                                 \
         PUSH(t1, e);                            \
         PUSH(k, t1);                            \
         t1 = VOID; }
 
-    #define POPK() ({                           \
-        c = POP(k);                             \
-        e = POP(c);                             \
-        NPOP(c);})
         
 
 
@@ -133,7 +129,9 @@ void vm_continue(vm *vm) {
 
   k_return:
     /* Return from call, restoring environment. */
-    goto *op[POPK()];
+    c = POP(k);
+    e = POP(c);
+    goto k_let;
 
 
   op_drop: /* exp */
