@@ -30,7 +30,6 @@
     (values sym (add1 n))))
 
 
-
 ;; Compile VM forms expressed as Scheme s-expression form to VM opcode
 ;; s-expression form.  Note that this performs only variable ->
 ;; debruyn conversion and not conversion to SSA form.
@@ -66,6 +65,12 @@
              ;; Bind result of intermediate evaluation to variable and
              ;; evaluate body in extended environment.  During
              ;; compilation we only need to keep track of names.
+
+             ;; FIXME: multiple clause let expressions can be done
+             ;; here by adding dummy vars to the environment; The VM
+             ;; will push one value after the other, but the
+             ;; expression evaluation needs to ignore those.
+             
              ((list 'let (list (list var inter)) body)
               (cons OP_LET
                     (cons (comp body (cons var env))

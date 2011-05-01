@@ -10485,5 +10485,36 @@ fake this using iteration though.
 ( confazzled ramblings ... ) 
 
 
+The basic idea is that, NO, of course you don't need CPS or
+continuation-state passing style in the compiler as long as you're
+allowed to use Scheme's state+strictness.
 
+
+
+Entry: serial vs parallel `let'
+Date: Sun May  1 15:01:04 EDT 2011
+
+I wonder if it's actually a good idea to have no parallel `let' form
+at all.  I did this to make the VM's continuations simpler
+(essentially only 1 since `begin' is the same as single-clause `let'
+and a dummy var).
+
+It seems this needs a separate register:
+  - current environment
+  - environment under construction
+
+So which is simpler?
+
+Moving towards a bytecode VM it seems that the most important
+simplification is to have only a single continuation type, such that
+it doesn't need tagging and can be a machine code jump target.
+
+
+Entry: One continuation type
+Date: Sun May  1 15:05:24 EDT 2011
+
+It seems te best optimization to make is to remove dependency on
+multiple continuation types, which means that `begin' is implemented
+in terms of the `let' primitive, but followed by a pop which
+explicitly ignores the retval.
 
