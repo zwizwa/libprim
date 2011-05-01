@@ -101,6 +101,7 @@ void vm_continue(vm *vm) {
         &&op_runc,  // 12
         &&op_close, // 13
         &&op_dump,  // 14
+        &&op_pop,   // 15
     };
 
 
@@ -136,6 +137,12 @@ void vm_continue(vm *vm) {
     goto *op[POPK()];
 
 
+  op_pop: /* exp */
+    /* Pop environment and continue reducing.  Used to implement
+       `begin' in terms of op_let. */
+    POP(e);
+    goto c_reduce;
+
   op_let: /* (exp_later . exp_now) */
     PUSHK(K_LET, POP(c));
     goto c_reduce;
@@ -160,7 +167,10 @@ void vm_continue(vm *vm) {
     v = VOID;
     goto k_return;
 
-  op_app: { /* (v_fn . v_cs) */  /* WAS: ((env . (nr . expr)) . v_cs) */
+  op_app: { /* (v_fn . v_cs)
+               v_fn -> ((env . (nr . expr)) . v_cs) */
+
+    // FIXME:  No type checking.  Crashes if v_fn doesn't point to closure.
 
     /* Name temp regs. */
     #define closure t2
