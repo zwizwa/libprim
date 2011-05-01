@@ -101,7 +101,7 @@ void vm_continue(vm *vm) {
         &&op_runc,  // 12
         &&op_close, // 13
         &&op_dump,  // 14
-        &&op_pop,   // 15
+        &&op_drop,  // 15
     };
 
 
@@ -137,9 +137,9 @@ void vm_continue(vm *vm) {
     goto *op[POPK()];
 
 
-  op_pop: /* exp */
-    /* Pop environment and continue reducing.  Used to implement
-       `begin' in terms of op_let. */
+  op_drop: /* exp */
+    /* Ignore top element in the environment and continue reducing.
+       Used to implement `begin' in terms of op_let. */
     POP(e);
     goto c_reduce;
 

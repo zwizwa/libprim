@@ -43,6 +43,7 @@
         (OP_REF   11)
         (OP_CLOSE 13)
         (OP_DUMP  14)
+        (OP_DROP  15)
         )
 
  
@@ -62,6 +63,16 @@
                     (cons (comp later env)
                           (comp now env)
                           )))
+
+             ;; Begin in terms of let + drop.
+             ((list 'begin now later)
+              (cons OP_LET
+                    (cons (cons OP_DROP
+                                (comp later env))
+                          (comp now env)
+                          )))
+
+             
              ;; Bind result of intermediate evaluation to variable and
              ;; evaluate body in extended environment.  During
              ;; compilation we only need to keep track of names.

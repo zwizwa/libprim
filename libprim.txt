@@ -10509,6 +10509,8 @@ Moving towards a bytecode VM it seems that the most important
 simplification is to have only a single continuation type, such that
 it doesn't need tagging and can be a machine code jump target.
 
+It seems to me that a linear environment is probably simpler to later
+unify with a stack language.
 
 Entry: One continuation type
 Date: Sun May  1 15:05:24 EDT 2011
@@ -10518,3 +10520,4 @@ multiple continuation types, which means that `begin' is implemented
 in terms of the `let' primitive, but followed by a pop which
 explicitly ignores the retval.
 
+DROP + LET : which order?
