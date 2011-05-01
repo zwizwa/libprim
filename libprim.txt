@@ -10447,3 +10447,4 @@ expression evaluation (make-closure).
 So I have to fix that in the VM (trivial: add deref) and in the test
 suite.
 
+EDIT: fixed

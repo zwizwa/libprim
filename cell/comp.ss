@@ -20,10 +20,10 @@
         (parse (cons (car rest) named) (cdr rest))
         (values named rest))))
 
-;; Compile base forms in Scheme s-expression form to VM opcode
+;; Compile VM forms expressed as Scheme s-expression form to VM opcode
 ;; s-expression form.  Note that this is a "dumb" translation and does
 ;; not perform conversion to SSA form!
-(define (comp expr)
+(define (comp-vm expr)
   (let ((OP_HALT   0)
         (OP_LET    1)
         (OP_BEGIN  3)
@@ -53,7 +53,7 @@
              ;; Bind result of intermediate evaluation to variable and
              ;; evaluate body in extended environment.  During
              ;; compilation we only need to keep track of names.
-             ((list 'let var inter body)
+             ((list 'let (list (list var inter)) body)
               (cons OP_LET
                     (cons (_ body (cons var env))
                           (_ inter env))))
@@ -91,10 +91,17 @@
                (else
                 (_ (list 'quote expr) env))))))))
 
+;; Compile Scheme expression form to the ANF dialect of the VM in
+;; Scheme expression form.
+;(define (comp-anf expr)
+;  (let _ ((e expr)
+          
+  
+
 (define (compile-verbose exprs)
   (for ((expr exprs))
     (printf ";; ~a\n" expr)
-    (pretty-print (comp expr))))
+    (pretty-print (comp-vm expr))))
 
 
 ;; These generate the VM test suite.  Each expression is a convoluted
@@ -102,36 +109,31 @@
 (compile-verbose
  '('123
    (begin '321 '123)
-   (let v '123 v)
+   (let ((v '123)) v)
    
-   (let v '1  (if v '123 '234))
-   (let v '#f (if v '234 '123))
+   (let ((v '1))  (if v '123 '234))
+   (let ((v '#f)) (if v '234 '123))
    
-   (begin (let v '(1 . 2) (dump v)) 123)
-   (let fn (lambda () 123) (fn))
+   (begin (let ((v '(1 . 2))) (dump v)) 123)
+   (let ((fn (lambda () 123))) (fn))
 
-   (let v 123
-   (let fn (lambda () v)
+   (let ((v 123))
+   (let ((fn (lambda () v)))
      (fn)))
 
-   (let v 123
-   (let dummy 321
-   (let fn (lambda () v)
+   (let ((v 123))
+   (let ((dummy 321))
+   (let ((fn (lambda () v)))
      (fn))))
    
-   
-;   (let v 123
-;     (let fn (lambda () v)
-;       v))
-
-   (let v 123
-   (let d1 111
-   (let d2 222
+   (let ((v 123))
+   (let ((d1 111))
+   (let ((d2 222))
      v)))
    
-   (let v 123
-   (let dummy 234
-   (let fn (lambda () v)
+   (let ((v 123))
+   (let ((dummy 234))
+   (let ((fn (lambda () v)))
      v)))
    
    ))
