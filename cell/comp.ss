@@ -2,17 +2,8 @@
 (require scheme/pretty
          scheme/match)
 
-(define (variable-index v env)
-  (let scan ((e env)
-             (n 0))
-    (cond
-     ((null? e)
-      (raise 'undefined-variable v))
-     ((eq? v (car e))
-      n)
-     (else
-      (scan (cdr e) (add1 n))))))
 
+;; Tools
 (define (parse-formals formals)
   (let parse ((named '())
               (rest formals))
@@ -20,9 +11,29 @@
         (parse (cons (car rest) named) (cdr rest))
         (values named rest))))
 
+(define ((make-variable-lookup env) v)
+  (let scan ((e env)
+             (n 0))
+    (cond
+     ((null? e)
+      ;; (raise 'undefined-variable v) ;; FIXME: module-level
+      v
+      )
+     ((eq? v (car e))
+      n)
+     (else
+      (scan (cdr e) (add1 n))))))
+
+(define (make-name n)
+  (let* ((new-name n)
+         (sym (string->symbol (format "V~s" n))))
+    (values sym (add1 n))))
+
+
+
 ;; Compile VM forms expressed as Scheme s-expression form to VM opcode
-;; s-expression form.  Note that this is a "dumb" translation and does
-;; not perform conversion to SSA form!
+;; s-expression form.  Note that this performs only variable ->
+;; debruyn conversion and not conversion to SSA form.
 (define (comp-vm expr)
   (let ((OP_HALT   0)
         (OP_LET    1)
@@ -35,34 +46,36 @@
         (OP_DUMP  14)
         )
 
-    (let _ ((expr expr)
-            (env  '()))
+ 
+  (let comp ((expr expr)
+             (env  '()))
+    (define variable (make-variable-lookup env))
       (match expr
              ((list 'halt)
               OP_HALT)
              ((list 'quote atom)
               (cons OP_QUOTE atom))
              ((list 'dump var)
-              (cons OP_DUMP (variable-index var env)))
+              (cons OP_DUMP (variable var)))
              ;; Like let, but doesn't bind value.
              ((list 'begin now later)
               (cons OP_BEGIN
-                    (cons (_ later env)
-                          (_ now env)
+                    (cons (comp later env)
+                          (comp now env)
                           )))
              ;; Bind result of intermediate evaluation to variable and
              ;; evaluate body in extended environment.  During
              ;; compilation we only need to keep track of names.
              ((list 'let (list (list var inter)) body)
               (cons OP_LET
-                    (cons (_ body (cons var env))
-                          (_ inter env))))
+                    (cons (comp body (cons var env))
+                          (comp inter env))))
              ;; Condition is varref.
              ((list 'if var yes no)
               (cons OP_IF
-                    (cons (variable-index var env)
-                          (cons (_ yes env)
-                                (_ no env)))))
+                    (cons (variable var)
+                          (cons (comp yes env)
+                                (comp no env)))))
              ;; Parse argument list, add the variable names to the
              ;; environment list passed down, add the number of
              ;; named+rest args (encoded in 1 number) to the closure
@@ -72,31 +85,83 @@
                 (cons OP_CLOSE
                       (cons (+ (length rest)
                                (* 2 (length named)))
-                            (_ expr (append formals rest env))))))
+                            (comp expr (append formals rest env))))))
              ;; Application
-
-             ;; FIXME: looks like there's a bug in the VM: fn and args
-             ;; all need to be varrefs, not in-line forms.
-             
              ((list-rest fn args)
               (cons OP_APP (for/list ((e (cons fn args)))
-                             (_ e env))))
+                             (comp e env))))
              
              (else
               (cond
                ;; Symbols are varrefs.
                ((symbol? expr)
-                (cons OP_REF (variable-index expr env)))
+                (cons OP_REF (variable expr)))
                ;; Other atoms are quotes.
                (else
-                (_ (list 'quote expr) env))))))))
+                (comp (list 'quote expr) env))))))))
+
+
+
+
 
 ;; Compile Scheme expression form to the ANF dialect of the VM in
 ;; Scheme expression form.
-;(define (comp-anf expr)
-;  (let _ ((e expr)
-          
+(define (comp-anf expr)
+
+  ;; Keep a global name generator state per expression.  Note that we
+  ;; don't really need unique names for all generated variables - just
+  ;; uniqueness for each lexical leg.  However, it's simpler to do it
+  ;; globally.
+  (define *name-state* 0)
+    (define (name!)
+      (let-values (((v n+) (make-name *name-state*)))
+        (set! *name-state* n+)
+        v))
   
+  (let expand ((e expr))
+    (match e
+           ;; Conditional
+           ((list 'if cond yes no)
+            (let ((v (name!)))
+              `(let ((,v ,cond))
+                 (if ,v
+                     ,(expand yes)
+                     ,(expand no)))))
+           ;; Unpacking begin
+           ((list 'begin e) e)
+           ((list-rest 'begin e es)
+            `(begin ,(expand e)
+                    ,(expand `(begin ,@es))))
+           
+           ;; Unpacking let*
+           ((list 'let* '() form) form)
+           ((list 'let* (list-rest b bs) form)
+            `(let (,b) ,(expand `(let* ,bs ,form))))
+            
+           ;; Application -> let*
+           ((list-rest fn args)
+            (let* ((es (cons fn args))
+                   (vs (for/list ((e es))
+                         (if (symbol? e) e (name!)))))
+              (expand 
+               `(let* ,(for/list ((v vs)
+                                  (e es)
+                                  #:when (not (symbol? e)))
+                         (list v e))
+                  ,vs))))
+
+           ;; Proper (parallel) let form.  Maybe this needs to go in
+           ;; the comp-vm function.
+
+           ;; Ignore others.
+           (else
+            e))))
+  
+(require scheme/pretty)
+(define-syntax-rule (anf e)
+  (pretty-print (comp-anf 'e)))
+
+
 
 (define (compile-verbose exprs)
   (for ((expr exprs))

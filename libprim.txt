@@ -10448,3 +10448,42 @@ So I have to fix that in the VM (trivial: add deref) and in the test
 suite.
 
 EDIT: fixed
+
+
+Entry: ANF compiler
+Date: Sun May  1 13:11:48 EDT 2011
+
+Seems lika n ANF compiler is much like an ordinary interpreter that
+makes a choice about what to do first.  This is really a CPS
+conversion.
+
+So what I need is a state-continuation monad.
+
+This is all so familiar..  Maybe there is something to learn about
+basics here.
+
+
+So this is let insertion.  The state is necessary for name generation.
+The CPS is necessary to provide sequencing (in a functional way).
+
+Q: Is the necessesity of using CPS a consequence of the necessity of
+   threaded state?
+
+In other words, is there a way to implement this that is just
+stateful?  It seems that a stateful approach should work too.  Let's
+try both.
+
+It seems to be the case that name generation can be kept local:
+shadowing is supported in the comp-vm compiler.
+
+It seems the trouble is with trying to express the conversion of a
+function application, where a recursive data structure is built (a
+collecting of enclosing let forms) which has a deep that needs to be
+filled in with data computed in each recursion step.  It's possible to
+fake this using iteration though.
+
+( confazzled ramblings ... ) 
+
+
+
+
