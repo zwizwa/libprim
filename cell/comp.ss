@@ -36,14 +36,13 @@
 (define (comp-vm expr)
   (let ((OP_HALT   0)
         (OP_LET    1)
-        (OP_BEGIN  3)
+        (OP_DUMP   3)
+        (OP_DROP   4)
         (OP_QUOTE  5)
         (OP_APP    7)
         (OP_IF     8)
         (OP_REF   11)
         (OP_CLOSE 13)
-        (OP_DUMP  14)
-        (OP_DROP  15)
         )
 
  
@@ -58,11 +57,11 @@
              ((list 'dump var)
               (cons OP_DUMP (variable var)))
              ;; Like let, but doesn't bind value.
-             ((list 'begin now later)
-              (cons OP_BEGIN
-                    (cons (comp later env)
-                          (comp now env)
-                          )))
+             ;((list 'begin now later)
+             ; (cons OP_BEGIN
+             ;      (cons (comp later env)
+             ;             (comp now env)
+             ;             )))
 
              ;; Begin in terms of let + drop.
              ((list 'begin now later)

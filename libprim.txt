@@ -10520,4 +10520,12 @@ multiple continuation types, which means that `begin' is implemented
 in terms of the `let' primitive, but followed by a pop which
 explicitly ignores the retval.
 
-DROP + LET : which order?
+DROP + LET : which order? Drop after let + make sure the env is passed
+correctly.
+
+So, now that begin is eliminated, the continuation can be simplified.
+I don't really need a K_HALT probably.  Next: eliminate K_HALT.  It
+can be implemented as a return frame with a halt opcode.
+
+
+

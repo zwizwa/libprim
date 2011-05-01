@@ -55,9 +55,9 @@ void e_set(cell *e, int i, cell *v) {
 
    There are 2 classes of actions:
 
-   - OPCODES: These represent the primitive forms of the language:
-     let, begin, set!, app, if, quote.  The first two produce new
-     continuation frames.
+   - OPCODES: These represent (components of) the primitive forms of
+     the language: let, begin, set!, app, if, quote.  The first two
+     produce new continuation frames.
 
    - KCODES:  These represent the primitive forms that are executed
      whenever evaluation finishes, and the top K frame is invoked.
@@ -80,17 +80,18 @@ void vm_continue(vm *vm) {
     #define t2 (vm->t2)  // temp reg
 
     /* Opcodes encoded as NUMBER(). */
-    #define K_HALT  0
     #define K_LET   2
-    #define K_BEGIN 4
     #define OP_RUNC 12
+    #define OP_HALT  0
 
     static const void *op[] = {
-        &&k_halt,   // 0
+        &&op_halt,  // 0
         &&op_let,   // 1
         &&k_let,    // 2
-        &&op_begin, // 3
-        &&k_begin,  // 4
+
+        &&op_dump,  // 3
+        &&op_drop,  // 4
+
         &&op_quote, // 5
         &&op_set,   // 6
         &&op_app,   // 7
@@ -100,8 +101,6 @@ void vm_continue(vm *vm) {
         &&op_ref,   // 11
         &&op_runc,  // 12
         &&op_close, // 13
-        &&op_dump,  // 14
-        &&op_drop,  // 15
     };
 
 
@@ -125,7 +124,7 @@ void vm_continue(vm *vm) {
     /* If we start with an empty contination, push an explicit halt
        frame to the k stack. */
     if (MT == k) {
-        PUSHK(K_HALT, NIL);
+        PUSHK(K_LET, CONS(NUMBER(OP_HALT), NIL));
     }
     
   c_reduce:
@@ -149,13 +148,6 @@ void vm_continue(vm *vm) {
   k_let: /* exp_later */
     PUSH(e, v);  // add binding to environment
     v = VOID;
-    goto c_reduce;
-
-  op_begin: /* (exp_later . exp_now) */
-    PUSHK(K_BEGIN, POP(c));
-    goto c_reduce;
-  k_begin: /* exp_later */
-    v = VOID;  // ignore the value.
     goto c_reduce;
 
   op_quote: /* datum */
@@ -249,8 +241,10 @@ void vm_continue(vm *vm) {
     goto k_return;
 
 
-  k_halt:
-    /* Clear temps before returning. */
+  op_halt:
+    /* Halt use a fake let continuation, which pushes the retval to
+       the environment stack. */
+    v = POP(e);
     return;
 
     #undef c
