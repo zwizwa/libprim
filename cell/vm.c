@@ -108,7 +108,7 @@ void vm_continue(vm *vm) {
        - r : machine code return address
        - e : environment
        - c : code body */
-#define PUSHK(r, c) {                           \
+#define PUSHK(c) {                              \
         t1 = c;                                 \
         PUSH(t1, e);                            \
         PUSH(k, t1);                            \
@@ -120,7 +120,7 @@ void vm_continue(vm *vm) {
     /* If we start with an empty contination, push an explicit halt
        frame to the k stack. */
     if (MT == k) {
-        PUSHK(K_LET, CONS(NUMBER(OP_HALT), NIL));
+        PUSHK(CONS(NUMBER(OP_HALT), NIL));
     }
     
   c_reduce:
@@ -141,7 +141,7 @@ void vm_continue(vm *vm) {
     goto c_reduce;
 
   op_let: /* (exp_later . exp_now) */
-    PUSHK(K_LET, POP(c));
+    PUSHK(POP(c));
     goto c_reduce;
   k_let: /* exp_later */
     PUSH(e, v);  // add binding to environment
