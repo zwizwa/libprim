@@ -42,6 +42,21 @@ void e_set(cell *e, int i, cell *v) {
 }
 
 
+/* Code implementation.
+ 
+   In the original oplementation C is CONS-cell based data structure.
+   It behaves mostly as a stream but is implemented as a CDR-linked
+   list with some improper list optimizations sprinkled in.
+
+   The interesting part is that if access is made abstract,
+   representation can be made abstract too and code representation can
+   be optimized to other specifications.
+*/
+#define READC   POP(c)    // read code data structure
+#define NREADC  NPOP(c)   // read code number
+
+
+
 /* VM main loop.
 
    The basic idea is the same as in most other libprim VMs.
@@ -80,17 +95,15 @@ void vm_continue(vm *vm) {
     #define t2 (vm->t2)  // temp reg
 
     /* Opcodes encoded as NUMBER(). */
-    #define OP_RUNC 12
     #define OP_HALT  0
+    #define OP_RUNC 12
 
     static const void *op[] = {
         &&op_halt,  // 0
         &&op_call,  // 1
         &&op_close, // 2
-
-        &&op_dump,  // 3
+        &&op_runc,  // 3
         &&op_drop,  // 4
-
         &&op_quote, // 5
         &&op_set,   // 6
         &&op_app,   // 7
@@ -98,7 +111,9 @@ void vm_continue(vm *vm) {
         &&op_letcc, // 9
         &&op_prim,  // 10
         &&op_ref,   // 11
-        &&op_runc,  // 12
+
+        /* Debug */
+        &&op_dump,  // 12
     };
 
 
@@ -107,8 +122,7 @@ void vm_continue(vm *vm) {
            halt frame to the k stack.  If `exp' is the code to
            evaluate, this behaves as (let ((v exp)) (halt v)). */
         t1 = CONS(NUMBER(OP_HALT), 
-                  NIL // dummy, not reached
-            );
+                  NIL); // dummy, not reached
         PUSH(c, t1);
         t1 = VOID;
         goto op_call;
@@ -120,7 +134,7 @@ void vm_continue(vm *vm) {
     
   c_reduce:
     /* Reduce current core form; interpreter opcode is in CAR. */
-    goto *op[NPOP(c)]; // opcode
+    goto *op[NREADC]; // opcode
 
   op_call: /* (exp_later . exp_now) */
     /* Code sequencing: take some code to evaluate later in the
@@ -128,7 +142,7 @@ void vm_continue(vm *vm) {
        purpose of storing the value it produces in the environment. */
 
     /* Push closure for exp_later to continuation stack. */
-    t1 = POP(c); 
+    t1 = READC; 
     PUSH(t1, e); // (e . c) == closure
     PUSH(k, t1); // k -> ((e . c) . k)
     t1 = VOID;
@@ -139,14 +153,16 @@ void vm_continue(vm *vm) {
        evaluate) and extend restored environment with the return value
        of a previous evaluation. */
     c = POP(k);
-    e = POP(c);
+    e = READC;
     PUSH(e, v);  // add binding to environment
     v = VOID;
     goto c_reduce;
 
   op_drop: /* exp */
     /* Ignore top element in the environment and continue reducing.
-       Used to implement `begin' in terms of op_call. */
+       Used to implement `begin' which ignores return values of first
+       expression, in terms of op_call, which saves return value in
+       the environment. */
     POP(e);
     goto c_reduce;
 
@@ -169,20 +185,20 @@ void vm_continue(vm *vm) {
     #define e_ext   t1
     #define dotarg  v
 
-    v = POP(c);                    // var: fn
+    v = READC;                     // var: fn
     closure = e_ref(e, NCELL(v));  // (env . (nr . expr))
     e_ext = POP(closure);          // new env to extend
     int i = NPOP(closure);         // (nb_args << 1) | rest_args
 
     /* Ref args from current env and extend new env. */
     while (i>>1) {
-        PUSH(e_ext, e_ref(e, NPOP(c)));
+        PUSH(e_ext, e_ref(e, NREADC));
         i -= 2;
     }
     /* Ref rest and push as a list if desired. */
     if (i) {
         dotarg = NIL;
-        while(NIL != c) { PUSH(dotarg, e_ref(e, NPOP(c))); }
+        while(NIL != c) { PUSH(dotarg, e_ref(e, NREADC)); }
         PUSH(e_ext, dotarg);
     }
 
@@ -202,7 +218,7 @@ void vm_continue(vm *vm) {
     goto k_return;
 
   op_if: /* (var . (exp_t . exp_f)) */
-    v = e_ref(e, NPOP(c));
+    v = e_ref(e, NREADC);
     c = (v != FALSE) ? CAR(c) : CDR(c);
     v = VOID;
     goto c_reduce;

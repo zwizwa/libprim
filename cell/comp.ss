@@ -35,14 +35,14 @@
 ;; debruyn conversion and not conversion to SSA form.
 (define (comp-vm expr)
   (let ((OP_HALT   0)
-        (OP_LET    1)
+        (OP_CALL   1)
         (OP_CLOSE  2)
-        (OP_DUMP   3)
         (OP_DROP   4)
         (OP_QUOTE  5)
         (OP_APP    7)
         (OP_IF     8)
         (OP_REF   11)
+        (OP_DUMP  12)
         )
 
  
@@ -50,47 +50,44 @@
              (env  '()))
     (define variable (make-variable-lookup env))
       (match expr
-             ((list 'halt)
-              OP_HALT)
-             ((list 'quote atom)
-              (cons OP_QUOTE atom))
-             ((list 'dump var)
-              (cons OP_DUMP (variable var)))
-             ;; Like let, but doesn't bind value.
-             ;((list 'begin now later)
-             ; (cons OP_BEGIN
-             ;      (cons (comp later env)
-             ;             (comp now env)
-             ;             )))
 
-             ;; Begin in terms of let + drop.
-             ((list 'begin now later)
-              (cons OP_LET
-                    (cons (cons OP_DROP
-                                (comp later env))
-                          (comp now env)
-                          )))
-
-             
              ;; Bind result of intermediate evaluation to variable and
              ;; evaluate body in extended environment.  During
              ;; compilation we only need to keep track of names.
-
-             ;; FIXME: multiple clause let expressions can be done
-             ;; here by adding dummy vars to the environment; The VM
-             ;; will push one value after the other, but the
-             ;; expression evaluation needs to ignore those.
-             
              ((list 'let (list (list var inter)) body)
-              (cons OP_LET
-                    (cons (comp body (cons var env))
-                          (comp inter env))))
+              (cons OP_CALL
+                    (cons
+                     ;; The `body' expression will be evaluated in the
+                     ;; extended environment.
+                     (comp body (cons var env))
+                     (comp inter env))))
              ;; Condition is varref.
              ((list 'if var yes no)
               (cons OP_IF
                     (cons (variable var)
                           (cons (comp yes env)
                                 (comp no env)))))
+
+             
+             ;; Similar to `let' but ignore the return value.  This
+             ;; uses the OP_CALL in followed by OP_DROP.
+             ((list 'begin now later)
+              (cons
+               ;; This will cause the result of evaluation of the
+               ;; `now' expression to be pushed to the top of the
+               ;; environment stack.
+               OP_CALL
+               (cons (cons
+                      ;; This removes the pushed return value before
+                      ;; evaluating the other code.  Note that we
+                      ;; don't extend the environment here, as opposed
+                      ;; to the implementation of `let'.
+                      OP_DROP
+                      (comp later env))
+                     (comp now env)
+                     )))
+
+             
              ;; Parse argument list, add the variable names to the
              ;; environment list passed down, add the number of
              ;; named+rest args (encoded in 1 number) to the closure
@@ -101,11 +98,18 @@
                       (cons (+ (length rest)
                                (* 2 (length named)))
                             (comp expr (append formals rest env))))))
+             
+             ;; Simpler special forms.
+             ((list 'halt)         OP_HALT)
+             ((list 'quote atom)  (cons OP_QUOTE atom))
+             ((list 'dump var)    (cons OP_DUMP (variable var)))
+
              ;; Application
              ((list-rest fn args)
               (cons OP_APP (for/list ((e (cons fn args)))
                              (comp e env))))
-             
+
+             ;; Atoms
              (else
               (cond
                ;; Symbols are varrefs.

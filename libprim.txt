@@ -10527,5 +10527,20 @@ So, now that begin is eliminated, the continuation can be simplified.
 I don't really need a K_HALT probably.  Next: eliminate K_HALT.  It
 can be implemented as a return frame with a halt opcode.
 
+Done.  That wasn't so hard!
+
+
+
+Entry: From structured to linear code
+Date: Sun May  1 19:26:47 EDT 2011
+
+Now, with only one continuation type we have a CALL / RETURN structure
+that saves/restores closures (code pointer + environment).  If the VM
+only uses POP to operate on the code, that operation can be made
+abstract and the code representation doesn't actually matter, i.e. it
+can be CDR-coded.
+
+
+
 
 
