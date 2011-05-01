@@ -10400,3 +10400,50 @@ might be the trick.
 
 [1] http://sourceware.org/ml/ecos-discuss/2008-11/msg00034.html
 
+
+Entry: Keep code out of RAM
+Date: Thu Apr 28 20:02:17 EDT 2011
+
+Thinking about it, it's probably not a good idea to keep code in RAM.
+Since scheme (without eval) never creates code at runtime (as opposed
+to closures or continuations), there should be no problem really.
+
+
+Entry: Dead end; new start?
+Date: Thu Apr 28 23:36:45 EDT 2011
+
+So after leaving the project alone for a while I thought it might be
+interesting to write a compiler in racket.  However what I forgot is
+that it seems to be a dead end, at least the s-expression VM one.
+
+So, it might be best to move the project elsewhere.  The next time I
+would write a Scheme engine, I'd design it together with the VM and
+use a generator for the VM.  I can stil reuse the garbage collector
+though.
+
+
+Entry: Hmm.. learning?
+Date: Sat Apr 30 23:12:08 EDT 2011
+
+Maybe it's good to finish the interpreter anyway, to have a testable
+model that can be evolved into something more abstract.
+
+Maybe I should learn this time: don't ever rewrite something.  Even if
+it might take a very long time, incremental rework has the infinite
+advantage to be working at all time: it's more appropriate in the real
+world.
+
+
+
+Entry: Lambda & app.
+Date: Sat Apr 30 23:18:35 EDT 2011
+
+Q: shouldn't closures be bound in the environment?
+
+Currently they are expected as a direct argument of app (in code) but
+that can't work because closures can only be the result of a lambda
+expression evaluation (make-closure).
+
+So I have to fix that in the VM (trivial: add deref) and in the test
+suite.
+
