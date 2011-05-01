@@ -120,7 +120,10 @@ void vm_continue(vm *vm) {
     /* If we start with an empty contination, push an explicit halt
        frame to the k stack. */
     if (MT == k) {
-        PUSHK(CONS(NUMBER(OP_HALT), NIL));
+        t1 = CONS(NUMBER(OP_HALT), NIL);
+        PUSH(c, t1);
+        t1 = VOID;
+        goto op_let;
     }
     
   c_reduce:
