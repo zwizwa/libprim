@@ -223,7 +223,7 @@ void vm_continue(vm *vm) {
 
   op_if: /* (var . (exp_t . exp_f)) */
     v = e_ref(e, READ_NUM);
-    c = (v != FALSE) ? CAR(c) : CDR(c);
+    c = (v != FALSE) ? CAR(c) : CAR(CDR(c));
     v = VOID;
     goto c_reduce;
 

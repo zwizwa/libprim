@@ -63,10 +63,10 @@
                      (comp inter env))))
              ;; Condition is varref.
              ((list 'if var yes no)
-              (cons OP_IF
-                    (cons (variable var)
-                          (cons (comp yes env)
-                                (comp no env)))))
+              (list OP_IF
+                    (variable var)
+                    (comp yes env)
+                    (comp no env)))
 
              
              ;; Similar to `let' but ignore the return value.  This
