@@ -10553,5 +10553,14 @@ It seems that READC is only used to create closures.  What is really
 necessary is a way to represent code addresses in code, and abstract
 the representation of code addresses in the continuation stack.
 
+Turning the current cell-based VM code into a proper list seems to be
+the way to go.  One at a time.
+
+
+
+
 
 Still, this doesn't seem to lead to very flat code, except for calls.
+I'm looking at set!.  Hmm make this more specific...
+
+
