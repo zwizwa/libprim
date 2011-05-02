@@ -102,7 +102,7 @@
              ;; Simpler special forms.
              ((list 'halt)         OP_HALT)
              ((list 'quote atom)  (list OP_QUOTE atom))
-             ((list 'dump var)    (cons OP_DUMP (variable var)))
+             ((list 'dump var)    (list OP_DUMP (variable var)))
 
              ;; Application
              ((list-rest fn args)

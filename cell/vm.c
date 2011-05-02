@@ -240,7 +240,7 @@ void vm_continue(vm *vm) {
     goto k_return;
 
   op_dump: /* var */
-    v = e_ref(e, NCELL(c));
+    v = e_ref(e, READ_NUM);
     DISP("[op_dump: ");
     cell_display(v);
     DISP("] ");
