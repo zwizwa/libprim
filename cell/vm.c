@@ -59,7 +59,7 @@ void e_set(cell *e, int i, cell *v) {
 /* Read a structured data item from the stream: try to avoid this as
    it hinders abstraction.  Replace with other typed reads.  */
 #define READ_ADDR   POP(c)    // read code data structure
-
+#define READ_DATA   POP(c)    // read constant data
 
 /* VM main loop.
 
@@ -172,7 +172,7 @@ void vm_continue(vm *vm) {
     goto c_reduce;
 
   op_quote: /* datum */
-    v = c;
+    v = READ_DATA;
     goto k_return;
 
   op_set: /* (var_dst . var_src) */
