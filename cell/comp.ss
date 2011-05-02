@@ -198,7 +198,7 @@
    (let ((v '1))  (if v '123 '234))
    (let ((v '#f)) (if v '234 '123))
    
-   (begin (let ((v '(1 . 2))) (dump v)) 123)
+   ; (begin (let ((v '(1 . 2))) (dump v)) 123)
    (let ((fn (lambda () 123))) (fn))
 
    (let ((v 123))

@@ -141,7 +141,9 @@ void vm_continue(vm *vm) {
     
   c_reduce:
     /* Reduce current core form; interpreter opcode is in CAR. */
-    goto *op[READ_NUM]; // opcode
+    n1 = READ_NUM;
+    DISP("{%d}", n1);
+    goto *op[n1]; // opcode
 
   op_call: /* (exp_later . exp_now) */
     /* Code sequencing: take some code to evaluate later in the
@@ -237,6 +239,11 @@ void vm_continue(vm *vm) {
 
   op_ref:   /* number */
     v = e_ref(e, NCELL(c));
+    DISP("[op_ref: ");
+    cell_display(c);
+    DISP(" -> ");
+    cell_display(v);
+    DISP("] ");
     goto k_return;
 
   op_dump: /* var */

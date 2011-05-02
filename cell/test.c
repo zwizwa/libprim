@@ -58,6 +58,7 @@ void tests(vm *vm) {
     
 }
 
+#if 0
 void looptest(vm *vm) {
     heap_collect();
     cell *c1 = CONS(NUMBER(0), VOID);
@@ -68,6 +69,7 @@ void looptest(vm *vm) {
     vm_eval(vm, expr);
 
 }
+#endif
 
 int readtest(vm *vm) {
     int rv = 0;
