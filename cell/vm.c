@@ -146,20 +146,19 @@ void vm_continue(vm *vm) {
        purpose of storing the value it produces in the environment. */
 
     /* Push closure for exp_later to continuation stack. */
-    t1 = READ_ADDR; 
-    PUSH(t1, e); // (e . c) == closure
-    PUSH(k, t1); // k -> ((e . c) . k)
+    t1 = CONS(e, READ_ADDR); // (e . c) == closure
+    PUSH(k, t1);             // k -> ((e . c) . k)
     t1 = VOID;
     goto c_reduce;
 
   k_return:
-    /* Return from call.  Restore closure (environment and code to
-       evaluate) and extend restored environment with the return value
-       of a previous evaluation. */
+    /* Pop closure */
     t1 = POP(k);
     e = CAR(t1);
     c = CDR(t1);
     t1 = VOID;
+    /* Extend restored environment with the return value
+       of a previous evaluation. */
     PUSH(e, v);  // add binding to environment
     v = VOID;
     goto c_reduce;
