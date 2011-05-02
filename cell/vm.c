@@ -98,6 +98,9 @@ void vm_continue(vm *vm) {
     #define t1 (vm->t1)  // temp reg
     #define t2 (vm->t2)  // temp reg
 
+    /* Non-managed temp registers. */
+    int n1, n2;
+
     /* Opcodes encoded as NUMBER(). */
     #define OP_HALT  0
     #define OP_RUNC 12
@@ -175,13 +178,12 @@ void vm_continue(vm *vm) {
     v = READ_DATA;
     goto k_return;
 
-  op_set: { /* (var_dst . var_src) */
-        int dst = READ_NUM;
-        int src = READ_NUM;
-        e_set(e, dst, e_ref(e, src));
-        v = VOID;
-        goto k_return;
-    }
+  op_set: /* (var_dst . var_src) */
+    n1 = READ_NUM;
+    n2 = READ_NUM;
+    e_set(e, n1, e_ref(e, n2));
+    v = VOID;
+    goto k_return;
 
   op_app: { /* (v_fn . v_cs)
                v_fn -> ((env . (nr . expr)) . v_cs) */
@@ -195,15 +197,15 @@ void vm_continue(vm *vm) {
 
     closure = e_ref(e, READ_NUM);    // (env . (nr . expr))
     e_ext = POP(closure);          // new env to extend
-    int i = NPOP(closure);         // (nb_args << 1) | rest_args
+    n1 = NPOP(closure);         // (nb_args << 1) | rest_args
 
     /* Ref args from current env and extend new env. */
-    while (i>>1) {
+    while (n1>>1) {
         PUSH(e_ext, e_ref(e, READ_NUM));
-        i -= 2;
+        n1 -= 2;
     }
     /* Ref rest and push as a list if desired. */
-    if (i) {
+    if (n1) {
         dotarg = NIL;
         while(NIL != c) { PUSH(dotarg, e_ref(e, READ_NUM)); }
         PUSH(e_ext, dotarg);
@@ -227,9 +229,7 @@ void vm_continue(vm *vm) {
   op_if: /* (var . (exp_t . exp_f)) */
     v = e_ref(e, READ_NUM);
     t1 = READ_ADDR;
-    if (v == FALSE) {
-        t1 = READ_ADDR;
-    }
+    if (v == FALSE) { t1 = READ_ADDR; }
     c = t1;
     v = VOID;
     t1 = VOID;
