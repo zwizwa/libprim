@@ -223,8 +223,13 @@ void vm_continue(vm *vm) {
 
   op_if: /* (var . (exp_t . exp_f)) */
     v = e_ref(e, READ_NUM);
-    c = (v != FALSE) ? CAR(c) : CAR(CDR(c));
+    t1 = READ_ADDR;
+    if (v == FALSE) {
+        t1 = READ_ADDR;
+    }
+    c = t1;
     v = VOID;
+    t1 = VOID;
     goto c_reduce;
 
   op_ref:   /* number */
