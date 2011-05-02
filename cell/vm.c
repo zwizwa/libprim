@@ -175,10 +175,13 @@ void vm_continue(vm *vm) {
     v = READ_DATA;
     goto k_return;
 
-  op_set: /* (var_dst . var_src) */
-    e_set(e, NCAR(c), e_ref(e, NCDR(c)));
-    v = VOID;
-    goto k_return;
+  op_set: { /* (var_dst . var_src) */
+        int dst = READ_NUM;
+        int src = READ_NUM;
+        e_set(e, dst, e_ref(e, src));
+        v = VOID;
+        goto k_return;
+    }
 
   op_app: { /* (v_fn . v_cs)
                v_fn -> ((env . (nr . expr)) . v_cs) */
