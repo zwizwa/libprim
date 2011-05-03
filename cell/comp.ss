@@ -12,6 +12,8 @@
         (values named rest))))
 
 (define ((make-variable-lookup env) v)
+  (unless (symbol? v)
+    (raise 'not-a-variable "~a" v))
   (let scan ((e env)
              (n 0))
     (cond
@@ -107,14 +109,14 @@
              ;; Application
              ((list-rest fn args)
               (cons OP_APP (for/list ((e (cons fn args)))
-                             (comp e env))))
-
+                             (variable e))))
+  
              ;; Atoms
              (else
               (cond
                ;; Symbols are varrefs.
                ((symbol? expr)
-                (cons OP_REF (variable expr)))
+                (list OP_REF (variable expr)))
                ;; Other atoms are quotes.
                (else
                 (comp (list 'quote expr) env))))))))
@@ -191,7 +193,10 @@
 ;; These generate the VM test suite.  Each expression is a convoluted
 ;; way to produce the value 123.
 (compile-verbose
- '('123
+ '(
+   (let ((fn (lambda () 123))) (fn))
+
+   '123
    (begin '321 '123)
    (let ((v '123)) v)
    
@@ -199,7 +204,7 @@
    (let ((v '#f)) (if v '234 '123))
    
    ; (begin (let ((v '(1 . 2))) (dump v)) 123)
-   (let ((fn (lambda () 123))) (fn))
+
 
    (let ((v 123))
    (let ((fn (lambda () v)))

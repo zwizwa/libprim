@@ -187,7 +187,7 @@ void vm_continue(vm *vm) {
     v = VOID;
     goto k_return;
 
-  op_app: { /* (v_fn . v_cs)
+  op_app:  /* (v_fn . v_cs)
                v_fn -> ((env . (nr . expr)) . v_cs) */
 
     // FIXME:  No type checking.  Crashes if v_fn doesn't point to closure.
@@ -197,9 +197,10 @@ void vm_continue(vm *vm) {
     #define e_ext   t1
     #define dotarg  v
 
-    closure = e_ref(e, READ_NUM);    // (env . (nr . expr))
-    e_ext = POP(closure);          // new env to extend
-    n1 = NPOP(closure);         // (nb_args << 1) | rest_args
+    n1 = READ_NUM;             // var -> closure
+    closure = e_ref(e, n1);    // (env . (nr . expr))
+    e_ext = POP(closure);      // new env to extend
+    n1 = NPOP(closure);        // (nb_args << 1) | rest_args
 
     /* Ref args from current env and extend new env. */
     while (n1>>1) {
@@ -222,7 +223,7 @@ void vm_continue(vm *vm) {
     #undef closure
     #undef e_ext
     #undef dotarg
-    }
+    
 
   op_close: /* (nr . expr) */
     v = CONS(e, c);
@@ -238,12 +239,7 @@ void vm_continue(vm *vm) {
     goto c_reduce;
 
   op_ref:   /* number */
-    v = e_ref(e, NCELL(c));
-    DISP("[op_ref: ");
-    cell_display(c);
-    DISP(" -> ");
-    cell_display(v);
-    DISP("] ");
+    v = e_ref(e, READ_NUM);
     goto k_return;
 
   op_dump: /* var */

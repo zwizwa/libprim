@@ -10564,3 +10564,9 @@ Still, this doesn't seem to lead to very flat code, except for calls.
 I'm looking at set!.  Hmm make this more specific...
 
 
+Entry: Weird bug
+Date: Tue May  3 09:28:25 EDT 2011
+
+Changing OP_REF : cons->list triggered a bug in OP_APP: it needs
+varrefs directly, not opcodes.
+
