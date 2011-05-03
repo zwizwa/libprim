@@ -10570,3 +10570,39 @@ Date: Tue May  3 09:28:25 EDT 2011
 Changing OP_REF : cons->list triggered a bug in OP_APP: it needs
 varrefs directly, not opcodes.
 
+
+Entry: Towards abstract code
+Date: Tue May  3 10:13:10 EDT 2011
+
+I've got all code ops abstracted:
+
+/* Read a number from the code stream. */
+#define NEXT_NUM  NPOP(c) 
+
+/* Read a structured data item from the stream: try to avoid this as
+   it hinders abstraction.  Replace with other typed reads.  */
+#define NEXT_ADDR   POP(c)         // read abstract code address
+#define NEXT_DATA   POP(c)         // read constant data
+#define NEXT_VOID   (POP(c)->atom) // read full machine address
+
+
+The next step is to make representation of code addresses abstract,
+i.e. in the continuation stack.
+
+Another point of attention is whether the code itself will be GC-able.
+For embedded use (when `eval' is not defined on the target) this is
+probably not the case.  Turning that upside down: of course it is not,
+otherwise we would _have to_ use CELL representation!
+
+
+Entry: Simplified op_prim
+Date: Tue May  3 10:20:09 EDT 2011
+
+Actually, OP_PRIM does not need to call return.  It can just continue
+reducing the next code atom, since it has no need of touching the
+environment during eval.
+
+The op_prim that's there now is not a primitive in the ordinary sense,
+but a VM extension.  To make the above remark usable, a real prim op
+needs to perform argument reference too, but can then skip closure
+push/pop.

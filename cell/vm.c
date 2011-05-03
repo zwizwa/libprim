@@ -260,8 +260,12 @@ void vm_continue(vm *vm) {
     goto k_return;
         
   op_prim:  /* atom */
-    v = VOID; // in case prim doesn't set it
+    v = VOID; 
     w1.p = NEXT_VOID;
+    /* This is not a primitive in the ordinary sense, but a VM
+       extension.  It eaves its return value in the v register.  All
+       the registers except for k can be used for temp storage when
+       CONS is used. */
     w1.p(vm);
     goto k_return;
 
