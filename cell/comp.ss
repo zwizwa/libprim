@@ -1,7 +1,27 @@
 #lang scheme/base
 (require scheme/pretty
-         scheme/match)
+         scheme/match
+         scheme/dict)
 
+
+;; Get opcodes from header file.
+(define (read-ops p)
+  (let next ((ops '())
+             (n 0))
+    (let ((x (read p)))
+      (if (eof-object? x)
+          (reverse ops)
+          (next (cons (list (car (read p)) n)
+                      ops)
+                (add1 n))))))
+
+(define opcodes (read-ops (open-input-file "op.h")))
+(define (make-op opc . args)
+  (cons (car (dict-ref opcodes opc)) args))
+(define-syntax-rule (op opc . args)
+  (make-op 'opc . args))
+
+;; ETC...
 
 ;; Tools
 (define (parse-formals formals)

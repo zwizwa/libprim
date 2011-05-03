@@ -89,6 +89,8 @@ union word {
 
 #define CLEAR(r) r = VOID  // remove GC references.
 
+#define elof(array) (sizeof(array)/sizeof(array[0]))
+
 void vm_continue(vm *vm) {
     /* Registers are in the vm struct which is set as GC root.  Care
        needs to be taken that cell refs never go into local variables
@@ -109,27 +111,18 @@ void vm_continue(vm *vm) {
     union word w1, w2;
 
     /* Opcodes encoded as NUMBER(). */
-    #define OP_HALT  0
     #define OP_RUNC 12
 
+    /* Numeric opcode encoding is kept abstract. */
+    #define OP(label) &&label,
     static const void *op[] = {
-        &&op_halt,  // 0
-        &&op_call,  // 1
-        &&op_close, // 2
-        &&op_runc,  // 3
-        &&op_drop,  // 4
-        &&op_quote, // 5
-        &&op_set,   // 6
-        &&op_app,   // 7
-        &&op_if,    // 8
-        &&op_letcc, // 9
-        &&op_prim,  // 10
-        &&op_ref,   // 11
-
-        /* Debug */
-        &&op_dump,  // 12
+        /* Opcodes shared with compiler. */
+        #include "op.h"
+        /* Not accessible to compiler. */
+        OP(op_halt)
     };
-
+    /* Halt is the last op. */
+    #define OP_HALT (elof(op)-1)
 
     if (MT == k) {
         /* If we start with an empty contination, push an explicit
@@ -269,27 +262,16 @@ void vm_continue(vm *vm) {
     w1.p(vm);
     goto k_return;
 
-    /* Reification of continuations takes a detour: 
+    /* Continuations are accessible as values, not as functions.
+       Proper wrapping needs to be implemented in the compiler. */
+  op_letk: /* () */
+    PUSH(e, k);
+    goto c_reduce;
 
-       First op_letcc wraps the continuation as a closure over an
-       empty environment and a op_runc primitive.  This ensures that
-       the continuation object can be applied to a value.
-
-       After such application this value ends up as the only element
-       in the environment accessible by the op_runc opcode.  The k
-       stack is passed as an argument to op_runc. */
-  op_letcc: /* () */
-    // FIXME: check this
-    t1 = CONS(NUMBER(OP_RUNC), k);
-    t1 = CONS(NUMBER(2), t1);
-    v = CONS(NIL, t1);
-    CLEAR(t1);
+  op_dok:
+    w1.i = NEXT_NUM;
+    k = e_ref(e, w1.i);
     goto k_return;
-  op_runc:  /* k */
-    v = POP(e);
-    k = c;
-    goto k_return;
-
 
   op_halt:
     /* Halt use a fake let continuation, which pushes the retval to
