@@ -58,29 +58,36 @@ void e_set(cell *e, int i, cell *v) {
 
 /* Read a structured data item from the stream: try to avoid this as
    it hinders abstraction.  Replace with other typed reads.  */
-#define READ_ADDR   POP(c)    // read code data structure
-#define READ_DATA   POP(c)    // read constant data
+#define READ_ADDR   POP(c)         // read abstract code address
+#define READ_DATA   POP(c)         // read constant data
+#define READ_VOID   (POP(c)->atom) // read full machine address
 
 /* VM main loop.
 
    The basic idea is the same as in most other libprim VMs.
 
-   The machine has 3 registers:
+   The machine has the following registers:
 
    C: the current code to be interpreted
    E: the current variable binding environment (CDR linked list).
    K: the current continuation, (CDR linked stack of frames).
-   
+   V: value result of last reduction
+   T1,T2: temps
 
-   There are 2 classes of actions:
+   There is only one continuation type, which corresponds to the
+   return point of the evaluation of a one-variable `let' expression.
+   This allows continuations to be untagged (as opposed to the other
+   libprim VM).
 
-   - OPCODES: These represent (components of) the primitive forms of
-     the language: let, begin, set!, app, if, quote.  The first two
-     produce new continuation frames.
-
-   - KCODES:  These represent the primitive forms that are executed
-     whenever evaluation finishes, and the top K frame is invoked.
 */
+
+union word {
+    vm_prim p;
+    int i;
+};
+
+
+#define CLEAR(r) r = VOID  // remove GC references.
 
 void vm_continue(vm *vm) {
     /* Registers are in the vm struct which is set as GC root.  Care
@@ -98,8 +105,8 @@ void vm_continue(vm *vm) {
     #define t1 (vm->t1)  // temp reg
     #define t2 (vm->t2)  // temp reg
 
-    /* Non-managed temp registers. */
-    int n1, n2;
+    /* Non-managed integer temp registers. */
+    union word w1, w2;
 
     /* Opcodes encoded as NUMBER(). */
     #define OP_HALT  0
@@ -131,7 +138,7 @@ void vm_continue(vm *vm) {
         t1 = CONS(NUMBER(OP_HALT), 
                   NIL); // dummy, not reached
         PUSH(c, t1);
-        t1 = VOID;
+        CLEAR(t1);
         goto op_call;
     }
     else {
@@ -141,9 +148,9 @@ void vm_continue(vm *vm) {
     
   c_reduce:
     /* Reduce current core form; interpreter opcode is in CAR. */
-    n1 = READ_NUM;
-    DISP("{%d}", n1);
-    goto *op[n1]; // opcode
+    w1.i = READ_NUM; // opcode
+    // DISP("{%d}", w1.i);
+    goto *op[w1.i]; 
 
   op_call: /* (exp_later . exp_now) */
     /* Code sequencing: take some code to evaluate later in the
@@ -153,19 +160,19 @@ void vm_continue(vm *vm) {
     /* Push closure for exp_later to continuation stack. */
     t1 = CONS(e, READ_ADDR); // (e . c) == closure
     PUSH(k, t1);             // k -> ((e . c) . k)
-    t1 = VOID;
+    CLEAR(t1);
     goto c_reduce;
 
-  k_return:
+  k_return: /* Pass value in v to continuation. */
     /* Pop closure */
     t1 = POP(k);
     e = CAR(t1);
     c = CDR(t1);
-    t1 = VOID;
+    CLEAR(t1);
     /* Extend restored environment with the return value
        of a previous evaluation. */
-    PUSH(e, v);  // add binding to environment
-    v = VOID;
+    PUSH(e, v);
+    CLEAR(v);
     goto c_reduce;
 
   op_drop: /* exp */
@@ -181,9 +188,9 @@ void vm_continue(vm *vm) {
     goto k_return;
 
   op_set: /* (var_dst . var_src) */
-    n1 = READ_NUM;
-    n2 = READ_NUM;
-    e_set(e, n1, e_ref(e, n2));
+    w1.i = READ_NUM;
+    w2.i = READ_NUM;
+    e_set(e, w1.i, e_ref(e, w2.i));
     v = VOID;
     goto k_return;
 
@@ -197,18 +204,18 @@ void vm_continue(vm *vm) {
     #define e_ext   t1
     #define dotarg  v
 
-    n1 = READ_NUM;             // var -> closure
-    closure = e_ref(e, n1);    // (env . (nr . expr))
-    e_ext = POP(closure);      // new env to extend
-    n1 = NPOP(closure);        // (nb_args << 1) | rest_args
+    w1.i = READ_NUM;             // var -> closure
+    closure = e_ref(e, w1.i);    // (env . (nr . expr))
+    e_ext = POP(closure);        // new env to extend
+    w1.i = NPOP(closure);        // (nb_args << 1) | rest_args
 
     /* Ref args from current env and extend new env. */
-    while (n1>>1) {
+    while (w1.i>>1) {
         PUSH(e_ext, e_ref(e, READ_NUM));
-        n1 -= 2;
+        w1.i -= 2;
     }
     /* Ref rest and push as a list if desired. */
-    if (n1) {
+    if (w1.i) {
         dotarg = NIL;
         while(NIL != c) { PUSH(dotarg, e_ref(e, READ_NUM)); }
         PUSH(e_ext, dotarg);
@@ -216,7 +223,9 @@ void vm_continue(vm *vm) {
 
     c = closure;
     e = e_ext;
-    e_ext = closure = dotarg = VOID;  // kill refs for gc
+    CLEAR(e_ext);
+    CLEAR(closure);
+    CLEAR(dotarg);
     goto c_reduce;
 
     /* Name cleanup */
@@ -234,8 +243,8 @@ void vm_continue(vm *vm) {
     t1 = READ_ADDR;
     if (v == FALSE) { t1 = READ_ADDR; }
     c = t1;
-    v = VOID;
-    t1 = VOID;
+    CLEAR(v);
+    CLEAR(t1);
     goto c_reduce;
 
   op_ref:   /* number */
@@ -251,7 +260,9 @@ void vm_continue(vm *vm) {
     goto k_return;
         
   op_prim:  /* atom */
-    ((vm_prim)c->atom)(vm);
+    v = VOID; // in case prim doesn't set it
+    w1.p = READ_VOID;
+    w1.p(vm);
     goto k_return;
 
     /* Reification of continuations takes a detour: 
