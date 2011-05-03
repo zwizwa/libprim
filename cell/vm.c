@@ -275,7 +275,11 @@ void vm_continue(vm *vm) {
        in the environment accessible by the op_runc opcode.  The k
        stack is passed as an argument to op_runc. */
   op_letcc: /* () */
-    v = CONS(NIL, CONS(NUMBER(2), CONS(NUMBER(OP_RUNC), k)));
+    // FIXME: check this
+    t1 = CONS(NUMBER(OP_RUNC), k);
+    t1 = CONS(NUMBER(2), t1);
+    v = CONS(NIL, t1);
+    CLEAR(t1);
     goto k_return;
   op_runc:  /* k */
     v = POP(e);

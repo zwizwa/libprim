@@ -83,11 +83,26 @@ void heap_clear(void) {
 
 
 void cell_display_i(int i);
+
+/* For CDR-linked (improper) lists, use (dotted) list notation. */
 void cell_display_pair(cell *c) {
     DISP("(");
-    cell_display_i(icar(c));
-    DISP(" . ");
-    cell_display_i(icdr(c));
+    cell *cnext;
+  next:
+    cnext = CDR(c);
+    if (cell_is_pair(cnext)) {
+        cell_display_i(icar(c));
+        DISP(" ");
+        c = cnext;
+        goto next;
+    }
+    else {
+        cell_display_i(icar(c));
+        if (NIL != cnext) {
+            DISP(" . ");
+            cell_display_i(icdr(c));
+        }
+    }
     DISP(")");
 }
 void cell_display_i(int i) {
