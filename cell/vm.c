@@ -54,13 +54,13 @@ void e_set(cell *e, int i, cell *v) {
 */
 
 /* Read a number from the code stream. */
-#define READ_NUM  NPOP(c) 
+#define NEXT_NUM  NPOP(c) 
 
 /* Read a structured data item from the stream: try to avoid this as
    it hinders abstraction.  Replace with other typed reads.  */
-#define READ_ADDR   POP(c)         // read abstract code address
-#define READ_DATA   POP(c)         // read constant data
-#define READ_VOID   (POP(c)->atom) // read full machine address
+#define NEXT_ADDR   POP(c)         // read abstract code address
+#define NEXT_DATA   POP(c)         // read constant data
+#define NEXT_VOID   (POP(c)->atom) // read full machine address
 
 /* VM main loop.
 
@@ -148,7 +148,7 @@ void vm_continue(vm *vm) {
     
   c_reduce:
     /* Reduce current core form; interpreter opcode is in CAR. */
-    w1.i = READ_NUM; // opcode
+    w1.i = NEXT_NUM; // opcode
     // DISP("{%d}", w1.i);
     goto *op[w1.i]; 
 
@@ -158,7 +158,7 @@ void vm_continue(vm *vm) {
        purpose of storing the value it produces in the environment. */
 
     /* Push closure for exp_later to continuation stack. */
-    t1 = CONS(e, READ_ADDR); // (e . c) == closure
+    t1 = CONS(e, NEXT_ADDR); // (e . c) == closure
     PUSH(k, t1);             // k -> ((e . c) . k)
     CLEAR(t1);
     goto c_reduce;
@@ -184,12 +184,12 @@ void vm_continue(vm *vm) {
     goto c_reduce;
 
   op_quote: /* datum */
-    v = READ_DATA;
+    v = NEXT_DATA;
     goto k_return;
 
   op_set: /* (var_dst . var_src) */
-    w1.i = READ_NUM;
-    w2.i = READ_NUM;
+    w1.i = NEXT_NUM;
+    w2.i = NEXT_NUM;
     e_set(e, w1.i, e_ref(e, w2.i));
     v = VOID;
     goto k_return;
@@ -204,20 +204,20 @@ void vm_continue(vm *vm) {
     #define e_ext   t1
     #define dotarg  v
 
-    w1.i = READ_NUM;             // var -> closure
+    w1.i = NEXT_NUM;             // var -> closure
     closure = e_ref(e, w1.i);    // (env . (nr . expr))
     e_ext = POP(closure);        // new env to extend
     w1.i = NPOP(closure);        // (nb_args << 1) | rest_args
 
     /* Ref args from current env and extend new env. */
     while (w1.i>>1) {
-        PUSH(e_ext, e_ref(e, READ_NUM));
+        PUSH(e_ext, e_ref(e, NEXT_NUM));
         w1.i -= 2;
     }
     /* Ref rest and push as a list if desired. */
     if (w1.i) {
         dotarg = NIL;
-        while(NIL != c) { PUSH(dotarg, e_ref(e, READ_NUM)); }
+        while(NIL != c) { PUSH(dotarg, e_ref(e, NEXT_NUM)); }
         PUSH(e_ext, dotarg);
     }
 
@@ -239,20 +239,20 @@ void vm_continue(vm *vm) {
     goto k_return;
 
   op_if: /* (var . (exp_t . exp_f)) */
-    v = e_ref(e, READ_NUM);
-    t1 = READ_ADDR;
-    if (v == FALSE) { t1 = READ_ADDR; }
+    v = e_ref(e, NEXT_NUM);
+    t1 = NEXT_ADDR;
+    if (v == FALSE) { t1 = NEXT_ADDR; }
     c = t1;
     CLEAR(v);
     CLEAR(t1);
     goto c_reduce;
 
   op_ref:   /* number */
-    v = e_ref(e, READ_NUM);
+    v = e_ref(e, NEXT_NUM);
     goto k_return;
 
   op_dump: /* var */
-    v = e_ref(e, READ_NUM);
+    v = e_ref(e, NEXT_NUM);
     DISP("[op_dump: ");
     cell_display(v);
     DISP("] ");
@@ -261,7 +261,7 @@ void vm_continue(vm *vm) {
         
   op_prim:  /* atom */
     v = VOID; // in case prim doesn't set it
-    w1.p = READ_VOID;
+    w1.p = NEXT_VOID;
     w1.p(vm);
     goto k_return;
 
