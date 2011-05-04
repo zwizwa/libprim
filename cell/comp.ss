@@ -1,10 +1,13 @@
 #lang scheme/base
 (require scheme/pretty
          scheme/match
-         scheme/dict)
+         scheme/dict
+         scheme/runtime-path)
 
 
-;; Get opcodes from header file.
+;; Get opcodes from header file.  No code knows the numbers so we
+;; can't build hard-coded dependencies.
+
 (define (read-ops p)
   (let next ((ops '())
              (n 0))
@@ -15,11 +18,12 @@
                       ops)
                 (add1 n))))))
 
-(define opcodes (read-ops (open-input-file "op.h")))
-(define (make-op opc . args)
-  (cons (car (dict-ref opcodes opc)) args))
-(define-syntax-rule (op opc . args)
-  (make-op 'opc . args))
+(define-runtime-path op.h "op.h")
+(define opcodes (read-ops (open-input-file op.h)))
+(define (make-op opc)
+  (car (dict-ref opcodes opc)))
+(define-syntax-rule (op opc)
+  (make-op 'opc))
 
 ;; ETC...
 
@@ -56,18 +60,6 @@
 ;; s-expression form.  Note that this performs only variable ->
 ;; debruyn conversion and not conversion to SSA form.
 (define (comp-vm expr)
-  (let ((OP_HALT   0)
-        (OP_CALL   1)
-        (OP_CLOSE  2)
-        (OP_DROP   4)
-        (OP_QUOTE  5)
-        (OP_APP    7)
-        (OP_IF     8)
-        (OP_REF   11)
-        (OP_DUMP  12)
-        )
-
- 
   (let comp ((expr expr)
              (env  '()))
     (define variable (make-variable-lookup env))
@@ -77,7 +69,7 @@
              ;; evaluate body in extended environment.  During
              ;; compilation we only need to keep track of names.
              ((list 'let (list (list var inter)) body)
-              (cons OP_CALL
+              (cons (op op_call)
                     (cons
                      ;; The `body' expression will be evaluated in the
                      ;; extended environment.
@@ -85,7 +77,7 @@
                      (comp inter env))))
              ;; Condition is varref.
              ((list 'if var yes no)
-              (list OP_IF
+              (list (op op_if)
                     (variable var)
                     (comp yes env)
                     (comp no env)))
@@ -98,13 +90,13 @@
                ;; This will cause the result of evaluation of the
                ;; `now' expression to be pushed to the top of the
                ;; environment stack.
-               OP_CALL
+               (op op_call)
                (cons (cons
                       ;; This removes the pushed return value before
                       ;; evaluating the other code.  Note that we
                       ;; don't extend the environment here, as opposed
                       ;; to the implementation of `let'.
-                      OP_DROP
+                      (op op_drop)
                       (comp later env))
                      (comp now env)
                      )))
@@ -116,30 +108,30 @@
              ;; building op 13.
              ((list 'lambda formals expr)
               (let-values (((named rest) (parse-formals formals)))
-                (cons OP_CLOSE
+                (cons (op op_close)
                       (cons (+ (length rest)
                                (* 2 (length named)))
                             (comp expr (append formals rest env))))))
              
              ;; Simpler special forms.
-             ((list 'halt)         OP_HALT)
-             ((list 'quote atom)  (list OP_QUOTE atom))
-             ((list 'dump var)    (list OP_DUMP (variable var)))
+             ((list 'quote atom)  (list (op op_quote) atom))
+             ((list 'dump var)    (list (op op_dump) (variable var)))
 
              ;; Application
              ((list-rest fn args)
-              (cons OP_APP (for/list ((e (cons fn args)))
-                             (variable e))))
+              (cons (op op_app)
+                    (for/list ((e (cons fn args)))
+                      (variable e))))
   
              ;; Atoms
              (else
               (cond
                ;; Symbols are varrefs.
                ((symbol? expr)
-                (list OP_REF (variable expr)))
+                (list (op op_ref) (variable expr)))
                ;; Other atoms are quotes.
                (else
-                (comp (list 'quote expr) env))))))))
+                (comp (list 'quote expr) env)))))))
 
 
 

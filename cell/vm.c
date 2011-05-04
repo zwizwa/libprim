@@ -133,6 +133,10 @@ void vm_continue(vm *vm) {
         PUSH(c, t1);
         CLEAR(t1);
         goto op_call;
+
+      op_halt:
+        v = POP(e);
+        return;
     }
     else {
         /* Otherwise assume proper continuation and run VM. */
@@ -180,15 +184,15 @@ void vm_continue(vm *vm) {
     v = NEXT_DATA;
     goto k_return;
 
-  op_set: /* (var_dst . var_src) */
+  op_set: /* var_dst var_src */
     w1.i = NEXT_NUM;
     w2.i = NEXT_NUM;
     e_set(e, w1.i, e_ref(e, w2.i));
     v = VOID;
     goto k_return;
 
-  op_app:  /* (v_fn . v_cs)
-               v_fn -> ((env . (nr . expr)) . v_cs) */
+  op_app:  /* v_fn . v_as
+              v_fn -> (env . (nr . expr)) */
 
     // FIXME:  No type checking.  Crashes if v_fn doesn't point to closure.
 
@@ -227,11 +231,11 @@ void vm_continue(vm *vm) {
     #undef dotarg
     
 
-  op_close: /* (nr . expr) */
+  op_close: /* expr */
     v = CONS(e, c);
     goto k_return;
 
-  op_if: /* (var . (exp_t . exp_f)) */
+  op_if: /* var exp_t exp_f */
     v = e_ref(e, NEXT_NUM);
     t1 = NEXT_ADDR;
     if (v == FALSE) { t1 = NEXT_ADDR; }
@@ -272,12 +276,6 @@ void vm_continue(vm *vm) {
     w1.i = NEXT_NUM;
     k = e_ref(e, w1.i);
     goto k_return;
-
-  op_halt:
-    /* Halt use a fake let continuation, which pushes the retval to
-       the environment stack. */
-    v = POP(e);
-    return;
 
     #undef c
     #undef e
