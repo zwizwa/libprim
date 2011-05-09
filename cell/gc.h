@@ -212,6 +212,7 @@ static inline cell *heap_number(int n) {
 
 
 
+
 #define DISP(...) fprintf(stderr, __VA_ARGS__)
 void cell_display(cell *c);
 void newline(void);

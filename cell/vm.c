@@ -62,6 +62,11 @@ void e_set(cell *e, int i, cell *v) {
 #define NEXT_DATA   POP(c)         // read constant data
 #define NEXT_VOID   (POP(c)->atom) // read full machine address
 
+/* Push/pop code objects for closure and continuation purpose.
+   Implement in terms of CONS/ATOM from gc.h  . */
+//#define PUSH_ADDR(stack,addr)  CONS(addr, stack)
+//#define POP_ADDR(stack)        POP(stack)
+
 /* VM main loop.
 
    The basic idea is the same as in most other libprim VMs.
@@ -231,7 +236,7 @@ void vm_continue(vm *vm) {
     #undef dotarg
     
 
-  op_close: /* expr */
+  op_close: /* (nr . code) */
     v = CONS(e, c);
     goto k_return;
 
@@ -248,14 +253,6 @@ void vm_continue(vm *vm) {
     v = e_ref(e, NEXT_NUM);
     goto k_return;
 
-  op_dump: /* var */
-    v = e_ref(e, NEXT_NUM);
-    DISP("[op_dump: ");
-    cell_display(v);
-    DISP("] ");
-    v = VOID;
-    goto k_return;
-        
   op_prim:  /* atom */
     v = VOID; 
     w1.p = NEXT_VOID;

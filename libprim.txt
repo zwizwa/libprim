@@ -10606,3 +10606,54 @@ The op_prim that's there now is not a primitive in the ordinary sense,
 but a VM extension.  To make the above remark usable, a real prim op
 needs to perform argument reference too, but can then skip closure
 push/pop.
+
+
+Entry: Primitives
+Date: Wed May  4 15:26:04 EDT 2011
+
+Before getting anywhere, there needs to be a way to allow for standard
+C functions to be executed.  The following decisions need to be made:
+
+  - Pass cells/atoms as C arguments, or use a list?
+
+  - Handle type checking for the most basic operations: probably best
+    to separate type checking from implementation, to be able to move
+    some of this responsability to the compiler.
+
+
+
+Entry: Next
+Date: Wed May  4 23:20:39 EDT 2011
+
+So..  What's the next interesting thing to do?  To make this into a
+full-fledged language on top of the leaf_ code is maybe not something
+I'm looking for right now.  Unless it can be automated.
+
+The next thing would be to actually implement a different code format.
+That would make it useful on the ARM, to write "control-oriented"
+code, favouring control structures over memory use.
+
+
+Hard to predict evolution of not-directly-purposed software, but it
+looks like this is for later, or for sporadic tinkering.
+
+
+
+Entry: Abstract code addresses
+Date: Fri May  6 14:27:14 EDT 2011
+
+Can be abstracted in ATOM() constructors.  Need to change vm.c to
+support these for: op_call/k_return and op_close/op_app.
+
+I'm a bit puzzled why the nb arguments for app actually shows up at
+the app side, and not at the code side.
+
+Hmm, not so surprising really: it comes directly from the app syntax:
+caller does not know arity of callee, so it's specified at the call
+site.  Still, something isn't quite right in the way this is encoded.
+
+Next: cleanup the nb_arg representation for op_app/op_close.
+
+Q: why doesn't a closure for the k stack have a nargs field, while the
+   op_app/op_close does?
+
