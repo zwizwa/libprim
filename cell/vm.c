@@ -42,25 +42,6 @@ void e_set(cell *e, int i, cell *v) {
 }
 
 
-/* Code implementation.
- 
-   In the original oplementation C is CONS-cell based data structure.
-   It behaves mostly as a stream but is implemented as a CDR-linked
-   list with some improper list optimizations sprinkled in.
-
-   The interesting part is that if access is made abstract,
-   representation can be made abstract too and code representation can
-   be optimized to other specifications.
-*/
-
-/* Read a number from the code stream. */
-#define NEXT_NUM  NPOP(c) 
-
-/* Read a structured data item from the stream: try to avoid this as
-   it hinders abstraction.  Replace with other typed reads.  */
-#define NEXT_ADDR   POP(c)         // read abstract code address
-#define NEXT_DATA   POP(c)         // read constant data
-#define NEXT_VOID   (POP(c)->atom) // read full machine address
 
 /* Push/pop code objects for closure and continuation purpose.
    Implement in terms of CONS/ATOM from gc.h  . */
@@ -86,10 +67,6 @@ void e_set(cell *e, int i, cell *v) {
 
 */
 
-union word {
-    vm_prim p;
-    int i;
-};
 
 
 #define CLEAR(r) r = VOID  // remove GC references.
@@ -112,8 +89,9 @@ void vm_continue(vm *vm) {
     #define t1 (vm->t1)  // temp reg
     #define t2 (vm->t2)  // temp reg
 
-    /* Non-managed integer temp registers. */
-    union word w1, w2;
+    #define w1 (vm->wreg1)
+    #define w2 (vm->wreg2)
+
 
     /* Opcodes encoded as NUMBER(). */
     #define OP_RUNC 12

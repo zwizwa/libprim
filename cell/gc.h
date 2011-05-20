@@ -4,7 +4,7 @@
 
 /* Cell memory for memory-constrained targets (ARM, 64kB).
 
-   Written from scratch, though primed by PICBIT[1] paper.
+   Written from scratch, though heavily primed by PICBIT[1] paper.
 
    [1] http://w3.ift.ulaval.ca/~dadub100/files/picbit.pdf
  */

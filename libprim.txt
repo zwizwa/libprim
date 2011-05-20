@@ -10657,3 +10657,16 @@ Next: cleanup the nb_arg representation for op_app/op_close.
 Q: why doesn't a closure for the k stack have a nargs field, while the
    op_app/op_close does?
 
+
+Entry: Memory allocation and tagging revised
+Date: Fri May 20 16:11:35 CEST 2011
+
+I'm using 32-bit cells with 2 tag bits.  Tags are stored in a separate
+RAM vector.  A pair needs two slots which leaves a 16-bit cell address
+space.  This is 256kbytes.  That seems fine for the target uCs, which
+have limited RAM and virtually unlimited Flash in comparison.
+
+The interesting attribute here is that the pointers are clean: no tag
+bit pollution, which means the non-managed opaque object management
+can be separated completely from the GC.
+
