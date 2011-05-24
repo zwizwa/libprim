@@ -36,21 +36,21 @@ union word {
 };
 
 struct _vm {
-    cell *c;   // code pointer (IP)
-    cell *e;   // lexical environment
-    cell *k;   // continuation
-    cell *v;   // return value
-    cell *t1;
-    cell *t2;
+    /* Begin GC root pointers. */
+    cell *c;        // code pointer (IP)
+    cell *e;        // lexical environment
+    cell *k;        // continuation
+    cell *v;        // return value
+    cell *t1, *t2;  // temps
+    void *end_gc;   // NULL end marker for GC root
 
-    void *end_gc; // end marker for GC root
-
-    /* Non-managed integer temp registers. */
+    /* Non-managed integer temp registers.  These should never point
+       to cell memory! */
     union word wreg1;
     union word wreg2;
 
 } __attribute((__packed__));
-#define VM_INIT {VOID,VOID,VOID,VOID,VOID,VOID,0,0,0}
+#define VM_INIT {VOID,VOID,VOID,VOID,VOID,VOID,NULL,0,0}
 
 
 

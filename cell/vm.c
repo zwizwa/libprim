@@ -93,9 +93,6 @@ void vm_continue(vm *vm) {
     #define w2 (vm->wreg2)
 
 
-    /* Opcodes encoded as NUMBER(). */
-    #define OP_RUNC 12
-
     /* Numeric opcode encoding is kept abstract. */
     #define OP(label) &&label,
     static const void *op[] = {

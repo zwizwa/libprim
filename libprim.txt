@@ -10658,7 +10658,7 @@ Q: why doesn't a closure for the k stack have a nargs field, while the
    op_app/op_close does?
 
 
-Entry: Memory allocation and tagging revised
+Entry: Memory allocation and tagging rehash
 Date: Fri May 20 16:11:35 CEST 2011
 
 I'm using 32-bit cells with 2 tag bits.  Tags are stored in a separate
@@ -10669,4 +10669,17 @@ have limited RAM and virtually unlimited Flash in comparison.
 The interesting attribute here is that the pointers are clean: no tag
 bit pollution, which means the non-managed opaque object management
 can be separated completely from the GC.
+
+
+
+Entry: Generated interpreter
+Date: Fri May 20 18:26:31 CEST 2011
+
+Now it would be interesting to write a generator for the interpreter
+to make it possible to create a host of different interpreters that
+could be optimized for a specific application.
+
+How to go about that?  The first step is probably to make it as simple
+as possible, so let's do that: eliminate tricks that cause
+non-uniformity from the current VM implementation.
 
