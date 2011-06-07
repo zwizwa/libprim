@@ -20,13 +20,12 @@ $var{profile} = "no";
 $var{static}  = "no";
 $var{efence} = "no";
 
-$var{ex} = "yes";
-$var{sc} = "yes";
-$var{pf} = "yes";
-
 $var{silent}   = "yes";
 $var{jobs}     = "1";
-$var{finkpath} = "/sw";
+
+$var{static}    = "no";
+
+$var{arch}      = "i386";
 
 # set defaults for all environment variables
 # TODO: these are not saved in reconfigure
@@ -35,9 +34,6 @@ $var{make}      = "make";
 $var{ar}        = "ar";
 $var{objcopy}   = "objcopy";
 
-$var{static}    = "no";
-
-$var{arch}      = "i386";
 
 # determine dirs. we use absolute paths for convenience
 # this means that if you move the project, you need to re-run
@@ -100,30 +96,6 @@ sub print_options {
     }
 }
 
-# save the current variable state to reconfigure
-sub save_reconfigure {
-    chdir $var{builddir};
-    open STATE, ">./reconfigure";
-    print STATE "#/bin/bash\n";
-    print STATE "cd `dirname \$0`\n"; # return to the builddir where reconfigure is located
-    print STATE "exec $var{srcdir}/configure \\\n";
-    foreach $key (keys %var){
-        if ($var{$key}) {
-            print STATE "\t--$key=$var{$key} \\\n";
-        }
-    }
-    print STATE "\t\$*\n";
-    close STATE;
-    chmod 0755, "./reconfigure";
-}
-
-sub do_help { 
-    print "\navailable options with defaults: \n";
-    print_options; 
-    print "\n--enable|disable-<thing> is equivalent to --<thing>=yes|no\n";
-    exit(0); 
-}
-
 # override with command line args
 while ($a = shift) {
     if ($a eq "--help") { do_help; }
@@ -175,50 +147,26 @@ $VERSION=`$var{srcdir}/bin/version`;
 pkgconfig "Version: $VERSION";
 
 
-open LOCALENV, ">$var{builddir}/vars";
-sub localenv {
-    my $line = shift;
-    print LOCALENV $line . "\n";
-}
-
 open MAKEFILE, ">Makefile.defs";
 sub makefile {
     my $line = shift;
     print MAKEFILE $line . "\n";
 }
 
-# config tools
-if ($ENV{CC})  {$var{cc}   = $ENV{CC};} # get CC, MAKE from environment if defined
-if ($ENV{MAKE}){$var{make} = $ENV{MAKE};}
-if ($ENV{AR})  {$var{ar}   = $ENV{AR};}
-
-if ($var{cmdprefix}) {
-    $var{cc} = "$var{cmdprefix}gcc";
-    $var{gdb} = "$var{cmdprefix}gdb";
-    $var{objcopy} = "$var{cmdprefix}objcopy";
-}
-
-$gdb =  "$var{gdb} -x $var{srcdir}/bin/$var{target}.gdb $var{gdbargs}";
-open GDB, ">gdb";
-print GDB "exec $gdb \"\$@\"\n";
-chmod 0755, "./gdb";
-
-
-
-makefile "LDFLAGS = $var{ldflags}" ;
-makefile "PREFIX = $var{prefix}" ;
-makefile "SRCDIR = $var{srcdir}" ;
-makefile "BUILDDIR = $var{builddir}" ;
+makefile "LDFLAGS := $var{ldflags}" ;
+makefile "PREFIX := $var{prefix}" ;
+makefile "SRCDIR := $var{srcdir}" ;
+makefile "BUILDDIR := $var{builddir}" ;
 makefile "CPPFLAGS += -I$var{builddir} -I$var{srcdir}";
-makefile "LOG = $LOGFILE" ;
-makefile "SDL_CONFIG = $var{sdl}-config" ;
+makefile "LOG := $LOGFILE" ;
+makefile "SDL_CONFIG := $var{sdl}-config" ;
 
-makefile "CEXT = c";  # default is c. for cc see build/plugins/ftgl/Makefile
-makefile "COMPILE = $CC";
+makefile "CEXT := c";  # default is c. for cc see build/plugins/ftgl/Makefile
+makefile "COMPILE := $CC";
 
-makefile "MZSCHEME = mzscheme"; # FIXME: check this!
+makefile "MZSCHEME := mzscheme"; # FIXME: check this!
 
-makefile "PLATFORM = $var{target}";
+makefile "PLATFORM := $var{target}";
 
 if ($var{jobs} > 1){
     makefile "MAKE += -j$var{jobs}"; # run multiple jobs
@@ -264,11 +212,12 @@ sub check_dl {
 }
 
 sub toolchain {
-    makefile "CC = $var{cc}" ;
-    makefile "AR = $var{ar}" ;
-    makefile "MAKE = $var{make}" ;
-    makefile "GDB = $var{gdb} $var{gdbargs}" ;
-    makefile "OBJCOPY = $var{objcopy}" ;
+    makefile "CC := $var{cc}" ;
+    makefile "AR := $var{ar}" ;
+    makefile "MAKE := $var{make}" ;
+    makefile "OBJCOPY := $var{objcopy}" ;
+    makefile "OBJDUMP := $var{objdump}" ;
+    makefile "STRIP := $var{strip}" ;
     if ($var{silent} eq "yes"){
 	makefile "MAKE += -s"; # have a bit less verbose build
     }
@@ -393,12 +342,24 @@ elsif ("CYGWIN_NT-5.0" eq $var{target}){
     check_base;
     #check_dl;  # dlopen is 'just there' on cygwin
 }
-elsif ("eCos" eq $var{target}){
-    # For eCos we just need to generate C files.  The rest should be
+elsif ("ecos" eq $var{target}){
+    # For ecos we just need to generate C files.  The rest should be
     # included in the project build.
     makefile "CPPFLAGS += -I$var{prefix}/include";
     makefile "LDFLAGS += -L$var{prefix}/lib -Ttarget.ld -nostdlib";
-    toolchain;
+
+    toolchain;  # defaults, overridden by the rest
+
+    makefile "include $var{prefix}/include/pkgconf/ecos.mak";
+    makefile "CC := \$(ECOS_COMMAND_PREFIX)gcc";
+    makefile "LD := \$(ECOS_COMMAND_PREFIX)ld";
+    makefile "AR := \$(ECOS_COMMAND_PREFIX)ar";
+    makefile "OBJCOPY := \$(ECOS_COMMAND_PREFIX)objcopy";
+    
+    # We guess the target platform based on the toolchain command
+    # prefix used.
+
+    makefile "GDB := $var{srcdir}/bin/\$(notdir \$(ECOS_COMMAND_PREFIX))gdb"
 }
 else {
     printf "Target not supported.\n";
@@ -418,12 +379,6 @@ else {
     errorexit();
 }
 
-# create file containing environment variables
-localenv "export $DLIB_PATH=$var{builddir}/libpf";
-localenv "export PRIM_HOME=$var{builddir}/lib/pf";
-localenv "export PRIM_SRC=$var{srcdir}";
-localenv "export PRIM_BUILD=$var{builddir}";
-
 header "#ifndef HAVE_LIBDL";
 header "#define HAVE_LIBDL";
 header "#endif";
@@ -435,7 +390,7 @@ header "#endif";
 if ($var{debug} eq "yes"){
     makefile "CC += $EXTRA_DEBUG_CFLAGS";
     makefile "DEBUG_CFLAGS = -g -Wall -Wno-unused -Wno-parentheses -Werror";
-    # perantheses warning is actually quite valueable.. i still make mistakes to if (a = b) vs (a == b) things
+    # parentheses warning is actually quite valueable.. i still make mistakes to if (a = b) vs (a == b) things
     # but most of the code triggers warnings here.. clean up some day.
     header "#define PRIM_DEBUG 1";  # this is changed to not conflict with pf
 }
@@ -464,15 +419,6 @@ if ($var{pthread} eq "yes"){
 }
 
 
-# Optional builds
-if ($var{media} eq "yes") { makefile "MEDIA = media" }; 
-if ($var{pf} eq "yes")    { makefile "PF = pf" }; 
-if ($var{sc} eq "yes")    { makefile "SC = sc" }; 
-if ($var{ex} eq "yes")    { makefile "EX = ex" }; 
-if ($var{jni} eq "yes")   { makefile "JNI = jni" };
-
-
-
 pkgconfig "Libs: -L$var{prefix}/lib -lprim_sc -lprim_ex -lprim -lprim_leaf -lprim_media" . join " ", @LIBS;
 pkgconfig "Cflags: -I$var{prefix}/include/prim";
 
@@ -482,15 +428,12 @@ if ($var{efence} eq "yes"){
     makefile "DEBUG_LDFLAGS += -lefence"; 
 }
 
-# 
-
 
 header "#endif";
 close HEADER;
 close MAKEFILE;
 close PGKCONFIG;
 close FAKEPF;
-save_reconfigure;
 
 
 # only update header file if C defs have changed
@@ -506,21 +449,6 @@ else {
 }
 
 
-## It's better to use the build system to create a full distro with
-## headers and binary archives, and package that up in a tar or so.
-
-# sub gen {
-#     my @args = 
-#         ($var{make}, "-C", "$var{builddir}", "gen");
-#     my $retval = system (@args);
-#     return $retval;
-# }
-# if ("eCos" eq $var{target}) {
-#     print "Generating header files.\n";
-#     gen();
-# }
-
-print "Created reconfigure, libprim.pc, Makefile.defs, config.h\n";
 print "Type 'make install' to build and install the package.\n\n";
 exit(0);
 
