@@ -1,15 +1,13 @@
-MODULE_OBJ := pf.o 
+# pf/
+m_OBJ     := pf.o 
+m_TARGET  := pf
+m_DEPS    := px ex ex_posix leaf leaf_posix
+m_LDFLAGS := -lpthread
 
-# Application target: 
-# Define a new global build target.
-TARGET         := pf
-TARGET_MODULES := px ex ex_posix leaf leaf_posix
-TARGET_LDFLAGS := -lpthread
+PF:= $(m_BUILD)/pf
+PF_BOOT := $(m_SRC)/boot.pf
 
-PF:= $(BUILDDIR)/$(MODULE)/pf
-PF_BOOT := $(SRCDIR)/$(MODULE)/boot.pf
-
-$(BUILDDIR)/$(MODULE)/start: $(PF)
+$(m_BUILD)/start: $(PF)
 	$(call build, echo  $(PF) --boot $(PF_BOOT) >$@; chmod +x $@)
 
 pf_test: $(PF)

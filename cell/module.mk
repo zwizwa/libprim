@@ -1,12 +1,14 @@
-MODULE_OBJ := test.o read.o vm.o gc.o 
+# cell/
+m_OBJ    := test.o read.o vm.o gc.o 
+m_TARGET := cell
 
-TARGET         := cell
-TARGET_MODULES := leaf
+m_DEPS   := leaf
 
-CELL_BIN := $(BUILDDIR)/$(MODULE)/cell 
-CELL_TEST := $(SRCDIR)/$(MODULE)/test123.sxp
 
-CELL_COMP := $(SRCDIR)/$(MODULE)/comp.ss
+CELL_BIN := $(m_BUILD)/cell 
+CELL_TEST := $(m_SRC)/test123.sxp
+
+CELL_COMP := $(m_SRC)/comp.ss
 
 .PHONY: cell123 cell
 

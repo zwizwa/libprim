@@ -1,2 +1,3 @@
-MODULE_OBJ := px.o
+# px/
+m_OBJ := px.o
 

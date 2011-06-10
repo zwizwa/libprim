@@ -1,1 +1,1 @@
-MODULE_OBJ := ex_posix.o
+m_OBJ := ex_posix.o

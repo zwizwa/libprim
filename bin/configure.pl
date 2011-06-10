@@ -28,7 +28,6 @@ $var{static}    = "no";
 $var{arch}      = "i386";
 
 # set defaults for all environment variables
-# TODO: these are not saved in reconfigure
 $var{cc}        = "cc";
 $var{make}      = "make";
 $var{ar}        = "ar";
@@ -360,25 +359,14 @@ elsif ("ecos" eq $var{target}){
     # prefix used.
 
     makefile "GDB := $var{srcdir}/bin/\$(notdir \$(ECOS_COMMAND_PREFIX))gdb"
+
 }
 else {
     printf "Target not supported.\n";
     errorexit();
 }
-# tools
+
  
-
-if ("i386" eq $var{arch}) {
-    makefile "OBJCOPY_ARCH = -O elf32-i386 -B i386";
-}
-elsif ("arm" eq $var{arch}) {
-    makefile "OBJCOPY_ARCH = -O elf32-littlearm -B arm";
-}
-else {
-    printf "Architecture not supported.\n";
-    errorexit();
-}
-
 header "#ifndef HAVE_LIBDL";
 header "#define HAVE_LIBDL";
 header "#endif";

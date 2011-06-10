@@ -1,3 +1,38 @@
+# project.mk - one-makefile build system
+# (c) 2009 - 2011 Tom Schouten
+# Licence: GPLv2 - http://www.gnu.org/licenses/gpl-2.0.html
+
+
+# The build system uses the following principles:
+#
+#     * One makefile to build everything.  This means that all
+#       dependencies are expressed in a single place, and no recursive
+#       calls to make itself are necessary or even possible.
+#
+#     * Modular: while there is only a single makefile project.mk,
+#       per-module variables and makefile fragments are defined in a
+#       module.mk file.
+#
+#       Each module has a single build target.  If that doesn't work
+#       for you, make an intermediate .a library and have other
+#       modules depend on it.
+
+
+# Module variables all start with "m"
+#
+# - provided by user in module.mk
+# $(m_target)   module's build target (library or executable)
+# $(m_obj)      list of binary objects that will be collected in the final target
+#
+# - usable in module.mk, provided by system
+# $(m_name)     module name (relative directory to project.mk)
+# $(m_src)      module's source directory
+# $(m_build)    module's build directory
+#
+
+
+# NOTES:
+#
 # Non-recursive make.  See:
 #  [1] http://miller.emu.id.au/pmiller/books/rmch/
 #  [2] http://www.xs4all.nl/~evbergen/nonrecursive-make.html
@@ -7,15 +42,15 @@
 # understanding how substitution works; i.e. at what time variables
 # expansions are performed.  Original make is fully lazy functional,
 # but GNU make has some strict (imperative) features that are useful
-# as a macro facility.
+# when used in macros.
 #
 # The whole project tree is managed by a single make session,
 # constructed using file inclusion and the imperative (strict)
 # features of make: assignment using ":=" instead of "=".  See section
 # 5.2 in [1].
 #
-# We use functions and macros for conciseness in many places.  Note
-# that GNU make is very similar to Scheme[4]. 
+# Functions and macros are used for conciseness in many places.  Note
+# that GNU make is very similar to Scheme[4].
 #
 #   ($call body, args...)      
 # 
@@ -32,35 +67,34 @@
 #  [4] http://okmij.org/ftp/Computation/#Makefile-functional
 
 
-
-# .SUFFIXES: .scm
 .PHONY: all clean targets
-.PHONY: eCos Posix Linux Darwin
 
-# Include build variables.
+# Include variables specific to this build.
 include Makefile.defs
 
-# all: targets
+
+# Defined in Makefile.defs
 all: $(PLATFORM)
 
 
-# FIXME: do this somewhere else
-CFLAGS += -falign-functions=4
+# The build and source directories are defined outside this script.
+# Note that these need to be absolute paths.
 
-# Setup environment
+# Use some shortcut names.  FIXME: remove shortcuts.
 B := $(BUILDDIR)
 S := $(SRCDIR)
 build = $(if $(VERBOSE), $(1), @echo "$(patsubst $(B)/%,%,$@)"; $(1))
-MKS :=  $(shell cd $(S); echo */*.mk)
+
+# Each subdirectory of the toplevel source dir that contains a
+# module.mk file is a build module.  Gather them and make sure the
+# associated build directory structure is present.
+MKS :=  $(shell cd $(S); echo */module.mk)
 MODULES := $(patsubst %/module.mk,%,$(MKS))
 $(shell mkdir -p $(MODULES))
 
-# Build target specific rules
-eCos: $(B)/ecos_sc/main
-Posix: $(B)/posix_sc/start $(B)/pf/start
-Linux: Posix
-Darwin: Posix
-
+# Include project-specific configuration.  This is to keep project.mk
+# free from per-project customizations.
+-include $(S)/project.config.mk
 
 
 
@@ -78,36 +112,36 @@ Darwin: Posix
 # $(B).
 
 depstx := sed -r 's,\s(\w+/), $(B)/\1,g'
+
+# Gather dependencies from .c file
 $(B)/%.d: $(S)/%.c 
 	$(call build, $(CC) $(CPPFLAGS) -M -MG -MT $(@:.d=.o) $< | $(depstx) >$@)
+
+# Preprocess only
 $(B)/%.cx: $(S)/%.c
 	$(call build, $(CC) $(CPPFLAGS) -E $< -o $@)
 
 _CC := $(CC) $(CPPFLAGS) $(CFLAGS) $(OPTI_CFLAGS) $(DEBUG_CFLAGS)
 
+# Compile .c -> .o
 $(B)/%.o: $(S)/%.c 
 	$(call build, $(_CC) -o $@ -c $<)
+
+# Compile .c -> executable
 $(B)/%.test: $(S)/%.c
 	$(call build, $(_CC) $(LDFLAGS) $< -o $@)
 
-$(B)/%.h_prims: $(S)/%.c
-	$(call build, $(MZSCHEME) $(dir $<)gen_prims.ss $< $@)
-
+# Extract symbols
 # $(B) -> $(B) rules can use simpler patterns.
 %.syms: %.so
-	$(call build, objdump -T $< | grep '\.text' | awk '{print $$7;}' >$@)
+	$(call build, $(OBJDUMP) -T $< | grep '\.text' | awk '{print $$7;}' >$@)
 
-# Wrap scheme files as binary objects.  In two steps: zero terminate
-# and conversion to object file.  The "cd $(dir $<)" is to make sure
-# objcopy generates a predictable symbol from the base file name,
-# excluding directory.
-$(B)/%.scm0: $(S)/%.scm
-	$(call build, cp $< $@; echo -ne '\000' >>$@)
-$(B)/%.o: $(B)/%.scm0
-	$(call build, cd $(dir $<); $(OBJCOPY) -I binary $(OBJCOPY_ARCH) --rename-section .data=.rodata $(notdir $<) $@)
 
 
 ### MODULES
+
+# As opposed to the generic rules above, a rule for each target is
+# constructed using macro expansion of the following template.
 
 # Template rule and macro function for applications and shared library
 # targets: <target>, <deps.a>, <ldflags>
@@ -124,18 +158,21 @@ target_rule = $(eval $(call target_template, $(1)/$(strip $(2)), \
 
 
 # Makefile tiemplate for each module.  Once expanded, it gathers
-# module-specific data from temporary variables and builds a global
+# module-specific data from the local m_ variables and builds a global
 # target list.
 define module_template
-MODULE         := $(1)
-MODULE_OBJ     :=
-TARGET         :=
-TARGET_MODULES :=
-TARGET_LDFLAGS :=
+m_NAME    := $(1)
+m_OBJ     :=
+m_TARGET  :=
+m_DEPS    :=
+m_LDFLAGS :=
+# For constructing paths to module-specific source and build dir in module.mk
+m_SRC     := $(SRCDIR)/$(m_NAME)
+m_BUILD	  := $(BUILDDIR)/$(m_NAME)
 include $(S)/$(1)/module.mk
 
 # Convert all objects to absolute paths.
-$(1)_OBJ := $$(addprefix $(B)/$(1)/, $$(MODULE_OBJ))
+$(1)_OBJ := $$(addprefix $(B)/$(1)/, $$(m_OBJ))
 
 # Each object has a dependency file.
 DEPS := $$(DEPS) $$($(1)_OBJ:.o=.d)
@@ -145,12 +182,12 @@ $(B)/$(1)/$(1).a: $$($(1)_OBJ)
 	$$(call build, $(AR) rcs $$@ $$($(1)_OBJ))
 
 # Create rule for target if defined.
-$$(if $$(TARGET), $$(call target_rule, \
+$$(if $$(m_TARGET), $$(call target_rule, \
 	$(B)/$(1), \
-	$$(TARGET), \
+	$$(m_TARGET), \
 	$$($(1)_OBJ), \
-	$$(TARGET_MODULES), \
-	$$(TARGET_LDFLAGS)))
+	$$(m_DEPS), \
+	$$(m_LDFLAGS)))
 endef
 
 # Expand template for each module, include deps and define targets.
@@ -161,31 +198,6 @@ targets: $(TARGETS)
 
 
 ### INSTALL & CLEAN
-
-install: $(TARGETS)
-	install -d $(PREFIX)/lib/pkgconfig
-	install -m 644 libprim.pc $(PREFIX)/lib/pkgconfig
-
-	install -d $(PREFIX)/share/prim/
-	install -m 644 $(S)/sc*/*.scm $(PREFIX)/share/prim/
-	install -m 644 $(S)/pf/*.pf $(PREFIX)/share/prim/
-
-	$(foreach dir, ex ex_posix leaf leaf_posix sc media, \
-		install -d $(PREFIX)/include/prim/$(dir); \
-		install -m 644 $(S)/$(dir)/*.h* $(PREFIX)/include/prim/$(dir);)
-
-## Don't install intermediate .a libs.
-#	install -m 755 */libprim_*.a $(PREFIX)/lib/
-
-	install -d $(PREFIX)/bin
-	install -m 755 $(TARGETS) $(PREFIX)/bin
-
-uninstall:
-	rm -rf $(PREFIX)/share/prim
-	rm -rf $(PREFIX)/include/prim
-#	rm -rf $(PREFIX)/lib/libprim_*.a
-	rm -rf $(PREFIX)/bin/sc
-	rm -rf $(PREFIX)/bin/pf
 
 clean:
 	cd $(B); rm -rf $(MODULES)

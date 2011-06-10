@@ -1,1 +1,1 @@
-MODULE_OBJ := ex.o gc.o read_intl.o
+m_OBJ := ex.o gc.o read_intl.o
