@@ -1,12 +1,9 @@
-# Define objects in this module
-MODULE_OBJ := main.o
-
-# Define a new global build target.
-TARGET         := main
-TARGET_MODULES := sc_vm1 sc ex leaf
+m_OBJ     := main.o
+m_TARGET  := main
+m_DEPS    := sc_vm1 sc ex leaf
 
 # Test target.
-SC_VM1_ECOS := $(BUILDDIR)/$(MODULE)/main
+SC_VM1_ECOS := $(BUILDDIR)/$(m_NAME)/main
 
 .PHONY: ecos_sc ecos_sc_gdb
 ecos_sc_gdb: $(SC_VM1_ECOS)

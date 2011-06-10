@@ -1,1 +1,1 @@
-MODULE_OBJ = $(TESTS)
+m_OBJ = $(TESTS)

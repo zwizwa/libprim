@@ -167,8 +167,8 @@ m_TARGET  :=
 m_DEPS    :=
 m_LDFLAGS :=
 # For constructing paths to module-specific source and build dir in module.mk
-m_SRC     := $(SRCDIR)/$(m_NAME)
-m_BUILD	  := $(BUILDDIR)/$(m_NAME)
+m_SRC     := $(SRCDIR)/$(1)
+m_BUILD	  := $(BUILDDIR)/$(1)
 include $(S)/$(1)/module.mk
 
 # Convert all objects to absolute paths.

@@ -1,20 +1,18 @@
-# Sources for $(MODULE).a
-MODULE_OBJ=vm2.o
-
-# Define a new global build target.
-TARGET         := sc_vm2
-TARGET_MODULES := sc ex leaf
-TARGET_LDFLAGS := -lpthread
+# sc_vm2/ 
+m_OBJ     := vm2.o
+m_TARGET  := sc_vm2
+m_DEPS    := sc ex leaf
+m_LDFLAGS := -lpthread
 
 # Boot file comes from VM1
-SC_VM2       := $(MODULE)/sc_vm2
+SC_VM2       := $(m_NAME)/sc_vm2
 SC_VM2_BOOT  := $(SRCDIR)/sc_vm1/boot.scm
 
 # The test is run in the source directory to have easy access to .scm
-# files from the console.  (Since this rule depends on MODULE
+# files from the console.  (Since this rule depends on m_NAME
 # it's stored in a variable.)
 SC_VM2_TEST_CMD := \
-	cd $(SRCDIR)/$(MODULE); \
+	cd $(SRCDIR)/$(m_NAME); \
 	gdb -x $(SRCDIR)/bin/run.gdb \
 		--args $(BUILDDIR)/$(SC_VM2) \
 		--boot $(SC_VM2_BOOT) \
