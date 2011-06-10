@@ -36,7 +36,7 @@ $var{objcopy}   = "objcopy";
 
 # determine dirs. we use absolute paths for convenience
 # this means that if you move the project, you need to re-run
-# configure, or modify the SRCDIR and BUILDIR variables in Makefile.defs
+# configure, or modify the SRCDIR and BUILDIR variables in config.mk
 
 $var{builddir} = $ENV{BUILDDIR};
 $var{srcdir} = $ENV{SRCDIR}; 
@@ -146,7 +146,7 @@ $VERSION=`$var{srcdir}/bin/version`;
 pkgconfig "Version: $VERSION";
 
 
-open MAKEFILE, ">Makefile.defs";
+open MAKEFILE, ">config.mk";
 sub makefile {
     my $line = shift;
     print MAKEFILE $line . "\n";

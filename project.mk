@@ -18,16 +18,21 @@
 #       modules depend on it.
 
 
-# Module variables all start with "m"
+# Module-local variables all start with "m"
 #
-# - provided by user in module.mk
-# $(m_target)   module's build target (library or executable)
-# $(m_obj)      list of binary objects that will be collected in the final target
+## provided by user in module.mk, required:
+# m_OBJ     :=  list of binary objects for this module to be collected in .a
+
+## optional, if the module has an associated external target (next to the .a)
+# m_TARGET  :=  module's build target (library or executable)
+# m_DEPS    :=	intra-project dependencies: list references to other modules
+# m_LDFLAGS :=  linker flags to build target
+# 
 #
-# - usable in module.mk, provided by system
-# $(m_name)     module name (relative directory to project.mk)
-# $(m_src)      module's source directory
-# $(m_build)    module's build directory
+## usable in module.mk, provided by system
+# $(m_NAME)     module name (relative directory to project.mk)
+# $(m_SRC)      module's source directory
+# $(m_BUILD)    module's build directory
 #
 
 
@@ -70,7 +75,7 @@
 .PHONY: all clean targets
 
 # Include variables specific to this build.
-include Makefile.defs
+include config.mk
 
 
 # Defined in Makefile.defs
@@ -81,20 +86,18 @@ all: $(PLATFORM)
 # Note that these need to be absolute paths.
 
 # Use some shortcut names.  FIXME: remove shortcuts.
-B := $(BUILDDIR)
-S := $(SRCDIR)
-build = $(if $(VERBOSE), $(1), @echo "$(patsubst $(B)/%,%,$@)"; $(1))
+build = $(if $(VERBOSE), $(1), @echo "$(patsubst $(BUILDDIR)/%,%,$@)"; $(1))
 
 # Each subdirectory of the toplevel source dir that contains a
 # module.mk file is a build module.  Gather them and make sure the
 # associated build directory structure is present.
-MKS :=  $(shell cd $(S); echo */module.mk)
+MKS :=  $(shell cd $(SRCDIR); echo */module.mk)
 MODULES := $(patsubst %/module.mk,%,$(MKS))
 $(shell mkdir -p $(MODULES))
 
 # Include project-specific configuration.  This is to keep project.mk
 # free from per-project customizations.
--include $(S)/project.config.mk
+-include $(SRCDIR)/project.config.mk
 
 
 
@@ -109,30 +112,30 @@ $(shell mkdir -p $(MODULES))
 # The .c deps are created using gcc -M, ignoring generated files (-MG)
 # and explicity prefixing the output rule with the directory of the
 # object file.  The sed line prefixes all relative paths with
-# $(B).
+# $(BUILDDIR).
 
-depstx := sed -r 's,\s(\w+/), $(B)/\1,g'
+depstx := sed -r 's,\s(\w+/), $(BUILDDIR)/\1,g'
 
 # Gather dependencies from .c file
-$(B)/%.d: $(S)/%.c 
+$(BUILDDIR)/%.d: $(SRCDIR)/%.c 
 	$(call build, $(CC) $(CPPFLAGS) -M -MG -MT $(@:.d=.o) $< | $(depstx) >$@)
 
 # Preprocess only
-$(B)/%.cx: $(S)/%.c
+$(BUILDDIR)/%.cx: $(SRCDIR)/%.c
 	$(call build, $(CC) $(CPPFLAGS) -E $< -o $@)
 
 _CC := $(CC) $(CPPFLAGS) $(CFLAGS) $(OPTI_CFLAGS) $(DEBUG_CFLAGS)
 
 # Compile .c -> .o
-$(B)/%.o: $(S)/%.c 
+$(BUILDDIR)/%.o: $(SRCDIR)/%.c 
 	$(call build, $(_CC) -o $@ -c $<)
 
 # Compile .c -> executable
-$(B)/%.test: $(S)/%.c
+$(BUILDDIR)/%.test: $(SRCDIR)/%.c
 	$(call build, $(_CC) $(LDFLAGS) $< -o $@)
 
 # Extract symbols
-# $(B) -> $(B) rules can use simpler patterns.
+# $(BUILDDIR) -> $(BUILDDIR) rules can use simpler patterns.
 %.syms: %.so
 	$(call build, $(OBJDUMP) -T $< | grep '\.text' | awk '{print $$7;}' >$@)
 
@@ -152,7 +155,7 @@ $(1): $(2)
 endef
 
 # target_rule: <module>, <target>, <objects>, <extra_deps>, <ldflags>
-modules     = $(foreach m, $(1), $(B)/$(m)/$(m).a)
+modules     = $(foreach m, $(1), $(BUILDDIR)/$(m)/$(m).a)
 target_rule = $(eval $(call target_template, $(1)/$(strip $(2)), \
 		$(3) $(call modules, $(4)), $(5)))
 
@@ -169,21 +172,21 @@ m_LDFLAGS :=
 # For constructing paths to module-specific source and build dir in module.mk
 m_SRC     := $(SRCDIR)/$(1)
 m_BUILD	  := $(BUILDDIR)/$(1)
-include $(S)/$(1)/module.mk
+include $(SRCDIR)/$(1)/module.mk
 
 # Convert all objects to absolute paths.
-$(1)_OBJ := $$(addprefix $(B)/$(1)/, $$(m_OBJ))
+$(1)_OBJ := $$(addprefix $(BUILDDIR)/$(1)/, $$(m_OBJ))
 
 # Each object has a dependency file.
 DEPS := $$(DEPS) $$($(1)_OBJ:.o=.d)
 
 # Each module is bundled in an .a archive.
-$(B)/$(1)/$(1).a: $$($(1)_OBJ)
+$(BUILDDIR)/$(1)/$(1).a: $$($(1)_OBJ)
 	$$(call build, $(AR) rcs $$@ $$($(1)_OBJ))
 
 # Create rule for target if defined.
 $$(if $$(m_TARGET), $$(call target_rule, \
-	$(B)/$(1), \
+	$(BUILDDIR)/$(1), \
 	$$(m_TARGET), \
 	$$($(1)_OBJ), \
 	$$(m_DEPS), \
@@ -200,7 +203,13 @@ targets: $(TARGETS)
 ### INSTALL & CLEAN
 
 clean:
-	cd $(B); rm -rf $(MODULES)
+	cd $(BUILDDIR); for d in $(MODULES); do (cd $$d ; rm -rf *); done
 
 cleansrc:
-	cd $(S); rm -f `find -name '*~'`
+	cd $(SRCDIR); rm -f `find -name '*~'`
+
+
+# Dump some config variables in shell format.
+config.sh: config.mk
+	@echo "BUILDDIR=$(BUILDDIR)" >>$@
+	@echo "SRCDIR=$(BUILDDIR)" >>$@

@@ -1,12 +1,12 @@
 #!/bin/bash
 
-# custom configure & build system.
-# all files reside in the build/ dir
+# Always build in the current directory.  Use fully qualified
+# canonical names to avoid confusion.
 
-# set some env variables and call configure.pl
-BUILDDIR=`pwd`    # not yet used: call it locally!
+
+BUILDDIR=$(readlink -f .)
 cd `dirname $0`
-SRCDIR=`pwd`
+SRCDIR=$(readlink -f .)
 
 
 if [ $SRCDIR == $BUILDDIR ]; then
@@ -36,24 +36,9 @@ uname -a >>$LOG
 echo >>$LOG
 
 
-
-# copy build tree
-# cd $BUILDDIR
-# cp $SRCDIR/Makefile .
-# cp $SRCDIR/Makefile.rules .
-# if [ $SRCDIR != $BUILDDIR ]; then
-#     for dir in test leaf ex sc pf jni; do
-#         mkdir -p $dir
-#         cp $SRCDIR/$dir/Makefile $dir
-#     done
-# fi
-
-
 # Build starting point is a single Makefile.
 rm -f $BUILDDIR/Makefile
 ln -s $SRCDIR/project.mk $BUILDDIR/Makefile
 
 # execute main configure script
 exec perl $SRCDIR/bin/configure.pl $* 2>>$LOG
-
-

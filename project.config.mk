@@ -15,7 +15,7 @@ PATH := $(PATH_HEAD)$(PATH)
 CFLAGS += -falign-functions=4
 
 
-$(B)/%.h_prims: $(S)/%.c
+$(BUILDDIR)/%.h_prims: $(SRCDIR)/%.c
 	$(call build, $(MZSCHEME) $(dir $<)gen_prims.ss $< $@)
 
 
@@ -30,12 +30,12 @@ OBJCOPY.arm-eabi-objcopy := -O elf32-littlearm -B arm
 OBJCOPY.objcopy := -O elf32-i386 -B i386
 OBJCOPY_ARGS := $(OBJCOPY.$(OBJCOPY))
 
-$(B)/%.scm0: $(S)/%.scm
+$(BUILDDIR)/%.scm0: $(SRCDIR)/%.scm
 	$(call build, cp $< $@; echo -ne '\000' >>$@)
 
 # The "cd $(dir $<)" is to make sure objcopy generates a predictable
 # symbol from the base file name, excluding directory.
-$(B)/%.o: $(B)/%.scm0
+$(BUILDDIR)/%.o: $(BUILDDIR)/%.scm0
 	$(call build, cd $(dir $<); $(OBJCOPY) -I binary $(OBJCOPY_ARGS) --rename-section .data=.rodata $(notdir $<) $@)
 
 
@@ -46,12 +46,12 @@ install: $(TARGETS)
 	install -m 644 libprim.pc $(PREFIX)/lib/pkgconfig
 
 	install -d $(PREFIX)/share/prim/
-	install -m 644 $(S)/sc*/*.scm $(PREFIX)/share/prim/
-	install -m 644 $(S)/pf/*.pf $(PREFIX)/share/prim/
+	install -m 644 $(SRCDIR)/sc*/*.scm $(PREFIX)/share/prim/
+	install -m 644 $(SRCDIR)/pf/*.pf $(PREFIX)/share/prim/
 
 	$(foreach dir, ex ex_posix leaf leaf_posix sc media, \
 		install -d $(PREFIX)/include/prim/$(dir); \
-		install -m 644 $(S)/$(dir)/*.h* $(PREFIX)/include/prim/$(dir);)
+		install -m 644 $(SRCDIR)/$(dir)/*.h* $(PREFIX)/include/prim/$(dir);)
 
 ## Don't install intermediate .a libs.
 #	install -m 755 */libprim_*.a $(PREFIX)/lib/
