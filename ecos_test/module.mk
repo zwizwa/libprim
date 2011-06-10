@@ -1,11 +1,9 @@
-# Define objects in this module
-MODULE_OBJ := main.o
 
-# Define a new local build target.
-TARGET         := main
+m_OBJ     := main.o
+m_TARGET  := main
 
 # Make globally accessible target.
-.PHONY: ecos_etst
+.PHONY: ecos_test
 ecos_test: $(BUILD)/main
 
 
