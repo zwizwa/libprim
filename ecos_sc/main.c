@@ -4,7 +4,7 @@
 #include <pkgconf/hal.h>
 #include <string.h>
 
-#if 1 // eCos test
+#if 0 // eCos test
 #include <cyg/infra/diag.h>
 #include <cyg/kernel/kapi.h> 
 #include <sc_vm1/vm1.h>

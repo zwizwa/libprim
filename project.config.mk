@@ -4,8 +4,9 @@
 # Some architecture-specific rules
 .PHONY: eCos Posix Linux Darwin
 
-ecos: $(B)/ecos_sc/main
-Posix: $(B)/posix_sc/start $(B)/pf/start
+# ecos: $(BUILDDIR)/ecos_sc/main
+ecos: $(BUILDDIR)/ecos_test/main
+Posix: $(BUILDDIR)/posix_sc/start $(BUILDDIR)/pf/start
 Linux: Posix
 Darwin: Posix
 

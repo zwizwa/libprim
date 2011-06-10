@@ -1,3 +1,6 @@
+
+/* eCos test code. */
+
 #include "config.h"
 
 #include <pkgconf/system.h>
@@ -11,33 +14,37 @@
 #include CYGHWR_MEMORY_LAYOUT_H
 #endif
 
-/* The boot.scm data embedded using objcopy .scm->.o converson. 
 
-SYMBOL TABLE:
-00000000 l    d  .rodata    00000000 .rodata
-00000000 g       .rodata    00000000 _binary_boot_scm_start
-00005de4 g       .rodata    00000000 _binary_boot_scm_end
-00005de4 g       *ABS*	    00000000 _binary_boot_scm_size
+void app_exit(void) { for(;;); }
 
-The *ABS* symbol _binary_boot_scm_size symbol which holds the data
-size needs to be interpreted as the address of some variable, i.e. to
-get to the size use:
+void test_io(const char *port) {
+    FILE *io = fopen(port, "a+");
+    diag_printf("%s : %x\n", port, (int)io);
+    if (io) {
+        const char msg[] = "Hello world!\n";
+        int written = fwrite(msg, sizeof(msg), 1, io);
+        diag_printf("write %s: %d, %d\n", port, written, ferror(io));
+        fclose(io);
+        cyg_thread_delay(1);
+    }
+}
 
-   void _binary_boot_scm_size;
-   int size = (int)(&_binary_boot_scm_size);
+void app_start(cyg_addrword_t data) {
+#if 1
+    test_io("/dev/ser0");
+    test_io("/dev/ser1");
+    test_io("/dev/ser2");
+#endif
+    test_io("/dev/haldiag");
+    test_io("/dev/ttydiag");
 
-However, we just assume the data is properly zero-terminated which is
-easier to work with in C.  Refer to project.mk for the .scm0 build
-rule.
-
-*/
-
-extern const char _binary_boot_scm0_start[];
-
-void _sc_ecos_init(cyg_addrword_t data) {
-    const char *argv[] = {"sc", "--bootstring", _binary_boot_scm0_start};
-    sc *sc = _sc_new(3, (const char **)argv);
-    _sc_continue(sc);
+    FILE *io = fopen("/dev/ttydiag", "a+");
+    for(;;) {
+        int c = fgetc(io);
+        diag_printf("got %d\n", c);
+        fputc(c, io);
+    }
+    app_exit();
 }
 
 cyg_uint32 app_stack[1024*2];
@@ -46,8 +53,8 @@ static cyg_handle_t app_handle;
 
 void cyg_user_start(void)
 {
-    diag_printf("starting scheme\n");
-    cyg_thread_create(0, _sc_ecos_init, 0, "scheme",
+    diag_printf("libprim eCos test\n");
+    cyg_thread_create(0, app_start, 0, "ecos_test",
                       app_stack, sizeof(app_stack),
                       &app_handle, &app_thread);
 
