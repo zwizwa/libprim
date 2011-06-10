@@ -10683,3 +10683,55 @@ How to go about that?  The first step is probably to make it as simple
 as possible, so let's do that: eliminate tricks that cause
 non-uniformity from the current VM implementation.
 
+
+
+Entry: eCos
+Date: Tue Jun  7 21:25:16 CEST 2011
+
+What a mess..  What I want is a single command to build a project
+based on eCos, but there is no simple way to do this.  There's
+configs, paths, linker flags, install dirs, source dirs, argh..
+
+What I really want is these 2 steps:
+
+ 1.  make-ecos-compiler:      arm.ecc -> just-compile-it-dammit
+ 2.  just-compile-it-dammit:  *.c     -> app.elf-arm
+
+
+So, let's get rid of some things.
+
+The darcs/ecos project: it can be merged with libprim, since the only
+reason I need eCos outside of work is to play with interpreters..
+
+This means: move the OpenOCD / GDB code to the ecos-meta project, and
+let libprim incorporate the build system fixes.
+
+
+
+Entry: VM structure
+Date: Wed Jun  8 15:55:02 CEST 2011
+
+Something I've been fretting about is whether this ultra-simple VM
+structure isn't just ridiculously slow because it doesn't have a fast
+reuse stack or a O(1) varref.  My worry is that maybe it can be made
+10x faster by adding 10% complexity, and by not thinking about that I
+might loose opportunity.
+
+The thing there of course is measurement, and to make it clear what it
+should do.  If it's supposed to go into a low-power device, then
+efficiency does matter.
+
+So there are many unknowns.  And fear of not doing it right in the
+next iteration is definitely there.  I'm already getting a whiff of
+making the VM and compiler part of the same coin..
+
+Maybe that's the real direction to take.  Make the whole structure
+abstract, so it has a stronger correctness guarantee, but allow for
+specialization.
+
+The basic idea: I'm done with hand-crafting brittle, low-level
+structure.  I want to express meanig and mapping separately.
+
+
+
+
