@@ -71,11 +71,18 @@ void looptest(vm *vm) {
 }
 #endif
 
+
+
 int readtest(vm *vm) {
+
+    FILE *f = fopen("/dev/ser2", "a+");
+    port *p = port_file_new(f, "stdin");
+
+
     int rv = 0;
     while(1) {
         heap_collect();
-        cell *expr = vm_read_stdin(vm);
+        cell *expr = vm_read(vm, p);
         if (EOF_OBJECT == expr) return rv;
 
         if (0) {
@@ -91,14 +98,35 @@ int readtest(vm *vm) {
     }
 }
 
-#if 1
-int main(void) 
-#else 
+#define ECOS
+
+#ifdef ECOS
+/* Need the scheduler to use IO in current config. */
 #include <cyg/infra/diag.h>
-int cyg_user_start(void)
+#include <cyg/kernel/kapi.h>
+void app_start(cyg_addrword_t data);
+cyg_uint32 app_stack[1024*2];
+static cyg_thread app_thread;
+static cyg_handle_t app_handle;
+
+void cyg_user_start(void)
+{
+    diag_printf("libprim eCos CELL test\n");
+    cyg_thread_create(0, app_start, 0, "ecos_cell",
+                      app_stack, sizeof(app_stack),
+                      &app_handle, &app_thread);
+
+    /* After this function exits, the scheduler starts running resumed
+       threads. */
+    cyg_thread_resume(app_handle);
+}
+void app_start(cyg_addrword_t data)
+
+#else
+int main(void) 
 #endif
 {
-    printf("foo!\n");
+    printf("CELL test\n");
 
     // while(1) { putchar(getchar()); }
 
@@ -110,8 +138,7 @@ int cyg_user_start(void)
     // looptest(&vm);
     // while (1) { tests(&vm); }
     // return 0;
-    return readtest(&vm);
-    
+    readtest(&vm);
 }
 
 #endif

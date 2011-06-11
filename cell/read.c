@@ -47,11 +47,3 @@ cell *vm_read(vm *vm, port *port) {
     return data;
 }
 
-static port *port_stdin = NULL;
-
-cell *vm_read_stdin(vm *vm) {
-    if (!port_stdin) {
-        port_stdin = port_file_new(stdin, "stdin");
-    }
-    return vm_read(vm, port_stdin);
-}

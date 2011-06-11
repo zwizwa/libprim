@@ -350,6 +350,8 @@ elsif ("ecos" eq $var{target}){
     toolchain;  # defaults, overridden by the rest
 
     makefile "include $var{prefix}/include/pkgconf/ecos.mak";
+    makefile "CPPFLAGS +=\$(ECOS_GLOBAL_CFLAGS)";
+    makefile "LDFLAGS += \$(ECOS_GLOBAL_LDFLAGS)";
     makefile "CC := \$(ECOS_COMMAND_PREFIX)gcc";
     makefile "LD := \$(ECOS_COMMAND_PREFIX)ld";
     makefile "AR := \$(ECOS_COMMAND_PREFIX)ar";

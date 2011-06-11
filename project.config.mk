@@ -5,7 +5,7 @@
 .PHONY: eCos Posix Linux Darwin
 
 # ecos: $(BUILDDIR)/ecos_sc/main
-ecos: $(BUILDDIR)/ecos_test/main
+ecos: ecos_test cell
 Posix: $(BUILDDIR)/posix_sc/start $(BUILDDIR)/pf/start
 Linux: Posix
 Darwin: Posix

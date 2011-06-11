@@ -50,7 +50,7 @@ struct _vm {
     union word wreg2;
 
 } __attribute((__packed__));
-#define VM_INIT {VOID,VOID,VOID,VOID,VOID,VOID,NULL,0,0}
+#define VM_INIT {VOID,VOID,VOID,VOID,VOID,VOID,NULL,{0},{0}}
 
 
 

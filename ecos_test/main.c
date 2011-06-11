@@ -29,6 +29,18 @@ void test_io(const char *port) {
     }
 }
 
+void test_echo(const char *port) {
+    FILE *io = fopen(port, "a+");
+    diag_printf("echo on %s\n", port);
+    if (io) {
+        for (;;) {
+            char c;
+            fread(&c, 1, 1, io);
+            fwrite(&c, 1, 1, io);
+        }
+    }
+}
+
 void app_start(cyg_addrword_t data) {
 #if 1
     test_io("/dev/ser0");
@@ -38,12 +50,7 @@ void app_start(cyg_addrword_t data) {
     test_io("/dev/haldiag");
     test_io("/dev/ttydiag");
 
-    FILE *io = fopen("/dev/ttydiag", "a+");
-    for(;;) {
-        int c = fgetc(io);
-        diag_printf("got %d\n", c);
-        fputc(c, io);
-    }
+    test_echo("/dev/ser2");
     app_exit();
 }
 
