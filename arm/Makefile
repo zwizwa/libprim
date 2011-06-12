@@ -1,4 +1,4 @@
-all: sam7s.elf
+all: sam7.elf
 
 clean:
 	rm -rf *~ *.o *.elf

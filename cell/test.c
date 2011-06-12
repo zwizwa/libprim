@@ -83,7 +83,9 @@ int readtest(vm *vm) {
     while(1) {
         heap_collect();
         cell *expr = vm_read(vm, p);
+        
         if (EOF_OBJECT == expr) return rv;
+        
 
         if (0) {
             cell_display(expr);

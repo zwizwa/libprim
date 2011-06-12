@@ -38,7 +38,10 @@ static int first_getc(scanner *x) {
         for (;;) {
             c = next_getc(x);
             if (EOF == c) return c;
-            if ('\n' == c) goto next;
+            /* Note that '\r' is necessary to support terminals which
+               send CR instead of LF. */
+            if (('\n' == c)  ||
+                ('\r' == c)) goto next;
         }
     }
     return c;

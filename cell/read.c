@@ -1,3 +1,5 @@
+/* Simple s-expression reader on top of leaf/parser.h */
+
 #include <leaf/parser.h>
 #include <leaf/port.h>
 #include <leaf/bytes.h>
