@@ -14,6 +14,6 @@ OBJDUMP = arm-eabi-objdump
 	$(LD) -T$*.ld -o $@ $*.o
 
 %.dump: %.elf
-	$(OBJDUMP) -h $< >$@
-	cat $@
+	$(OBJDUMP) -h $<
+
 
