@@ -1,7 +1,7 @@
 A ``primitive oriented'' scripting language core.
 
-Libprim is a collection of primitive objects and operations written in
-C, mostly intended for writing embedded audio/video applications.
+Libprim[1] is a collection of primitive objects and operations written
+in C, mostly intended for writing embedded audio/video applications.
 
 These objects are designed in such a way that they can be used
 stand-alone in a C application, but are easily ``lifted'' into a more
@@ -21,7 +21,7 @@ Libprim constists of 3 main layers:
     structures.  SC is a standard Scheme tree-walking interpreter.  PF
     is a linear stack language (a Scheme/Forth hybrid).
 
-
+[1] http://zwizwa.be/darcs/libprim
 
 
 Entry: A bit less cryptic
