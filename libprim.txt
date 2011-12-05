@@ -10735,3 +10735,15 @@ structure.  I want to express meanig and mapping separately.
 
 
 
+Entry: What do we have here?
+Date: Thu Dec  1 13:57:05 EST 2011
+
+- Basic collection of C objects with reference counting mechanism.
+
+- 2-halves garbage collector, with Scheme and PF on top of it.
+
+- embedded cell garbage collector, nothing on top.
+
+
+
+
