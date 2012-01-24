@@ -10747,3 +10747,14 @@ Date: Thu Dec  1 13:57:05 EST 2011
 
 
 
+Entry: Wrapper generators
+Date: Mon Jan 23 13:23:57 EST 2012
+
+Last week I integrated Lua into an embedded C project to facilitate
+testing.  As part of this effort I used the Haskell library
+Language.C[1] to gather binary protocol definitions from a bunch of .h
+files, dumping out Lua tables that can be used for parsing binary data
+to Lua structures.  This was such an immense step forward that I'm
+thinking much of libprim could probably be written in this way.
+
+[1] http://hackage.haskell.org/package/language-c
