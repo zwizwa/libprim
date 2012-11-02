@@ -1,4 +1,4 @@
-libprim (c) 2003-2009 Tom Schouten
+libprim (c) 2003-2012 Tom Schouten
 
 An application core library for multimedia applications.
 
@@ -8,18 +8,15 @@ two scripting languages are implemented: Packet Forth (PF) and an
 (almost) R4RS compliant standard Scheme.
 
 
-Licence
+License
 -------
 
-The LEAF object collection, the EX language and the PF + SC
-interpreters are licensed under the terms of the GNU Lesser General
-Public Licence (LGPL).  See the file COPYING for details.
+See the file COPYING which describes the licensing terms of all code
+files in this project unless otherwise noted at the top of the file.
 
-Note that the use of some optional components requires a re-licencing
-under the terms of the GNU General Public Licence (GPL).  Most notably
-the GSL and some of the FFMPEG code.  If the licence for a particular
-source file deviates from the default LGPL licence of the core project
-this is clearly indicated at the top of the file.
+Caveat: outside of the core, there are optional parts released under
+GNU General Public Licence (GPL), or wrappers around GPL library code.
+
 
 
 Documentation
