@@ -1,9 +1,5 @@
 /* (c) 2002-2009 Tom Schouten
-
-   Part of this file is adapted from PacketForth (c) Tom Schouten,
-   which is licenced under the GPL.  However, this file is part of
-   core libprim and licenced under the LGPL. */
-
+   Part of this file is adapted from PacketForth (c) Tom Schouten */
 
 #include "config.h"
 #include "port.h"
