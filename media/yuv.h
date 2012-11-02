@@ -3,7 +3,7 @@
 
 #include <leaf/leaf.h>
 
-typedef struct { leaf_class super; } yuv_class;
+typedef struct { LEAF_CLASS(super); } yuv_class;
 
 
 #define FOURCC_YV12 0x32315659 ///< standard YV12

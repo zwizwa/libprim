@@ -10758,3 +10758,14 @@ to Lua structures.  This was such an immense step forward that I'm
 thinking much of libprim could probably be written in this way.
 
 [1] http://hackage.haskell.org/package/language-c
+
+
+
+Entry: Working on PDP
+Date: Thu Nov  1 20:42:25 EDT 2012
+
+I'm working on v4l support in PDP and am trying to figure out how
+exactly the leaf / media objects worked.
+
+The idea is to extract a basic C file from pdp_v4l and include it
+here.

@@ -30,6 +30,8 @@ typedef struct _leaf_ctx leaf_ctx;
 typedef struct _leaf_class leaf_class;
 typedef struct _leaf_object leaf_object;
 
+#define LEAF_CLASS(super) leaf_class super
+
 typedef void (*leaf_free_m)(leaf_object *);
 typedef int (*leaf_write_m)(leaf_object *, port *);
 

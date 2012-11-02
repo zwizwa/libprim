@@ -33,7 +33,7 @@
 
 /* x display class */
 typedef struct {
-    leaf_class super;
+    LEAF_CLASS(super);
 } xdisplay_class;
 
 typedef struct _xdisplay
@@ -51,7 +51,7 @@ typedef struct _xdisplay
 
 /* x window class */
 typedef struct {
-    leaf_class super;
+    LEAF_CLASS(super);
 } xwindow_class;
 
 typedef struct _xwindow
