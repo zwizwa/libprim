@@ -13,7 +13,7 @@ typedef struct {
 } grid_class;
 
 typedef struct {
-    leaf_object base;
+    LEAF_OBJECT(base); // &base returns leaf_object
     grid_atom *buf;
     int rank;    // tensor rank
     int dim[0];  // dimensionality of each index
@@ -26,7 +26,7 @@ typedef struct {
 } grid_proc_class;
 
 typedef struct {
-    leaf_object base;
+    LEAF_OBJECT(base); // &base returns leaf_object
     void *fn;
     int argc;
 } grid_proc;

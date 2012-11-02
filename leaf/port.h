@@ -37,7 +37,7 @@ typedef struct {
 } port_methods;
 
 struct _port {
-    leaf_object base;
+    LEAF_OBJECT(base);
     port_methods *m;
     char *name;
     union {

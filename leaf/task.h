@@ -24,7 +24,7 @@ struct _ck_class {
 };
 
 struct _ck {
-    leaf_object base;
+    LEAF_OBJECT(base);
     jmp_buf resume;
     void *segment;
     int size;

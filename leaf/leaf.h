@@ -82,6 +82,10 @@ struct _leaf_object {
     int _rc;            /* Nb. of users */
 };
 
+/* Thea idea is to keep this abstract in all the other objects such
+   that the representation can be patched */
+#define LEAF_OBJECT(x) leaf_object x
+
 static inline void leaf_init(leaf_object *o, leaf_class *type) {
     o->__type = type;
     o->_rc = 1;

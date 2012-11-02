@@ -8,7 +8,7 @@ typedef void (*rc_free)(void *ctx);
 typedef struct {
 } rc_class;
 typedef struct {
-    leaf_object base;
+    LEAF_OBJECT(base);
     void *ctx;
     int rc;
     rc_free free;

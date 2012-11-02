@@ -14,7 +14,7 @@ typedef struct {
 
 
 struct _bytes {
-    leaf_object base;
+    LEAF_OBJECT(base);
     char *bytes;
     size_t size;     // nb of used bytes
     size_t bufsize;  // max bytes in buffer (const == 0)

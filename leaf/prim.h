@@ -8,7 +8,7 @@ typedef struct {
     // void *free;
 } prim_class;
 typedef struct {
-    leaf_object base; // FIXME: implement leaf object api
+    LEAF_OBJECT(base); // FIXME: implement leaf object api
     void *fn;
     long nargs;
     /* Note: in general it is not allowed to place objects in atom

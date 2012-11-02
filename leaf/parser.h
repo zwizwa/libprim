@@ -12,7 +12,7 @@ typedef void* (*parser_cons)(void *ctx, void *a1, void *a2);
 typedef void* (*parser_vector)(void *ctx, void *lst);
 
 struct _parser {
-    leaf_object base; // FIXME: implement leaf object api
+    LEAF_OBJECT(base); // FIXME: implement leaf object api
     scanner* s;
     void *ctx;
     parser_atom   atom;

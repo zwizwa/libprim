@@ -21,7 +21,7 @@ typedef struct {
 } tuple_class;
 
 struct _tuple {
-    leaf_object base;
+    LEAF_OBJECT(base);
     int size; // nb of object slots
     leaf_object *slot[0];
 };
