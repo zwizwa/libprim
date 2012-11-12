@@ -10769,3 +10769,52 @@ exactly the leaf / media objects worked.
 
 The idea is to extract a basic C file from pdp_v4l and include it
 here.
+
+EDIT: leaf_v4l is separated so there's only glue in the way of having
+v4l->xv in libprim.
+
+
+
+Entry: Next?
+Date: Wed Nov  7 20:55:32 EST 2012
+
+I'm not sure this is really going anywhere.  The problem in the leaf
+library is still memory allocation: it relies on malloc() / free()
+
+Is there a way to separate allocation and init?  The trouble here is
+composite objects: it's hard to write objects in C that can not
+reference external resources..  And anyways, there is no way around
+file descriptors.
+
+So, what is the basic structure?  Objects with open/close, new/delete,
+...  it doesn't look like there is a way around it, and it doesn't
+look like a good idea to try to use something else than malloc/free:
+thread-local storage can be used to override behavior there if it is
+really necessary (i.e. dynamic parameters).
+
+So time to stop fussing.
+
+Besides, I wonder if the problem is already solved in Lua?  It has a
+nice memory model: don't share pointers with C ;)
+
+I'm thinking that maybe this "keep stuff on the stack" approach is not
+such a bad idea.
+
+Anyway, most things I'm interested in don't actually need much
+complicated memory management.  Maybe it's time to restate the goals:
+
+1. Create an environment to write simple C objects for multimedia
+   processing, that are easily accessed in a variety of scripting
+   languages, but that also work stand-alone.
+
+2. Provide a set of base objects to allow some fooling around with
+   language VMs.
+
+
+Those are two goals really.
+
+Lua changed everything for me: a very simple language that integrates
+well with C.  No need to re-invent the wheel.
+
+So, some questions:
+- What with the serialization requirement on leaf objects?
