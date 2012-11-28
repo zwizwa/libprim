@@ -10818,3 +10818,133 @@ well with C.  No need to re-invent the wheel.
 
 So, some questions:
 - What with the serialization requirement on leaf objects?
+
+
+Entry: Integrating media stuff in PDP
+Date: Fri Nov 23 12:48:50 EST 2012
+
+I'm dubbing it "zl" in PDP, containging: xv, v4l, ...
+
+It doesn't seem to be integrated in libprim at all, so I wonder why is
+it here?  The only reference I find is in the 'install' target in
+project.config.mk, but there is no media/module.mk
+
+Maybe it got lost somewhere..
+
+I found some old code that has a copy of the project which has a
+Makefile included, but not a module.mk
+
+It looks like the idea here was to keep this a separate module
+compiled against an installed libprim, probably due to licensing
+issues with ffmpeg.
+
+
+Entry: How this works
+Date: Fri Nov 23 13:14:56 EST 2012
+
+Frankly, I forgot.
+
+A version of libprim that was embedded in another project that
+actually used this contained media/Makefile.  It seemed that the point
+was to create a separate .a file not part of the libprim project to
+keep the GPL code separate (due to GSL and FFMPEG).
+
+Not sure what to do with it.  Until there is a working example of SC
+or PF running the code in Media, I don't see the point of making this
+work.
+
+The other project also had a couple of .scm files:
+ sc/media.scm
+ sc/ffmpeg.scm
+
+but it doesn't look like there was any XV or V4L stuff.
+
+There is also sc/media.c which has all the wrapper code.
+
+It looks like this was only taken as far as was necssary to solve a
+very specific problem, then abandoned, and never integrated with main
+libprim.
+
+Another thing here is that the build system is very confusing with all
+the autogen gong on.  I'm a bit lost..
+
+I need an entry point and a list of what to ignore..
+
+
+Entry: Focus
+Date: Fri Nov 23 13:39:53 EST 2012
+
+Current goals:
+- Make PDP work with base objects compatible with libprim
+- Add a wrapper generator for: PF, SC, Lua, Haskell, Racket, Pd, ...
+
+The main problem is the wrapper generation.  It seems best to use an
+object approach here, since that is what the C code abstracts: some
+opaque state and some methods.
+
+MODEL: semantics + syntax
+
+Semantics: classes or not?
+Model: something that is preprocessor-only?
+
+It seems best to not re-invent stuff here.  SWIG should be able to do
+what I want.  Probably best to get to now it first.
+
+It's probably best to grep through the Pd externals tree to see which
+project already uses SWIG.
+
+
+Entry: SWIG
+Date: Fri Nov 23 13:59:03 EST 2012
+
+The thing to go for is this[1]: "the parse tree can be exported as XML
+and Lisp s-expressions."
+
+So, let's do that.  Take the zl lib and export it as s-expressions.
+
+Step 1: generate a Lua wrapper for zl
+
+swig -lua v4l.h 
+
+Step 2: s-expression
+
+swig -sexp v4l.h
+
+Hmm.. that seems all a bit complex.  What does it look like on the Lua
+side I wonder?
+
+
+Hmm... looks like today is not the day.  A better way to go is
+probably first to make this work for a toy problem without all the
+linker madness.
+
+Alternatively, it might be a lot easier to write "wrappable" code in
+the first place.  Many features of swig I really don't need, such as
+structure member representation.  I'm happy with just functions and
+size of data objects to allow for caller-side allocation.
+
+[1] http://www.swig.org/compare.html
+[2] http://www.swig.org/tutorial.html
+
+
+Entry: Wrappers: The point
+Date: Fri Nov 23 23:37:47 EST 2012
+
+- classes
+
+Generic functions are a better abstraction mechanism, but are hard to
+integrate into a wide set of languages.  Find out how exactly this is
+true/false, and if true, how to standardize on classes
+(single-dispatch + factory).
+
+- abstract vs. concrete (memory-only) state
+
+distinguish between concrete, memory-only objects, and references to
+external state (e.g. file descriptors).  this is actually a very
+important distinction when thinking about lifetime of objects and of
+serialization.  how to make it proper?
+
+( i wrote something about re-initializable state before: state that's
+essentially just cache vs. state that is essential to the object's
+identity. )
+
