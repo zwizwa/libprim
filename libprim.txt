@@ -10923,6 +10923,8 @@ the first place.  Many features of swig I really don't need, such as
 structure member representation.  I'm happy with just functions and
 size of data objects to allow for caller-side allocation.
 
+There has to be a simpler way to get to this..
+
 [1] http://www.swig.org/compare.html
 [2] http://www.swig.org/tutorial.html
 
@@ -10947,4 +10949,11 @@ serialization.  how to make it proper?
 ( i wrote something about re-initializable state before: state that's
 essentially just cache vs. state that is essential to the object's
 identity. )
+
+
+Entry: A practical goal
+Date: Fri Nov 30 14:32:57 EST 2012
+
+I'd like to have an exploration platform for uC ARM cores.  Something
+that is simple.  Something that can be used to quickly test driver code.
 

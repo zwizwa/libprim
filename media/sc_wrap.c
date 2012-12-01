@@ -11,7 +11,7 @@
 
  */
 
-//#include "scheme.h"
+#include "scheme.h"
 #include <media/ffmpeg.h>
 #include <leaf/bytes.h>
 #include "media.h_sc_prims"
