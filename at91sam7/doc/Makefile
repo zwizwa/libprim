@@ -3,6 +3,6 @@ URLS := \
 	http://www.atmel.com/Images/doc6175.pdf \
 	http://www.atmel.com/Images/doc6112.pdf \
 
-include download.mk
+include ../../download.mk
 all: download
 clean: download_clean

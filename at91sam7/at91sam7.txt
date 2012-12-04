@@ -1,0 +1,230 @@
+AT91SAM7 From scratch
+
+Basic from-scratch ARM microcontroller hacking on Atmel AT91SAM7S-EK
+using OpenOCD (1a8223f28b2a459750b6dd9b867f4cec0c14a515) and
+Olimex Ltd. OpenOCD JTAG (15ba:0003)
+
+To start you need 2 terminals:
+OOCD: ./openocd.sh
+GDB: ./gdb.sh 
+
+
+Entry: Loading a binary
+Date: Fri Nov 30 16:32:49 EST 2012
+
+While in general you'd want to use an ELF file and a proper linking
+step, just to get things started it might be illustrative to run
+binary assembly code.
+
+
+
+The SAM7's memory map is:
+0x000000 Flash (at boot) or RAM.
+0x100000 Flash
+0x200000 RAM
+
+Loading a binary image to RAM seems to be a bit problematic for GDB,
+so let's stick to ELF.  What is the simplest way to get something into
+flash?
+
+The key ingredient here is the linker script: ld_flash.cmd
+
+
+Entry: Vector setup
+Date: Fri Nov 30 16:33:01 EST 2012
+
+Next is a proper vector init.  What is often found on ARM is the
+following sequence:
+
+ldr pc, [pc, #24]
+ldr pc, [pc, #24]
+ldr pc, [pc, #24]
+ldr pc, [pc, #24]
+
+ARM vectors are jump points, not addresses.  The code above allows
+addresses to be stored at an offset of 0x20 bytes (#24 == 0x18: note
+that PC is always 8 bytes ahead).
+
+On IRQ the PC will be loaded from AIC_IVR[2].
+
+The naked and signal attributes can be used to implement vectors in C
+[3].
+
+[1] http://www.keil.com/forum/16417/
+[2] http://www.ethernut.de/en/documents/arm-exceptions.html
+[3] http://www.freertos.org/implementation/a00013.html
+
+
+Entry: Absolute minimum
+Date: Sun Dec  2 09:55:41 EST 2012
+
+- No interrupt vectors: only an init vector.
+- No global C global variable inits
+- No oscillator setup
+- Minimal stack setup per mode.
+
+
+Entry: DBGU
+Date: Sun Dec  2 11:27:15 EST 2012
+
+If I'm correct, the chip starts up at 32kHz, so to get to 9600 baud on
+DBGU we need to switch on the main oscillator[1].
+
+
+
+[1] http://www.triplespark.net/elec/pdev/arm/at91sam7.html
+[2] http://www.codeforge.com/read/39051/dbgu.c__html
+
+
+Entry: Oscillator
+Date: Sun Dec  2 18:44:09 EST 2012
+
+To start the oscillator, see here[1].  The AT91SAM7-EK[4] has a 18.432
+MHz xtal, which allows perfect data rates for the standard baud rates
+(18.432MHz / 160 == 115200 Hz).
+
+At what clock is the CPU running?  And does it matter for the BRGs?
+
+From [2]: The AT91SAM7S256 has a 18.432MHz crystal connected to it
+which allows it to operate at 48MHz. The USB port is usable only when
+the microcontroller is running at 48MHz.
+
+For 48Mhz, the PPL ratios are 73/28 [3] to give 48.055MHz.
+
+The PLL needs an external 2nd order filter, so its operation range is
+actually board-dependent.  Probably best to stick to this.  However,
+it's not necessary until USB is used.  So what about not enabling PLL?
+How to configure that?
+
+25.7.4: The Master Clock and the Processor Clock are configurable via
+the PMC_MCKR register. ( READ THIS SECTION AGAIN WHEN ANYTHING
+CHANGES! )
+
+Basically, the simplest approach (without PLL) is to set the Master
+clock to main clock (XTAL or external osc) using PMC_MCKR:CSS=1 and
+set the processor prescaler to 1 using PMC_MCKR:PRES=0.
+
+
+
+[1] http://www.triplespark.net/elec/pdev/arm/at91sam7.html
+[2] http://startingelectronics.com/reviews/evaluation-boards/AT91SAM7S-EK/
+[3] http://tech.dir.groups.yahoo.com/group/AT91SAM/message/734
+[4] http://www.atmel.com/Images/doc6112.pdf
+
+
+Entry: Toggling pins
+Date: Mon Dec  3 13:03:47 EST 2012
+
+At 18MHz I see 160ns between toggle instructions, that's 3 cyles.  The
+loop is this:
+
+   0x00100094 <+12>:	str	r0, [r3, #-207]	; 0xcf
+   0x00100098 <+16>:	str	r0, [r3, #-203]	; 0xcb
+   0x0010009c <+20>:	b	0x100094 <toggle_pioa+12>
+
+
+Entry: Goals
+Date: Tue Dec  4 11:44:35 EST 2012
+
+This subproject aims to do the following:
+- Minimalistic processor startup (no libc)
+- Evaluation of open source libc (i.e. newlib)
+- Running libprim core on top of a libc
+- Running lua + zl primitives on top of a libc
+
+
+Entry: Newlib
+Date: Tue Dec  4 11:49:50 EST 2012
+
+See at91sam7/newlib/Makefile adapted from basic info in [1], but check
+[2] later for -DREENTRANT_SYSCALLS_PROVIDED.
+
+[1] http://balau82.wordpress.com/2010/12/16/using-newlib-in-arm-bare-metal-programs/
+[2] http://www.embedded.com/electronics-blogs/industry-comment/4023922/Embedding-GNU-Newlib-Part-2
+
+
+Entry: Toolchain
+Date: Tue Dec  4 13:33:30 EST 2012
+It looks like newlib builds a whole lot of targets:
+
+tom@zoo:~/libprim/at91sam7/newlib$ find -name libc.a
+./newlib-1.18.0/arm-eabi/arm9/newlib/libc.a
+./newlib-1.18.0/arm-eabi/arm9/newlib/libc/libc.a
+./newlib-1.18.0/arm-eabi/nointerwork/arm9/newlib/libc.a
+./newlib-1.18.0/arm-eabi/nointerwork/arm9/newlib/libc/libc.a
+./newlib-1.18.0/arm-eabi/nointerwork/arm9e/newlib/libc.a
+./newlib-1.18.0/arm-eabi/nointerwork/arm9e/newlib/libc/libc.a
+./newlib-1.18.0/arm-eabi/nointerwork/xscale/newlib/libc.a
+./newlib-1.18.0/arm-eabi/nointerwork/xscale/newlib/libc/libc.a
+./newlib-1.18.0/arm-eabi/nointerwork/newlib/libc.a
+./newlib-1.18.0/arm-eabi/nointerwork/newlib/libc/libc.a
+./newlib-1.18.0/arm-eabi/arm9e/newlib/libc.a
+./newlib-1.18.0/arm-eabi/arm9e/newlib/libc/libc.a
+./newlib-1.18.0/arm-eabi/be/nointerwork/xscale/newlib/libc.a
+./newlib-1.18.0/arm-eabi/be/nointerwork/xscale/newlib/libc/libc.a
+./newlib-1.18.0/arm-eabi/be/nointerwork/newlib/libc.a
+./newlib-1.18.0/arm-eabi/be/nointerwork/newlib/libc/libc.a
+./newlib-1.18.0/arm-eabi/be/xscale/newlib/libc.a
+./newlib-1.18.0/arm-eabi/be/xscale/newlib/libc/libc.a
+./newlib-1.18.0/arm-eabi/be/newlib/libc.a
+./newlib-1.18.0/arm-eabi/be/newlib/libc/libc.a
+./newlib-1.18.0/arm-eabi/xscale/newlib/libc.a
+./newlib-1.18.0/arm-eabi/xscale/newlib/libc/libc.a
+./newlib-1.18.0/arm-eabi/thumb/arm9/newlib/libc.a
+./newlib-1.18.0/arm-eabi/thumb/arm9/newlib/libc/libc.a
+./newlib-1.18.0/arm-eabi/thumb/nointerwork/arm9/newlib/libc.a
+./newlib-1.18.0/arm-eabi/thumb/nointerwork/arm9/newlib/libc/libc.a
+./newlib-1.18.0/arm-eabi/thumb/nointerwork/arm9e/newlib/libc.a
+./newlib-1.18.0/arm-eabi/thumb/nointerwork/arm9e/newlib/libc/libc.a
+./newlib-1.18.0/arm-eabi/thumb/nointerwork/xscale/newlib/libc.a
+./newlib-1.18.0/arm-eabi/thumb/nointerwork/xscale/newlib/libc/libc.a
+./newlib-1.18.0/arm-eabi/thumb/nointerwork/newlib/libc.a
+./newlib-1.18.0/arm-eabi/thumb/nointerwork/newlib/libc/libc.a
+./newlib-1.18.0/arm-eabi/thumb/arm9e/newlib/libc.a
+./newlib-1.18.0/arm-eabi/thumb/arm9e/newlib/libc/libc.a
+./newlib-1.18.0/arm-eabi/thumb/be/nointerwork/xscale/newlib/libc.a
+./newlib-1.18.0/arm-eabi/thumb/be/nointerwork/xscale/newlib/libc/libc.a
+./newlib-1.18.0/arm-eabi/thumb/be/nointerwork/newlib/libc.a
+./newlib-1.18.0/arm-eabi/thumb/be/nointerwork/newlib/libc/libc.a
+./newlib-1.18.0/arm-eabi/thumb/be/xscale/newlib/libc.a
+./newlib-1.18.0/arm-eabi/thumb/be/xscale/newlib/libc/libc.a
+./newlib-1.18.0/arm-eabi/thumb/be/newlib/libc.a
+./newlib-1.18.0/arm-eabi/thumb/be/newlib/libc/libc.a
+./newlib-1.18.0/arm-eabi/thumb/xscale/newlib/libc.a
+./newlib-1.18.0/arm-eabi/thumb/xscale/newlib/libc/libc.a
+./newlib-1.18.0/arm-eabi/thumb/newlib/libc.a
+./newlib-1.18.0/arm-eabi/thumb/newlib/libc/libc.a
+./newlib-1.18.0/arm-eabi/thumb/thumb2/newlib/libc.a
+./newlib-1.18.0/arm-eabi/thumb/thumb2/newlib/libc/libc.a
+./newlib-1.18.0/arm-eabi/newlib/libc.a
+./newlib-1.18.0/arm-eabi/newlib/libc/libc.a
+
+It seems that these actually come from the eCosPro toolchain:
+tom@zoo:/opt/xc/arm-eabi$ find -name '*libgcc*'
+./lib/gcc/arm-eabi/4.3.2/arm9/libgcc.a
+./lib/gcc/arm-eabi/4.3.2/nointerwork/arm9/libgcc.a
+./lib/gcc/arm-eabi/4.3.2/nointerwork/arm9e/libgcc.a
+./lib/gcc/arm-eabi/4.3.2/nointerwork/libgcc.a
+./lib/gcc/arm-eabi/4.3.2/nointerwork/xscale/libgcc.a
+./lib/gcc/arm-eabi/4.3.2/arm9e/libgcc.a
+./lib/gcc/arm-eabi/4.3.2/be/nointerwork/libgcc.a
+./lib/gcc/arm-eabi/4.3.2/be/nointerwork/xscale/libgcc.a
+./lib/gcc/arm-eabi/4.3.2/be/libgcc.a
+./lib/gcc/arm-eabi/4.3.2/be/xscale/libgcc.a
+./lib/gcc/arm-eabi/4.3.2/libgcc.a
+./lib/gcc/arm-eabi/4.3.2/xscale/libgcc.a
+./lib/gcc/arm-eabi/4.3.2/thumb/arm9/libgcc.a
+./lib/gcc/arm-eabi/4.3.2/thumb/nointerwork/arm9/libgcc.a
+./lib/gcc/arm-eabi/4.3.2/thumb/nointerwork/arm9e/libgcc.a
+./lib/gcc/arm-eabi/4.3.2/thumb/nointerwork/libgcc.a
+./lib/gcc/arm-eabi/4.3.2/thumb/nointerwork/xscale/libgcc.a
+./lib/gcc/arm-eabi/4.3.2/thumb/arm9e/libgcc.a
+./lib/gcc/arm-eabi/4.3.2/thumb/be/nointerwork/libgcc.a
+./lib/gcc/arm-eabi/4.3.2/thumb/be/nointerwork/xscale/libgcc.a
+./lib/gcc/arm-eabi/4.3.2/thumb/be/libgcc.a
+./lib/gcc/arm-eabi/4.3.2/thumb/be/xscale/libgcc.a
+./lib/gcc/arm-eabi/4.3.2/thumb/libgcc.a
+./lib/gcc/arm-eabi/4.3.2/thumb/xscale/libgcc.a
+./lib/gcc/arm-eabi/4.3.2/thumb/thumb2/libgcc.a
+
+It's probably time to build my own toolchain for a single architecture.
