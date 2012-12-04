@@ -10957,3 +10957,15 @@ Date: Fri Nov 30 14:32:57 EST 2012
 I'd like to have an exploration platform for uC ARM cores.  Something
 that is simple.  Something that can be used to quickly test driver code.
 
+
+
+Entry: Added AT91SAM7 project
+Date: Tue Dec  4 11:42:54 EST 2012
+
+See at91sam7/at91sam7.txt
+
+This subproject aims to do the following:
+- Minimalistic processor startup (no libc)
+- Evaluation of open source libc (i.e. newlib)
+- Running libprim core on top of a libc
+- Running lua + zl primitives on top of a libc
