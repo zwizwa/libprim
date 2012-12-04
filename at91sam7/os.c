@@ -8,11 +8,11 @@
 
 /* Hardware */
 
-void write_char(int c) {
+void dbgu_write(int c) {
     while(!(AT91C_BASE_DBGU->DBGU_CSR & AT91C_US_TXRDY));
     AT91C_BASE_DBGU->DBGU_THR = c;
 }
-int read_char(void) {
+int dbgu_read(void) {
     while(!(AT91C_BASE_DBGU->DBGU_CSR & AT91C_US_RXRDY));
     return AT91C_BASE_DBGU->DBGU_RHR & 0xFF;
 }
@@ -76,11 +76,11 @@ void init_osc(void) {
 
 void echo(void) {
     while (1) {
-        int c = read_char();
+        int c = dbgu_read();
         if (c == '\r') {
-            write_char('\n');
+            dbgu_write('\n');
         }
-        write_char(c);
+        dbgu_write(c);
     }
 }
 
@@ -89,18 +89,12 @@ void echo(void) {
 void _reset1(void)  {
     init_osc();
     init_dbgu();
-    fprintf(stdout, "%s\n", "AT91SAM7S256");
+    // fprintf(stdout, "Starting os.c for %s\r\n", "AT91SAM7S-EK");
+    fprintf(stdout, "Starting os.c A\r\n");
+    fprintf(stdout, "Starting os.c B\r\n");
+    fprintf(stdout, "Starting os.c C\r\n");
     echo();
 }
 
-
-/* newlib support */
-void _sbrk(void){}
-void _write(void){}
-void _read(void){}
-void _close(void){}
-void _fstat(void){}
-void _isatty(void){}
-void _lseek(void){}
 
 

@@ -2,18 +2,17 @@
 # Atmel AT91SAM7S-EK evaluation board.  FIXME: Later integrate with
 # libprim build.
 
-C := boot.c
+C := os.c newlib_stubs.c
 TARGET := at91sam7s256
 
 BUILD := build
-all: $(BUILD)/boot.elf
+all: $(BUILD)/$(TARGET).elf
 
 PLATFORM := arm-eabi
 PFX := $(PLATFORM)-
 LIBGCC := /opt/xc/arm-eabi/lib/gcc/arm-eabi/4.3.2/libgcc.a
 
-
-# newlib: optional.
+# newlib: optional?
 NEWLIB := newlib/newlib-1.18.0
 NEWLIB_CFLAGS := -I$(NEWLIB)/newlib/libc/include
 NEWLIB_LIBC_A := $(NEWLIB)/$(PLATFORM)/newlib/libc.a
@@ -33,23 +32,23 @@ LDFLAGS += $(LIBGCC)
 
 O := $(patsubst %.c,$(BUILD)/%.o,$(C))
 
-build = mkdir -p $(dir $(1)) ; echo $(notdir $(1)) ; $(2)
+build = @mkdir -p $(dir $(1)) ; echo [$(2)] $(notdir $(1)) ; $(3)
 
 clean:
 	rm -rf *~ build
 
 $(BUILD)/%.o: %.s Makefile
-	$(call build,$@,$(PFX)as -g $< -o $@)
+	$(call build,$@,o,$(PFX)as -g $< -o $@)
 
 $(BUILD)/%.o: %.c Makefile
-	$(call build,$@,$(PFX)gcc $(CFLAGS) -g -c $< -o $@)
+	$(call build,$@,o,$(PFX)gcc $(CFLAGS) -g -c $< -o $@)
 
 # For debug.
 $(BUILD)/%.s: %.c Makefile
-	$(call build,$@,$(PFX)gcc $(CFLAGS) -S -c $< -o $@)
+	$(call build,$@,s,$(PFX)gcc $(CFLAGS) -S -c $< -o $@)
 
 $(BUILD)/%.a: $(O)
-	$(call build,$@,$(PFX)ar -r $@ $(O)
+	$(call build,$@,a,$(PFX)ar -r $@ $(O))
 
 $(BUILD)/%.elf:	$(BUILD)/%.o $(BUILD)/%.a %.ld
-	$(call build,$@,$(PFX)ld -Map $(BUILD)/$*.map -nostdlib -nostartfiles -T $*.ld $< $(O) -o $@ $(BUILD)/%.a $(LDFLAGS))
+	$(call build,$@,elf,$(PFX)ld -Map $(BUILD)/$*.map -nostdlib -nostartfiles -T $*.ld $< $(O) -o $@ $(BUILD)/$*.a $(LDFLAGS))
