@@ -44,48 +44,59 @@ CONFIGURE_OPTS := \
 	--enable-interwork \
 	--enable-multilib
 
-CONFIGURE_OPS_GCC := \
+CONFIGURE_OPTS_GCC := \
 	$(CONFIGURE_OPTS) \
 	--enable-languages="c,c++" \
 	--with-system-zlib \
 	--with-newlib \
 	--with-headers=../../$(NEWLIB)/newlib/libc/include 
+CONFIGURE_OPTS_NEWLIB := \
+	$(CONFIGURE_OPTS)
+
+# 	--disable-newlib-supplied-syscalls
+#
+# Possible, but doesn't seem worth it.  The default is Angel monitor
+# SWI interface.  Better to use explicit c library, stubs, startfile
+# and linker script for specific targets, and share the C compiler.
+# The only thing I can see making sense here is to generate linux ARM
+# binaries or something else which is easily emulated in QEMU.
+
 
 # The tools build in the order shown below through .stamp dependencies.
 
 build/$(BINUTILS)/.build: $(BINUTILS)/.unpack
 	mkdir -p $(dir $@)
 	cd $(dir $@) && ../../$(BINUTILS)/configure $(CONFIGURE_OPTS)
-	+make -C $(dir $@) all
-	+make -C $(dir $@) install
+	make -C $(dir $@) all
+	make -C $(dir $@) install
 	touch $@
 
 build/$(GCC)/.build: build/$(BINUTILS)/.build $(GCC)/.unpack $(NEWLIB)/.unpack
 	mkdir -p $(dir $@)
 	cd $(dir $@) && ../../$(GCC)/configure $(CONFIGURE_OPTS_GCC)
-	+make -C $(dir $@) all-gcc
-	+make -C $(dir $@) install-gcc
+	make -C $(dir $@) all-gcc
+	make -C $(dir $@) install-gcc
 	touch $@
 
 build/$(NEWLIB)/.build: build/$(GCC)/.build
 	mkdir -p $(dir $@)
-	cd $(dir $@) && ../../$(NEWLIB)/configure $(CONFIGURE_OPTS)
+	cd $(dir $@) && ../../$(NEWLIB)/configure $(CONFIGURE_OPTS_NEWLIB)
 	env | grep PATH
-	+make -C $(dir $@) all
-	+make -C $(dir $@) install
+	make -C $(dir $@) all
+	make -C $(dir $@) install
 	touch $@
 
 build/$(GCC)/.build_pass2: build/$(NEWLIB)/.build
-	+make -C $(dir $@) all
-	+make -C $(dir $@) install
+	make -C $(dir $@) all
+	make -C $(dir $@) install
 	touch $@
 
 # Does this really depend on target GCC?
 build/$(GDB)/.build: $(GDB)/.unpack build/$(GCC)/.build_pass2
 	mkdir -p $(dir $@)
 	cd $(dir $@) && ../../$(GDB)/configure $(CONFIGURE_OPTS)
-	+make -C $(dir $@) all
-	+make -C $(dir $@) install
+	make -C $(dir $@) all
+	make -C $(dir $@) install
 	touch $@
 
 
