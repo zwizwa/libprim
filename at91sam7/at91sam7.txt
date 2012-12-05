@@ -228,3 +228,23 @@ tom@zoo:/opt/xc/arm-eabi$ find -name '*libgcc*'
 ./lib/gcc/arm-eabi/4.3.2/thumb/thumb2/libgcc.a
 
 It's probably time to build my own toolchain for a single architecture.
+
+
+Entry: building toolchain
+Date: Tue Dec  4 20:07:02 EST 2012
+
+Starting from here[1], but since 4.7 there is only a single tgz.  Then
+found this[2].
+
+
+Trouble:
+checking dynamic linker characteristics... configure: error: Link tests are not allowed after GCC_NO_EXECUTABLES.
+make: *** [configure-zlib] Error 1
+
+Can be worked around[2] using the gcc configure option:
+
+		--with-system-zlib
+
+
+[1] http://www.kunen.org/uC/gnu_tool.html
+[2] http://www.infopoort.nl/index.php/Software:ARM_Toolchain
