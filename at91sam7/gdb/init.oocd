@@ -1,17 +1,13 @@
 # -*- conf -*-
 
-# Default rates.  We need to switch down to slow rate for some
-# operations like reset.
-set khz_fast 6000
-set khz_slow 100
 
-adapter_khz $khz_fast
+adapter_khz 6000
 arm7_9 dcc_downloads enable
 
-# reset halt
 
 ## Trouble?
 # arm7_9 fast_memory_access enable
 
-
+init
+soft_reset_halt
 

@@ -122,6 +122,14 @@ loop is this:
    0x00100098 <+16>:	str	r0, [r3, #-203]	; 0xcb
    0x0010009c <+20>:	b	0x100094 <toggle_pioa+12>
 
+I wonder if this is because Flash wait states are enabled.  From
+example code in [1] I have:
+
+    // Set Flash Wait sate: 0 wait states.
+    AT91C_BASE_MC->MC_FMR = ((AT91C_MC_FMCN)&(22 <<16)) | AT91C_MC_FWS_0FWS;
+
+[1] http://www.triplespark.net/elec/pdev/arm/at91sam7.html
+
 
 Entry: Goals
 Date: Tue Dec  4 11:44:35 EST 2012
@@ -229,6 +237,16 @@ tom@zoo:/opt/xc/arm-eabi$ find -name '*libgcc*'
 
 It's probably time to build my own toolchain for a single architecture.
 
+Yep, after building the toolchain from scratch, there are 3 variants:
+
+tom@zoo:~/libprim/at91sam7/newlib$ find -name libc.a
+./newlib-1.20.0/arm-none-eabi/fpu/newlib/libc.a
+./newlib-1.20.0/arm-none-eabi/fpu/newlib/libc/libc.a
+./newlib-1.20.0/arm-none-eabi/thumb/newlib/libc.a
+./newlib-1.20.0/arm-none-eabi/thumb/newlib/libc/libc.a
+./newlib-1.20.0/arm-none-eabi/newlib/libc.a
+./newlib-1.20.0/arm-none-eabi/newlib/libc/libc.a
+
 
 Entry: building toolchain
 Date: Tue Dec  4 20:07:02 EST 2012
@@ -245,6 +263,99 @@ Can be worked around[2] using the gcc configure option:
 
 		--with-system-zlib
 
+make -j doesn't seem to work, but otherwise it works fine.
+See at91sam7/gnutools/Makefile
+
+I can compile the following test file:
+
+#include <stdio.h>
+void main(void) {
+    printf("hello\n");
+}
+
+So what stubs does it use?  The other newlib build uses
+--disable-newlib-supplied-syscalls so one would think that these are
+Linux syscalls then..
+
+According to [3]:
+
+  The “--disable-newlib-supplied-syscalls” option is necessary because
+  otherwise Newlib compiles some pre-defined libraries for ARM that
+  are useful in conjunction with debug features such as the RDI
+  monitor.
+
+Apparently GDB is RDI aware[4].
+ARM Angel debug monitor: [5]
+Remote Debug Monitor: [6]
+
+RDI is deprecated and replaced by RDDI, CADI, AGDI.
+
+I wonder if it's possible to build a full GCC with holes in newlib.
+Maybe better to just build it with standard support, and then disable
+it using -nostdlib -nostartfiles
+
+This comes from libgloss[7]:  Gnu Low-level OS support.
+
+newlib-1.20.0/libgloss/arm/syscalls.c
+-> this refers do_AngelSWI, patching into Angel monitor using svc/swi calls.
+
+From newlib-1.20.0/newlib/configure.host :
+# If --disable-newlib-supplied-syscalls is specified, then the end-user
+# may specify the protocol via gcc spec files supplied by libgloss
+
+Spec files are mentioned here[8].  I found these in:
+
+Build of --disable-newlib-supplied-syscalls is finished.  Indeed it
+now complains some symbols are not defined:
+
+tom@zoo:/tmp$ arm-none-eabi-gcc test.c
+/opt/xc/gnutools/lib/gcc/arm-none-eabi/4.7.2/../../../../arm-none-eabi/lib/libc.a(lib_a-exit.o): In function `exit':
+/home/tom/pub/darcs/libprim/at91sam7/gnutools/build/newlib-1.20.0/arm-none-eabi/newlib/libc/stdlib/../../../../../../newlib-1.20.0/newlib/libc/stdlib/exit.c:65: undefined reference to `_exit'
+/opt/xc/gnutools/lib/gcc/arm-none-eabi/4.7.2/../../../../arm-none-eabi/lib/libc.a(lib_a-sbrkr.o): In function `_sbrk_r':
+/home/tom/pub/darcs/libprim/at91sam7/gnutools/build/newlib-1.20.0/arm-none-eabi/newlib/libc/reent/../../../../../../newlib-1.20.0/newlib/libc/reent/sbrkr.c:58: undefined reference to `_sbrk'
+/opt/xc/gnutools/lib/gcc/arm-none-eabi/4.7.2/../../../../arm-none-eabi/lib/libc.a(lib_a-writer.o): In function `_write_r':
+/home/tom/pub/darcs/libprim/at91sam7/gnutools/build/newlib-1.20.0/arm-none-eabi/newlib/libc/reent/../../../../../../newlib-1.20.0/newlib/libc/reent/writer.c:58: undefined reference to `_write'
+/opt/xc/gnutools/lib/gcc/arm-none-eabi/4.7.2/../../../../arm-none-eabi/lib/libc.a(lib_a-closer.o): In function `_close_r':
+/home/tom/pub/darcs/libprim/at91sam7/gnutools/build/newlib-1.20.0/arm-none-eabi/newlib/libc/reent/../../../../../../newlib-1.20.0/newlib/libc/reent/closer.c:53: undefined reference to `_close'
+/opt/xc/gnutools/lib/gcc/arm-none-eabi/4.7.2/../../../../arm-none-eabi/lib/libc.a(lib_a-fstatr.o): In function `_fstat_r':
+/home/tom/pub/darcs/libprim/at91sam7/gnutools/build/newlib-1.20.0/arm-none-eabi/newlib/libc/reent/../../../../../../newlib-1.20.0/newlib/libc/reent/fstatr.c:62: undefined reference to `_fstat'
+/opt/xc/gnutools/lib/gcc/arm-none-eabi/4.7.2/../../../../arm-none-eabi/lib/libc.a(lib_a-isattyr.o): In function `_isatty_r':
+/home/tom/pub/darcs/libprim/at91sam7/gnutools/build/newlib-1.20.0/arm-none-eabi/newlib/libc/reent/../../../../../../newlib-1.20.0/newlib/libc/reent/isattyr.c:58: undefined reference to `_isatty'
+/opt/xc/gnutools/lib/gcc/arm-none-eabi/4.7.2/../../../../arm-none-eabi/lib/libc.a(lib_a-lseekr.o): In function `_lseek_r':
+/home/tom/pub/darcs/libprim/at91sam7/gnutools/build/newlib-1.20.0/arm-none-eabi/newlib/libc/reent/../../../../../../newlib-1.20.0/newlib/libc/reent/lseekr.c:58: undefined reference to `_lseek'
+/opt/xc/gnutools/lib/gcc/arm-none-eabi/4.7.2/../../../../arm-none-eabi/lib/libc.a(lib_a-readr.o): In function `_read_r':
+/home/tom/pub/darcs/libprim/at91sam7/gnutools/build/newlib-1.20.0/arm-none-eabi/newlib/libc/reent/../../../../../../newlib-1.20.0/newlib/libc/reent/readr.c:58: undefined reference to `_read'
+collect2: error: ld returned 1 exit status
+
+It does use its own start files.  The thing to check is if the
+standard start files are usable or not.  It's in:
+
+newlib-1.20.0/libgloss/arm/crt0.S
+
+It seems a lot simpler to use -nostdlibc and -nostartfiles and do
+everything explicitly:
+
+- linker script
+- startfile
+- libc stubs
+- libc.
+
+
 
 [1] http://www.kunen.org/uC/gnu_tool.html
 [2] http://www.infopoort.nl/index.php/Software:ARM_Toolchain
+[3] http://balau82.wordpress.com/2010/12/16/using-newlib-in-arm-bare-metal-programs/
+[4] http://sourceware.org/gdb/onlinedocs/gdb/ARM.html
+[5] http://infocenter.arm.com/help/index.jsp?topic=/com.arm.doc.dui0066d/Babdcdih.html
+[6] http://infocenter.arm.com/help/index.jsp?topic=/com.arm.doc.faqs/ka8256.html
+[7] http://ieee.uwaterloo.ca/coldfire/gcc-doc/docs/porting_1.html
+[8] http://gcc.gnu.org/onlinedocs/gcc-4.7.2/gcc/Spec-Files.html
+
+Entry: The ARM architecture is messy
+Date: Wed Dec  5 00:52:24 EST 2012
+
+So ARM is not a tightly-knit family; it is more like an extended group
+of hostile ex-spouses and in-laws who have moved to different
+continents to get away from each other.
+
+[1] http://lwn.net/Articles/490457/

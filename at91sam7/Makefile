@@ -8,12 +8,12 @@ TARGET := at91sam7s256
 BUILD := build
 all: $(BUILD)/$(TARGET).elf
 
-PLATFORM := arm-eabi
-PFX := $(PLATFORM)-
+PLATFORM := arm-none-eabi
+PFX := /opt/xc/gnutools/bin/$(PLATFORM)-
 LIBGCC := /opt/xc/arm-eabi/lib/gcc/arm-eabi/4.3.2/libgcc.a
 
 # newlib: optional?
-NEWLIB := newlib/newlib-1.18.0
+NEWLIB := newlib/newlib-1.20.0
 NEWLIB_CFLAGS := -I$(NEWLIB)/newlib/libc/include
 NEWLIB_LIBC_A := $(NEWLIB)/$(PLATFORM)/newlib/libc.a
 NEWLIB_LDFLAGS := $(NEWLIB_LIBC_A)
@@ -27,7 +27,7 @@ $(LDFLAGS_NEWLIB):
 
 
 # libgcc needs to come last
-CFLAGS += -O3 -fomit-frame-pointer -fdata-sections -ffunction-sections 
+CFLAGS += -O3 -fomit-frame-pointer -fdata-sections -ffunction-sections -Wall
 LDFLAGS += $(LIBGCC)
 
 O := $(patsubst %.c,$(BUILD)/%.o,$(C))
@@ -48,7 +48,7 @@ $(BUILD)/%.s: %.c Makefile
 	$(call build,$@,s,$(PFX)gcc $(CFLAGS) -S -c $< -o $@)
 
 $(BUILD)/%.a: $(O)
-	$(call build,$@,a,$(PFX)ar -r $@ $(O))
+	$(call build,$@,a,$(PFX)ar -r $@ $(O) 2>/dev/null)
 
 $(BUILD)/%.elf:	$(BUILD)/%.o $(BUILD)/%.a %.ld
 	$(call build,$@,elf,$(PFX)ld -Map $(BUILD)/$*.map -nostdlib -nostartfiles -T $*.ld $< $(O) -o $@ $(BUILD)/$*.a $(LDFLAGS))

@@ -1,11 +1,12 @@
-NEWLIB := newlib-1.18.0
-
+NEWLIB := newlib-1.20.0
 
 NEWLIB_TAR := $(NEWLIB).tar.gz
 NEWLIB_URL := ftp://sources.redhat.com/pub/newlib/$(NEWLIB_TAR)
-NEWLIB_STAMP := $(NEWLIB)/.stamp
-NEWLIB_MAKEFILE := $(NEWLIB)/Makefile
 NEWLIB_A := $(NEWLIB)/libc.a
+
+# Build tools need to be in path.
+PATH := /opt/xc/gnutools/bin:$(shell echo $$PATH)
+export PATH
 
 all: $(NEWLIB_A)
 
@@ -15,15 +16,16 @@ mrproper: clean
 	rm -f $(NEWLIB_TAR)
 
 # Download
-$(NEWLIB_TAR): $(NEWLIB_URL)
-	wget --passive-ftp $<
+$(NEWLIB_TAR):
+	wget --passive-ftp $(NEWLIB_URL)
+
 # Unpack
-$(NEWLIB_STAMP): $(NEWLIB_TAR)
+$(NEWLIB)/.unpacked: $(NEWLIB_TAR)
 	tar xf $<
 	touch $@
 # Configure
-$(NEWLIB_MAKEFILE): $(NEWLIB_STAMP)
-	cd $(NEWLIB) ; ./configure --target arm-eabi --disable-newlib-supplied-syscalls
+$(NEWLIB)/Makefile: $(NEWLIB)/.unpacked
+	cd $(NEWLIB) ; ./configure --target arm-none-eabi --disable-newlib-supplied-syscalls
 # Build
-$(NEWLIB_A): $(NEWLIB_MAKEFILE)
+$(NEWLIB)/libc.a: $(NEWLIB)/Makefile
 	make -C $(NEWLIB)

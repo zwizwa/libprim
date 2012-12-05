@@ -101,8 +101,29 @@ define connect
        target remote localhost:3333
 end
 
+# Default rates.  We need to switch down to slow rate for some
+# operations like reset.
+set $khz_fast = 6000
+set $khz_slow = 100
+
+# This needs a bunch of workarounds...
 define reset
+       # High speed gives trouble.
        mon adapter_khz 100
-       mon reset init
+       mon soft_reset_halt
+
+       # Registers are out-of-sync, so reconnect.
+       connect
+
+       # I'm guessing the error "Cannot access memory at address
+       # 0xffffffff" is because GDB tries to look at the memory
+       # pointed to by the frame pointer, which is initialized by
+       # OOCD.  Reset it to something sensible.
+       set $r11 = 0
+
+       # Set explicit Flash addresses so GDB can followin source.
+       set $pc = 0x100000
+
+       mon adapter_khz 6000
 end
 

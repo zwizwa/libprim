@@ -4,7 +4,9 @@
 #include "os.h"
 int _write(int file, const char *ptr, int len) {
     if (file != 1) return -1; // Only stdout is supported.
-    while(len--) dbgu_write(*ptr++);
+    int i;
+    for (i=0; i<len; i++) dbgu_write(ptr[i]);
+    return len;
 }
 
 /* See .ld script: heap squeezed inbetween .bss and stack space. */
@@ -14,15 +16,17 @@ static char *heap_end = (&_bss_end);
 #define heap_top (&_stack_end)
 
 caddr_t _sbrk(int incr) {
-    char *prev_heap_end = heap_end;
+    char *next_heap_end = heap_end + incr;
 
-    /* Check for heap and stack collision.
-       Maybe it's best to leave this out and let the app manage it? */
-    if (heap_end + incr > heap_top) {
+    /* Check for heap and stack collision.  Maybe it's best to leave
+       this out and let the app manage stack/heap border? */
+    if (next_heap_end > heap_top) {
         return (caddr_t)0;
     }
-    heap_end += incr;
-    return (caddr_t) prev_heap_end;
+    else {
+        heap_end = next_heap_end;
+        return (caddr_t)heap_end;
+    }
 }
 int _fstat(int file, struct stat *st) {
     st->st_mode = S_IFCHR;
@@ -37,7 +41,7 @@ static void not_implemented(const char *func) {
     _write(1, func, strlen(func));
     _write(1, "\r\n", 2);
 }
-#define NI not_implemented(__func__)
+#define NI not_implemented(__func__); return -1
 int _read(void)   { NI; }
 int _close(void)  { NI; }
 int _lseek(void)  { NI; }

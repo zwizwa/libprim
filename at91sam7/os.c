@@ -54,6 +54,15 @@ void init_dbgu(void) {
     AT91C_BASE_PIOA->PIO_PDR = PIOA_DBGU_TX | PIOA_DBGU_RX;
     AT91C_BASE_PIOA->PIO_ASR = PIOA_DBGU_TX | PIOA_DBGU_RX;
 }
+
+void init_first(void) {
+    // Set Flash Wait sate: 0 wait states.
+    AT91C_BASE_MC->MC_FMR = ((AT91C_MC_FMCN)&(22 <<16)) | AT91C_MC_FWS_0FWS;
+
+    // Disable watchdog.
+    AT91C_BASE_WDTC->WDTC_WDMR= AT91C_WDTC_WDDIS;
+}
+
 void init_osc(void) {
 
     /* Start up main oscillator, 512 slow clock startup.  Note that 64
@@ -85,14 +94,14 @@ void echo(void) {
 }
 
 
-/* C entry point, called from _reset0 which sets up stacks. */
+/* C entry point, called from _reset0 which sets up stacks and
+   initializes memory. */
 void _reset1(void)  {
+    init_first();
     init_osc();
     init_dbgu();
     // fprintf(stdout, "Starting os.c for %s\r\n", "AT91SAM7S-EK");
-    fprintf(stdout, "Starting os.c A\r\n");
-    fprintf(stdout, "Starting os.c B\r\n");
-    fprintf(stdout, "Starting os.c C\r\n");
+    printf("Starting os.c for %s\r\n", "AT91SAM7S-EK");
     echo();
 }
 
