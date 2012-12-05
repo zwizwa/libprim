@@ -51,15 +51,8 @@ CONFIGURE_OPTS_GCC := \
 	--with-newlib \
 	--with-headers=../../$(NEWLIB)/newlib/libc/include 
 CONFIGURE_OPTS_NEWLIB := \
-	$(CONFIGURE_OPTS)
-
-# 	--disable-newlib-supplied-syscalls
-#
-# Possible, but doesn't seem worth it.  The default is Angel monitor
-# SWI interface.  Better to use explicit c library, stubs, startfile
-# and linker script for specific targets, and share the C compiler.
-# The only thing I can see making sense here is to generate linux ARM
-# binaries or something else which is easily emulated in QEMU.
+	$(CONFIGURE_OPTS) \
+	--disable-newlib-supplied-syscalls
 
 
 # The tools build in the order shown below through .stamp dependencies.
