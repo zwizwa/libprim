@@ -83,26 +83,15 @@ void init_osc(void) {
     while(!(AT91C_BASE_PMC->PMC_SR & AT91C_PMC_MCKRDY));
 }
 
-void echo(void) {
-    while (1) {
-        int c = dbgu_read();
-        if (c == '\r') {
-            dbgu_write('\n');
-        }
-        dbgu_write(c);
-    }
-}
-
-
 /* C entry point, called from _reset0 which sets up stacks and
    initializes memory. */
+int main(int argc, char **argv);
 void _reset1(void)  {
     init_first();
     init_osc();
     init_dbgu();
-    // fprintf(stdout, "Starting os.c for %s\r\n", "AT91SAM7S-EK");
-    printf("Starting os.c for %s\r\n", "AT91SAM7S-EK");
-    echo();
+    printf("Starting main() for %s\r\n", "AT91SAM7S-EK");
+    main(0, NULL);
 }
 
 

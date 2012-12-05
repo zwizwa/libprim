@@ -2,6 +2,7 @@
 FILES := $(notdir $(URLS))
 UNPACKS := $(patsubst %.tar.gz,%/.unpack,$(FILES))
 
+.PHONY: download download_clean unpack unpack_clean
 download: $(FILES)
 
 download_clean:

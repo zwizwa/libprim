@@ -332,13 +332,17 @@ standard start files are usable or not.  It's in:
 
 newlib-1.20.0/libgloss/arm/crt0.S
 
-It seems a lot simpler to use -nostdlibc and -nostartfiles and do
+It seems a lot simpler to use -nostdlib and -nostartfiles and do
 everything explicitly:
 
 - linker script
 - startfile
 - libc stubs
 - libc.
+
+So I wonder if when building gcc, the whole newlib and pass2 part can
+just be skipped since it doesn't seem to be really used when using
+-nostdlib -nostartfiles
 
 
 

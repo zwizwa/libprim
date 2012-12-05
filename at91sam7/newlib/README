@@ -1,0 +1,13 @@
+# Instead of compiling newlib separately, we use newlib bundled with
+# arm-non-eabi-gcc.  Note that newlib configuration needs
+# --disable-newlib-supplied-syscalls so we can provide libc system
+# stubs and startfile here.  See gnutools/Makefile
+
+# NEWLIB := newlib/newlib-1.20.0
+# NEWLIB_CFLAGS := -I$(NEWLIB)/newlib/libc/include
+# NEWLIB_LIBC_A := $(NEWLIB)/$(PLATFORM)/newlib/libc.a
+# NEWLIB_LDFLAGS := $(NEWLIB_LIBC_A)
+# $(NEWLIB_LIBC_A):
+#	make -C newlib
+# CFLAGS  += $(NEWLIB_CFLAGS)
+# LDFLAGS += $(NEWLIB_LDFLAGS) 
