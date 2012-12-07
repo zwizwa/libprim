@@ -42,15 +42,17 @@ LIBC   := $(shell $(GCC) -print-file-name=libc.a)
 # The linker line: startfile, app library, libc, libc stubs, libgcc
 LD_START  := $(BUILD)/crt0.o
 LD_LIBS   := $(BUILD)/code.a $(LIBC) $(BUILD)/stubs.a $(LIBGCC)
-LD_SCRIPT := $(TARGET).ld
+LD_SCRIPT := $(BUILD)/memory_layout.ld
 LD_DEPS  := $(LD_START) $(LD_LIBS) $(LD_SCRIPT)
 LDFLAGS  := -nostartfiles -T $(LD_SCRIPT) --gc-sections -g
 
+# Remove the '@' character for more verbose compilation.
 compile = @mkdir -p $(dir $(1)) ; echo [$(2)] $(notdir $(1)) ; $(3)
 
 .PHONY: clean
 clean:
 	rm -rf *~ build
+
 
 
 
@@ -69,6 +71,12 @@ $(BUILD)/code.a: $(CODE_O)
 	$(call compile,$@,a,$(AR) -r $@ $(CODE_O) 2>/dev/null)
 $(BUILD)/stubs.a: $(BUILD)/stubs.o
 	$(call compile,$@,a,$(AR) -r $@ $(BUILD)/stubs.o 2>/dev/null)
+
+
+# Linker script is preprocessed.
+# LDT_CFLAGS := -C   # For leaving in comments
+$(BUILD)/%.ld: $(TARGET).ldc memory_layout.ldt  
+	$(call compile,$@,ld,$(GCC) $(LDT_CFLAGS) -DTARGET_LDC=\"$(TARGET).ldc\" -P -E --language=c memory_layout.ldt -o $@)
 
 # ELF binaries "pull" code out of code.a by referencing it.
 $(BUILD)/%.elf:	$(BUILD)/%.o $(LD_DEPS)

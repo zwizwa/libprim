@@ -1,3 +1,5 @@
+/* -*- ld-script -*- */
+
 /* ****************************************************************************************************** */
 /*   ld_flash.cmd                           LINKER  SCRIPT                                                */
 /*                                                                                                        */
@@ -110,17 +112,7 @@
 /* Identify the entry point (_vec_reset is defined in file crt.s).  */
 ENTRY(_reset0)
 
-/* Specify the memory areas for AT91SAM7S256: */
-MEMORY 
-{
-    flash  : ORIGIN = 0x00100000, LENGTH = 256K    /* FLASH EPROM        */    
-    ram    : ORIGIN = 0x00200000, LENGTH = 64K     /* static RAM area    */
-}
-
-/* Reserve 4k for stacks, the rest is heap.  See also _sbrk() */
-_stack_end   = 0x20FFFC;
-_stack_begin = 0x20F000;
-
+#include TARGET_LDC
 
 /* Now define the output sections. */
 SECTIONS 
