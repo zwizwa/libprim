@@ -90,7 +90,7 @@ void _reset1(void)  {
     init_first();
     init_osc();
     init_dbgu();
-    printf("Starting main() for %s\r\n", "AT91SAM7S-EK");
+    // printf("Starting main() for %s\r\n", TARGET);
     main(0, NULL);
 }
 

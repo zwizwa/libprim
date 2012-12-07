@@ -30,7 +30,7 @@ AR  := $(TOOL_PREFIX)ar
 LD  := $(TOOL_PREFIX)ld
 
 
-CFLAGS += -O3 -fomit-frame-pointer -fdata-sections -ffunction-sections -Wall -DTARGET_H=$(TARGET).h
+CFLAGS += -O3 -fomit-frame-pointer -fdata-sections -ffunction-sections -Wall -DTARGET=\"$(TARGET)\"
 
 # GCC is tied to newlib with syscall holes (_write(), _read(), ...) so
 # we can just use it's libc at the end of the linker command line.  We
