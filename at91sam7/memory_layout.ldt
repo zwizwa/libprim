@@ -108,11 +108,24 @@
 /*                                                                                                        */
 /* ****************************************************************************************************** */
 
+#define JUST_LINKER_DEFS /* Don't include C stuff like typedefs. */
+#include TARGET_H
+
 
 /* Identify the entry point (_vec_reset is defined in file crt.s).  */
 ENTRY(_reset0)
 
-#include TARGET_LDC
+/* Specify the memory areas for AT91SAM7S256: */
+MEMORY 
+{
+    flash  : ORIGIN = FLASH_START, LENGTH = FLASH_SIZE    /* FLASH EPROM        */    
+    ram    : ORIGIN = RAM_START,   LENGTH = RAM_SIZE      /* static RAM area    */
+}
+
+/* Reserve 4k for stacks, the rest is heap.  See also _sbrk() */
+_stack_end   = STACK_END;
+_stack_begin = STACK_BEGIN;
+
 
 /* Now define the output sections. */
 SECTIONS 

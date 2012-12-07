@@ -1,6 +1,6 @@
 #include <stdio.h>
 
-#include "AT91SAM7S256.h"
+#include "target.h"
 
 /* CONFIG */
 #define MCK 18432000   // Set to Main Oscillator in init_osc()
@@ -90,7 +90,7 @@ void _reset1(void)  {
     init_first();
     init_osc();
     init_dbgu();
-    // printf("Starting main() for %s\r\n", TARGET);
+    printf("Starting main() for %s\r\n", TARGET);
     main(0, NULL);
 }
 
