@@ -363,3 +363,13 @@ of hostile ex-spouses and in-laws who have moved to different
 continents to get away from each other.
 
 [1] http://lwn.net/Articles/490457/
+
+
+
+Entry: It's working, now what?
+Date: Wed Dec  5 15:56:54 EST 2012
+
+Let's get a language running.  What would it be?  I'd like to do a
+CONS cell-based language, since the GC is so simple and reasonably
+efficient.
+

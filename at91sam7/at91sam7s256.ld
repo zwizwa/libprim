@@ -129,6 +129,7 @@ SECTIONS
     
     .text :                       /* collect all sections that should go into FLASH after startup  */ 
     {
+        *(.vectors)               /* Fixed addresses must come first. */
         *(.text*)                 /* all .text.* sections from -ffunction-sections */
         *(.rodata*)               /* all .rodata* sections (constants, strings, etc.)  */
         *(.glue_7)                /* all .glue_7 sections  (no idea what these are) */

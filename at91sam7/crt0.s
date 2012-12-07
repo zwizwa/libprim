@@ -1,8 +1,8 @@
 .global _reset0  /* Entry point */
 .global _reset1  /* C Entry point */
         
-/* First text segment is placed at 0x100000 == ARM vector table. */
-.text
+/* The .vectors segment is placed at 0x100000 == ARM vector table. */
+.section .vectors
 .arm
 .align
 _v_reset:       b _reset0     /* Table at http://www.ethernut.de/en/documents/arm-exceptions.html */
@@ -15,6 +15,9 @@ _v_irq:         b _irq        /* Interrupt Request */
 _v_fiq:         b _fiq        /* Fast Interrupt Request */
 
 
+.text
+.arm
+.align        
 
 /* FIXME: disabled */
 _undef:
