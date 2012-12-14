@@ -11,5 +11,10 @@
 /* C defs for target. */
 #ifndef JUST_LINKER_DEFS
 #include "atmel/AT91SAM7S256.h"
+
+/* Datasheet section 10.4 PIO Controller A Multiplexing */
+#define PIOA_DBGU_TX (1<<10)
+#define PIOA_DBGU_RX (1<<9)
+
 #endif
 

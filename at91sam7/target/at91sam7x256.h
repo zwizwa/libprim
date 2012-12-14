@@ -12,3 +12,8 @@
 #ifndef JUST_LINKER_DEFS
 #include "atmel/AT91SAM7X256.h"
 #endif
+
+/* Datasheet section 10.4 PIO Controller A Multiplexing */
+#define PIOA_DBGU_TX (1<<28)
+#define PIOA_DBGU_RX (1<<27)
+

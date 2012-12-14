@@ -1,0 +1,7 @@
+Build a recent toolchain.
+See Makefile for configuration.
+
+Alternatively, use SAT:
+https://github.com/esden/summon-arm-toolchain
+
+

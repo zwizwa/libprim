@@ -6,7 +6,7 @@ TOOL_PREFIX := arm-none-eabi-
 
 # Shared code repository.  Apps will be linked against this.
 CODE_C := os.c
-CODE_S := crt0.s
+CODE_S := crt0.S
 
 # Apps to build.
 APP_C := test.c
@@ -18,7 +18,7 @@ APP_C := test.c
 # this Makefile for different TARGET values.
 BUILD := build/$(TARGET)
 
-CODE_O  := $(patsubst %.c,$(BUILD)/%.o,$(CODE_C)) $(patsubst %.s,$(BUILD)/%.o,$(CODE_S))
+CODE_O  := $(patsubst %.c,$(BUILD)/%.o,$(CODE_C)) $(patsubst %.S,$(BUILD)/%.o,$(CODE_S))
 APP_ELF := $(patsubst %.c,$(BUILD)/%.elf,$(APP_C))
 
 .PHONY: all
@@ -41,7 +41,7 @@ LIBC   := $(shell $(GCC) -print-file-name=libc.a)
 
 # The linker line: startfile, app library, libc, libc stubs, libgcc
 LD_LIBS   := $(BUILD)/crt0.o $(BUILD)/code.a $(LIBC) $(BUILD)/stubs.a $(LIBGCC)
-LD_SCRIPT := $(BUILD)/memory_layout.ld
+LD_SCRIPT := $(BUILD)/flash.ld
 LD_DEPS  := $(LD_LIBS) $(LD_SCRIPT)
 LDFLAGS  := -nostartfiles -T $(LD_SCRIPT) --gc-sections -g
 
@@ -56,8 +56,8 @@ clean:
 
 
 
-$(BUILD)/%.o: %.s Makefile
-	$(call compile,$@,o,$(AS) -g $< -o $@)
+$(BUILD)/%.o: %.S Makefile
+	$(call compile,$@,o,$(GCC) $(CFLAGS) -g -c $< -o $@)
 
 $(BUILD)/%.o: %.c Makefile
 	$(call compile,$@,o,$(GCC) $(CFLAGS) -g -c $< -o $@)
@@ -74,8 +74,8 @@ $(BUILD)/stubs.a: $(BUILD)/stubs.o
 
 # Linker script is preprocessed: it includes target header file which has memory layout info.
 # LDT_CFLAGS := -C   # For leaving in comments
-$(BUILD)/%.ld: target/$(TARGET).h memory_layout.ldt  
-	$(call compile,$@,ld,$(GCC) $(LDT_CFLAGS) -DTARGET_H=\"target/$(TARGET).h\" -P -E --language=c memory_layout.ldt -o $@)
+$(BUILD)/%.ld: target/$(TARGET).h flash.ldt  
+	$(call compile,$@,ld,$(GCC) $(LDT_CFLAGS) -DTARGET_H=\"target/$(TARGET).h\" -P -E --language=c flash.ldt -o $@)
 
 # ELF binaries "pull" code out of code.a by referencing it.6
 $(BUILD)/%.elf:	$(BUILD)/%.o $(LD_DEPS)

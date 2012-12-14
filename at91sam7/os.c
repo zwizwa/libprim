@@ -31,13 +31,6 @@ void toggle_pioa(u32 mask) {
 }
 #endif
 
-/* 10.4 multiplexing.  DBGU is on peripheral A. */
-#define PIOA_DBGU_TX (1<<10)
-#define PIOA_DBGU_RX (1<<9)
-
-/* 10.2 Peripheral identifiers */
-#define PID_SYSC (1<<1)
-#define PID_PIOA (1<<2)
 
 void init_dbgu(void) {
     /* Reset */
@@ -94,5 +87,6 @@ void _reset1(void)  {
     main(0, NULL);
 }
 
-
+void _fiq(void) {
+}
 
