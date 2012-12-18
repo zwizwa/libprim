@@ -1,27 +1,35 @@
 A ``primitive oriented'' scripting language core.
 
-Libprim[1] is a collection of primitive objects and operations written
-in C, mostly intended for writing embedded audio/video applications.
+EXPERIMENTAL
 
-These objects are designed in such a way that they can be used
+The libprim[1] project has two somewhat independent goals, which are
+mostly inherited from the PacketForth project[2].
+
+1. Construct a collection of primitive C modules to build scripting
+   languages.
+
+2. Collect basic C modules for image processing which are easily
+   bolted onto any kind of scripting language.
+
+
+All core C modules are designed in such a way that they can be used
 stand-alone in a C application, but are easily ``lifted'' into a more
 expressive data/code model for prototyping and debugging.
 
-
-
-Libprim constists of 3 main layers:
+The scripting language part of libprim constists of 3 main layers:
 
   * LEAF: C objects (bytes, symbol, port, parser, tuple, ...) with
-    manual memory management.
+    manual malloc()-based memory management.
 
-  * EX: graph memory with automatic asynchronous mark/sweep GC,
-    i.e. a Scheme memory model.
+  * EX: graph memory with automatic asynchronous mark/sweep GC, used
+    for representing data expressions.  (i.e. a Scheme memory model)
 
   * PF/SC: VMs implementing two execution models using the EX data
     structures.  SC is a standard Scheme tree-walking interpreter.  PF
     is a linear stack language (a Scheme/Forth hybrid).
 
 [1] http://zwizwa.be/darcs/libprim
+[2] http://zwizwa.be/packetforth
 
 
 Entry: A bit less cryptic
