@@ -23,17 +23,12 @@ MAKEFLAGS += --no-builtin-rules
 SRC      := $(shell readlink -f ..)
 BUILD    := $(shell readlink -f .)
 
-
-# TARGET := at91sam7s256
-# TOOL_PREFIX := arm-none-eabi-
-# Refers to files in target/
-TARGET := Linux
+TARGET = Linux
 # TOOL_PREFIX is empty
 -include $(SRC)/target/$(TARGET).mk
 
-
 CPPFLAGS := -I$(BUILD) -I$(SRC) -DTARGET=\"$(TARGET)\" -DPRIM_HOME=\"$(SRC)\"
-CFLAGS   :=
+CFLAGS   := -g -O3
 LDFLAGS  :=
 GCC      := $(TOOL_PREFIX)gcc
 AS       := $(TOOL_PREFIX)as
@@ -42,6 +37,7 @@ LD       := $(TOOL_PREFIX)ld
 CC       := $(GCC)
 MZSCHEME := mzscheme
 
+.PHONY: all
 all: g_OUT
 
 # Makefile template for the module.mk context. Once expanded, it
@@ -100,7 +96,7 @@ $(BUILD)/%.d: $(SRC)/%.c $(g_H)
 $(BUILD)/%.E.c: $(SRC)/%.c $(g_H)
 	$(call compile,$@,c,$(CC) $(CPPFLAGS) -E $< -o $@)
 
-_CC := $(CC) $(CPPFLAGS) $(CFLAGS) $(OPTI_CFLAGS) $(DEBUG_CFLAGS)
+_CC := $(CC) $(CPPFLAGS) $(CFLAGS)
 
 # Intermediate object
 $(BUILD)/%.o: $(SRC)/%.c $(BUILD)/%.d

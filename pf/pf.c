@@ -5,8 +5,8 @@
 
 #include <pf/pf.h>
 #include <px/px.h>
-#include <pf/pf.h_prims>
-#include <px/px.h_prims>
+#include <pf/pf.g.h>
+#include <px/px.g.h>
 #include <config.h>
 
 /* 

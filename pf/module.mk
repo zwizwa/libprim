@@ -1,8 +1,8 @@
 # pf/
-m_c       := pf.c
-m_TARGET  := pf
-m_DEPS    := px ex ex_posix leaf leaf_posix
-m_LDFLAGS := -lpthread
+m_H	  := pf.g.h
+m_OUT     := pf.elf
+m_LDFLAGS := -lpthread -ldl -lm
+
 
 PF:= $(m_BUILD)/pf
 PF_BOOT := $(m_SRC)/boot.pf

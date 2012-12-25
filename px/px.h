@@ -1,8 +1,8 @@
 #ifndef _PF_PX_H_
 #define _PF_PX_H_
 
-#include <pf/pf.h_prims>
-#include <px/px.h_prims>
+#include <pf/pf.g.h>
+#include <px/px.g.h>
 
 static void _exch(_*a, _*b) {
     _ tmp = *a;

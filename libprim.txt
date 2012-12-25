@@ -11024,6 +11024,29 @@ Would it be easy to switch the build to static, single .a approach?
 
 In first iteration, collect all the .c files.
 
+-> Making a simpler one that's only static.
+
+However, this gives a problem with object_to_* calls, which are
+different for SC and PF.
+
+This used to be part of the specs, i.e. for the dynamic library.  How
+to work around this?
 
 
+/* Scheme specific object wrappers.  Note that these functions need to
+   show up at link time, as they are part of the binary interface. */
+#define DEF_AREF_TYPE(name) \
+    name *object_to_##name(object ob) { \
+        return (name*)object_aref_struct(ob,name##_type()); }
 
+
+/* RC types are const types wrapped in a RC struct. */
+#define DEF_RC_TYPE(name)                                              \
+    name *object_to_##name(object ob) {                                \
+        return (name*)object_rc_struct(ob,name##_type()); }
+
+
+The thing is that these are referred in EX.
+
+
+Easiest seems to define a object_rep_struct

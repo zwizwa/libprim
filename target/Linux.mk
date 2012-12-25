@@ -5,7 +5,9 @@ MODULES := \
 	ex_posix \
 	sc \
 	sc_vm1 \
-	posix_sc
+	posix_sc \
+	px \
+	pf \
 
 
 
