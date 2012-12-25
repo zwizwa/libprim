@@ -1,1 +1,1 @@
-m_OBJ := ex_posix.o
+m_C := ex_posix.c

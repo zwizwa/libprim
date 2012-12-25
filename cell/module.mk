@@ -1,5 +1,5 @@
 # cell/
-m_OBJ    := test.o read.o vm.o gc.o 
+m_C      := read.c vm.c gc.c  # test.c
 m_TARGET := cell
 
 m_DEPS   := leaf

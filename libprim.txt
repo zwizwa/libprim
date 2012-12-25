@@ -10977,3 +10977,53 @@ This subproject aims to do the following:
 - Evaluation of open source libc (i.e. newlib)
 - Running libprim core on top of a libc
 - Running lua + zl primitives on top of a libc
+
+
+
+Entry: Change of focus
+Date: Tue Dec 25 10:22:00 EST 2012
+
+Need to build an engine for an OpenGL GUI.  Thinking about using CELL
+and LEAF, but leave some room to build it in EX too.
+
+* Layout engine: translate a heriarchical GUI description to an
+  on-screen layout.
+
+* Event dispatcher: focus on the hard problem: editable graphs.
+
+
+Roadmap:
+1. OpenGL window context with mouse/keyboard events.
+2. Layout engine for knobs, sliders, LCDs and grouping boxes.
+
+
+
+Entry: CELL vs. EX
+Date: Tue Dec 25 10:36:21 EST 2012
+
+CELL is probably the better approach because it is simpler.  It is
+also memory efficient so might be a good idea for embedded systems.
+However, EX is working, and has support for variable-size vectors.
+
+How to abstract substrate?
+
+One thing I do not like about EX is the build system.  It's dependency
+on mzscheme is quite annoying.
+
+
+Entry: Build system.. how does it work?
+Date: Tue Dec 25 10:38:27 EST 2012
+
+Seems a bit complicated.  Maybe it's time to clean it up a bit.
+
+It doesn't seem that dynamic library support is going to be necessary.
+Targets are deeply embedded systems or isolated so/DLL.  Dynamic
+libraries complicate the build/install process significantly.
+
+Would it be easy to switch the build to static, single .a approach?
+
+In first iteration, collect all the .c files.
+
+
+
+

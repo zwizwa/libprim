@@ -1,4 +1,6 @@
-m_OBJ     := main.o
+ifeq ($(ARCH),ecos)
+
+m_C       := main.c
 m_TARGET  := main
 m_DEPS    := sc_vm1 sc ex leaf
 
@@ -11,3 +13,4 @@ ecos_sc_gdb: $(SC_VM1_ECOS)
 ecos_sc: $(SC_VM1_ECOS)
 
 
+endif

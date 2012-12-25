@@ -26,7 +26,7 @@
 #include <ex/gc.h>
 
 typedef struct _ex ex;
-#include <ex/ex.h_prims>
+#include <ex/ex.g.h>
 
 
 

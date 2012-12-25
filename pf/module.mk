@@ -1,5 +1,5 @@
 # pf/
-m_OBJ     := pf.o 
+m_c       := pf.c
 m_TARGET  := pf
 m_DEPS    := px ex ex_posix leaf leaf_posix
 m_LDFLAGS := -lpthread

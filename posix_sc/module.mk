@@ -1,5 +1,5 @@
 # posix_sx/
-m_OBJ      := main.o
+m_C        := main.c
 m_DEPS     := sc_vm1 sc ex_posix ex leaf_posix leaf
 m_TARGET   := main
 m_LDFLAGS  := -lpthread

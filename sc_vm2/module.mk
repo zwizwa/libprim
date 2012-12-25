@@ -1,5 +1,5 @@
 # sc_vm2/ 
-m_OBJ     := vm2.o
+m_C       := vm2.c
 m_TARGET  := sc_vm2
 m_DEPS    := sc ex leaf
 m_LDFLAGS := -lpthread

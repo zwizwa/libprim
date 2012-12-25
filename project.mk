@@ -21,7 +21,7 @@
 # Module-local variables all start with "m"
 #
 ## provided by user in module.mk, required:
-# m_OBJ     :=  list of binary objects for this module to be collected in .a
+# m_C       :=  list of source objects for this module to be collected in .a
 
 ## optional, if the module has an associated external target (next to the .a)
 # m_TARGET  :=  module's build target (library or executable)
@@ -72,13 +72,13 @@
 #  [4] http://okmij.org/ftp/Computation/#Makefile-functional
 
 
-.PHONY: all clean targets
 
 # Include variables specific to this build.
 include config.mk
 
 
 # Defined in Makefile.defs
+.PHONY: all
 all: $(PLATFORM)
 
 
@@ -160,11 +160,13 @@ target_rule = $(eval $(call target_template, $(1)/$(strip $(2)), \
 		$(3) $(call modules, $(4)), $(5)))
 
 
-# Makefile tiemplate for each module.  Once expanded, it gathers
+# Makefile template for the module.mk context. Once expanded, it gathers
 # module-specific data from the local m_ variables and builds a global
 # target list.
 define module_template
 m_NAME    := $(1)
+m_C       :=
+m_S       :=
 m_OBJ     :=
 m_TARGET  :=
 m_DEPS    :=
@@ -173,6 +175,13 @@ m_LDFLAGS :=
 m_SRC     := $(SRCDIR)/$(1)
 m_BUILD	  := $(BUILDDIR)/$(1)
 include $(SRCDIR)/$(1)/module.mk
+
+# Collect absolute paths of source files for one-library build.
+g_C += $(addprefix $(m_SRC)/,$(m_C))
+g_S += $(addprefix $(m_SRC)/,$(m_S))
+
+m_OBJ += $(m_C:.c=.o)
+m_OBJ += $(m_S:.s=.o)
 
 # Convert all objects to absolute paths.
 $(1)_OBJ := $$(addprefix $(BUILDDIR)/$(1)/, $$(m_OBJ))
@@ -183,6 +192,7 @@ DEPS := $$(DEPS) $$($(1)_OBJ:.o=.d)
 # Each module is bundled in an .a archive.
 $(BUILDDIR)/$(1)/$(1).a: $$($(1)_OBJ)
 	$$(call build, $(AR) rcs $$@ $$($(1)_OBJ))
+
 
 # Create rule for target if defined.
 $$(if $$(m_TARGET), $$(call target_rule, \
@@ -199,12 +209,26 @@ $(foreach prog,$(MODULES),$(eval $(call module_template,$(prog))))
 targets: $(TARGETS)
 
 
+# Static library build.  This is simpler than .so build.  It collects
+# all the .c files into a single .a
+g_OBJ += $(g_C:.c=.o)
+g_OBJ += $(g_S:.s=.o)
+
+.PHONY: static
+static_c: # $(BUILDDIR)/target.a
+	@echo $(g_C)
+
+static_o: $(g_OBJ)
+
+
 
 ### INSTALL & CLEAN
 
+.PHONY: clean
 clean:
 	cd $(BUILDDIR); for d in $(MODULES); do (cd $$d ; rm -rf *); done
 
+.PHONY: cleansrc
 cleansrc:
 	cd $(SRCDIR); rm -f `find -name '*~'`
 

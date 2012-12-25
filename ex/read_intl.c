@@ -1,5 +1,5 @@
 #include <ex/ex.h>
-#include <ex/ex.h_prims>
+#include <ex/ex.g.h>
 
 #include <leaf/parser.h>
 

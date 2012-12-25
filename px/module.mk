@@ -1,3 +1,3 @@
 # px/
-m_OBJ := px.o
+m_C := px.c
 
