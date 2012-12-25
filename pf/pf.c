@@ -78,7 +78,7 @@ void _px_run(pf *pf) {
         */
 
         /* Quote linear datum (Implement the `dip' continuation.) */
-        pair *rs = object_to_ldata(pf->k);
+        pair *rs = object_to_ldata(EX, pf->k);
         if (unlikely(rs)) {
             PUSH_P(rs->car);
             rs->car = VOID;
@@ -88,12 +88,12 @@ void _px_run(pf *pf) {
         /* Consume next instruction: pop K. */
         else {
             
-            rs = object_to_lnext(pf->k);
+            rs = object_to_lnext(EX, pf->k);
             if (unlikely(!rs)) goto halt;
             _ ip = rs->car;
             
             /* Unpack code sequence, push K. */
-            if ((s = object_to_seq(ip))) {
+            if ((s = object_to_seq(EX, ip))) {
                 DROP_K(); // (*)
                 PUSH_K_NEXT(s->next);
                 PUSH_K_NEXT(s->now);
@@ -101,7 +101,7 @@ void _px_run(pf *pf) {
             /* Interpret primitive code or data. */
             else {
                 /* Primitive */
-                if ((p = object_to_prim(ip))) {
+                if ((p = object_to_prim(EX, ip))) {
                     DROP_K(); // (*)
                     fn = (pf_prim)p->fn;
                     pf->m.prim = p;
@@ -118,10 +118,10 @@ void _px_run(pf *pf) {
                     fn = NULL;
                 }
                 /* Quoted object */
-                else if ((q = object_to_quote(ip))) {
+                else if ((q = object_to_quote(EX, ip))) {
                     DROP_K(); // (*)
                     _ ob;
-                    if ((l = object_to_lin(q->object))) {
+                    if ((l = object_to_lin(EX, q->object))) {
                         /* Unpack + link linear objects */
                         ob = _px_link(pf, l->object);
                     }
@@ -199,19 +199,19 @@ void pf_to_dict(pf *pf) {
     _DROP();
 }
 void pf_fetch_(pf *pf) {
-    aref *x = object_to_box(TOP);
+    aref *x = object_to_box(EX, TOP);
     _TOP = _px_link(pf, x->object);
 }
 void pf_bang_(pf *pf) {
-    aref *x = object_to_box(TOP); _DROP();
+    aref *x = object_to_box(EX, TOP); _DROP();
     EXCH(_CAR(pf->p), x->object); _DROP();
 }
 void pf_fetch_from_(pf *pf) {
-    aref *x = object_to_box(TOP);
+    aref *x = object_to_box(EX, TOP);
     _TOP = MOVE(x->object, VOID);
 }
 void pf_exchange(pf *pf) {
-    aref *x = object_to_box(TOP);
+    aref *x = object_to_box(EX, TOP);
     _DROP();
     EXCH(x->object, _TOP);
 }
@@ -228,7 +228,7 @@ void pf_ps(pf *pf) {  // print stack
 void pf_pm(pf *pf) {  // print machine
     _ex_printf(EX, "P: "); POST_STACK(pf->p);
     _ex_printf(EX, "K: "); POST(pf->k);
-    _ex_printf(EX, "F: %d\n", object_to_integer(LENGTH(pf->freelist)));
+    _ex_printf(EX, "F: %d\n", object_to_integer(EX, LENGTH(pf->freelist)));
 }
 void pf_pd(pf *pf) {  // print dict
     _ E = pf->dict;
@@ -344,7 +344,7 @@ void pf_nop(pf *pf) {}
 /* Since we have a non-rentrant interpreter with mutable state, this
    is a bit less problematic than the EX/SC case. */
 void pf_gc(pf *pf) {
-    pf->m.prim = object_to_prim(pf->ip_nop);  // don't restart pf_gc() !
+    pf->m.prim = object_to_prim(EX, pf->ip_nop);  // don't restart pf_gc() !
     gc_collect(GC); // does not return
 }
 void pf_gc_test(pf *pf) {
@@ -383,7 +383,7 @@ void pf_words(pf *pf) {
 void pf_interpret(pf *pf) {
     _ v = TOP;
     /* Perform linearly if possible. */
-    if (object_to_symbol(v)) {
+    if (object_to_symbol(EX, v)) {
         _ ob = FIND(pf->dict, v);
         if (FALSE == ob) {_DROP(); ERROR_UNDEFINED(v);}
         _TOP = ob;
@@ -393,7 +393,7 @@ void pf_interpret(pf *pf) {
     if (GC_INTEGER == GC_TAG(v)) {
         return;
     }
-    if (object_to_lpair(v)) {
+    if (object_to_lpair(EX, v)) {
         if (pf->s_quote == _CAR(v)) { 
             pair *dp = CAST(lpair, _CDR(v));
             _ datum = dp->car;
@@ -455,13 +455,13 @@ void pf_to_nl(pf *pf) {
 
 
 static inline int is_nlcode(_ ob, ex* ex) {
-    return (object_to_prim(ob) ||
-            object_to_quote(ob) ||
-            object_to_seq(ob));
+    return (object_to_prim(ex, ob) ||
+            object_to_quote(ex, ob) ||
+            object_to_seq(ex, ob));
 }
 static inline int is_lcode(_ ob, ex* ex) {
-    return (object_to_lnext(ob) ||
-            object_to_ldata(ob) ||
+    return (object_to_lnext(ex, ob) ||
+            object_to_ldata(ex, ob) ||
             (NIL == ob));
 }
 
@@ -492,11 +492,11 @@ void pf_dip(pf *pf) {
 
 void pf_to_k_data(pf *pf) {
     FROM_TO(p, k);
-    vector_reset_flags(object_to_vector(pf->k), TAG_LDATA);
+    vector_reset_flags(object_to_vector(EX, pf->k), TAG_LDATA);
 }
 void pf_to_k_next(pf *pf) {
     FROM_TO(p, k);
-    vector_reset_flags(object_to_vector(pf->k), TAG_LNEXT);
+    vector_reset_flags(object_to_vector(EX, pf->k), TAG_LNEXT);
 }
 
 /* MAP + EACH, written in CPS */
@@ -617,8 +617,8 @@ void pf_reset(pf *pf) {
    object, up to but not including the prompt. */
 
 static inline pair *_px_kframe(pf *pf, _ ob) {
-    pair *p = object_to_ldata(ob);
-    if (!p) p = object_to_lnext(ob);
+    pair *p = object_to_ldata(EX, ob);
+    if (!p) p = object_to_lnext(EX, ob);
     if (unlikely(!p)) { ERROR("missing-prompt", VOID); }
     return p;
 }
@@ -803,6 +803,7 @@ pf* _px_new(int argc, char **argv) {
     pf->m.make_pair = (ex_m_make_pair)px_linear_cons;
     pf->m.leaf_to_object = (_ex_m_leaf_to_object)_px_make_rc;
     pf->m.object_to_leaf = (_ex_m_object_to_leaf)_px_object_to_leaf;
+    pf->m.object_ref_struct = (_ex_m_object_ref_struct)object_rc_struct;
     
 
     // Symbol cache

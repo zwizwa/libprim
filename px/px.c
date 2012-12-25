@@ -37,11 +37,12 @@
 #include <leaf_posix/channel.h>
 
 /* Leaf object wrappers. */
-DEF_RC_TYPE(port)
-DEF_RC_TYPE(bytes)
-DEF_RC_TYPE(inexact)
-DEF_RC_TYPE(channel)
-DEF_RC_TYPE(ck)
+
+//DEF_RC_TYPE(port)
+//DEF_RC_TYPE(bytes)
+//DEF_RC_TYPE(inexact)
+//DEF_RC_TYPE(channel)
+//DEF_RC_TYPE(ck)
 
 
 /* TOOLS+DATA */
@@ -72,7 +73,7 @@ _ _px_make_rc(pf *pf, leaf_object *ob) {
     return const_to_object(rc);
 }
 leaf_object *_px_object_to_leaf(pf *pf, object ob) {
-    rc *x = object_to_rc(ob);
+    rc *x = object_to_rc(EX, ob);
     if (!x) return NULL;
     return x->ctx;
 }
@@ -129,13 +130,13 @@ _ px_linear_cons(pf *pf, _ car, _ cdr) {
 }
 _ px_linear_next(pf *pf, _ car, _ cdr) {
     _ ob = px_linear_cons(pf, car, cdr);
-    vector *v = object_to_vector(ob);
+    vector *v = object_to_vector(EX, ob);
     vector_reset_flags(v, TAG_LNEXT);
     return ob;
 }
 _ px_linear_data(pf *pf, _ car, _ cdr) {
     _ ob = px_linear_cons(pf, car, cdr);
-    vector *v = object_to_vector(ob);
+    vector *v = object_to_vector(EX, ob);
     vector_reset_flags(v, TAG_LDATA);
     return ob;
 }
@@ -158,13 +159,13 @@ void _px_unlink(pf* pf, _ ob) {
     rc *x;
   again:
     /* RC objects: dec RC and possibly free */
-    if ((x = object_to_rc(ob))) {
+    if ((x = object_to_rc(EX, ob))) {
         _rc_unlink(x);
     }
     /* Lists: recurse. */
-    else if (object_to_lpair(ob) ||
-             object_to_ldata(ob) ||
-             object_to_lnext(ob)) {
+    else if (object_to_lpair(EX, ob) ||
+             object_to_ldata(EX, ob) ||
+             object_to_lnext(EX, ob)) {
         ob = _px_unlink_pop(pf, ob);
         goto again;
     }
@@ -172,21 +173,21 @@ void _px_unlink(pf* pf, _ ob) {
 /* Link will RC++ objects and recursively copy pair structures, using
    pairs from the freelist.. */
 _ _px_link(pf *pf, _ ob) {
-    rc *x = object_to_rc(ob);
+    rc *x = object_to_rc(EX, ob);
     pair *p;
     if (x) { 
         x->rc++;
         return ob;
     }
-    else if ((p = object_to_lpair(ob))) {
+    else if ((p = object_to_lpair(EX, ob))) {
         return LINEAR_CONS(_px_link(pf, p->car),
                            _px_link(pf, p->cdr));
     }
-    else if ((p = object_to_lnext(ob))) {
+    else if ((p = object_to_lnext(EX, ob))) {
         return LINEAR_NEXT(_px_link(pf, p->car),
                            _px_link(pf, p->cdr));
     }
-    else if ((p = object_to_ldata(ob))) {
+    else if ((p = object_to_ldata(EX, ob))) {
         return LINEAR_DATA(_px_link(pf, p->car),
                            _px_link(pf, p->cdr));
     }
@@ -215,20 +216,19 @@ _ px_copy_to_graph(pf *pf, _ ob) {
     rc *x;
     pair *p;
     /* Wrap all RC objects in a LIN struct */
-    if ((x = object_to_rc(ob))) {
+    if ((x = object_to_rc(EX, ob))) {
         x->rc++;
         return LIN(ob);
     }
     /* Recursively copy the tree. */
-    else if ((p = object_to_lpair(ob))) {
-    
+    else if ((p = object_to_lpair(EX, ob))) {
         return CONS(COPY_TO_GRAPH(p->car),
                     COPY_TO_GRAPH(p->cdr));
     }
     /* FIXME: Seq code contination frames are currently not
        representable outside the VM. */
-    else if ((p = object_to_lnext(ob)) ||
-             (p = object_to_ldata(ob))) {
+    else if ((p = object_to_lnext(EX, ob)) ||
+             (p = object_to_ldata(EX, ob))) {
         _ex_printf(EX, "WARNING: lnext/ldata -> nonlinear pair conversion.\n");
         return CONS(COPY_TO_GRAPH(p->car),
                     COPY_TO_GRAPH(p->cdr));
@@ -239,11 +239,11 @@ _ px_copy_from_graph(pf *pf, _ ob) {
     pair *p;
     lin *l;
     /* Unwrap LIN objects. */
-    if ((l = object_to_lin(ob))) { 
+    if ((l = object_to_lin(EX, ob))) { 
         return _px_link(pf, l->object);
     }
     /* Recursive copy. */
-    else if ((p = object_to_pair(ob))) {
+    else if ((p = object_to_pair(EX, ob))) {
         return LINEAR_CONS(COPY_FROM_GRAPH(p->car),
                            COPY_FROM_GRAPH(p->cdr));
     }
@@ -267,7 +267,7 @@ _ px_copy_from_graph(pf *pf, _ ob) {
 
 
 port *_px_port(pf *pf) {
-    return object_to_port(pf->output);
+    return object_to_port(EX, pf->output);
 }
 
 /* Code _printing_. tries to guess what form of quotation the object
@@ -287,15 +287,15 @@ _ px_write_name_or_quotation(pf *pf, _ ob) {
 
     /* If the object was a data quotation that's not registered as
        code in the dictionary, print it as an inline quotation.*/
-    if ((q = object_to_quote(ob))) {
-        if ((object_to_seq(q->object)) ||
-            (object_to_quote(q->object)) ||
-            (object_to_prim(q->object))) {
+    if ((q = object_to_quote(EX, ob))) {
+        if ((object_to_seq(EX, q->object)) ||
+            (object_to_quote(EX, q->object)) ||
+            (object_to_prim(EX, q->object))) {
             return px_write(pf, q->object);
         } else {
             _ex_printf(EX, "'");
             /* Don't print the LIN wrapper. */
-            if ((l = object_to_lin(q->object))) {
+            if ((l = object_to_lin(EX, q->object))) {
                 return px_write(pf, l->object);
             }
             else {
@@ -313,15 +313,15 @@ const char *CR = "]";
 
 _ px_write(pf *pf, _ ob) {
     void *x;
-    if ((x = object_to_box(ob))) {
-        return _ex_write_vector(EX, "box", object_to_vector(ob));
+    if ((x = object_to_box(EX, ob))) {
+        return _ex_write_vector(EX, "box", object_to_vector(EX, ob));
     }
-    else if ((x = object_to_lin(ob))) {
-        return _ex_write_vector(EX, "lin", object_to_vector(ob));
+    else if ((x = object_to_lin(EX, ob))) {
+        return _ex_write_vector(EX, "lin", object_to_vector(EX, ob));
     }
     /* SEQ and QUOTE are decompiled.  Use square brackets to
        distinguish from lists. */
-    else if ((x = object_to_seq(ob))) {
+    else if ((x = object_to_seq(EX, ob))) {
         long max = 10;
         _ex_printf(EX, CL);
         for(;;) {
@@ -329,7 +329,7 @@ _ px_write(pf *pf, _ ob) {
             px_write_name_or_quotation(pf, s->now);
             _ex_printf(EX, " ");
             ob = s->next;
-            if (!(x = object_to_seq(ob))) {
+            if (!(x = object_to_seq(EX, ob))) {
                 px_write_name_or_quotation(pf, s->next);
                 _ex_printf(EX, CR);
                 return VOID;
@@ -348,8 +348,8 @@ _ px_write(pf *pf, _ ob) {
         }
     }
     /* Primitive or quoted datum. */
-    else if ((x = object_to_quote(ob)) ||
-             (x = object_to_prim(ob))) {
+    else if ((x = object_to_quote(EX, ob)) ||
+             (x = object_to_prim(EX, ob))) {
         quote *q = (quote*)x;
         /* Print it as a singleton. */
         _ex_printf(EX, CL);
@@ -425,7 +425,7 @@ _ px_seq(pf *pf, _ sub, _ next)  { return STRUCT(TAG_SEQ, 2, sub, next); }
 */
 
 _ px_quote_source_datum(pf *pf, _ datum) {
-    if ((object_to_pair(datum))) {
+    if ((object_to_pair(EX, datum))) {
         return QUOTE(LIN(COPY_FROM_GRAPH(datum)));
     }
     else {
@@ -481,7 +481,7 @@ _ px_compile_program_env(pf *pf, _ E_top, _ E_local, _ src) {
         else {
             _ seq = SEQ(compiled, VOID);
             *cursor = seq;
-            cursor = &(object_to_seq(seq)->next);
+            cursor = &(object_to_seq(EX, seq)->next);
             src = CDR(src);
         }
     }
@@ -491,7 +491,7 @@ _ px_compile_program(pf *pf, _ src) {
 }
 _ px_make_loop(pf *pf, _ code) {
     _ ob = SEQ(code, VOID);
-    object_to_seq(ob)->next = ob;
+    object_to_seq(EX, ob)->next = ob;
     return ob;
 }
 
@@ -502,7 +502,7 @@ _ _px_resolve_sub(pf *pf, _ E_top, _ E_local,  _ *cursor);
 _ _px_resolve_non_seq(pf *pf, _ E_top, _ E_local, _ *cursor) {
     _ sub = *cursor;
     quote *q;
-    if ((q = object_to_quote(sub))) {
+    if ((q = object_to_quote(EX, sub))) {
         return _px_resolve_sub(pf, E_top, E_local, &(q->object));
     }
     if (IS_SYMBOL(sub)) {
@@ -521,7 +521,7 @@ _ _px_resolve_sub(pf *pf, _ E_top, _ E_local, _ *cursor) {
         seq* s;
         _ sub = *cursor;
         /* Sequence, resolve NOW, then continue. */
-        if ((s = object_to_seq(sub))) {
+        if ((s = object_to_seq(EX, sub))) {
             _ dr = _px_resolve_non_seq(pf, E_top, E_local, &s->now);
             derefs = ADD(derefs, dr);
             cursor = &s->next;
@@ -573,8 +573,8 @@ _ px_define(pf *pf, _ defs) {
 _ px_bang_linear_compose(pf *pf, _ partial, _ full) {
     _ *x = &partial;
     /* Wind to end. */
-    while (object_to_ldata(*x) ||
-           object_to_lnext(*x)) {
+    while (object_to_ldata(EX, *x) ||
+           object_to_lnext(EX, *x)) {
         x = &(_CDR(*x));
     }
     *x = full;

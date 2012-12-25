@@ -28,7 +28,7 @@ TARGET = Linux
 -include $(SRC)/target/$(TARGET).mk
 
 CPPFLAGS := -I$(BUILD) -I$(SRC) -DTARGET=\"$(TARGET)\" -DPRIM_HOME=\"$(SRC)\"
-CFLAGS   := -g -O3
+CFLAGS   := -g -O0
 LDFLAGS  :=
 GCC      := $(TOOL_PREFIX)gcc
 AS       := $(TOOL_PREFIX)as

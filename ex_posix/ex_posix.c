@@ -84,7 +84,7 @@ _ ex_socket_accept(ex *ex, _ ob) {
 
 /* OS */
 _ ex_system(ex *ex, _ ob) {
-    char *cmd = object_to_cstring(ob);
+    char *cmd = object_to_cstring(ex, ob);
     int rv = system(cmd);
     return integer_to_object(rv);
 }
@@ -137,7 +137,7 @@ static int for_actions(ex *ex, _ actions, fd_set *sets, int cmd) {
         if ((dir < 0) || (dir > 2)) return ERROR("direction", CAR(a));
         int fd;
         port *p;
-        if ((p = object_to_port(v->port))) { fd = port_fd(p); }
+        if ((p = object_to_port(ex, v->port))) { fd = port_fd(p); }
         else fd = CAST_INTEGER(v->port);
         if (fd < 0) return ERROR("filedes", CAR(a));
         if (fd > max) max = fd;
@@ -156,8 +156,8 @@ _ ex_bang_select(ex *ex, _ actions, _ timeout) {
     int max = for_actions(ex, actions, sets, PORTS_SET);
 
     double seconds;
-    inexact *isec = object_to_inexact(timeout);
-    seconds = isec ? isec->value : object_to_integer(timeout);
+    inexact *isec = object_to_inexact(ex, timeout);
+    seconds = isec ? isec->value : object_to_integer(ex, timeout);
     struct timeval tv = {(int)seconds,
                          (int)((seconds - (int)seconds) * 1000000.)};
 
@@ -197,7 +197,7 @@ _ ex_make_channel_test_put(ex *ex) {
 
 
 _ ex_channel_get(ex *ex, _ chan) {
-    channel *c = object_to_channel(chan);
+    channel *c = object_to_channel(ex, chan);
     /* Since closed channels change identity, we're robust here so
        multiple reads from the same object keep producing
        EOF_OBJECT. */
@@ -280,7 +280,7 @@ static leaf_object *test_ck(ck_class *m, leaf_object *obj) {
 _ ex_with_ck(ex *ex, _ in_ref, _ value) {
     ck *task = NULL;
     ck_start fn = NULL;
-    if (!(task = object_to_ck(in_ref))) {
+    if (!(task = object_to_ck(ex, in_ref))) {
         fn = (ck_start)test_ck;
     }
     ck *in_task = task;
@@ -319,11 +319,11 @@ _ ex_dlopen(ex *ex, _ filename) {
     return const_to_object(GC_CHECK_ALIGNED(handle));
 }
 _ ex_dlclose(ex *ex, _ so) {
-    dlclose(object_to_const(so));
+    dlclose(object_to_const(ex, so));
     return VOID;
 }
 _ ex_dlsym(ex *ex, _ so, _ name) {
-    void *addr = dlsym(object_to_const(so), CAST(cstring, name));
+    void *addr = dlsym(object_to_const(ex, so), CAST(cstring, name));
     if (!addr) return ex_dlerror(ex);
     return const_to_object(GC_CHECK_ALIGNED(addr));
 }

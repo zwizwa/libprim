@@ -38,8 +38,8 @@ object _ex_write_vector(ex *ex, const char *type, vector *v) {
     return VOID;
 }
 
-char *object_to_cstring(_ ob) {
-    bytes *b = object_to_bytes(ob);
+char *object_to_cstring(ex *ex, _ ob) {
+    bytes *b = object_to_bytes(ex, ob);
     if (!b) return NULL;
     return cstring_from_bytes(b);
 }
@@ -56,9 +56,9 @@ void _ex_prefix_k(ex *ex, _ ob) {
     if (x) _ex_printf(ex, x);
 }
 
-void *object_to_lk(_ ob) {
-    void *x = object_to_ldata(ob);
-    if (!x) x = object_to_lnext(ob);
+void *object_to_lk(ex *ex, _ ob) {
+    void *x = object_to_ldata(ex, ob);
+    if (!x) x = object_to_lnext(ex, ob);
     return x;
 }
 typedef void* (*object_to)(_);
@@ -89,10 +89,10 @@ object _ex_write(ex *ex, object o) {
         return VOID;
     }
     if (GC_INTEGER == GC_TAG(o)) {
-        port_printf(p, "%ld", object_to_integer(o));
+        port_printf(p, "%ld", object_to_integer(ex, o));
         return VOID;
     }
-    if ((v = object_to_vector(o))) {
+    if ((v = object_to_vector(ex, o))) {
         object_to is_obj;
         long flags = object_get_vector_flags(o);
         if (TAG_VECTOR == flags) { 
@@ -158,29 +158,29 @@ object _ex_write(ex *ex, object o) {
         }
     }
     /* Opaque leaf types */
-    if ((x = object_struct(o, symbol_type()))) {
+    if ((x = object_struct(ex, o, symbol_type()))) {
         symbol *s = (symbol*)x;
         port_printf(p, "%s", s->name);
         return VOID;
     }
-    if ((x = object_struct(o, prim_type()))) {
+    if ((x = object_struct(ex, o, prim_type()))) {
         prim *pr = (prim*)x;
         port_printf(p, "#<prim:%p:%ld>", (void*)(pr->fn),pr->nargs);
         return VOID;
     }
-    if ((x = object_struct(o, rc_type()))) {
+    if ((x = object_struct(ex, o, rc_type()))) {
         rc *r = (rc*)x;
         port_printf(p, "#<rc:");
         ex->write(ex, const_to_object(r->ctx));  // foefelare
         port_printf(p, ":%d>", (int)(r->rc));
         return VOID;
     }
-    if ((x = object_to_fin(o))) {
+    if ((x = object_to_fin(ex, o))) {
         port_printf(p, "#fin");
         // port_printf(p, "#<fin:%p:%p>", x, *((void**)x)); // do we care?
         return VOID; 
     }
-    if ((x = object_to_const(o))) { 
+    if ((x = object_to_const(ex, o))) { 
         return _ex_printf(ex, "#<data:%p>", x);
     }
     return _ex_printf(ex, "#<object:%p>",(void*)o);
@@ -198,15 +198,15 @@ _ _ex_printf(ex *ex, const char *fmt, ...) {
 
 
 /* Pairs and lambdas are tagged vectors. */
-_ _is_vector_type(_ o, long flags) {
+_ _is_vector_type(ex *ex, _ o, long flags) {
     vector *v;
-    if ((v = object_to_vector(o)) &&
+    if ((v = object_to_vector(ex, o)) &&
         (flags == vector_to_flags(v))) { return TRUE; }
     return FALSE;
 }
 
 _ ex_struct_to_vector(ex *ex, _ strct) {
-    vector *s = object_to_vector(strct);
+    vector *s = object_to_vector(ex, strct);
     if (!s) return ex_raise_type_error(ex, strct);
     int i,n = vector_size(s);
     vector *v = gc_alloc(ex->gc, n);
@@ -226,7 +226,7 @@ _ ex_gensym(ex *ex) {
 long _ex_unwrap_integer(ex *ex, object o) {
     if ((FALSE == ex_is_integer(ex, o))) 
         return ex_raise_type_error(ex, o);
-    return object_to_integer(o);
+    return object_to_integer(ex, o);
 }
 
 void _ex_overflow(ex *ex, long extra) {
@@ -248,8 +248,8 @@ _ _ex_map1_prim(ex *ex, ex_1 fn, _ l_in) {
     _ l_out = res;
     pair *in, *out;
     for(;;) {
-        in  = object_to_pair(l_in);
-        out = object_to_pair(l_out);
+        in  = object_to_pair(ex, l_in);
+        out = object_to_pair(ex, l_out);
         if (!in) return res;
         out->car = fn(ex, in->car);
         l_in  = in->cdr;
@@ -261,9 +261,9 @@ _ _ex_map2_prim(ex *ex, ex_2 fn, _ l_in1, _ l_in2) {
     _ l_out = res;
     pair *in1, *in2, *out;
     for(;;) {
-        in1 = object_to_pair(l_in1);
-        in2 = object_to_pair(l_in2);
-        out = object_to_pair(l_out);
+        in1 = object_to_pair(ex, l_in1);
+        in2 = object_to_pair(ex, l_in2);
+        out = object_to_pair(ex, l_out);
         if ((!in1) || (!in2)) return res;
         out->car = fn(ex, in1->car, in2->car);
         l_in1 = in1->cdr;
@@ -279,7 +279,7 @@ _ _ex_map2_prim(ex *ex, ex_2 fn, _ l_in1, _ l_in2) {
 /* Booleans are GC_CONST */
 _ ex_is_boolean(ex *ex, _ o) {
     void *x;
-    if ((x = object_to_const(o)) &&
+    if ((x = object_to_const(ex, o)) &&
         (0 == (((long)x) & (~TRUE)))) { return TRUE; }
     return FALSE;
 }
@@ -310,22 +310,22 @@ _ _ex_make_inexact(ex *ex, double d) {
     return _ex_leaf_to_object(ex, inexact_new(d));
 }
 _ ex_is_inexact(ex *ex, _ o) {
-    return (object_to_inexact(o)) ? TRUE : FALSE;
+    return (object_to_inexact(ex, o)) ? TRUE : FALSE;
 }
 
 
 #define OBJECT_PREDICATE(cast) \
-    {if (cast(o)) return TRUE; else return FALSE;}
+    {if (cast(ex, o)) return TRUE; else return FALSE;}
 
 _ ex_is_symbol(ex *ex, _ o) { 
-    if ((object_to_symbol(o)) ||
-        (object_to_gensym(o))) return TRUE; else return FALSE;
+    if ((object_to_symbol(ex, o)) ||
+        (object_to_gensym(ex, o))) return TRUE; else return FALSE;
 }
 _ ex_is_prim(ex *ex, _ o)   { OBJECT_PREDICATE(object_to_prim); }
 
 
-_ ex_is_pair(ex *ex, _ o)    { return _is_vector_type(o, TAG_PAIR); }
-_ ex_is_vector(ex *ex, _ o)  { return _is_vector_type(o, TAG_VECTOR); }
+_ ex_is_pair(ex *ex, _ o)    { return _is_vector_type(ex, o, TAG_PAIR); }
+_ ex_is_vector(ex *ex, _ o)  { return _is_vector_type(ex, o, TAG_VECTOR); }
 
 /* Strings. */
 _ _ex_make_string(ex *ex, const char *str) {
@@ -367,7 +367,7 @@ _ ex_vector_to_bytes(ex *ex, _ ob) {
     bytes *b = bytes_buffer_new(N+1);
     char *c = bytes_allot(b, N);
     for (i=0; i<N; i++) {
-        c[i] = object_to_integer(v->slot[i]);  // don't leak
+        c[i] = object_to_integer(ex, v->slot[i]);  // don't leak
     }
     return _ex_leaf_to_object(ex, b);
 }
@@ -438,7 +438,7 @@ _ ex_get_output_string(ex *ex, _ ob_port) {
 // Manually call finalizer, creating a defunct object.
 _ ex_bang_finalize(ex *ex, _ ob) {
     aref *r = CAST(aref, ob);
-    fin finalize = *(object_to_fin(r->fin));
+    fin finalize = *(object_to_fin(EX, r->fin));
     finalize(r->object, ex);
     r->fin = VOID;
     r->object = VOID;
@@ -446,7 +446,7 @@ _ ex_bang_finalize(ex *ex, _ ob) {
 }
 
 _ ex_close_port(ex *ex, _ ob) {
-    if (!object_to_port(ob)) TYPE_ERROR(ob);
+    if (!object_to_port(ex, ob)) TYPE_ERROR(ob);
     return ex_bang_finalize(ex, ob);
 }
 _ ex_flush_output_port(ex *ex, _ ob) {
@@ -478,10 +478,10 @@ enum binop_tag {ADD,SUB,MUL,EQ,GT,LT};
     case LT:  z = (a < b); zb = 1; break;               \
     default: ERROR("binop", integer_to_object(op)); }
 
-double object_to_double(_ ob) {
-    inexact *x = object_to_inexact(ob);
+double object_to_double(ex *ex, _ ob) {
+    inexact *x = object_to_inexact(ex, ob);
     if (x) return x->value;
-    if (IS_INT(ob)) return (double)(object_to_integer(ob));
+    if (IS_INT(ob)) return (double)(object_to_integer(ex, ob));
     return 0.0;
 }
 
@@ -490,16 +490,16 @@ _ _ex_binop(ex *ex, _ a, _ b, enum binop_tag op) {
     int is_int_a = IS_INT(a); 
     int is_int_b = IS_INT(b);
     if (is_int_a && is_int_b) {
-        int ia = object_to_integer(a);
-        int ib = object_to_integer(b);
+        int ia = object_to_integer(ex, a);
+        int ib = object_to_integer(ex, b);
         int iz = 0;
         DO_BINOP(op,ia,ib,iz,zb);
         if (zb) return (iz == 0) ? FALSE : TRUE;
         else return integer_to_object(iz);
     }
     // assume the only other number kind are inexact (double float)
-    double da = object_to_double(a);
-    double db = object_to_double(b);
+    double da = object_to_double(ex, a);
+    double db = object_to_double(ex, b);
     double dz = 0;
     DO_BINOP(op,da,db,dz,zb);
     if (zb) return (dz == 0.0) ? FALSE : TRUE;
@@ -515,7 +515,7 @@ _ ex_mul(ex *ex, _ a, _ b) { return _ex_binop(ex, a, b, MUL); }
    prefer to get a consistent return type based on input types (as
    opposed to input values). */
 _ ex_div(ex *ex, _ a, _ b) { 
-    double rv = object_to_double(a) / object_to_double(b);
+    double rv = object_to_double(ex, a) / object_to_double(ex, b);
     return _ex_leaf_to_object(ex, (leaf_object*)inexact_new(rv));
 }
 _ ex_quotient(ex *ex, _ a, _ b) {
@@ -537,9 +537,9 @@ _ ex_lt(ex *ex, _ a, _ b) { return _ex_binop(ex, a, b, LT); }
 
 enum unop_tag {SIN,COS,TAN, ASIN,ACOS,ATAN, EXP,LOG, SQRT};
 _ _ex_unop(ex *ex, _ a, enum unop_tag op) {
-    inexact *inexact_a = object_to_inexact(a);
+    inexact *inexact_a = object_to_inexact(ex, a);
     double da = inexact_a ? inexact_a->value :
-               (IS_INT(a) ? (double)(object_to_integer(a)) : 
+               (IS_INT(a) ? (double)(object_to_integer(ex, a)) : 
                 ERROR("type", a));
     double dz = 0;
     switch (op) {
@@ -626,9 +626,9 @@ _ ex_bang_reverse_append(ex *ex, _ lst, _ tail) {
     _ next, last = tail;
     while (NIL != lst) {
         // FIXME: use poly predicate
-        pair *p = object_to_lpair(lst); // polymorphic
-        if (!p) p = object_to_lnext(lst);
-        if (!p) p = object_to_ldata(lst);
+        pair *p = object_to_lpair(ex, lst); // polymorphic
+        if (!p) p = object_to_lnext(ex, lst);
+        if (!p) p = object_to_ldata(ex, lst);
         if (!p) p = CAST(pair, lst);
         next = p->cdr;
         p->cdr = last;
@@ -663,7 +663,7 @@ _ ex_take_vector(ex *ex, _ n, _ in_lst) {
     long i;
     for(i=0; i<slots; i++){
         if (FALSE == IS_PAIR(lst)) return TYPE_ERROR(in_lst);
-        pair *p = object_to_pair(lst);
+        pair *p = object_to_pair(ex, lst);
         v->slot[i] = p->car;
         lst = p->cdr;
     }
@@ -683,7 +683,7 @@ _ ex_cons(ex *ex, _ car, _ cdr) {
 }
 _ ex_lcons(ex *ex, _ car, _ cdr) {
     _ rv = ex_cons(ex, car, cdr);
-    vector_set_flags(object_to_vector(rv), TAG_LPAIR);
+    vector_set_flags(object_to_vector(ex, rv), TAG_LPAIR);
     return rv;
 }
 
@@ -840,12 +840,12 @@ _ ex_list_clone(ex *ex, _ lst) {
     if (NIL == lst) return lst;
     _ res = CONS(VOID, NIL);
     pair *in,*out;
-    out = object_to_pair(res);
+    out = object_to_pair(ex, res);
     for(;;) {
         in  = CAST(pair, lst);
         if (NIL == in->cdr) return res;
         out->cdr = CONS(VOID,NIL);
-        out = object_to_pair(out->cdr);
+        out = object_to_pair(ex, out->cdr);
         lst = in->cdr;
     }
 }
@@ -876,7 +876,7 @@ static void _ex_print_stack(ex *ex, _ ob, int n) {
         return;
     }
     else {
-        pair *p = object_to_lpair(ob);
+        pair *p = object_to_lpair(ex, ob);
         if (!p) p = CAST(pair, ob);
         _ex_print_stack(ex, _CDR(ob), n+1);
         _ex_printf(ex, " ");

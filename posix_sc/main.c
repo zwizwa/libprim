@@ -6,8 +6,8 @@
 #include <ex_posix/ex_posix.g.h>
 
 /* Instantiate the posix types here. */
-DEF_AREF_TYPE(ck)
-DEF_AREF_TYPE(channel)
+// DEF_AREF_TYPE(ck)
+// DEF_AREF_TYPE(channel)
 
 /* Build an init table for the dictionary. */
 static prim_def ex_posix_prims[] = ex_posix_table_init;

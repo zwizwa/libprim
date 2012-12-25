@@ -52,22 +52,6 @@ struct _scheme {
 #define EX (&sc->m)
 
 
-/* The ck atoms have a free() finalizer, so need to be wrapped in an
-   aref struct */
-static inline void *object_aref_struct(object ob, void *type) {
-    aref *ref;
-    void *x;
-    if ((ref = object_to_aref(ob)) &&
-        (x = object_struct(ref->object, type))) return x;
-    else return NULL;
-}
-
-/* Scheme specific object wrappers.  Note that these functions need to
-   show up at link time, as they are part of the binary interface. */
-#define DEF_AREF_TYPE(name) \
-    name *object_to_##name(object ob) { \
-        return (name*)object_aref_struct(ob,name##_type()); }
-
 
 
 

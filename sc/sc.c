@@ -34,24 +34,33 @@
 
 
 // GC finalized objects
-DEF_AREF_TYPE(port)
-DEF_AREF_TYPE(bytes)
-DEF_AREF_TYPE(inexact)
+//DEF_AREF_TYPE(port)
+//DEF_AREF_TYPE(bytes)
+//DEF_AREF_TYPE(inexact)
 
+/* The ck atoms have a free() finalizer, so need to be wrapped in an
+   aref struct */
+void *object_aref_struct(ex *ex, object ob, void *type) {
+    aref *ref;
+    void *x;
+    if ((ref = object_to_aref(ex, ob)) &&
+        (x = object_struct(NULL, ref->object, type))) return x;
+    else return NULL;
+}
 
 
 _ sc_make_aref(sc *sc, _ F, _ O)       {return STRUCT(TAG_AREF,    2, F,O);}
 _ sc_make_error(sc *sc, _ P, _ T, _ A) {return STRUCT(TAG_ERROR,   3, P,T,A);}
 
-_ sc_is_aref(sc *sc, _ o)        { return _is_vector_type(o, TAG_AREF); }
-_ sc_is_error(sc *sc, _ o)       { return _is_vector_type(o, TAG_ERROR); }
+_ sc_is_aref(sc *sc, _ o)        { return _is_vector_type(EX, o, TAG_AREF); }
+_ sc_is_error(sc *sc, _ o)       { return _is_vector_type(EX, o, TAG_ERROR); }
 
 
 /* Predicates for primitive objects are derived from their
    object_to_pointer cast: if it returns NULL, the type isn't
    correct. */
 #define OBJECT_PREDICATE(cast) \
-    {if (cast(o)) return TRUE; else return FALSE;}
+    {if (cast(EX, o)) return TRUE; else return FALSE;}
 // _ _DISABLED_sc_is_ck(sc *sc, _ o)     { OBJECT_PREDICATE(object_to_ck); }
 _ sc_is_port(sc *sc, _ o)   { OBJECT_PREDICATE(object_to_port); }
 _ sc_is_bytes(sc *sc, _ o)  { OBJECT_PREDICATE(object_to_bytes); }
@@ -92,7 +101,7 @@ _ sc_toplevel_macro(sc *sc) { _GLOBAL(toplevel_macro); }
 _ sc_bang_def_global(sc* sc, _ slot, _ var, _ val) {
     symbol *s;
     _ env = sc_global(sc, slot);
-    if (!(s=object_to_symbol(var))) TYPE_ERROR(var);
+    if (!(s=object_to_symbol(EX, var))) TYPE_ERROR(var);
     // _ex_printf(EX, "DEF %s: \n",s->name); // sc_write(EX, val);
     sc_bang_set_global(sc, slot, ENV_DEF(env, var, val));
     // return VOID;
@@ -108,7 +117,7 @@ _ sc_bang_def_toplevel_macro(sc* sc, _ var, _ val) {
 
 // FIXME: should be parameter
 port *_sc_port(sc *sc) {
-    return object_to_port(CURRENT_ERROR_PORT());
+    return object_to_port(EX, CURRENT_ERROR_PORT());
 }
 _ sc_current_error_port(sc *sc)  { return sc_global(sc, sc_slot_error_port); }
 _ sc_current_input_port(sc *sc)  { return sc_global(sc, sc_slot_input_port); }
@@ -131,29 +140,29 @@ _ sc_write_port(sc *sc, _ o, _ o_port) {
 /* Unwrap leaf objects: it is assumed that all aref-wrapped objects
    are leaf objects.  See constructor. */
 leaf_object *_sc_object_to_leaf(sc *sc, _ o) {
-    aref *a = object_to_aref(o); if (!a) return NULL;
-    leaf_object *x = object_to_const(a->object);
+    aref *a = object_to_aref(EX, o); if (!a) return NULL;
+    leaf_object *x = object_to_const(EX, a->object);
     return x;
 }
 /* This is used in channel communication: the leaf object's ownership
    is transferred to the other end. */
 void _sc_object_erase_leaf(sc *sc, _ o) {
-    aref *a = object_to_aref(o); if (!a) return;
+    aref *a = object_to_aref(EX, o); if (!a) return;
     a->fin = a->object = const_to_object(NULL);
 }
 
 
 _ sc_print_error(sc *sc, _ err) {
     if (TRUE == sc_is_error(sc, err)) {
-        error *e = object_to_error(err);
+        error *e = object_to_error(EX, err);
         _ex_printf(EX, "ERROR");
         if (TRUE == IS_PRIM(e->prim)) {
-            prim *p = object_to_prim(e->prim);
+            prim *p = object_to_prim(EX, e->prim);
             /* If the recorded primitive is sc_print_error itself,
                this means the error is a result of a direct
                invocation, i.e. a highlevel error. */
             if (SYMBOL("raise-error") != p->var) { 
-                symbol *s = object_to_symbol(p->var);
+                symbol *s = object_to_symbol(EX, p->var);
                 if (s) _ex_printf(EX, " in `%s'", s->name); 
             }
         }
@@ -268,7 +277,7 @@ _ _sc_call(sc *sc, void *p, int nargs, _ args) {
 
 
 void _sc_set_error(sc *sc, int rv, void *data) {
-    error *e = object_to_error(sc->error);
+    error *e = object_to_error(EX, sc->error);
     if (unlikely(NULL == e)) { TRAP(); }
     e->prim = const_to_object(sc->m.prim);
 
@@ -323,7 +332,7 @@ _ _sc_continue_dynamic(sc *sc, sc_loop _sc_loop, sc_abort _sc_abort) {
         case EXCEPT_HALT: {
             EX->l.set_error = NULL;
             mutex_unlock(&EX->machine_lock);
-            return object_to_error(sc->error)->tag;
+            return object_to_error(EX, sc->error)->tag;
         }
 
         case EXCEPT_LEAF:
@@ -357,7 +366,9 @@ static prim_def sc_prims[] = sc_table_init;
 #define SHIFT(n) {argv+=n;argc-=n;}
 int _sc_init(sc *sc, int argc, const char **argv, struct ex_bootinfo *boot) {
 
-    memset(boot, 0, sizeof(*boot));
+    bzero(sc, sizeof(*sc));
+    bzero(boot, sizeof(*boot));
+
     boot->args = NIL;
 
     /* Read command line interpreter options options. */
@@ -404,6 +415,7 @@ int _sc_init(sc *sc, int argc, const char **argv, struct ex_bootinfo *boot) {
     sc->m.leaf_to_object = (_ex_m_leaf_to_object)_sc_make_aref;
     sc->m.object_to_leaf = (_ex_m_object_to_leaf)_sc_object_to_leaf;
     sc->m.object_erase_leaf = (_ex_m_object_erase_leaf)_sc_object_erase_leaf;
+    sc->m.object_ref_struct = (_ex_m_object_ref_struct)object_aref_struct;
 
     /* Data roots. */
     _ in  = _ex_make_file_port(EX, stdin,  "stdin");

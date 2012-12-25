@@ -13,6 +13,9 @@
       - MSB of vector.header to represent high level types (DEF_STRUCT)
       - a GC_CONST 0:FFF is a numeric constant (i.e. TRUE,FALSE,NIL,VOID)
       - first pointer field of GC_CONST to identify opaque types (DEF_ATOM)
+
+   Note that to keep object_to_XXX() API consistent, the first
+   argument is ignored, meaning representation is fixed.
  */
 
 /* Base objects have a 2-bit tag. */
@@ -142,7 +145,7 @@ typedef pair ldata;  //  ..  DATA
    use GC_TAG_SHIFT = 3)
 */
 
-static inline vector *object_to_vector(object ob) {
+static inline vector *object_to_vector(void *dummy, object ob) {
     if(GC_VECTOR == GC_TAG(ob)) return (vector*)GC_POINTER(ob);
     else return NULL;
 }
@@ -156,22 +159,22 @@ static inline vector *object_to_vector(object ob) {
    aligned properly to accomodate GC tag bits, but data alignment can
    be enforced (i.e. malloc() returns aligned data).  Embedding the
    code pointer in a data structure seems to be the right approach. */
-static inline fin *object_to_fin(object ob) {
+static inline fin *object_to_fin(void* dummy, object ob) {
     if (GC_FIN == GC_TAG(ob)) return (fin*)GC_POINTER(ob);
     else return NULL;
 }
-static inline void *object_to_const(object ob) {
+static inline void *object_to_const(void* dummy, object ob) {
     if (GC_CONST == GC_TAG(ob)) return (void*)GC_POINTER(ob);
     else return NULL;
 }
-static inline long object_to_integer(object o) { 
+static inline long object_to_integer(void* dummy, object o) {
     long i = (long)o;
     return (i >> GC_TAG_SHIFT);
 }
 
 /* Vector size field has room for additional tag bits. */
-static inline long object_to_vector_size(object o) { 
-    return object_to_integer(o & GC_VECTOR_TAG_MASK); 
+static inline long object_to_vector_size(void* dummy, object o) { 
+    return object_to_integer(NULL, o & GC_VECTOR_TAG_MASK); 
 }
 
 
@@ -192,7 +195,7 @@ static inline object integer_to_object(long i) {
 
 
 static inline long vector_size(vector *v) {
-    return object_to_vector_size(v->header);
+    return object_to_vector_size(NULL, v->header);
 }
 
 
@@ -215,8 +218,8 @@ static inline long vector_size(vector *v) {
 
 
 /* If the object is a leaf object, this will return a non-null pointer. */
-static inline void *object_struct(object ob, void *type){
-    void *x = object_to_const(ob);
+static inline void *object_struct(void *dummy, object ob, void *type){
+    void *x = object_to_const(NULL, ob);
     if ((((long)x) & (~GC_CONST_MASK)) == 0) return NULL; // constant
     if (type != *((void**)x)) return NULL;
     return x;
@@ -235,21 +238,21 @@ static inline void vector_reset_flags(vector *v, long flags) {
 }
 
 static inline unsigned long object_get_vector_flags(object o){
-    vector *v = object_to_vector(o);
+    vector *v = object_to_vector(NULL, o);
     if (!v) return -1;
     return vector_to_flags(v);
 }
 
 /* Conversion from object to a transparent struct (tagged vector). */
-static inline void *object_to_struct(object ob, long tag) {
-    vector *v = object_to_vector(ob);
+static inline void *object_to_struct(void *dummy, object ob, long tag) {
+    vector *v = object_to_vector(NULL, ob);
     if (!v) return NULL;
     if (tag == vector_to_flags(v)) return (void*)v;
     else return NULL;
 }
 #define DEF_STRUCT(type, tag)                                  \
-    static inline type *object_to_##type(object o) {       \
-        return (type*)object_to_struct(o, tag); }
+    static inline type *object_to_##type(void *dymmy, object o) {       \
+        return (type*)object_to_struct(NULL, o, tag); }
 
 /* Unsafe list macros */
 #define _CAR(o)  (((vector*)(GC_POINTER(o)))->slot[0])

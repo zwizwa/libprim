@@ -37,6 +37,8 @@ typedef leaf_object *(*_ex_m_object_to_leaf)(ex *ex, object);
 typedef void (*_ex_m_object_erase_leaf)(ex *ex, object);
 typedef object (*ex_m_make_pair)(ex *ex, object car, object cdr); // reader
 typedef void (*_ex_m_set_error)(ex *ex, prim *prim, _ error_tag, _ error_arg);
+typedef void* (*_ex_m_object_ref_struct)(ex *ex, object ob, void *type);
+
 struct _ex {
     leaf_ctx l;          // The EX context extends the LEAF context
     struct _gc *gc;      // garbage collected graph memory manager
@@ -56,17 +58,18 @@ struct _ex {
     _ex_m_leaf_to_object    leaf_to_object;    // object wraps
     _ex_m_object_to_leaf    object_to_leaf;
     _ex_m_object_erase_leaf object_erase_leaf;
+    _ex_m_object_ref_struct object_ref_struct; // type-checking object_to_leaf
 };
 
-#define DEF_ATOM(name)                                         \
-    static inline name *object_to_##name(object ob) {          \
-        return (name*)object_struct(ob,name##_type()); }
+#define DEF_ATOM(name)                                          \
+    static inline name *object_to_##name(ex *ex, object ob) {   \
+        return (name*)object_struct(ex,ob,name##_type()); }
 
 // permanent constant objects
 DEF_ATOM(prim)
 DEF_ATOM(symbol)
 
-typedef void* (*object_to_pointer)(object);
+typedef void* (*object_to_pointer)(ex *ex, object);
 
 /* Printing is based on the assumption that GC_CONS is either a
    genuine constant (upper bits = 0) or points to an object which can
@@ -84,7 +87,7 @@ typedef struct {
     int nargs;
 } prim_def;
 
-_ _is_vector_type(_ o, long flags);
+_ _is_vector_type(ex *ex, _ o, long flags);
 
 #define TYPE_ERROR RAISE_TYPE_ERROR
 #define ERROR(msg, o) ex_raise_error(EX, SYMBOL(msg), o)
@@ -96,7 +99,7 @@ _ _is_vector_type(_ o, long flags);
 // _ ex_raise_type_error(ex *ex, _ arg_o);
 static inline void* _ex_unwrap_pointer(ex *ex, void *unwrap, object o){
     object_to_pointer fn = (object_to_pointer)unwrap;
-    void *x = fn(o);
+    void *x = fn(ex, o);
     if (unlikely(!x)) ex_raise_type_error(ex, o);
     return x;
 }
@@ -140,8 +143,8 @@ void _ex_overflow(ex *ex, long extra);
 // _ ex_is_pair(ex *ex, _ o);
 static inline void _ex_length_rest(ex *ex, _ lst, _ *length, _ *rest) {
     long nb = 0;
-    while (object_to_lpair(lst) || 
-           object_to_pair(lst)) { 
+    while (object_to_lpair(ex, lst) || 
+           object_to_pair(ex, lst)) { 
         nb++;
         lst = _CDR(lst); 
     }
@@ -191,15 +194,23 @@ _ _ex_boot_string(ex *ex, struct ex_bootinfo *info);
 
 #define VEC(x) (vector_to_object(((void*)(x))))
 
+#define _ref_struct ex->object_ref_struct
+//void *object_aref_struct(ex *, object, void*);
+//#define _ref_struct object_aref_struct
+
 #define DECL_TYPE(name) \
-    name *object_to_##name(object ob);
+    static inline name *object_to_##name(ex *ex, object ob) { \
+        return _ref_struct(ex, ob, name##_type());  \
+    }
 
 DECL_TYPE(port)
 DECL_TYPE(inexact)
 DECL_TYPE(bytes)
-typedef char cstring;  // for CAST()
-DECL_TYPE(cstring)
 DECL_TYPE(ck)
+
+typedef char cstring;  // for CAST()
+char *object_to_cstring(ex *ex, _ ob);
+
 
 
 
@@ -236,7 +247,7 @@ _ _ex_make_bytes_port(ex *ex, bytes *b);
 _ _ex_make_file_port(ex *ex, FILE *f, const char *name);
 
 
-double object_to_double(_ ob);
+double object_to_double(ex *ex,_ ob);
 static inline _ double_to_object(ex *ex, double d) {
     return _ex_leaf_to_object(ex, (leaf_object*)inexact_new(d));
 }

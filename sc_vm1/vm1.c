@@ -24,18 +24,18 @@ _ _sc_value_as_term(sc *sc, _ value) {
 
 
 /* Predicates */
-_ sc_is_lambda(sc *sc, _ o)  { return _is_vector_type(o, TAG_LAMBDA); }
-_ sc_is_redex(sc *sc, _ o)   { return _is_vector_type(o, TAG_REDEX); }
+_ sc_is_lambda(sc *sc, _ o)  { return _is_vector_type(EX, o, TAG_LAMBDA); }
+_ sc_is_redex(sc *sc, _ o)   { return _is_vector_type(EX, o, TAG_REDEX); }
 
-_ sc_is_k_if(sc *sc, _ o)    { return _is_vector_type(o, TAG_K_IF); }
-_ sc_is_k_args(sc *sc, _ o)  { return _is_vector_type(o, TAG_K_ARGS); }
-_ sc_is_k_seq(sc *sc, _ o)   { return _is_vector_type(o, TAG_K_SEQ); }
-_ sc_is_k_set(sc *sc, _ o)   { return _is_vector_type(o, TAG_K_SET); }
+_ sc_is_k_if(sc *sc, _ o)    { return _is_vector_type(EX, o, TAG_K_IF); }
+_ sc_is_k_args(sc *sc, _ o)  { return _is_vector_type(EX, o, TAG_K_ARGS); }
+_ sc_is_k_seq(sc *sc, _ o)   { return _is_vector_type(EX, o, TAG_K_SEQ); }
+_ sc_is_k_set(sc *sc, _ o)   { return _is_vector_type(EX, o, TAG_K_SET); }
 
 _ sc_is_k(sc *sc, _ o) {
     vector *v;
     if (MT == o) return TRUE;
-    if ((v = object_to_vector(o))) {
+    if ((v = object_to_vector(EX, o))) {
         if (flags_is_k(vector_to_flags(v))) return TRUE;
     }
     return FALSE;
@@ -43,7 +43,7 @@ _ sc_is_k(sc *sc, _ o) {
 _ sc_k_parent(sc *sc, _ o) {
     vector *v;
     if (MT == o) TYPE_ERROR(o);
-    if ((v = object_to_vector(o))) {
+    if ((v = object_to_vector(EX, o))) {
         if (flags_is_k(vector_to_flags(v))) return v->slot[0];
     }
     return TYPE_ERROR(o);
@@ -71,7 +71,7 @@ _ sc_abort_k(sc *sc)        { _GLOBAL(abort_k); }
 
 
 _ sc_write_stderr(sc *sc,  _ o) {
-    vector *v = object_to_vector(o);
+    vector *v = object_to_vector(EX, o);
     if (TRUE == sc_is_redex(sc, o))   return _ex_write_vector(EX, "redex", v);
     if (TRUE == sc_is_error(sc, o))   return _ex_write_vector(EX, "error", v);
 
@@ -247,7 +247,7 @@ static _ _sc_loop(sc *sc) {
             if (NIL == term_args) VM_RETURN(VOID, k);
             // if (FALSE == IS_PAIR(term_args)) goto syntax_error;
             _ todo = sc_close_args(sc, term_args, env);
-            pair *body = object_to_pair(todo);
+            pair *body = object_to_pair(EX, todo);
             /* Don't create a contination frame if there's only a
                single expression. */
             if (NIL == body->cdr) NEXT_REDEX(body->car, k);
@@ -295,12 +295,12 @@ static _ _sc_loop(sc *sc) {
     if (MT == k) HALT_VM(value);
 
     if (TRUE == sc_is_k_if(sc, k)) {
-        k_if *kx = object_to_k_if(k);
+        k_if *kx = object_to_k_if(EX, k);
         _ rc = (FALSE == value) ? kx->no : kx->yes;
         NEXT_REDEX(rc, kx->k.parent);
     }
     if (TRUE == sc_is_k_set(sc, k)) {
-        k_set *kx = object_to_k_set(k);
+        k_set *kx = object_to_k_set(EX, k);
         if (FALSE == ENV_SET(kx->env, kx->var, value)) {
             if (FALSE == ENV_SET(sc_global(sc, kx->tl_slot),  // global toplevel
                                  kx->var, value)) {
@@ -310,7 +310,7 @@ static _ _sc_loop(sc *sc) {
         VM_RETURN(VOID, kx->k.parent);
     }
     if (TRUE == sc_is_k_seq(sc, k)) {
-        k_seq *kx = object_to_k_seq(k);
+        k_seq *kx = object_to_k_seq(EX, k);
         /* There is always at least one next expression. */
         pair *top = CAST(pair, kx->todo);
         /* If this is the last one, replace the continuation, else
@@ -321,7 +321,7 @@ static _ _sc_loop(sc *sc) {
     if (TRUE == sc_is_k_args(sc, k)) {
         /* If there are remaining closures to evaluate, push the value
            to the update value list and pop the next closure. */
-        k_args *kx = object_to_k_args(k);
+        k_args *kx = object_to_k_args(EX, k);
         if (TRUE==IS_PAIR(kx->todo)) {
             NEXT_REDEX(CAR(kx->todo),
                        sc_make_k_args(sc, kx->k.parent,
@@ -338,7 +338,7 @@ static _ _sc_loop(sc *sc) {
 
             /* Application of primitive function results in C call. */
             if (TRUE==IS_PRIM(fn)) {
-                prim *p = object_to_prim(fn);
+                prim *p = object_to_prim(EX, fn);
                 sc->m.prim = p; // for debug
 
                 /* Before entering primitive code, make GC restarts
@@ -382,7 +382,7 @@ static _ _sc_loop(sc *sc) {
             /* Continuation */
             if (TRUE==sc_is_k(sc, fn)) {
                 _ arg;
-                pair *p = object_to_pair(args);
+                pair *p = object_to_pair(EX, args);
                 if (!p) { 
                     arg = VOID; // no args to k -> inserts void.
                 }

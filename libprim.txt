@@ -11049,4 +11049,9 @@ to work around this?
 The thing is that these are referred in EX.
 
 
-Easiest seems to define a object_rep_struct
+Easiest seems to define a object_rep_struct.
+This is a nasty API bug that isn't easy to fix.
+
+Fix it?
+
+

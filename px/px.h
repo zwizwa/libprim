@@ -36,7 +36,7 @@ static inline void _px_from_to(pf *pf, _ *from, _ *to) {
 }
 static inline void _px_to_free(pf *pf, _ *from) {
     _px_from_to(pf, from, &pf->freelist);
-    vector_reset_flags(object_to_vector(pf->freelist), TAG_LPAIR);
+    vector_reset_flags(object_to_vector(EX, pf->freelist), TAG_LPAIR);
 }
 static inline void _px_drop(pf *pf, _ *stack) {
     _px_to_free(pf, stack);  // this catches underflow errors
@@ -65,8 +65,8 @@ static inline void _px_need_free(pf *pf) {
 /* Constant types are embedded in GC_CONST pointers, and can be
    identified by their first field (void*). */
 DEF_ATOM(rc)
-static inline void *object_rc_struct(object ob, void *type) {
-    rc *x = object_to_rc(ob);
+static inline void *object_rc_struct(ex *ex, object ob, void *type) {
+    rc *x = object_to_rc(ex, ob);
     if (!x) return NULL;
     void *x_type = *((void**)x->ctx);
     if (x_type != type) return NULL;

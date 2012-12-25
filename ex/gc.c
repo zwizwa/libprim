@@ -63,7 +63,7 @@ static void _gc_fin_slots(gc *gc, object *o, long slots) {
     long i;
     for (i=0; i<slots; i++){
         fin *f;
-        if ((f = object_to_fin(o[i]))) {
+        if ((f = object_to_fin(NULL, o[i]))) {
             o[i] = 0; // kill the finalizer
             (*f)(o[i+1], gc->client_ctx);
             i++;
@@ -82,7 +82,7 @@ static vector *_gc_allot(gc *gc, long size) {
 }
 /* The size field is used to store redirections during GC. */
 static inline object vector_moved(vector *v) {
-    if (object_to_vector(v->header)) return v->header;
+    if (object_to_vector(NULL, v->header)) return v->header;
     else return 0;
 }
 
@@ -95,7 +95,7 @@ static inline object vector_moved(vector *v) {
 
 static object _gc_move_object(gc *gc, object o_old) {
     object o_new;
-    vector *v_old = object_to_vector(o_old);
+    vector *v_old = object_to_vector(NULL, o_old);
 
     /* Keep atom pointers. */
     if (!v_old) return o_old;
