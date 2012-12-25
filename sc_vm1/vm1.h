@@ -4,9 +4,9 @@
 #include <setjmp.h>
 #include <leaf/leaf.h>
 #include <ex/ex.h>
-#include <ex/ex.h_prims>
+#include <ex/ex.g.h>
 #include <sc/sc.h>
-#include <sc/sc.h_prims>
+#include <sc/sc.g.h>
 
 #include <leaf/console.h>
 

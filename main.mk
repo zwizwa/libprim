@@ -19,21 +19,20 @@
 MAKEFLAGS += --no-builtin-rules
 .SUFFIXES:
 
+# Both SRC and BUILD are absolute paths.
+SRC      := $(shell readlink -f ..)
+BUILD    := $(shell readlink -f .)
+
+
 # TARGET := at91sam7s256
 # TOOL_PREFIX := arm-none-eabi-
 # Refers to files in target/
 TARGET := Linux
 # TOOL_PREFIX is empty
+-include $(SRC)/target/$(TARGET).mk
 
 
-# Both SRC and BUILD are absolute paths.  The main reason for this is
-# that for relative paths, make is counter-intuitive.
-# FIXME: implement the per-build config file
-# include build.config.mk
-SRC      := $(shell readlink -f ..)
-BUILD    := $(shell readlink -f .)
-MODULES  := leaf ex
-CPPFLAGS := -I$(BUILD) -I$(SRC) -DTARGET=\"$(TARGET)\"
+CPPFLAGS := -I$(BUILD) -I$(SRC) -DTARGET=\"$(TARGET)\" -DPRIM_HOME=\"$(SRC)\"
 CFLAGS   :=
 LDFLAGS  :=
 GCC      := $(TOOL_PREFIX)gcc
@@ -43,7 +42,7 @@ LD       := $(TOOL_PREFIX)ld
 CC       := $(GCC)
 MZSCHEME := mzscheme
 
-all: $(BUILD)/lib.a g_OUT
+all: g_OUT
 
 # Makefile template for the module.mk context. Once expanded, it
 # gathers module-specific data from the local m_ variables and
@@ -52,25 +51,32 @@ all: $(BUILD)/lib.a g_OUT
 # '$' refs in the expanded code.
 define module_template
 m_C        :=
+m_O        :=
+m_D        :=
+m_H        :=
+m_OUT      :=
 m_SRC      := $(SRC)/$(1)
 m_BUILD	   := $(BUILD)/$(1)
+m_LDFLAGS  :=
 include  $$(m_SRC)/module.mk
 g_C        += $$(addprefix $$(m_SRC)/,$$(m_C))
 g_O	   += $$(addprefix $$(m_BUILD)/,$$(m_C:.c=.o))
 g_D        += $$(addprefix $$(m_BUILD)/,$$(m_C:.c=.d))
 g_H	   += $$(addprefix $$(m_BUILD)/,$$(m_H))
 g_OUT	   += $$(addprefix $$(m_BUILD)/,$$(m_OUT))
+g_LDFLAGS  += $$(m_LDFLAGS)
 endef
 
 # Expand template for each module and include the dependency files.
 # Note that initialization of the g_ accumulators is necessary to turn
 # them into simply expanded variables, since the default is recursive
 # expanding variables.
-g_C   :=
-g_O   :=
-g_D   :=
-g_H   := $(BUILD)/config.h
-g_OUT := $(BUILD)/lib.a
+g_C        :=
+g_O        :=
+g_D        :=
+g_H        := $(BUILD)/config.h
+g_OUT      :=
+g_LDFLAGS  := 
 $(foreach prog,$(MODULES),$(eval $(call module_template,$(prog))))
 -include $(g_D)
 
@@ -106,7 +112,7 @@ $(BUILD)/lib.a: $(g_O)
 
 # Executable
 $(BUILD)/%.elf: $(BUILD)/%.o $(BUILD)/lib.a
-	$(call compile,$@,elf,$(_CC) $(LDFLAGS) $< -o $@)
+	$(call compile,$@,elf,$(_CC) $< $(BUILD)/lib.a $(g_LDFLAGS) -o $@)
 
 # Extract symbols
 # $(BUILDDIR) -> $(BUILDDIR) rules can use simpler patterns.

@@ -4,8 +4,8 @@
 #include <ex/ex.h>
 
 typedef struct _scheme sc;
-#include <sc/sc.h_prims>
-#include <ex/ex.h_prims>
+#include <sc/sc.g.h>
+#include <ex/ex.g.h>
 
 
 #define _GLOBAL(name) return sc_global(sc, sc_slot_##name)

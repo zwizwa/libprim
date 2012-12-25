@@ -16,8 +16,8 @@
 #include "config.h"
 #include <leaf_posix/channel.h>
 #include <ex/ex.h>
-#include <ex/ex.h_prims>
-#include <ex_posix/ex_posix.h_prims>
+#include <ex/ex.g.h>
+#include <ex_posix/ex_posix.g.h>
 
 
 DECL_TYPE(channel)

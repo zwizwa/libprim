@@ -7,9 +7,9 @@
 #include <config.h>
 
 #include <sc_vm1/vm1.h>
-#include <sc_vm1/vm1.h_prims>
-#include <ex/ex.h_prims>
-#include <sc/sc.h_prims>
+#include <sc_vm1/vm1.g.h>
+#include <ex/ex.g.h>
+#include <sc/sc.g.h>
 
 
 _ _sc_value_as_term(sc *sc, _ value) {
