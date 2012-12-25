@@ -33,7 +33,7 @@ TARGET := Linux
 SRC      := $(shell readlink -f ..)
 BUILD    := $(shell readlink -f .)
 MODULES  := leaf ex
-CPPFLAGS := -I$(BUILD) -I$(SRC)
+CPPFLAGS := -I$(BUILD) -I$(SRC) -DTARGET=\"$(TARGET)\"
 CFLAGS   :=
 LDFLAGS  :=
 GCC      := $(TOOL_PREFIX)gcc
@@ -42,6 +42,8 @@ AR       := $(TOOL_PREFIX)ar
 LD       := $(TOOL_PREFIX)ld
 CC       := $(GCC)
 MZSCHEME := mzscheme
+
+all: $(BUILD)/lib.a g_OUT
 
 # Makefile template for the module.mk context. Once expanded, it
 # gathers module-specific data from the local m_ variables and
@@ -57,22 +59,23 @@ g_C        += $$(addprefix $$(m_SRC)/,$$(m_C))
 g_O	   += $$(addprefix $$(m_BUILD)/,$$(m_C:.c=.o))
 g_D        += $$(addprefix $$(m_BUILD)/,$$(m_C:.c=.d))
 g_H	   += $$(addprefix $$(m_BUILD)/,$$(m_H))
+g_OUT	   += $$(addprefix $$(m_BUILD)/,$$(m_OUT))
 endef
 
 # Expand template for each module and include the dependency files.
 # Note that initialization of the g_ accumulators is necessary to turn
 # them into simply expanded variables, since the default is recursive
 # expanding variables.
-g_C :=
-g_O :=
-g_D :=
-g_H := $(BUILD)/config.h
+g_C   :=
+g_O   :=
+g_D   :=
+g_H   := $(BUILD)/config.h
+g_OUT := $(BUILD)/lib.a
 $(foreach prog,$(MODULES),$(eval $(call module_template,$(prog))))
 -include $(g_D)
 
-
-LIB_O := $(g_O)
-all: $(BUILD)/lib.a
+.PHONY: g_OUT
+g_OUT: $(g_OUT)
 
 
 # All build rules are shared for the project.  It is not worth the
@@ -97,9 +100,9 @@ _CC := $(CC) $(CPPFLAGS) $(CFLAGS) $(OPTI_CFLAGS) $(DEBUG_CFLAGS)
 $(BUILD)/%.o: $(SRC)/%.c $(BUILD)/%.d
 	$(call compile,$@,o,$(_CC) -o $@ -c $<)
 
-# Archive
-$(BUILD)/lib.a: $(LIB_O)
-	$(call compile,$@,a,$(AR) -r $@ $(LIB_O) 2>/dev/null)
+# Archive all object files from sources listed in m_C variables.
+$(BUILD)/lib.a: $(g_O)
+	$(call compile,$@,a,$(AR) -r $@ $(g_O) 2>/dev/null)
 
 # Executable
 $(BUILD)/%.elf: $(BUILD)/%.o $(BUILD)/lib.a
