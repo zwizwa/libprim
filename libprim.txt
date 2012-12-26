@@ -11098,3 +11098,28 @@ like a "include this in your source tree" project, like Lua.
 
 Look in the history around this time for old build scripts.
 
+
+Entry: Makefile bug
+Date: Wed Dec 26 13:13:42 EST 2012
+
+Got one:
+
+
+tom@zoo:~/libprim/build$ make -f ../main.mk -j -d >/tmp/make.1
+gcc: error: posix_sc/main.o: No such file or directory
+gcc: error: pf/pf.o: No such file or directorygcc: error: cell/test.o: No such file or directory
+make: *** [/home/tom/pub/darcs/libprim/build/posix_sc/main.elf] Error 1
+make: *** Waiting for unfinished jobs....
+make: *** [/home/tom/pub/darcs/libprim/build/pf/pf.elf] Error 1
+make: *** [/home/tom/pub/darcs/libprim/build/cell/test.elf] Error 1
+gcc: error: zl/test.o: No such file or directory
+make: *** [/home/tom/pub/darcs/libprim/build/zl/test.elf] Error 1
+gcc: error: cell/test_gc.o: No such file or directory
+make: *** [/home/tom/pub/darcs/libprim/build/cell/test_gc.elf] Error 1
+tom@zoo:~/libprim/build$ cp /tmp/make.1 ~/make.1
+tom@zoo:~/libprim/build$ 
+
+I'm wondering if this is not just a specification issue.  Can pattern
+rules have multiple dependencies?
+
+[1] http://lists.gnu.org/archive/html/bug-make/2012-05/msg00031.html

@@ -42,7 +42,7 @@ CC       := $(GCC)
 MZSCHEME := mzscheme
 
 .PHONY: all
-all: g_OUT
+all: g_ELF
 
 # Makefile template for the module.mk context. Once expanded, it
 # gathers module-specific data from the local m_ variables and
@@ -54,7 +54,7 @@ m_C        :=
 m_O        :=
 m_D        :=
 m_H        :=
-m_OUT      :=
+m_ELF      :=
 m_SRC      := $(SRC)/$(1)
 m_BUILD	   := $(BUILD)/$(1)
 m_LDFLAGS  :=
@@ -63,7 +63,7 @@ g_C        += $$(addprefix $$(m_SRC)/,$$(m_C))
 g_O	   += $$(addprefix $$(m_BUILD)/,$$(m_C:.c=.o))
 g_D        += $$(addprefix $$(m_BUILD)/,$$(m_C:.c=.d))
 g_H	   += $$(addprefix $$(m_BUILD)/,$$(m_H))
-g_OUT	   += $$(addprefix $$(m_BUILD)/,$$(m_OUT))
+g_ELF	   += $$(addprefix $$(m_BUILD)/,$$(m_ELF))
 g_LDFLAGS  += $$(m_LDFLAGS)
 endef
 
@@ -74,15 +74,21 @@ endef
 g_C        :=
 g_O        :=
 g_D        :=
-g_H        := $(BUILD)/config.h
-g_OUT      :=
+g_H        :=
+g_ELF      :=
 g_LDFLAGS  := 
 $(foreach prog,$(MODULES),$(eval $(call module_template,$(prog))))
 -include $(g_D)
 
-.PHONY: g_OUT
-g_OUT: $(g_OUT)
+.PHONY: g_ELF
+g_ELF: $(g_ELF)
 
+# g_D / g_O is only for the which go in lib.a
+g_ELF_D := $(g_ELF:.elf=.d)
+g_ELF_O := $(g_ELF:.elf=.o)
+
+# This is necessary to allow .d files to be generated properly.
+GENERATED_H := $(g_H) $(BUILD)/config.h
 
 # All build rules are shared for the project.  It is not worth the
 # complexity to have sub-project dependent build flags.  If this is
@@ -93,38 +99,33 @@ compile = @mkdir -p $(dir $(1)) ; echo [$(2)] $(notdir $(1)) ; $(3)
 
 # Gather dependencies from .c file
 depstx := sed -r 's,\s(\w+/), $(BUILD)/\1,g'
-$(BUILD)/%.d: $(SRC)/%.c $(g_H)
+$(g_D) $(g_ELF_D): $(BUILD)/%.d: $(SRC)/%.c $(GENERATED_H)
 	$(call compile,$@,d,$(CC) $(CPPFLAGS) -M -MG -MT $(@:.d=.o) $< | $(depstx) >$@)
-
-# Preprocess only
-$(BUILD)/%.E.c: $(SRC)/%.c $(g_H)
-	$(call compile,$@,c,$(CC) $(CPPFLAGS) -E $< -o $@)
 
 _CC := $(CC) $(CPPFLAGS) $(CFLAGS)
 
 # Intermediate object
-$(BUILD)/%.o: $(SRC)/%.c $(BUILD)/%.d
+$(g_O) $(g_ELF_O): $(BUILD)/%.o: $(SRC)/%.c $(BUILD)/%.d
 	$(call compile,$@,o,$(_CC) -o $@ -c $<)
+
+# Executable
+$(g_ELF): $(BUILD)/%.elf: $(BUILD)/%.o $(BUILD)/lib.a
+	$(call compile,$@,elf,$(_CC) $*.o $(BUILD)/lib.a $(g_LDFLAGS) -o $@)
 
 # Archive all object files from sources listed in m_C variables.
 $(BUILD)/lib.a: $(g_O)
-	$(call compile,$@,a,$(AR) -r $@ $(g_O) 2>/dev/null)
-
-# Executable
-$(BUILD)/%.elf: $(BUILD)/%.o $(BUILD)/lib.a
-	$(call compile,$@,elf,$(_CC) $< $(BUILD)/lib.a $(g_LDFLAGS) -o $@)
-
-# Extract symbols
-# $(BUILDDIR) -> $(BUILDDIR) rules can use simpler patterns.
-$(BUILD)/%.syms: $(BUILD)/%.so
-	$(call compile,$@,syms,$(OBJDUMP) -T $< | grep '\.text' | awk '{print $$7;}' >$@)
+	$(call compile,$@,a,rm -f $@ ; $(AR) -r $@ $(g_O) 2>/dev/null)
 
 # Generated header files
-$(BUILD)/%.g.h: $(SRC)/%.c
-	$(call compile,$@,h,$(MZSCHEME) $(dir $<)gen_prims.ss $< $@)
-
 $(BUILD)/config.h:
 	$(call compile,$@,h,echo '#include <target/$(TARGET).h>' > $@)
+$(g_H): $(BUILD)/%.g.h: $(SRC)/%.c
+	$(call compile,$@,h,$(MZSCHEME) $(dir $<)gen_prims.ss $< $@)
+
+# Preprocess only
+$(BUILD)/%.E.c: $(SRC)/%.c $(GENERATED_H)
+	$(call compile,$@,c,$(CC) $(CPPFLAGS) -E $< -o $@)
+
 
 
 

@@ -1,6 +1,6 @@
 # pf/
 m_H	  := pf.g.h
-m_OUT     := pf.elf
+m_ELF     := pf.elf
 m_LDFLAGS := -lpthread -ldl -lm
 
 
