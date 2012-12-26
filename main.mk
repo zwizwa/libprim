@@ -128,3 +128,18 @@ $(BUILD)/config.h:
 	$(call compile,$@,h,echo '#include <target/$(TARGET).h>' > $@)
 
 
+
+# Do not use .SECONDARY: enabled by default.
+#
+# While it useful to look at intermediate build resuilts, it also has
+# some odd behaviors. If you want to build an intermediate, build it
+# explicitly using absolute paths using:
+#
+#   make vars.sh ; . vars.sh
+#   make $PROJECT_DIR/<thing>
+#
+# From [1]: "...one of the side effects of a target being declared
+# secondary is that make doesn't consider it out of date when it
+# doesn't exist."
+#
+# [1] http://www.mail-archive.com/bug-make@gnu.org/msg03942.html

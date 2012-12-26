@@ -11081,3 +11081,9 @@ To do the gui, it's maybe best to work in two phases:
  
 
 
+Entry: Imported zl from pdp
+Date: Tue Dec 25 22:24:47 EST 2012
+
+Looks like it will be possible to use the same code base with a little
+tweaking here and there.
+

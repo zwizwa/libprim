@@ -178,9 +178,9 @@ object _ex_write(ex *ex, object o) {
     if ((x = object_to_fin(ex, o))) {
         port_printf(p, "#fin");
         // port_printf(p, "#<fin:%p:%p>", x, *((void**)x)); // do we care?
-        return VOID; 
+        return VOID;
     }
-    if ((x = object_to_const(ex, o))) { 
+    if ((x = object_to_const(ex, o))) {
         return _ex_printf(ex, "#<data:%p>", x);
     }
     return _ex_printf(ex, "#<object:%p>",(void*)o);
