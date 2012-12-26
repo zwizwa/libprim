@@ -11087,3 +11087,14 @@ Date: Tue Dec 25 22:24:47 EST 2012
 Looks like it will be possible to use the same code base with a little
 tweaking here and there.
 
+
+
+Entry: Removing old makefiles *.mk
+Date: Wed Dec 26 12:18:37 EST 2012
+
+I'm moving towards static lib only, and manual configuration.  It
+seems this project is not intended as a general-purpose library, more
+like a "include this in your source tree" project, like Lua.
+
+Look in the history around this time for old build scripts.
+

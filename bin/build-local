@@ -1,9 +1,0 @@
-cd `basename $0`/..
-rm -rf build-local
-mkdir build-local
-cd build-local
-../configure --prefix=`pwd` && make && make install
-
-
-
-
