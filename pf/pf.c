@@ -856,7 +856,7 @@ pf* _px_new(int argc, char **argv) {
 
     // Highlevel bootstrap
     if (!bootfile) bootfile = getenv("PRIM_BOOT_PF");
-    if (!bootfile) bootfile = PRIM_HOME "boot.pf";
+    if (!bootfile) bootfile = PRIM_HOME "pf/boot.pf";
     if (!bootfile) bootfile = "boot.pf";
     struct ex_bootinfo  boot;
     boot.source = bootfile;
