@@ -82,7 +82,7 @@ void heap_clear(void) {
 }
 
 
-void cell_display_i(int i);
+void cell_display_i(word i);
 
 /* For CDR-linked (improper) lists, use (dotted) list notation. */
 void cell_display_pair(cell *c) {
@@ -105,7 +105,7 @@ void cell_display_pair(cell *c) {
     }
     DISP(")");
 }
-void cell_display_i(int i) {
+void cell_display_i(word i) {
     if (i >= heap_size) {
         if (i >= HEAP_NUMBER_INDEX) DISP("%d", i & 0xFF);
         else {
@@ -351,39 +351,6 @@ void heap_set_cons(cell *c, cell *a, cell *d) {
 void heap_set_roots(cell **r) { roots = r; }
 
 
-// test
-#if 0
-int main(void) {
-    heap_clear();
-    cell *x = NIL;
-
-    // cell *atom = heap_atom((void*)0xDEADBEEF);
-    // cell *circ = heap_cons(NIL, NIL);
-    // circ->pair = cons_tag(TAG_MARKED, atom, circ);
-    // x = circ;
-
-    x = CONS(VOID, x);
-    x = CONS(TRUE, x);
-    x = CONS(FALSE, x);
-
-    x = CONS(NUMBER(3), x);
-    x = CONS(NUMBER(2), x);
-    x = CONS(NUMBER(1), x);
-
-    cell *_roots[] = {x, NULL};
-
-    heap_set_roots(_roots);
-    
-    for(;;) {
-        // cell_display(root); newline();
-        CONS(NIL, NIL);
-        // printf("used: %d\n", heap_used());
-    }
-    return 0;
-}
-#endif
-
-
 /* TODO
 
    - Atoms are currently just (abstractly) marked, not collected.
@@ -394,5 +361,4 @@ int main(void) {
       - All ATOMS are numbers
       - Use 8-byte aligned atoms and use the extra pointer bit as mark bit.
       - For refcounted atoms, call RC++ on mark, and RC-- for ATOMS in heap
-      
  */

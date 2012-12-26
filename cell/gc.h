@@ -44,8 +44,12 @@
 #define TAG_K_CDR 1  /* Fully marked cell / K pointer in CDR. */
 
 
-typedef long long pair;
-typedef void*     atom;
+// long is saime size as pointer for LP32 and LP64
+// http://www.unix.org/version2/whatsnew/lp64_wp.html
+typedef long  pair;
+typedef long  word;
+typedef void* atom;
+typedef int assert_size_1[-1+(sizeof(pair) == sizeof(atom))];
 
 /* The heap is an array of cells.  A cell is either an external
    pointer to an atomic data structure (GC doesn't need to descend),
@@ -62,6 +66,8 @@ typedef union _cell cell;
 
 /* Tag bits are stored in a separate table. */
 typedef unsigned int cell_tag_word;
+typedef int assert_size_2[-1+(sizeof(cell_tag_word) == 4)];
+
 #define tag_bits 2
 #define tag_mask ((1 << tag_bits) - 1)
 #define bits_per_tag_word (8 * sizeof(cell_tag_word))
@@ -101,8 +107,11 @@ void heap_set_cons(cell *c, cell *a, cell *d);
 void heap_set_roots(cell **r);
 
 #define CAR_SHIFT 0
-#define CDR_SHIFT 16
-#define CELL_MASK 0xFFFF
+#define CDR_SHIFT (4*sizeof(pair))
+#define CELL_MASK ((((pair)1)<<CDR_SHIFT)-1)
+
+typedef int assert_cell_1[-1+(CELL_MASK == 0xFFFFFFFF)];
+typedef int assert_cell_2[-1+(CDR_SHIFT == 32)];
 
 #define TAG_INDEX(i, itag, ishift)                         \
     int itag   = i / cells_per_tag_word;                   \
@@ -137,19 +146,19 @@ static inline void cell_set_tag(cell *c, int tag) {
 
 static inline int cell_is_pair(cell *c) { 
     if (c > (heap + heap_size)) return 0;
-    return (TAG_ATOM != cell_tag(c)); 
+    return (TAG_ATOM != cell_tag(c));
 }
 
 /* Part of the cell address space can be used for small integers.  The
    GC ignores cell pointers that point beyond the heap. */
-static inline int   icar(cell *c)  { return (c->pair >> CAR_SHIFT) & CELL_MASK; }
-static inline int   icdr(cell *c)  { return (c->pair >> CDR_SHIFT) & CELL_MASK; }
+static inline word  icar(cell *c)  { return (c->pair >> CAR_SHIFT) & CELL_MASK; }
+static inline word  icdr(cell *c)  { return (c->pair >> CDR_SHIFT) & CELL_MASK; }
 static inline cell* pcar(cell *c)  { return heap + icar(c); }
 static inline cell* pcdr(cell *c)  { return heap + icdr(c); }
 
-static inline pair  make_ipair(int car, int cdr) {
-    int icar = car & CELL_MASK;
-    int icdr = cdr & CELL_MASK;
+static inline pair  make_ipair(word icar, word icdr) {
+    icar &= CELL_MASK;
+    icdr &= CELL_MASK;
     return (icar << CAR_SHIFT) | (icdr << CDR_SHIFT);
 }
 

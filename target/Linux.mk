@@ -8,6 +8,4 @@ MODULES := \
 	posix_sc \
 	px \
 	pf \
-
-
-
+	cell

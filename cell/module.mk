@@ -1,11 +1,9 @@
 # cell/
 m_C      := read.c vm.c gc.c  # test.c
-m_TARGET := cell
-
-m_DEPS   := leaf
+m_OUT    := test.elf test_gc.elf
 
 
-CELL_BIN := $(m_BUILD)/cell 
+CELL_BIN := $(m_BUILD)/test.elf
 CELL_TEST := $(m_SRC)/test123.sxp
 
 CELL_COMP := $(m_SRC)/comp.ss

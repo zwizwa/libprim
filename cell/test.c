@@ -75,8 +75,9 @@ void looptest(vm *vm) {
 
 int readtest(vm *vm) {
 
-    FILE *f = fopen("/dev/ser2", "a+");
-    port *p = port_file_new(f, "stdin");
+    // FILE *f = fopen("/dev/ser2", "a+");
+    // port *p = port_file_new(f, "stdin");
+    port *p = port_file_new(stdin, "<stdin>");
 
 
     int rv = 0;
@@ -100,8 +101,7 @@ int readtest(vm *vm) {
     }
 }
 
-#define ECOS
-
+// #define ECOS
 #ifdef ECOS
 /* Need the scheduler to use IO in current config. */
 #include <cyg/infra/diag.h>
