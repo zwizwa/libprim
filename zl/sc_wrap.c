@@ -11,31 +11,34 @@
 
  */
 
-#include "scheme.h"
-#include <media/ffmpeg.h>
+// #include "scheme.h"
+#include <zl/ffmpeg.h>
 #include <leaf/bytes.h>
-#include "media.h_sc_prims"
-#include <media/xwindow.h>
-#include <media/xv.h>
-#include <media/glx.h>
+#include <zl/xwindow.h>
+#include <zl/xv.h>
+#include <zl/glx.h>
 #include <leaf/grid.h>
-#include <media/gsl.h>
-#include <media/yuv.h>
+#include <zl/gsl.h>
+#include <zl/yuv.h>
 
 /*** X11 ***/
 
-DEF_AREF_TYPE(xwindow)
-DEF_AREF_TYPE(xdisplay)
-DEF_AREF_TYPE(grid)
-DEF_AREF_TYPE(grid_proc)
+#include <ex/ex.h>
+#include <sc/sc.h>
+
+DEF_LEAF(zl_xwindow)
+DEF_LEAF(zl_xdisplay)
+DEF_LEAF(grid)
+DEF_LEAF(grid_proc)
 
 _ sc_make_display(sc *sc, _ ob) {
-    return _sc_make_aref(sc, xdisplay_new(CAST(cstring, ob)));
+    return _sc_make_aref(sc, zl_xdisplay_new(CAST(cstring, ob)));
 }
 _ sc_make_window(sc *sc) {
-    return _sc_make_aref(sc, xwindow_new());
+    return _sc_make_aref(sc, zl_xwindow_new());
 }
 _ sc_window_config(sc *sc, _ win, _ disp) {
-    xwindow_config(CAST(xwindow, win), CAST(xdisplay, disp));
+    xwindow_config(CAST(zl_xwindow, win),
+                   CAST(zl_xdisplay, disp));
     return VOID;
 }

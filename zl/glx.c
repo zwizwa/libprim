@@ -24,7 +24,7 @@
 #include <unistd.h>
 
 //#include <pf/typedefs.h>
-
+#define PRIVATE
 #include "glx.h"
 //#include <pf/image.h>
 //#include <pf/packet.h>
@@ -34,24 +34,25 @@
 #define D if (0)
 
 
-static glx_t *current_context = 0;
+static zl_glx_t *current_context = 0;
 
 /* cons */
-void glx_init(glx_t *x)
+void zl_glx_init(zl_glx_t *x)
 {
     memset(x, 0, sizeof(*x));
     x->tex_width = 1; // smallest nonzero (for mul 2) dummy size
     x->tex_height = 1;
+    x->format = GL_RGB; // FIXME: This is never set
 }
 
-glx_t *glx_new(void){
-    glx_t *x = malloc(sizeof(*x));
-    glx_init(x);
+zl_glx_t *zl_glx_new(void){
+    zl_glx_t *x = malloc(sizeof(*x));
+    zl_glx_init(x);
     return x;
 }
 
 /* des */
-void glx_cleanup(glx_t* x)
+void zl_glx_cleanup(zl_glx_t* x)
 {
     // XEvent e;
 
@@ -61,19 +62,19 @@ void glx_cleanup(glx_t* x)
 	x->initialized = 0;
     }
 }
-void glx_free(glx_t* x){
+void zl_glx_free(zl_glx_t* x){
     
-    // fprintf(stderr, "glx_free: FIXME: free texture\n");
+    // fprintf(stderr, "zl_glx_free: FIXME: free texture\n");
     if (glIsTexture(x->texture)){glDeleteTextures(1, &(x->texture));}
     free(x);
 }
 
 
-void glx_swapbuffers(glx_t *x, xwindow *xwin)
+void zl_glx_swapbuffers(zl_glx_t *x, zl_xwindow_p xwin)
 {
     glXSwapBuffers(x->xdpy->dpy, xwin->win);
 }
-void glx_makecurrent(glx_t *x, xwindow *xwin)
+void zl_glx_makecurrent(zl_glx_t *x, zl_xwindow_p xwin)
 {
     if (x != current_context){
 
@@ -89,7 +90,7 @@ void glx_makecurrent(glx_t *x, xwindow *xwin)
 }
 
 
-void *glx_image_data(glx_t* x, xwindow *xwin,
+void *zl_glx_image_data(zl_glx_t* x, zl_xwindow_p xwin,
 			unsigned int w, unsigned int h){
 
     if (!x->initialized) return 0;
@@ -102,9 +103,9 @@ void *glx_image_data(glx_t* x, xwindow *xwin,
 
     /* set window context current
        just to make sure we don't conflict with other contexts */
-    glx_makecurrent(x, xwin);
+    zl_glx_makecurrent(x, xwin);
 
-       /* setup texture if necesary */
+    /* setup texture if necesary */
     if ((x->image_width > tex_width) || (x->image_height > tex_height)) {
 	while (x->image_width > tex_width) tex_width *= 2;
 	while (x->image_height > tex_height) tex_height *= 2;
@@ -113,7 +114,7 @@ void *glx_image_data(glx_t* x, xwindow *xwin,
 	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, tex_width, tex_height, 0, GL_RGBA, GL_UNSIGNED_BYTE, 0);
 	x->tex_width = tex_width;
 	x->tex_height = tex_height;
-	fprintf(stderr, "glx_image_data: creating texture %dx%d", tex_width, tex_height);
+	fprintf(stderr, "zl_glx_image_data: creating texture %dx%d", tex_width, tex_height);
 	if (x->data) free (x->data);
 	x->data = malloc(4 * x->image_width * x->image_height);
     }
@@ -124,11 +125,11 @@ void *glx_image_data(glx_t* x, xwindow *xwin,
  
 }
 /* display the texture */
-void glx_image_display(glx_t *x, xwindow *xwin){
+void zl_glx_image_display(zl_glx_t *x, zl_xwindow_p xwin){
 
     /* set window context current
        just to make sure we don't conflict with other contexts */
-    glx_makecurrent(x, xwin);
+    zl_glx_makecurrent(x, xwin);
 
     /* get fractional dimensions */
     float fx = (float)x->image_width / (float)x->tex_width;
@@ -175,7 +176,7 @@ void glx_image_display(glx_t *x, xwindow *xwin){
 
 
 /* open an opengl context */
-int glx_open_on_display(glx_t *x, xwindow *w, xdisplay *d)
+int zl_glx_open_on_display(zl_glx_t *x, zl_xwindow_p w, zl_xdisplay_p d)
 {
     static int vis_attr[] = {GLX_RGBA, 
 			     GLX_RED_SIZE, 4, 
@@ -192,11 +193,11 @@ int glx_open_on_display(glx_t *x, xwindow *w, xdisplay *d)
     if (!(x->vis_info = glXChooseVisual(x->xdpy->dpy,
 					x->xdpy->screen,
 					vis_attr))){
-	fprintf(stderr, "glx_open_on_display: can't find appropriate visual\n");
+	fprintf(stderr, "zl_glx_open_on_display: can't find appropriate visual\n");
 	goto error;
     }
     else {
-	D fprintf(stderr, "glx_open_on_display: using visual 0x%x\n", 
+	D fprintf(stderr, "zl_glx_open_on_display: using visual 0x%x\n", 
 		(unsigned int)x->vis_info->visualid);
     }
 
@@ -205,12 +206,12 @@ int glx_open_on_display(glx_t *x, xwindow *w, xdisplay *d)
 					    x->vis_info,
 					    0 /*share list*/,
 					    GL_TRUE))){
-	fprintf(stderr, "glx_open_on_display: can't create render context\n");
+	fprintf(stderr, "zl_glx_open_on_display: can't create render context\n");
 	goto error;
     }
     else {
 	D fprintf(stderr, 
-                  "glx_open_on_display: created render "
+                  "zl_glx_open_on_display: created render "
                   "context %p on screen %d\n", 
                   (void*)x->glx_context, x->xdpy->screen);
     }
@@ -227,9 +228,9 @@ int glx_open_on_display(glx_t *x, xwindow *w, xdisplay *d)
     swa.border_pixel = 0;
     swa.event_mask = ExposureMask | ButtonPressMask | StructureNotifyMask;
 
-
-
-    /* create a window using this visual */
+    /* Create a window using this visual.  This will play nice with
+       zl_xwindow: it will not create a window if there is already one
+       there. */
     w->win = XCreateWindow(
 	d->dpy,
 	RootWindow(d->dpy, x->vis_info->screen), 
@@ -247,6 +248,7 @@ int glx_open_on_display(glx_t *x, xwindow *w, xdisplay *d)
     
     return 0;
 }
+
 
 
 

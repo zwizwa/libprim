@@ -11054,4 +11054,30 @@ This is a nasty API bug that isn't easy to fix.
 
 Fix it?
 
+Added extra EX argument to all object_to_ methods to allow for
+different wrapping in PF and SC.  Might not be so optimal, but better
+that it works properly and is consistent.
+
+
+Entry: CELL
+Date: Tue Dec 25 20:12:05 EST 2012
+
+Restored cell to working order on 64bit.
+
+
+Entry: Graph nudging GUI
+Date: Tue Dec 25 20:12:24 EST 2012
+
+Took a bit longer than expected, but build system is in place for
+building some layout engine for guis.
+
+The main question is still: how to solve the "graph nudging" problem?
+
+To do the gui, it's maybe best to work in two phases:
+
+- Build vector layout engine for knobs, buttons, sliders and LEDs.
+
+- Solve the graph nudging problem.
+ 
+
 

@@ -20,7 +20,7 @@
 #include <ex_posix/ex_posix.g.h>
 
 
-DECL_TYPE(channel)
+DEF_LEAF(channel)
 
 
 /* PRIMITIVES */

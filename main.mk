@@ -27,7 +27,12 @@ TARGET = Linux
 # TOOL_PREFIX is empty
 -include $(SRC)/target/$(TARGET).mk
 
-CPPFLAGS := -I$(BUILD) -I$(SRC) -DTARGET=\"$(TARGET)\" -DPRIM_HOME=\"$(SRC)/\"
+CPPFLAGS := \
+	-I$(BUILD) \
+	-I$(SRC) \
+	-DTARGET=\"$(TARGET)\" \
+	-DPRIM_HOME=\"$(SRC)/\" \
+	-DHAVE_LEAF
 CFLAGS   := -g -O0
 LDFLAGS  :=
 GCC      := $(TOOL_PREFIX)gcc

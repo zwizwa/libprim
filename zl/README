@@ -1,0 +1,18 @@
+This is supposed to be of "old tech" plain C objects without any
+bindings fancy dependencies.  They mostly serve as API simplifications
+for, well, things I need in other projects.
+
+License is GPL, but I don't care much about what it is.  Some need to
+be GPL due to multiple contributors, but if the code is by me and you
+want it, but GPL doesn't work for you, drop me a line and I'll release
+it under something more compatible.
+
+Unmarked code is (c) 2003-2013 Tom Schouten <tom@zwizwa.be>
+Other authors are mentioned in the specific files.
+
+
+Some of these objects are from libprim and have stubbed-out code for
+the LEAF base object library.
+
+
+

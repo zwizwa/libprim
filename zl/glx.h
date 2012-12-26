@@ -23,7 +23,7 @@
 // x stuff
 #define GLX_GLXEXT_PROTOTYPES
 
-#include "xwindow.h"
+#include "zl/xwindow.h"
 #include <string.h>
 #include <GL/gl.h>
 #include <GL/glx.h>
@@ -35,10 +35,10 @@
 //#include <GL/glxext.h>
 
 /* glx class */
-typedef struct _glx
+typedef struct zl_glx
 {
 
-    xdisplay *xdpy; //mother display object
+    zl_xdisplay_p xdpy; //mother display object
     int  initialized;
 
     /* texture */
@@ -55,38 +55,38 @@ typedef struct _glx
     int image_height;
 
 
-} glx_t;
+} zl_glx_t;
 
 
 /* cons */
-void glx_init(glx_t *x);
-glx_t *glx_new(void);
+void zl_glx_init(zl_glx_t *x);
+zl_glx_t *zl_glx_new(void);
 
 /* des */
-void glx_cleanup(glx_t* x);
-void glx_free(glx_t* x);
+void zl_glx_cleanup(zl_glx_t* x);
+void zl_glx_free(zl_glx_t* x);
 
 
 /* open an opengl context */
-int glx_open_on_display(glx_t *x, xwindow *w, xdisplay *d);
+int zl_glx_open_on_display(zl_glx_t *x, zl_xwindow_p w, zl_xdisplay_p d);
 
 /* close an opengl context */
-void glx_close(glx_t* x);
+void zl_glx_close(zl_glx_t* x);
 
 /* display a packet */
-//void glx_display_packet(glx_t *x, xwindow *xwin, pf_packet_t packet);
+//void zl_glx_display_packet(zl_glx_t *x, xwindow *xwin, pf_packet_t packet);
 
 /* get texture data buffer */
-void *glx_image_data(glx_t *x, xwindow *xwin, 
-			 unsigned int width, unsigned int height);
+void *zl_glx_image_data(zl_glx_t *x, zl_xwindow_p xwin, 
+                        unsigned int width, unsigned int height);
 
 /* display the texture */
-void glx_image_display(glx_t *x, xwindow *xwin);
+void zl_glx_image_display(zl_glx_t *x, zl_xwindow_p xwin);
 
 
 /* opengl specific stuff*/
-void glx_swapbuffers(glx_t *x, xwindow *xwin);
-void glx_makecurrent(glx_t *x, xwindow *xwin);
+void zl_glx_swapbuffers(zl_glx_t *x, zl_xwindow_p xwin);
+void zl_glx_makecurrent(zl_glx_t *x, zl_xwindow_p xwin);
 
 
 /* opengl sync module 

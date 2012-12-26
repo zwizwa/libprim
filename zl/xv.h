@@ -19,13 +19,15 @@
  *
  */
 
-#ifndef _xv_h_
-#define _xv_h_
+#ifndef _zl_xv_h_
+#define _zl_xv_h_
+
+struct zl_xv;
+typedef struct zl_xv  zl_xv;
+typedef struct zl_xv *zl_xv_p;
 
 #ifndef PRIVATE
 #include "xwindow.h"
-struct _xv;
-typedef struct _xv xv_t;
 #else
 
 // x stuff
@@ -35,14 +37,16 @@ typedef struct _xv xv_t;
 #include <X11/extensions/XShm.h>
 #include <X11/extensions/Xv.h>
 #include <X11/extensions/Xvlib.h>
+#include "config.h"
 #include "xwindow.h"
 
 /* xv class */
-typedef void xv_class;
-typedef struct _xv
+typedef void zl_xv_class;
+struct zl_xv
 {
-    xv_class *type;
-    xdisplay *xdpy;
+    zl_xv_class *type;    
+
+    zl_xdisplay_p xdpy;
 
     int xv_format;
     int xv_port;
@@ -57,13 +61,10 @@ typedef struct _xv
 
     int  initialized;
 
-} xv_t;
-
-
+};
 #endif
 
-
-
+zl_xv_p zl_xv_new(void);
 
 // image formats for communication with the X Server
 #define FOURCC_YV12 0x32315659  /* YV12   YUV420P */
@@ -71,26 +72,13 @@ typedef struct _xv
 #define FOURCC_I420 0x30323449  /* I420   Intel Indeo 4 */
 
 
-/* cons */
-void xv_init(xv_t *x);
-xv_t *xv_new(void);
+#define FUN(t,f) t zl_xv_##f(zl_xv_p x
+#define ARG(t,a) , t a
+#define END );
+#include "zl/xv.api"
+#undef FUN
+#undef ARG
+#undef END
 
-/* des */
-void xv_cleanup(xv_t* x);
-void xv_free(xv_t* x);
-
-
-/* open an xv port (and create XvImage) */
-int xv_open_on_display(xv_t *x, xdisplay *d, int adaptor);
-
-/* close xv port (and delete XvImage */
-void xv_close(xv_t* x);
-
-/* get XvImage data buffer */
-void *xv_image_data(xv_t *xvid, xwindow *xwin, 
-			unsigned int width, unsigned int height);
-
-/* display the XvImage */
-void xv_image_display(xv_t *xvid, xwindow *xwin);
 
 #endif

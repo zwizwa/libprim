@@ -198,15 +198,15 @@ _ _ex_boot_string(ex *ex, struct ex_bootinfo *info);
 //void *object_aref_struct(ex *, object, void*);
 //#define _ref_struct object_aref_struct
 
-#define DECL_TYPE(name) \
+#define DEF_LEAF(name) \
     static inline name *object_to_##name(ex *ex, object ob) { \
         return _ref_struct(ex, ob, name##_type());  \
     }
 
-DECL_TYPE(port)
-DECL_TYPE(inexact)
-DECL_TYPE(bytes)
-DECL_TYPE(ck)
+DEF_LEAF(port)
+DEF_LEAF(inexact)
+DEF_LEAF(bytes)
+DEF_LEAF(ck)
 
 typedef char cstring;  // for CAST()
 char *object_to_cstring(ex *ex, _ ob);
