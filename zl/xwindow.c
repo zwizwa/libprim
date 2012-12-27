@@ -165,7 +165,6 @@ void zl_xdisplay_unregister_window(zl_xdisplay_p d, zl_xwindow_p w)
 
 
 
-typedef void (*zl_xdisplay_event_fn)(void *, XEvent *);
 void zl_xdisplay_route_events(zl_xdisplay_p d) {
 
     zl_xwindow_p w;
@@ -459,6 +458,7 @@ void zl_xwindow_cursor_image(zl_xwindow_p xwin, char *data, int width, int heigh
 
 /* enable / disable cursor */
 void zl_xwindow_cursor(zl_xwindow_p xwin, int i){
+    xwin->cursor = i;
     if (!xwin->initialized) return;
     if (i == 0) {
         char data[] = {0};
@@ -466,8 +466,6 @@ void zl_xwindow_cursor(zl_xwindow_p xwin, int i){
     }
     else
         XUndefineCursor(xwin->xdisplay->dpy, xwin->win);
-
-    xwin->cursor = i;
 }
 
 
@@ -546,6 +544,19 @@ int zl_xwindow_config(zl_xwindow_p xwin, zl_xdisplay_p d)
     XClassHint chint = {"pf","Pdp"};
     XSetClassHint(xwin->xdisplay->dpy, xwin->win, &chint);
     XSetCommand(xwin->xdisplay->dpy, xwin->win, 0, 0);
+
+#if 1
+    int w = xwin->winwidth;
+    int h = xwin->winheight;
+    ZL_LOG("XSizeHints %dx%d", w, h);
+    XSizeHints shints = {
+        .flags = PBaseSize | PMinSize | PMaxSize,
+        .base_width = w, .base_height = h,
+        .min_width  = w, .min_height  = h,
+        .max_width  = w, .max_height  = h,
+    };
+    XSetWMNormalHints(xwin->xdisplay->dpy, xwin->win, &shints);
+#endif
 
     /* map */
     XMapWindow(xwin->xdisplay->dpy, xwin->win);

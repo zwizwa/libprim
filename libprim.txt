@@ -11123,3 +11123,54 @@ I'm wondering if this is not just a specification issue.  Can pattern
 rules have multiple dependencies?
 
 [1] http://lists.gnu.org/archive/html/bug-make/2012-05/msg00031.html
+
+
+Entry: Xmonad floating windows
+Date: Wed Dec 26 20:05:24 EST 2012
+
+
+
+WM_NORMAL_HINTS
+
+
+http://tronche.com/gui/x/xlib/ICC/client-to-window-manager/XSetWMNormalHints.html
+
+Syntax
+
+void XSetWMNormalHints(display, w, hints)
+      Display *display;
+      Window w;
+      XSizeHints *hints;
+
+
+/* Size hints mask bits */
+
+#define USPosition	(1L << 0)	/* user specified x, y */
+#define USSize		(1L << 1)	/* user specified width, height */
+#define PPosition	(1L << 2)	/* program specified position */
+#define PSize		(1L << 3)	/* program specified size */
+#define PMinSize	(1L << 4)	/* program specified minimum size */
+#define PMaxSize	(1L << 5)	/* program specified maximum size */
+#define PResizeInc	(1L << 6)	/* program specified resize increments */
+#define PAspect		(1L << 7)	/* program specified min and max aspect ratios */
+#define PBaseSize	(1L << 8)
+#define PWinGravity	(1L << 9)
+#define PAllHints	(PPosition|PSize|PMinSize|PMaxSize|PResizeInc|PAspect)
+
+/* Values */
+
+typedef struct {
+	long flags;		/* marks which fields in this structure are defined */
+	int x, y;		/* Obsolete */
+	int width, height;	/* Obsolete */
+	int min_width, min_height;
+	int max_width, max_height;
+	int width_inc, height_inc;
+	struct {
+	       int x;		/* numerator */
+	       int y;		/* denominator */
+	} min_aspect, max_aspect;
+	int base_width, base_height;
+	int win_gravity;
+	/* this structure may be extended in the future */
+} XSizeHints;

@@ -5,8 +5,8 @@
 
 /* Tie ZL into mothership. */
 void post(const char *msg, ...);
-#define ZL_LOG(...)    post("pdp_" __VA_ARGS__)
-#define ZL_PERROR(...) perror("pdp_" __VA_ARGS__)
+#define ZL_LOG(format, ...)    post("pdp_" format, __VA_ARGS__)
+#define ZL_PERROR(format, ...) perror("pdp_" format, __VA_ARGS__)
 
 #else
 
@@ -18,7 +18,7 @@ void post(const char *msg, ...);
 static inline void ZL_LOG(const char *msg, ...) {
     va_list vl;
     va_start(vl,msg);
-    fprintf(stderr, "zl_");
+    // fprintf(stderr, "zl_");
     vfprintf(stderr, msg, vl);
     fprintf(stderr, "\n");
     va_end(vl);

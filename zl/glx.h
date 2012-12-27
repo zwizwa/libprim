@@ -55,38 +55,39 @@ typedef struct zl_glx
     int image_height;
 
 
-} zl_glx_t;
+} zl_glx, *zl_glx_p;
 
 
 /* cons */
-void zl_glx_init(zl_glx_t *x);
-zl_glx_t *zl_glx_new(void);
+void zl_glx_init(zl_glx *x);
+zl_glx *zl_glx_new(void);
 
 /* des */
-void zl_glx_cleanup(zl_glx_t* x);
-void zl_glx_free(zl_glx_t* x);
+void zl_glx_cleanup(zl_glx* x);
+void zl_glx_free(zl_glx* x);
 
 
-/* open an opengl context */
-int zl_glx_open_on_display(zl_glx_t *x, zl_xwindow_p w, zl_xdisplay_p d);
+/* Open an opengl context.
+   Call this before zl_xwindow_config() */
+int zl_glx_open_on_display(zl_glx *x, zl_xwindow_p w, zl_xdisplay_p d);
 
 /* close an opengl context */
-void zl_glx_close(zl_glx_t* x);
+void zl_glx_close(zl_glx* x);
 
 /* display a packet */
-//void zl_glx_display_packet(zl_glx_t *x, xwindow *xwin, pf_packet_t packet);
+//void zl_glx_display_packet(zl_glx *x, xwindow *xwin, pf_packet_t packet);
 
 /* get texture data buffer */
-void *zl_glx_image_data(zl_glx_t *x, zl_xwindow_p xwin, 
+void *zl_glx_image_data(zl_glx *x, zl_xwindow_p xwin, 
                         unsigned int width, unsigned int height);
 
 /* display the texture */
-void zl_glx_image_display(zl_glx_t *x, zl_xwindow_p xwin);
+void zl_glx_image_display(zl_glx *x, zl_xwindow_p xwin);
 
 
 /* opengl specific stuff*/
-void zl_glx_swapbuffers(zl_glx_t *x, zl_xwindow_p xwin);
-void zl_glx_makecurrent(zl_glx_t *x, zl_xwindow_p xwin);
+void zl_glx_swapbuffers(zl_glx *x, zl_xwindow_p xwin);
+void zl_glx_makecurrent(zl_glx *x, zl_xwindow_p xwin);
 
 
 /* opengl sync module 

@@ -34,10 +34,10 @@
 #define D if (0)
 
 
-static zl_glx_t *current_context = 0;
+static zl_glx *current_context = 0;
 
 /* cons */
-void zl_glx_init(zl_glx_t *x)
+void zl_glx_init(zl_glx *x)
 {
     memset(x, 0, sizeof(*x));
     x->tex_width = 1; // smallest nonzero (for mul 2) dummy size
@@ -45,14 +45,14 @@ void zl_glx_init(zl_glx_t *x)
     x->format = GL_RGB; // FIXME: This is never set
 }
 
-zl_glx_t *zl_glx_new(void){
-    zl_glx_t *x = malloc(sizeof(*x));
+zl_glx *zl_glx_new(void){
+    zl_glx *x = malloc(sizeof(*x));
     zl_glx_init(x);
     return x;
 }
 
 /* des */
-void zl_glx_cleanup(zl_glx_t* x)
+void zl_glx_cleanup(zl_glx* x)
 {
     // XEvent e;
 
@@ -62,7 +62,7 @@ void zl_glx_cleanup(zl_glx_t* x)
 	x->initialized = 0;
     }
 }
-void zl_glx_free(zl_glx_t* x){
+void zl_glx_free(zl_glx* x){
     
     // fprintf(stderr, "zl_glx_free: FIXME: free texture\n");
     if (glIsTexture(x->texture)){glDeleteTextures(1, &(x->texture));}
@@ -70,11 +70,11 @@ void zl_glx_free(zl_glx_t* x){
 }
 
 
-void zl_glx_swapbuffers(zl_glx_t *x, zl_xwindow_p xwin)
+void zl_glx_swapbuffers(zl_glx *x, zl_xwindow_p xwin)
 {
     glXSwapBuffers(x->xdpy->dpy, xwin->win);
 }
-void zl_glx_makecurrent(zl_glx_t *x, zl_xwindow_p xwin)
+void zl_glx_makecurrent(zl_glx *x, zl_xwindow_p xwin)
 {
     if (x != current_context){
 
@@ -90,14 +90,14 @@ void zl_glx_makecurrent(zl_glx_t *x, zl_xwindow_p xwin)
 }
 
 
-void *zl_glx_image_data(zl_glx_t* x, zl_xwindow_p xwin,
+void *zl_glx_image_data(zl_glx* x, zl_xwindow_p xwin,
 			unsigned int w, unsigned int h){
 
     if (!x->initialized) return 0;
 
     x->image_width = w;
     x->image_height = h;
-    
+
     int tex_width = x->tex_width;
     int tex_height = x->tex_height;
 
@@ -122,30 +122,15 @@ void *zl_glx_image_data(zl_glx_t* x, zl_xwindow_p xwin,
 	glBindTexture(GL_TEXTURE_2D, x->texture);
     }
     return x->data;
- 
 }
-/* display the texture */
-void zl_glx_image_display(zl_glx_t *x, zl_xwindow_p xwin){
 
-    /* set window context current
-       just to make sure we don't conflict with other contexts */
-    zl_glx_makecurrent(x, xwin);
 
-    /* get fractional dimensions */
-    float fx = (float)x->image_width / (float)x->tex_width;
-    float fy = (float)x->image_height / (float)x->tex_height;
 
+void display_texture(void *ctx, int w, int h) {
+    zl_glx *x = ctx;
     /* upload subtexture */
     glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, x->image_width, x->image_height, 
-		    x->format, GL_UNSIGNED_BYTE, x->data);
-	    
-    /* setup viewport, projection and modelview */
-    glViewport(0, 0, xwin->winwidth, xwin->winheight);
-    glMatrixMode(GL_PROJECTION);
-    glLoadIdentity();
-    gluOrtho2D(0.0, xwin->winwidth, 0.0, xwin->winheight);
-    glMatrixMode(GL_MODELVIEW);
-    glLoadIdentity();
+                    x->format, GL_UNSIGNED_BYTE, x->data);
 
     /* enable default texture */
     glEnable(GL_TEXTURE_2D);
@@ -156,27 +141,55 @@ void zl_glx_image_display(zl_glx_t *x, zl_xwindow_p xwin){
     glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MAG_FILTER,GL_LINEAR);
     glTexEnvi(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_MODULATE);
 
-    /* display texture */  
-    glBegin(GL_QUADS);
-        glTexCoord2f(fx, fy);
-        glVertex2i(xwin->winwidth,0);
-        glTexCoord2f(fx, 0);
-	glVertex2i(xwin->winwidth, xwin->winheight);
-        glTexCoord2f(0.0, 0.0);
-	glVertex2i(0, xwin->winheight);
-        glTexCoord2f(0, fy);
-	glVertex2i(0,0);
-    glEnd();
+    /* get fractional dimensions */
+    float fx = (float)x->image_width / (float)x->tex_width;
+    float fy = (float)x->image_height / (float)x->tex_height;
 
+    /* display texture */
+    glBegin(GL_QUADS);
+    {
+        glTexCoord2f(fx, fy);
+        glVertex2i(w,0);
+        glTexCoord2f(fx, 0);
+        glVertex2i(w, h);
+        glTexCoord2f(0.0, 0.0);
+        glVertex2i(0, h);
+        glTexCoord2f(0, fy);
+        glVertex2i(0,0);
+    }
+    glEnd();
+}
+
+
+void zl_glx_2d_display(zl_glx *x, zl_xwindow_p xwin,
+                       void (*draw)(void*,int,int), void *ctx) {
+
+    /* set window context current
+       just to make sure we don't conflict with other contexts */
+    zl_glx_makecurrent(x, xwin);
+
+    /* setup viewport, projection and modelview */
+    glViewport(0, 0, xwin->winwidth, xwin->winheight);
+    glMatrixMode(GL_PROJECTION);
+    glLoadIdentity();
+    gluOrtho2D(0.0, xwin->winwidth, 0.0, xwin->winheight);
+    glMatrixMode(GL_MODELVIEW);
+    glLoadIdentity();
+
+    /* user drawing routine */
+    draw(ctx, xwin->winwidth, xwin->winheight);
 
     glFlush();
     glXSwapBuffers(x->xdpy->dpy, xwin->win);
 
 }
 
+void zl_glx_image_display(zl_glx *x, zl_xwindow_p xwin) {
+    zl_glx_2d_display(x, xwin, display_texture, x);
+}
 
 /* open an opengl context */
-int zl_glx_open_on_display(zl_glx_t *x, zl_xwindow_p w, zl_xdisplay_p d)
+int zl_glx_open_on_display(zl_glx *x, zl_xwindow_p w, zl_xdisplay_p d)
 {
     static int vis_attr[] = {GLX_RGBA, 
 			     GLX_RED_SIZE, 4, 
