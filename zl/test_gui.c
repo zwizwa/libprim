@@ -53,47 +53,66 @@ int box_index(struct box *b) {
 }
 
 
+/**** Abstract event handler */
+struct control_state {
+    struct box *b0;  // box of last click
+    int x0;          // coords ..
+    int y0;
+};
+enum control_event {
+    ce_press,
+    ce_motion,
+    ce_release,
+};
+static struct control_state control_state = {};
 
-/**** X EVENT HANDLER ****/
-
-// FIXME: decouple drag state and button routing from X event.
-
-/* Implement the simplest possible router, so code is easy adapt. */
-void handle_event(void *context, XEvent *e) {
-    /* Last press state */
-    static struct box *b0;
-    static int x0;
-    static int y0;
-
-    int x = e->xbutton.x;
-    int y = e->xbutton.y;
-
-    /* Use OpenGL style positive y axis */
-    y = HEIGHT - y;
-
+void handle_event(struct control_state *s,
+                  enum control_event e, int x, int y) {
     struct box *b = find_box(x, y);
-    switch(e->type) {
-    case ButtonPress:
+    switch(e) {
+    case ce_press:
         /* Record state of last press as it determines drag routing. */
-        b0 = b; x0 = x; y0 = y;
-    case MotionNotify:
-        if (b0) {
-            ZL_LOG("drag %s (%d, %d)", b0->name, x-x0, y-y0);
-            b0->dv = y-y0;
+        s->b0 = b;
+        s->x0 = x;
+        s->y0 = y;
+    case ce_motion:
+        if (s->b0) {
+            int dx = x - s->x0;
+            int dy = y - s->y0;
+            ZL_LOG("drag %s (%d, %d)", s->b0->name, dx, dy);
+            s->b0->dv = dy;
         }
         else {
             ZL_LOG("motion (%d,%d) %s", x, y, b ? b->name : "<none>");
         }
         break;
-    case ButtonRelease:
+    case ce_release:
         /* Commit delta */
-        b0->v += b0->dv;
-        b0->dv = 0;
-        b0 = NULL;
+        s->b0->v += s->b0->dv;
+        s->b0->dv = 0;
+        s->b0 = NULL;
         break;
     default:
         break;
     }
+}
+
+
+
+/**** X EVENT HANDLER ****/
+
+// FIXME: decouple drag state and button routing from X event.
+
+/* Translate X events to abstract events */
+void handle_XEvent(void *ctx, XEvent *e) {
+    enum control_event ce;
+    switch(e->type) {
+    case ButtonPress:   ce = ce_press;   break;
+    case MotionNotify:  ce = ce_motion;  break;
+    case ButtonRelease: ce = ce_release; break;
+    default: return;
+    }
+    handle_event(ctx, ce, e->xbutton.x, HEIGHT - e->xbutton.y);
 }
 
 /**** VIEW ****/
@@ -154,7 +173,7 @@ int main(void) {
         } else {
             zl_glx_2d_display(glx, xw, draw_view, NULL);
             zl_xdisplay_route_events(xd);
-            zl_xwindow_for_events(xw, handle_event, NULL);
+            zl_xwindow_for_events(xw, handle_XEvent, &control_state);
         }
     }
 
