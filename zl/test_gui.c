@@ -79,11 +79,11 @@ void handle_event(struct control_state *s,
         if (s->b0) {
             int dx = x - s->x0;
             int dy = y - s->y0;
-            ZL_LOG("drag %s (%d, %d)", s->b0->name, dx, dy);
+            // ZL_LOG("drag %s (%d, %d)", s->b0->name, dx, dy);
             s->b0->dv = dy;
         }
         else {
-            ZL_LOG("motion (%d,%d) %s", x, y, b ? b->name : "<none>");
+            // ZL_LOG("motion (%d,%d) %s", x, y, b ? b->name : "<none>");
         }
         break;
     case ce_release:
@@ -121,7 +121,7 @@ void draw_box(struct box *b) {
     glMatrixMode(GL_MODELVIEW);
         glPushMatrix();
         glTranslatef(b->x, b->y, 0);
-        ZL_LOG("%s %d", b->name, v);
+        // ZL_LOG("%s %d", b->name, v);
         glColor3ub(v,v,v);
         glBegin(GL_QUADS);
             glVertex2i(b->w,0);
