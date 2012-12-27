@@ -17,7 +17,9 @@
 struct box;
 typedef void (*handler)(struct box *b, int w, int y);
 struct box {
-    int value;  // later, connect to model
+    bool focus;
+    int v;  // later, connect to model
+    int dv; // current delta (interesting!)
     const char *name;
     int x,y,w,h;
 };
@@ -51,6 +53,11 @@ int box_index(struct box *b) {
 }
 
 
+
+/**** X EVENT HANDLER ****/
+
+// FIXME: decouple drag state and button routing from X event.
+
 /* Implement the simplest possible router, so code is easy adapt. */
 void handle_event(void *context, XEvent *e) {
     /* Last press state */
@@ -60,6 +67,10 @@ void handle_event(void *context, XEvent *e) {
 
     int x = e->xbutton.x;
     int y = e->xbutton.y;
+
+    /* Use OpenGL style positive y axis */
+    y = HEIGHT - y;
+
     struct box *b = find_box(x, y);
     switch(e->type) {
     case ButtonPress:
@@ -68,12 +79,16 @@ void handle_event(void *context, XEvent *e) {
     case MotionNotify:
         if (b0) {
             ZL_LOG("drag %s (%d, %d)", b0->name, x-x0, y-y0);
+            b0->dv = y-y0;
         }
         else {
             ZL_LOG("motion (%d,%d) %s", x, y, b ? b->name : "<none>");
         }
         break;
     case ButtonRelease:
+        /* Commit delta */
+        b0->v += b0->dv;
+        b0->dv = 0;
         b0 = NULL;
         break;
     default:
@@ -81,6 +96,32 @@ void handle_event(void *context, XEvent *e) {
     }
 }
 
+/**** VIEW ****/
+void draw_box(struct box *b) {
+    int v = b->v + b->dv;
+    glMatrixMode(GL_MODELVIEW);
+        glPushMatrix();
+        glTranslatef(b->x, b->y, 0);
+        ZL_LOG("%s %d", b->name, v);
+        glColor3ub(v,v,v);
+        glBegin(GL_QUADS);
+            glVertex2i(b->w,0);
+            glVertex2i(b->w, b->h);
+            glVertex2i(0, b->h);
+            glVertex2i(0,0);
+        glEnd();
+    glPopMatrix();
+}
+void draw_view(void *ctx, int w, int h) {
+    struct box *b;
+    A_FOR(b, top_box) { draw_box(b); }
+}
+
+
+/**** ZL objects ****/
+
+void zl_glx_2d_display(zl_glx *x, zl_xwindow_p xwin,
+                       void (*draw)(void*,int,int), void *ctx);
 int main(void) {
 
     zl_xdisplay *xd = zl_xdisplay_new(":0");
@@ -111,7 +152,7 @@ int main(void) {
         if (NULL == video_data) {
             ZL_LOG("video_data == NULL");
         } else {
-            zl_glx_image_display(glx, xw);
+            zl_glx_2d_display(glx, xw, draw_view, NULL);
             zl_xdisplay_route_events(xd);
             zl_xwindow_for_events(xw, handle_event, NULL);
         }
