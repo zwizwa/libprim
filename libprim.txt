@@ -11174,3 +11174,63 @@ typedef struct {
 	int win_gravity;
 	/* this structure may be extended in the future */
 } XSizeHints;
+
+
+
+
+Entry: Sync to VBLANK
+Date: Wed Dec 26 22:50:38 EST 2012
+
+Why is this so difficult?
+Apparently it's possible in DRI2 with a recent kernel (post from 2010).
+Or is this only for nvidia?
+
+So... if glxgears can do it, so can I..
+Anyway, can look in the Debian Mesa sources later
+The package is mesa-utils, or mesa source package.
+
+Some code here[2].
+
+  589 static void
+  590 query_vsync(Display *dpy, GLXDrawable drawable)
+  591 {
+  592    int interval = 0;
+  593 
+  594 #if defined(GLX_EXT_swap_control)
+  595    if (is_glx_extension_supported(dpy, "GLX_EXT_swap_control")) {
+  596        unsigned int tmp = -1;
+  597        glXQueryDrawable(dpy, drawable, GLX_SWAP_INTERVAL_EXT, &tmp);
+  598        interval = tmp;
+  599    } else
+  600 #endif
+  601    if (is_glx_extension_supported(dpy, "GLX_MESA_swap_control")) {
+  602       PFNGLXGETSWAPINTERVALMESAPROC pglXGetSwapIntervalMESA =
+  603           (PFNGLXGETSWAPINTERVALMESAPROC)
+  604           glXGetProcAddressARB((const GLubyte *) "glXGetSwapIntervalMESA");
+  605 
+  606       interval = (*pglXGetSwapIntervalMESA)();
+  607    } else if (is_glx_extension_supported(dpy, "GLX_SGI_swap_control")) {
+  608       /* The default swap interval with this extension is 1.  Assume that it
+  609        * is set to the default.
+  610        *
+  611        * Many Mesa-based drivers default to 0, but all of these drivers also
+  612        * export GLX_MESA_swap_control.  In that case, this branch will never
+  613        * be taken, and the correct result should be reported.
+  614        */
+  615       interval = 1;
+  616    }
+  617 
+  618 
+  619    if (interval > 0) {
+  620       printf("Running synchronized to the vertical refresh.  The framerate should be\n");
+  621       if (interval == 1) {
+  622          printf("approximately the same as the monitor refresh rate.\n");
+  623       } else if (interval > 1) {
+  624          printf("approximately 1/%d the monitor refresh rate.\n",
+  625                 interval);
+  626       }
+  627    }
+  628 }
+
+[1] http://cgit.freedesktop.org/nouveau/xf86-video-nouveau/commit/?id=70f0d2c886ceaa965ca4864788f4dd8e8f757a92
+[2] http://fossies.org/dox/MesaDemos-7.8.2/glxgears_8c_source.html

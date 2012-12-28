@@ -25,6 +25,7 @@
 
 #include "zl/xwindow.h"
 #include <string.h>
+#include <stdbool.h>
 #include <GL/gl.h>
 #include <GL/glx.h>
 #include <GL/glu.h>
@@ -89,6 +90,7 @@ void zl_glx_image_display(zl_glx *x, zl_xwindow_p xwin);
 void zl_glx_swapbuffers(zl_glx *x, zl_xwindow_p xwin);
 void zl_glx_makecurrent(zl_glx *x, zl_xwindow_p xwin);
 
+void zl_glx_vsync(zl_glx *x, bool sync);
 
 /* opengl sync module 
    this uses GLX_SGI_video_sync to sync to retrace

@@ -114,7 +114,6 @@ void handle_XEvent(void *ctx, XEvent *e) {
     }
     handle_event(ctx, ce, e->xbutton.x, HEIGHT - e->xbutton.y);
 }
-
 /**** VIEW ****/
 void draw_box(struct box *b) {
     int v = b->v + b->dv;
@@ -155,26 +154,28 @@ int main(void) {
         exit(1);
     }
     zl_xwindow_config(xw, xd);
-
-    unsigned char *video_data =
-        zl_glx_image_data(glx, xw, WIDTH, HEIGHT);
+    // zl_glx_vsync(glx, false);
 
     int frame = 0;
+    struct timeval tv_last = {};
     while (1) {
-        // ZL_LOG("frame %d", frame++);
-        usleep(50000);
-        unsigned char v = random();
-        int i,nb_pixels = 3 * WIDTH * HEIGHT;
-        for (i = 0; i<nb_pixels; i++) {
-            video_data[i] = v++;
+        struct timeval tv_current = {};
+        gettimeofday(&tv_current, NULL);
+        int sec  = tv_current.tv_sec  - tv_last.tv_sec;
+        int usec = tv_current.tv_usec - tv_last.tv_usec;
+        tv_last = tv_current;
+        if (usec < 0) {
+            sec--;
+            usec += 1000000;
         }
-        if (NULL == video_data) {
-            ZL_LOG("video_data == NULL");
-        } else {
-            zl_glx_2d_display(glx, xw, draw_view, NULL);
-            zl_xdisplay_route_events(xd);
-            zl_xwindow_for_events(xw, handle_XEvent, &control_state);
-        }
+        usec += sec * 1000000;
+        fprintf(stderr, "%7d us  \r", usec);
+
+        //ZL_LOG("frame %d", frame++);
+        //usleep(10000);
+        zl_glx_2d_display(glx, xw, draw_view, NULL);
+        zl_xdisplay_route_events(xd);
+        zl_xwindow_for_events(xw, handle_XEvent, &control_state);
     }
 
     zl_xdisplay_unregister_window(xd, xw);

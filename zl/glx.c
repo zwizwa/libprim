@@ -22,6 +22,8 @@
 #include <stdio.h>
 #include <string.h>
 #include <unistd.h>
+#include <stdbool.h>
+#include <zl/config.h>
 
 //#include <pf/typedefs.h>
 #define PRIVATE
@@ -33,6 +35,15 @@
 
 #define D if (0)
 
+/* ------------------------- GLX_MESA_swap_control ------------------------- */
+#ifndef GLX_MESA_swap_control
+#define GLX_MESA_swap_control 1
+typedef int ( * PFNGLXGETSWAPINTERVALMESAPROC) (void);
+typedef int ( * PFNGLXSWAPINTERVALMESAPROC) (unsigned int interval);
+#define glXGetSwapIntervalMESA GLXEW_GET_FUN(__glewXGetSwapIntervalMESA)
+#define glXSwapIntervalMESA GLXEW_GET_FUN(__glewXSwapIntervalMESA)
+#define GLXEW_MESA_swap_control GLXEW_GET_VAR(__GLXEW_MESA_swap_control)
+#endif /* GLX_MESA_swap_control */
 
 static zl_glx *current_context = 0;
 
@@ -188,7 +199,69 @@ void zl_glx_image_display(zl_glx *x, zl_xwindow_p xwin) {
     zl_glx_2d_display(x, xwin, display_texture, x);
 }
 
-/* open an opengl context */
+
+
+int GLXExtensionSupported(Display *dpy, const char *extension) {
+    const char *extensionsString;
+    char *pos;
+    extensionsString = glXQueryExtensionsString(dpy, DefaultScreen(dpy));
+    pos = strstr(extensionsString, extension);
+    return pos!=NULL && (pos==extensionsString || pos[-1]==' ') &&
+        (pos[strlen(extension)]==' ' || pos[strlen(extension)]=='\0');
+}
+
+
+// VBLANK config, template from http://forum.openframeworks.cc/index.php?topic=561.0
+typedef GLvoid (*glXSwapIntervalSGIFunc) (GLint);
+typedef GLvoid (*glXSwapIntervalMESAFunc) (GLint);
+
+
+#define TARGET_LINUX
+void zl_glx_vsync(zl_glx *x, bool sync) {
+#ifdef TARGET_WIN32
+    if (sync) {
+        if (GLEE_WGL_EXT_swap_control) wglSwapIntervalEXT (1);
+    } else {
+        if (GLEE_WGL_EXT_swap_control) wglSwapIntervalEXT (0);
+    }
+#endif
+#ifdef TARGET_OSX
+    long sync = sync ? 1 : 0;
+    CGLSetParameter (CGLGetCurrentContext(), kCGLCPSwapInterval, &sync);
+#endif
+#ifdef TARGET_LINUX
+    int interval = sync ? 2 : 0;
+    glXSwapIntervalSGIFunc glXSwapIntervalSGI = 0;
+    glXSwapIntervalMESAFunc glXSwapIntervalMESA = 0;
+
+    if (GLXExtensionSupported(x->xdpy->dpy, "GLX_MESA_swap_control")) {
+        glXSwapIntervalMESA = (glXSwapIntervalMESAFunc)
+            glXGetProcAddressARB((const GLubyte *)"glXSwapIntervalMESA");
+        if (glXSwapIntervalMESA) {
+            ZL_LOG("glXSwapIntervalMESA(%d)", interval);
+            glXSwapIntervalMESA (interval);
+        }
+        else {
+            ZL_LOG("Could not get glXSwapIntervalMESA()\n");
+        }
+    }
+    else if (GLXExtensionSupported(x->xdpy->dpy, "GLX_SGI_swap_control")) {
+        glXSwapIntervalSGI = (glXSwapIntervalSGIFunc)
+            glXGetProcAddressARB((const GLubyte *)"glXSwapIntervalSGI");
+        if (glXSwapIntervalSGI) {
+            ZL_LOG("glXSwapIntervalSGI(%d)", interval, glXSwapIntervalSGI);
+            glXSwapIntervalSGI (interval);
+        }
+        else {
+            ZL_LOG("Could not get glXSwapIntervalSGI()\n");
+        }
+    }
+    else {
+        ZL_LOG("can't change vblank settings");
+    }
+#endif
+}
+
 int zl_glx_open_on_display(zl_glx *x, zl_xwindow_p w, zl_xdisplay_p d)
 {
     static int vis_attr[] = {GLX_RGBA, 
@@ -253,6 +326,8 @@ int zl_glx_open_on_display(zl_glx *x, zl_xwindow_p w, zl_xdisplay_p d)
 	InputOutput, x->vis_info->visual,
 	CWBorderPixel | CWColormap | CWEventMask, &swa);
 
+
+
     x->initialized = 1;
 
     return 1;
@@ -265,15 +340,6 @@ int zl_glx_open_on_display(zl_glx *x, zl_xwindow_p w, zl_xdisplay_p d)
 
 
 
-int GLXExtensionSupported(Display *dpy, const char *extension)
-{
-    const char *extensionsString;
-    char *pos;
-    extensionsString = glXQueryExtensionsString(dpy, DefaultScreen(dpy));
-    pos = strstr(extensionsString, extension);
-    return pos!=NULL && (pos==extensionsString || pos[-1]==' ') &&
-        (pos[strlen(extension)]==' ' || pos[strlen(extension)]=='\0');
-}
 
 void handle_error(char *msg){
     fprintf(stderr, "%s\n", msg);
