@@ -32,7 +32,7 @@ CPPFLAGS := \
 	-DTARGET=\"$(TARGET)\" \
 	-DPRIM_HOME=\"$(SRC)/\" \
 	-DHAVE_LEAF
-CFLAGS   := -g -O0
+CFLAGS   := -g -O0 -Wall
 LDFLAGS  :=
 GCC      := $(TOOL_PREFIX)gcc
 AS       := $(TOOL_PREFIX)as
