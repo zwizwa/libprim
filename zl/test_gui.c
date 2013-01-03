@@ -7,12 +7,23 @@
 #include <zl/config.h>
 #include <sys/time.h>  // gettimeofday()
 
-#define WIDTH  512
-#define HEIGHT 256
+#include "segment.h"
+
+/* 7-segment size */
+#define S_T  1 // thickness
+#define S_W  3 // horizontal segment width
+#define S_H  2 // vertical segment height
+
+#define WINDOW_WIDTH  512
+#define WINDOW_HEIGHT 256
+
 #define SLIDER_PIXELS 5
 #define SLIDER_BORDER 10
+#define SLIDER_MARGIN 0
+
+// stick to MIDI
 #define CLIP_LO 0
-#define CLIP_HI 127 // stick to MIDI
+#define CLIP_HI 127
 
 #define CLIP clip
 static inline int clip(int v) {
@@ -84,12 +95,6 @@ static void gl_rect_w(int x, int y, int w, int h) {
      D
 */
 
-#include "segment.h"
-
-
-#define S_T  1
-#define S_W  2
-#define S_H  2
 
 static bool s_color(bool on) {
     if (on) glColor3f(0.5,0,0);
@@ -175,16 +180,30 @@ void slider_draw(struct slider *s) {
         }
         gl_rect(0,0,s->box.w,s->box.h);
 
+        /* Level marks */
+        int i;
+        glColor3f(.3,.3,.3);
+        for (i=0; i<11; i++) {
+            int b = 15;
+            int y = i*13;
+            b -= ((i % 5) == 0) ? 5 : 0;
+            gl_rect(b,            y,
+                    s->box.w - b, y+2);
+        }
 
         /* Slider bar */
-        glColor3f(1,1,1);
-        int p = SLIDER_PIXELS/2;
-        int b = SLIDER_BORDER;
-        gl_rect(b,            v - p,
-                s->box.w - b, v + p);
+        if (1) {
+            glColor3f(.7,.7,.7);
+            int p = SLIDER_PIXELS/2;
+            int b = SLIDER_BORDER;
+            gl_rect(b,            v - p,
+                    s->box.w - b, v + p);
+        }
 
         /* Numbers */
-        segment_draw_number(v, 3);
+        if (1) {
+            segment_draw_number(v, 3);
+        }
 
 
     glPopMatrix();
@@ -197,8 +216,8 @@ METHOD_LIST(BOX_SLIDER_MEMBER)
 
 /* TOP ZONE: static structure */
 
-#define DW (WIDTH/8)
-#define DH (HEIGHT/2)
+#define DW (WINDOW_WIDTH/8)
+#define DH (WINDOW_HEIGHT/2)
 
 #define GUI_SLIDERS(m)  \
     m(A0,0,0)           \
@@ -218,7 +237,16 @@ METHOD_LIST(BOX_SLIDER_MEMBER)
     m(G1,6,1)           \
     m(H1,7,1)
 
-#define DEF_SLIDER(n,gx,gy) struct slider box_##n = {.box = {.name = #n, .x = gx*DW, .y = gy*DH, .w=DW, .h=DH, .class = &slider_class }};
+
+#define DEF_SLIDER(n,gx,gy) \
+struct slider box_##n = {.box = {\
+.name = #n, \
+.x = gx*DW + SLIDER_MARGIN, \
+.y = gy*DH + SLIDER_MARGIN, \
+.w=DW - 2*SLIDER_MARGIN, \
+.h=DH - 2*SLIDER_MARGIN, \
+.class = &slider_class }};
+
 #define REF_SLIDER(n,...)   (struct box*)&box_##n,
 
 GUI_SLIDERS(DEF_SLIDER)
@@ -248,6 +276,8 @@ int box_index(struct box *_b) {
 }
 void draw_view(void *ctx, int w, int h) {
     struct box **b;
+    glColor3f(0,0,0);
+    gl_rect(0, 0, WINDOW_WIDTH, WINDOW_HEIGHT);
     BOX_FOR(b, boxes) { (*b)->class->draw(*b); }
 }
 
@@ -359,7 +389,7 @@ void handle_XEvent(void *ctx, XEvent *e) {
     }
 
     // FIXME: get height from window, or keep fixed?
-    handle_event(ctx, ce, e->xbutton.x, HEIGHT - e->xbutton.y, but);
+    handle_event(ctx, ce, e->xbutton.x, WINDOW_HEIGHT - e->xbutton.y, but);
 }
 
 
@@ -371,7 +401,7 @@ int main(void) {
 
     zl_xdisplay *xd = zl_xdisplay_new(":0");
     zl_xwindow *xw = zl_xwindow_new();
-    zl_xwindow_resize(xw, WIDTH, HEIGHT);
+    zl_xwindow_resize(xw, WINDOW_WIDTH, WINDOW_HEIGHT);
     zl_xwindow_cursor(xw, 1);
     zl_glx *glx = zl_glx_new();
 
