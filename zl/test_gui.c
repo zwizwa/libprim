@@ -17,7 +17,7 @@
 #define WINDOW_WIDTH  512
 #define WINDOW_HEIGHT 256
 
-#define SLIDER_NX 12
+#define SLIDER_NX 8
 #define SLIDER_NY 2
 #define SLIDER_PIXELS 5
 #define SLIDER_BORDER 10
@@ -151,24 +151,39 @@ static void segment_draw_number(int number, int nb_digits) {
 }
 
 
-/* SLIDER */
-// FIXME: this is model data: slider should be stateless.
+/* VARIABLE: a simple variable model capable of representing an
+   in-progress edit as v+dv  */
+struct variable {
+    int v;
+    int dv;
+};
+int variable_get(struct variable *var) {
+    return var->v + var->dv;
+}
+void variable_set_delta(struct variable *var, int dv) {
+    /* Keep v+dv in proper range. */
+    int v = clip(var->v + dv);
+    var->dv = v - var->v;
+}
+void variable_commit(struct variable *var) {
+    var->v += var->dv;
+    var->dv = 0;
+}
+
+
+/* SLIDER == a box connected to a variable model. */
 struct slider {
     struct box box;
-    int dv;
-    int v;
+    struct variable *var;
 };
 void slider_set_delta(struct slider *s, int dx, int dy) {
-    /* Keep v+dv in proper range. */
-    int v = clip(s->v + dy);
-    s->dv = v - s->v;
+    if (s->var) variable_set_delta(s->var, dy);
 }
 void slider_commit(struct slider *s) {
-    s->v += s->dv;
-    s->dv = 0;
+    if (s->var) variable_commit(s->var);
 }
 void slider_draw(struct slider *s) {
-    int v = s->v + s->dv;
+    int v = variable_get(s->var);
 
     glMatrixMode(GL_MODELVIEW);
     glPushMatrix();
@@ -231,10 +246,15 @@ static void init_boxes(void) {
     int ny = SLIDER_NY;
     int DW = WINDOW_WIDTH / nx;
     int DH = WINDOW_HEIGHT / ny;
-
-    boxes = calloc(1 + (nx * ny), sizeof(void *));
     int x,y;
     int i = 0;
+
+    struct variable *var[nx];
+    for (x = 0; x < nx; x++) {
+        var[x] = calloc(1, sizeof(var[x]));
+        var[x]->v = 64;
+    }
+    boxes = calloc(1 + (nx * ny), sizeof(void *));
     for (y = 0; y < ny; y++) {
         for (x = 0; x < nx; x++) {
             struct slider *s = calloc(1, sizeof(*s));
@@ -244,6 +264,7 @@ static void init_boxes(void) {
             s->box.w = DW - 2*SLIDER_MARGIN;
             s->box.h = DH - 2*SLIDER_MARGIN;
             s->box.class = &slider_class;
+            s->var = var[x];
             boxes[i++] = &(s->box);
         }
     }
