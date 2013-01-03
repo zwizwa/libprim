@@ -188,11 +188,12 @@ object _ex_write(ex *ex, object o) {
 
 // types_add(types *m, void *type) {}
 _ _ex_printf(ex *ex, const char *fmt, ...) {
-    int rv;
+    // int rv;
     port *p = ex->port(ex);
     if (p) {
         va_list ap; va_start(ap, fmt);
-        rv = port_vprintf(p, fmt, ap);
+        // rv = 
+        port_vprintf(p, fmt, ap);
         va_end(ap);
     }
     return VOID;

@@ -350,7 +350,7 @@ _ px_write(pf *pf, _ ob) {
     /* Primitive or quoted datum. */
     else if ((x = object_to_quote(EX, ob)) ||
              (x = object_to_prim(EX, ob))) {
-        quote *q = (quote*)x;
+        // quote *q = (quote*)x;
         /* Print it as a singleton. */
         _ex_printf(EX, CL);
         px_write_name_or_quotation(pf, ob);

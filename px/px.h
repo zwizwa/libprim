@@ -4,11 +4,12 @@
 #include <pf/pf.g.h>
 #include <px/px.g.h>
 
-static void _exch(_*a, _*b) {
+static inline void _exch(_*a, _*b) {
     _ tmp = *a;
     *a = *b;
     *b = tmp;
 }
+
 _ static inline _move(_ *ob, _ filler) {
     _ o = *ob; 
     *ob = filler; 

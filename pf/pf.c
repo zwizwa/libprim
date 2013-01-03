@@ -38,7 +38,7 @@ typedef void (*pf_prim)(pf*);
 /* Error pushes the parameter and continuation */
 void _pf_set_error(pf *pf, int rv, void *data) {
     if (rv == EXCEPT_LEAF) {
-        leaf_error_info *info = data;
+        // leaf_error_info *info = data;
         TRAP();
     }
     else if (rv == EXCEPT_ABORT) {
@@ -53,7 +53,7 @@ void _px_run(pf *pf) {
     seq *s;
     prim *p;
     quote *q;
-    box *b;
+    // box *b;
     lin *l;
 
     pf_prim fn = NULL;
@@ -569,12 +569,6 @@ void pf_each(pf *pf) {
 }
 
 
-void pf_domap(pf *pf) {
-    _ fn = TOP;
-}
-
-
-
 
 /* Project linear/nonlinear code -> linear code */
 void pf_to_lcode(pf *pf) {
@@ -681,7 +675,7 @@ void pf_bang_lunrun_and_compose(pf *pf) {
 }
 
 void pf_bang_cc(pf *pf) {
-    _ v = TOP;
+    // _ v = TOP;
     _px_unlink(pf, pf->k);
     pf->k = MOVE(_TOP, VOID);
     _DROP();

@@ -13,9 +13,10 @@ void channel_register(channel *x) {
     pthread_mutex_unlock(&x->mut);
 }
 void channel_unregister(channel *x) {
-    int rc;
+    // int rc;
     pthread_mutex_lock(&x->mut);
-    rc = --(x->rc);
+    // rc = 
+    --(x->rc);
     pthread_cond_broadcast(&x->teardown_ok);
     pthread_mutex_unlock(&x->mut);
     // fprintf(stderr, "RC-- %d\n", rc);

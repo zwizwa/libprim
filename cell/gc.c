@@ -75,7 +75,7 @@ void mark_cells_prepare(void) {
 }
 void heap_clear(void) {
     /* Mark all cells as TAG_PAIR_FREE. */
-    int i;
+    // int i;
     heap_tag_phase = 0;
     heap_free = 0;
     memset(_heap_tag, 0xFF, sizeof(_heap_tag));
@@ -107,16 +107,16 @@ void cell_display_pair(cell *c) {
 }
 void cell_display_i(word i) {
     if (i >= heap_size) {
-        if (i >= HEAP_NUMBER_INDEX) DISP("%d", i & 0xFF);
+        if (i >= HEAP_NUMBER_INDEX) DISP("%d",(int) i & 0xFF);
         else {
-            const char *magic;
+            // const char *magic;
             switch (i) {
             case IVOID:  DISP("#<void>"); break;
             case INIL:   DISP("()"); break;
             case IFALSE: DISP("#f"); break;
             case ITRUE:  DISP("#t"); break;
             case IMT:    DISP("#<mt>"); break;
-            default:     DISP("#<invalid:%x>",i); break;
+            default:     DISP("#<invalid:%x>", (int)i); break;
             }
         }
     }

@@ -128,6 +128,7 @@ _ sc_write_port(sc *sc, _ o, _ o_port) {
        are no aborts in this dynamic extent!  FIXME: use explicit
        lexical variables where possible. */
     port *p = CAST(port, o_port);  // run for side-effect
+    if (!p) return VOID; // dummy to shut up warnings
     _ saved_port = sc_global(sc, sc_slot_error_port);
     sc_bang_set_global(sc, sc_slot_error_port, o_port);
     _ rv = sc->m.write(EX, o);
