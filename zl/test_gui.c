@@ -60,13 +60,17 @@ struct box {
 
 
 /* OpenGL tools */
-void gl_rect(int x0, int y0, int x1, int y1) {
+static void gl_rect(int x0, int y0, int x1, int y1) {
+    // ZL_LOG("gl_rect(%d,%d,%d,%d)", x0, y0, x1, y1);
     glBegin(GL_QUADS);
         glVertex2i(x0, y0);
         glVertex2i(x1, y0);
         glVertex2i(x1, y1);
         glVertex2i(x0, y1);
     glEnd();
+}
+static void gl_rect_w(int x, int y, int w, int h) {
+    gl_rect(x,y,x+w,y+h);
 }
 
 /* 7-SEGMENT
@@ -80,16 +84,56 @@ void gl_rect(int x0, int y0, int x1, int y1) {
 #include "segment.h"
 
 
-#define S_T  2
-#define S_W 10
-#define S_H 10
+#define S_T  1
+#define S_W  2
+#define S_H  2
 
+static bool s_color(bool on) {
+    if (on) glColor3f(0.5,0,0);
+    else    glColor3f(0.1,0,0);
+    return on;
+}
+static void segment_draw(unsigned char s, int x0) {
+    int w,h,x,y;
 
-void segment_draw(struct slider *s, char s) {
+    /* Horizontal bars */
+    x=S_T+x0;
+    y=0;
+    w=S_W;
+    h=S_T;
+    if (s_color(s&S_D)) gl_rect_w(x,y,w,h); y += S_T+S_H;
+    if (s_color(s&S_G)) gl_rect_w(x,y,w,h); y += S_T+S_H;
+    if (s_color(s&S_A)) gl_rect_w(x,y,w,h);
 
-    if (s&S_A) { gl_rect
+    /* Left bars */
+    x=x0;
+    y=S_T;
+    w=S_T;
+    h=S_H;
+    if (s_color(s&S_E)) gl_rect_w(x,y,w,h); y += S_T+S_H;
+    if (s_color(s&S_F)) gl_rect_w(x,y,w,h);
+
+    /* Right bars */
+    x=S_T+S_W+x0;
+    y=S_T;
+    if (s_color(s&S_C)) gl_rect_w(x,y,w,h); y += S_T+S_H;
+    if (s_color(s&S_B)) gl_rect_w(x,y,w,h);
+}
+const unsigned char digit_to_segment[10] = S_DIGITS_INIT;
+static void segment_draw_digit(int digit, int x0) {
+    if ((digit < 0) || (digit > 9)) return;
+    segment_draw(digit_to_segment[digit], x0);
+}
+
+static void segment_draw_number(int number, int nb_digits) {
+    int dx = S_T*3 + S_W;
+    int x0 = dx * nb_digits;
+    while(nb_digits--) {
+        int rem = number % 10;
+        number /= 10;
+        x0 -= dx;
+        segment_draw_digit(rem, x0);
     }
-
 }
 
 
@@ -130,6 +174,10 @@ void slider_draw(struct slider *s) {
         int b = SLIDER_BORDER;
         gl_rect(b,            v - p,
                 s->box.w - b, v + p);
+
+        /* Numbers */
+        segment_draw_number(v, 3);
+
 
     glPopMatrix();
 }

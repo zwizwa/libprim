@@ -1,101 +1,94 @@
-#define A |(1<<0)
-#define B |(1<<1)
-#define C |(1<<2)
-#define D |(1<<3)
-#define E |(1<<4)
-#define F |(1<<5)
-#define G |(1<<6)
+#define S_A (1<<0)
+#define S_B (1<<1)
+#define S_C (1<<2)
+#define S_D (1<<3)
+#define S_E (1<<4)
+#define S_F (1<<5)
+#define S_G (1<<6)
 
-static char segment_digits[10] = {
+#define S_DIGITS_INIT {                         \
+                                                \
+[0] = 0                                         \
+   |S_A                                         \
+|S_F   |S_B                                     \
+                                                \
+|S_E   |S_C                                     \
+   |S_D                                         \
+,                                               \
+                                                \
+[1] = 0                                         \
+                                                \
+     |S_B                                       \
+                                                \
+     |S_C                                       \
+                                                \
+,                                               \
+                                                \
+[2] = 0                                         \
+   |S_A                                         \
+      |S_B                                      \
+   |S_G                                         \
+|S_E                                            \
+   |S_D                                         \
+,                                               \
+                                                \
+[3] = 0                                         \
+   |S_A                                         \
+      |S_B                                      \
+   |S_G                                         \
+      |S_C                                      \
+   |S_D                                         \
+,                                               \
+                                                \
+[4] = 0                                         \
+                                                \
+|S_F   |S_B                                     \
+   |S_G                                         \
+      |S_C                                      \
+                                                \
+,                                               \
+                                                \
+[5] = 0                                         \
+   |S_A                                         \
+|S_F                                            \
+   |S_G                                         \
+      |S_C                                      \
+  |S_D                                          \
+,                                               \
+                                                \
+[6] = 0                                         \
+   |S_A                                         \
+|S_F                                            \
+   |S_G                                         \
+|S_E   |S_C                                     \
+   |S_D                                         \
+,                                               \
+                                                \
+[7] = 0                                         \
+  |S_A                                          \
+     |S_B                                       \
+                                                \
+     |S_C                                       \
+                                                \
+,                                               \
+                                                \
+[8] = 0                                         \
+   |S_A                                         \
+|S_F   |S_B                                     \
+   |S_G                                         \
+|S_E   |S_C                                     \
+   |S_D                                         \
+,                                               \
+                                                \
+[9] = 0                                         \
+   |S_A                                         \
+|S_F   |S_B                                     \
+   |S_G                                         \
+      |S_C                                      \
+   |S_D                                         \
+,                                               \
+}
 
-[0] = 0
-   A
-F     B
 
-E     C
-   D
-,
-
-[1] = 0
-
-      B
-
-      C
-
-,
-
-[2] = 0
-   A
-      B
-   G
-E
-   D
-,
-
-[3] = 0
-   A
-      B
-   G
-      C
-   D
-,
-
-[4] = 0
-
-F     B
-   G
-      C
-
-,
-
-[5] = 0
-  A
-F
-  G
-    C
-  D
-,
-
-[6] = 0
-  A
-F
-  G
-E   C
-  D
-,
-
-[7] = 0
-  A
-    B
-
-    C
-
-,
-
-[8] = 0
-   A
-F     B
-   G
-E     C
-   D
-,
-
-[9] = 0
-   A
-F     B
-   G
-      C
-   D
-,
-
-};
-
-#undef A
-#undef B
-#undef C
-#undef D
-#undef E
-#undef F
-#undef G
 
 
