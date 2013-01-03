@@ -66,10 +66,14 @@ METHOD_LIST(BOX_CLASS_MEMBER)
 
 
 struct box {
+
+    /* Static */
+    const struct box_class * const class;
+    const char * const name;
+    const int x,y,w,h;
+
+    /* Dynamic */
     bool focus;
-    int x,y,w,h;
-    const char *name;
-    struct box_class *class;
 };
 
 
@@ -96,7 +100,7 @@ static void gl_rect_w(int x, int y, int w, int h) {
 */
 
 
-static bool s_color(bool on) {
+static bool segment_color(bool on) {
     if (on) glColor3f(0.5,0,0);
     else    glColor3f(0.1,0,0);
     return on;
@@ -109,23 +113,23 @@ static void segment_draw(unsigned char s, int x0) {
     y=0;
     w=S_W;
     h=S_T;
-    if (s_color(s&S_D)) gl_rect_w(x,y,w,h); y += S_T+S_H;
-    if (s_color(s&S_G)) gl_rect_w(x,y,w,h); y += S_T+S_H;
-    if (s_color(s&S_A)) gl_rect_w(x,y,w,h);
+    if (segment_color(s&S_D)) gl_rect_w(x,y,w,h); y += S_T+S_H;
+    if (segment_color(s&S_G)) gl_rect_w(x,y,w,h); y += S_T+S_H;
+    if (segment_color(s&S_A)) gl_rect_w(x,y,w,h);
 
     /* Left bars */
     x=x0;
     y=S_T;
     w=S_T;
     h=S_H;
-    if (s_color(s&S_E)) gl_rect_w(x,y,w,h); y += S_T+S_H;
-    if (s_color(s&S_F)) gl_rect_w(x,y,w,h);
+    if (segment_color(s&S_E)) gl_rect_w(x,y,w,h); y += S_T+S_H;
+    if (segment_color(s&S_F)) gl_rect_w(x,y,w,h);
 
     /* Right bars */
     x=S_T+S_W+x0;
     y=S_T;
-    if (s_color(s&S_C)) gl_rect_w(x,y,w,h); y += S_T+S_H;
-    if (s_color(s&S_B)) gl_rect_w(x,y,w,h);
+    if (segment_color(s&S_C)) gl_rect_w(x,y,w,h); y += S_T+S_H;
+    if (segment_color(s&S_B)) gl_rect_w(x,y,w,h);
 }
 const unsigned char digit_to_segment[10] = S_DIGITS_INIT;
 static void segment_draw_digit(int digit, int x0) {
