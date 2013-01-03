@@ -94,6 +94,9 @@ struct box_control {
     int x0;             // coords ..
     int y0;
     struct box *b1;     // box of last focus
+
+    /* Random global stuff. */
+    GLuint knob_texture;
 };
 enum control_event {
     ce_press,
@@ -207,7 +210,6 @@ void variable_commit(struct variable *var) {
     var->dv = 0;
 }
 
-
 /* SLIDER == a box connected to a variable model. */
 struct slider {
     struct box box;
@@ -276,15 +278,25 @@ struct box_class slider_class = {
 METHOD_LIST(BOX_SLIDER_MEMBER)
 };
 
-
-
-/* KNOB */
-
+/* KNOB == a box connected to a variable model. */
+struct knob {
+    struct box box;
+    struct variable *var;
+};
+void knob_set_drag(struct knob *s,
+                   struct box_control *bc,
+                   int x0, int y0, int dx, int dy) {
+    if (s->var) variable_set_delta(s->var, dy);
+}
+void knob_commit(struct knob *s,
+                   struct box_control *bc) {
+    if (s->var) variable_commit(s->var);
+}
 
 /* Generate raw knob image data. */
-u8 *knob_data(void) {
+static u8 *knob_make_data(void) {
     int diameter = KNOB_TEXTURE_DIM;
-    u8 *data = malloc(diameter * diameter);
+    u8 *data = malloc(4 * diameter * diameter);
     u8 *d = data;
     int x,y;
     int r = diameter/2;
@@ -294,11 +306,84 @@ u8 *knob_data(void) {
         for(x = 0; x < diameter; x++) {
             int dx = x-x0;
             int dy = y-y0;
-            *d++ = (dx * dx) + (dy * dy) <= (r*r) ? 0xFF : 0;
+            int v = (dx * dx) + (dy * dy) <= (r*r) ? 0xFF : 0;
+
+            if ((dy > 0) && (abs(dx) < 10)) v = 0;
+
+            *d++ = v;  // RGB: white/black
+            *d++ = v;
+            *d++ = v;
+            *d++ = ~v; // ALPHA: inverted
         }
     }
     return data;
 }
+static GLuint knob_make_texture(void) {
+    GLuint tex;
+    int w = KNOB_TEXTURE_DIM;
+    int h = KNOB_TEXTURE_DIM;
+    /* Create */
+    glGenTextures(1, &tex);
+    glBindTexture(GL_TEXTURE_2D, tex);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, w, h, 0, GL_RGBA, GL_UNSIGNED_BYTE, 0);
+
+    /* Upload */
+    u8 *data = knob_make_data();
+    glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, w, h,
+                    GL_RGBA, GL_UNSIGNED_BYTE, data);
+    free(data);
+    return tex;
+}
+void knob_draw(struct knob *s,
+               struct box_control *bc) {
+    int v = variable_get(s->var);
+
+    /* Enable texture */
+    glEnable(GL_TEXTURE_2D);
+    if (!bc->knob_texture) {
+        bc->knob_texture = knob_make_texture();
+        ZL_LOG("knob_texture = %d", bc->knob_texture);
+    }
+    glBindTexture(GL_TEXTURE_2D, bc->knob_texture);
+    glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+    glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    glTexEnvi(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_MODULATE);
+
+    // glEnable (GL_BLEND);
+    // glBlendFunc (GL_SRC_ALPHA, GL_ONE);
+
+    glMatrixMode(GL_MODELVIEW);
+    glPushMatrix();
+
+        /* Move to the center of the box. */
+        glTranslatef(s->box.x + s->box.w/2,
+                     s->box.y + s->box.h/2, 0);
+        int r = (s->box.w > s->box.h ? s->box.h : s->box.w) / 3;
+
+        /* Use the value to rotate. */
+        glRotatef(-v,0,0,1);
+
+        /* Draw a textured square. */
+        int t = 1;//KNOB_TEXTURE_DIM;
+        glColor4f(1,1,1,1);
+        glBegin(GL_QUADS);
+            glTexCoord2f (0,0); glVertex2i (-r,-r);
+            glTexCoord2f (t,0); glVertex2i (+r,-r);
+            glTexCoord2f (t,t); glVertex2i (+r,+r);
+            glTexCoord2f (0,t); glVertex2i (-r,+r);
+        glEnd();
+
+    glPopMatrix();
+
+    glDisable (GL_BLEND);
+    glDisable (GL_TEXTURE_2D);
+}
+struct box_class knob_class = {
+#define BOX_KNOB_MEMBER(m) .m = (m##_t)(knob_##m),
+METHOD_LIST(BOX_KNOB_MEMBER)
+};
 
 
 
@@ -332,7 +417,7 @@ static void box_control_init(struct box_control *bc) {
             s->box.y = y * DH + SLIDER_MARGIN;
             s->box.w = DW - 2*SLIDER_MARGIN;
             s->box.h = DH - 2*SLIDER_MARGIN;
-            s->box.class = &slider_class;
+            s->box.class = (y > 0) ? &knob_class : &slider_class;
             s->var = var[x];
             bc->boxes[i++] = &(s->box);
         }
