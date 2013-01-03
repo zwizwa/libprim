@@ -15,10 +15,11 @@
 #define S_H  2 // vertical segment height
 
 #define WINDOW_WIDTH  512
-#define WINDOW_HEIGHT 256
+#define WINDOW_HEIGHT 512
 
 #define SLIDER_NX 8
-#define SLIDER_NY 2
+#define SLIDER_NY 4
+
 #define SLIDER_PIXELS 5
 #define SLIDER_BORDER 10
 #define SLIDER_MARGIN 0
@@ -49,14 +50,14 @@ static inline int clip(int v) {
 */
 
 struct box;
-typedef void (*set_delta_t) (struct box *b, int dx, int dy);
-typedef void (*commit_t)    (struct box *b);
-typedef void (*draw_t)      (struct box *b);
+typedef void (*set_drag_t) (struct box *b, int x0, int y0, int dx, int dy);
+typedef void (*commit_t)   (struct box *b);
+typedef void (*draw_t)     (struct box *b);
 
 /* Abstract the method list in a macro.  This makes it easy to not
    forget to add implementations when the list changes. */
 #define METHOD_LIST(m) \
-    m(set_delta) \
+    m(set_drag) \
     m(commit) \
     m(draw)
 
@@ -69,14 +70,36 @@ METHOD_LIST(BOX_CLASS_MEMBER)
 
 struct box {
 
-    /* Static */
+    /* View */
     const struct box_class *class;
     const char * name;
     int x,y,w,h;
 
-    /* Dynamic */
+    /* Control */
     bool focus;
 };
+
+
+/* Box controller. */
+
+struct box_control {
+    struct box **boxes; // all boxes
+    struct box *b0;     // box of last click
+    int x0;             // coords ..
+    int y0;
+    struct box *b1;     // box of last focus
+};
+enum control_event {
+    ce_press,
+    ce_motion,
+    ce_release,
+};
+
+struct box_control box_control;
+
+bool box_control_focus(struct box *b) {
+    return box_control.b1 == b;
+}
 
 
 /* OpenGL tools */
@@ -107,31 +130,41 @@ static bool segment_color(bool on) {
     else    glColor3f(0.1,0,0);
     return on;
 }
-static void segment_draw(unsigned char s, int x0) {
+struct segment_pen {
     int w,h,x,y;
+};
+static void segment_pen_draw(struct segment_pen *p, bool on) {
+    if (segment_color(on))
+        gl_rect_w(p->x,p->y,p->w,p->h);
+    p->y += S_T+S_H;
+};
+static void segment_draw(unsigned char s, int x0) {
 
     /* Horizontal bars */
-    x=S_T+x0;
-    y=0;
-    w=S_W;
-    h=S_T;
-    if (segment_color(s&S_D)) gl_rect_w(x,y,w,h); y += S_T+S_H;
-    if (segment_color(s&S_G)) gl_rect_w(x,y,w,h); y += S_T+S_H;
-    if (segment_color(s&S_A)) gl_rect_w(x,y,w,h);
+    struct segment_pen p;
+    p.x = S_T+x0;
+    p.y = 0;
+    p.w = S_W;
+    p.h = S_T;
+    segment_pen_draw(&p, s&S_D);
+    segment_pen_draw(&p, s&S_G);
+    segment_pen_draw(&p, s&S_A);
 
     /* Left bars */
-    x=x0;
-    y=S_T;
-    w=S_T;
-    h=S_H;
-    if (segment_color(s&S_E)) gl_rect_w(x,y,w,h); y += S_T+S_H;
-    if (segment_color(s&S_F)) gl_rect_w(x,y,w,h);
+    p.x = x0;
+    p.y = S_T;
+    p.w = S_T;
+    p.h = S_H;
+    segment_pen_draw(&p, s&S_E);
+    segment_pen_draw(&p, s&S_F);
 
     /* Right bars */
-    x=S_T+S_W+x0;
-    y=S_T;
-    if (segment_color(s&S_C)) gl_rect_w(x,y,w,h); y += S_T+S_H;
-    if (segment_color(s&S_B)) gl_rect_w(x,y,w,h);
+    p.x = S_T+S_W+x0;
+    p.y = S_T;
+    p.w = S_T;
+    p.h = S_H;
+    segment_pen_draw(&p, s&S_C);
+    segment_pen_draw(&p, s&S_B);
 }
 const unsigned char digit_to_segment[10] = S_DIGITS_INIT;
 static void segment_draw_digit(int digit, int x0) {
@@ -176,7 +209,7 @@ struct slider {
     struct box box;
     struct variable *var;
 };
-void slider_set_delta(struct slider *s, int dx, int dy) {
+void slider_set_drag(struct slider *s, int x0, int y0, int dx, int dy) {
     if (s->var) variable_set_delta(s->var, dy);
 }
 void slider_commit(struct slider *s) {
@@ -191,7 +224,7 @@ void slider_draw(struct slider *s) {
         glTranslatef(s->box.x, s->box.y, 0);
 
         /* Background square */
-        if (s->box.focus) {
+        if (box_control_focus(&s->box)) {
             glColor3f(0.1,0.1,0.1);
             // int v1 = CLIP(v+20);
             // glColor3ub(v1,v,v);
@@ -236,12 +269,13 @@ METHOD_LIST(BOX_SLIDER_MEMBER)
 };
 
 
-/* TOP ZONE: static structure */
-
-struct box **boxes;
+/* GUI structure: non-hierarchical to keep it simple.
+   - global object
+   - collection (array) of leaf objects */
 #define BOX_FOR(p,a) for(p=&a[0]; *p; p++)  // NULL terminated list of pointers
 
-static void init_boxes(void) {
+static void box_control_init() {
+
     int nx = SLIDER_NX;
     int ny = SLIDER_NY;
     int DW = WINDOW_WIDTH / nx;
@@ -254,7 +288,7 @@ static void init_boxes(void) {
         var[x] = calloc(1, sizeof(var[x]));
         var[x]->v = 64;
     }
-    boxes = calloc(1 + (nx * ny), sizeof(void *));
+    box_control.boxes = calloc(1 + (nx * ny), sizeof(void *));
     for (y = 0; y < ny; y++) {
         for (x = 0; x < nx; x++) {
             struct slider *s = calloc(1, sizeof(*s));
@@ -265,7 +299,7 @@ static void init_boxes(void) {
             s->box.h = DH - 2*SLIDER_MARGIN;
             s->box.class = &slider_class;
             s->var = var[x];
-            boxes[i++] = &(s->box);
+            box_control.boxes[i++] = &(s->box);
         }
     }
 }
@@ -279,37 +313,27 @@ static bool in_box(struct box *b, int x, int y) {
 }
 struct box *find_box(int x, int y) {
     struct box **b;
-    BOX_FOR(b, boxes) { if (in_box(*b, x, y)) return *b; }
+    BOX_FOR(b, box_control.boxes) { if (in_box(*b, x, y)) return *b; }
     return NULL;
 }
 int box_index(struct box *_b) {
     struct box **b;
-    BOX_FOR(b, boxes) { if (*b == _b) return b-boxes; }
+    BOX_FOR(b, box_control.boxes) {
+        if (*b == _b)
+            return b - box_control.boxes;
+    }
     return -1;
 }
 void draw_view(void *ctx, int w, int h) {
     struct box **b;
     glColor3f(0,0,0);
     gl_rect(0, 0, WINDOW_WIDTH, WINDOW_HEIGHT);
-    BOX_FOR(b, boxes) { (*b)->class->draw(*b); }
+    BOX_FOR(b, box_control.boxes) { (*b)->class->draw(*b); }
 }
 
 
 /**** Abstract event handler */
-struct control_state {
-    struct box *b0;  // box of last click
-    int x0;          // coords ..
-    int y0;
-    struct box *b1;  // box of last focus
-};
-enum control_event {
-    ce_press,
-    ce_motion,
-    ce_release,
-};
-static struct control_state control_state = {};
-
-void update_focus(struct control_state *s, struct box *b) {
+void update_focus(struct box_control *s, struct box *b) {
     if (s->b1) {
         s->b1->focus = false;
     }
@@ -321,12 +345,12 @@ void update_focus(struct control_state *s, struct box *b) {
 
 static void box_inc(struct box *b, int inc) {
     if (b) {
-        b->class->set_delta(b, 0, inc);
+        b->class->set_drag(b, 0, 0, 0, inc);
         b->class->commit(b);
     }
 }
 
-void handle_event(struct control_state *s,
+void handle_event(struct box_control *s,
                   enum control_event e, int x, int y,
                   int but) {
     struct box *b = find_box(x, y);
@@ -347,7 +371,7 @@ void handle_event(struct control_state *s,
             int dx = x - s->x0;
             int dy = y - s->y0;
             // ZL_LOG("drag %s (%d, %d)", s->b0->name, dx, dy);
-            s->b0->class->set_delta(s->b0, dx, dy);
+            s->b0->class->set_drag(s->b0, s->x0, s->y0, dx, dy);
         }
         else {
             update_focus(s, b);
@@ -412,7 +436,7 @@ void zl_glx_2d_display(zl_glx *x, zl_xwindow_p xwin,
                        void (*draw)(void*,int,int), void *ctx);
 int main(void) {
 
-    init_boxes();
+    box_control_init();
 
     zl_xdisplay *xd = zl_xdisplay_new(":0");
     zl_xwindow *xw = zl_xwindow_new();
@@ -447,7 +471,7 @@ int main(void) {
         //usleep(10000);
         zl_glx_2d_display(glx, xw, draw_view, NULL);
         zl_xdisplay_route_events(xd);
-        zl_xwindow_for_events(xw, handle_XEvent, &control_state);
+        zl_xwindow_for_events(xw, handle_XEvent, &box_control);
     }
 
     zl_xdisplay_unregister_window(xd, xw);
