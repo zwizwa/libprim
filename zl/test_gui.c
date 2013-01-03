@@ -11,12 +11,19 @@
 #define HEIGHT 256
 #define SLIDER_PIXELS 5
 #define SLIDER_BORDER 10
+#define CLIP_LO 0
+#define CLIP_HI 127 // stick to MIDI
 
+#define CLIP clip
+static inline int clip(int v) {
+    return v > CLIP_HI ? CLIP_HI :
+          (v < CLIP_LO ? CLIP_LO : v);
+}
 
 /* Simplicity is probably more important than efficiency here. */
 
 /* All GUI zones are squares.  Since the GUI layout doesn't change,
-   the event routing could be implemented as a flat list. 
+   the event routing could be implemented as a flat list.
 
    What is interesting here is the difference between an ongoing edit
    (drag) and a committed edit.  This popped out naturally.
@@ -62,6 +69,29 @@ void gl_rect(int x0, int y0, int x1, int y1) {
     glEnd();
 }
 
+/* 7-SEGMENT
+     A
+   F   B
+     G
+   E   C
+     D
+*/
+
+#include "segment.h"
+
+
+#define S_T  2
+#define S_W 10
+#define S_H 10
+
+
+void segment_draw(struct slider *s, char s) {
+
+    if (s&S_A) { gl_rect
+    }
+
+}
+
 
 /* SLIDER */
 struct slider {
@@ -77,17 +107,21 @@ void slider_commit(struct slider *s) {
     s->dv = 0;
 }
 void slider_draw(struct slider *s) {
-    int v = s->v + s->dv;
-    
-    if (v>255) v = 255;
-    if (v<0)   v = 0;
+    int v = CLIP(s->v + s->dv);
 
     glMatrixMode(GL_MODELVIEW);
-        glPushMatrix();
+    glPushMatrix();
+
         glTranslatef(s->box.x, s->box.y, 0);
 
         /* Background square */
-        glColor3ub(v,v,v);
+        if (s->box.focus) {
+            int v1 = CLIP(v+20);
+            glColor3ub(v1,v,v);
+        }
+        else {
+            glColor3ub(v,v,v);
+        }
         gl_rect(0,0,s->box.w,s->box.h);
 
         /* Slider bar */
@@ -96,7 +130,6 @@ void slider_draw(struct slider *s) {
         int b = SLIDER_BORDER;
         gl_rect(b,            v - p,
                 s->box.w - b, v + p);
-
 
     glPopMatrix();
 }
@@ -108,18 +141,26 @@ METHOD_LIST(BOX_SLIDER_MEMBER)
 
 /* TOP ZONE: static structure */
 
-#define DW (WIDTH/4)
+#define DW (WIDTH/8)
 #define DH (HEIGHT/2)
 
-#define GUI_SLIDERS(m) \
-    m(A,0,0)           \
-    m(B,1,0)           \
-    m(C,2,0)           \
-    m(D,3,0)           \
-    m(E,0,1)           \
-    m(F,1,1)           \
-    m(G,2,1)           \
-    m(H,3,1)
+#define GUI_SLIDERS(m)  \
+    m(A0,0,0)           \
+    m(B0,1,0)           \
+    m(C0,2,0)           \
+    m(D0,3,0)           \
+    m(E0,4,0)           \
+    m(F0,5,0)           \
+    m(G0,6,0)           \
+    m(H0,7,0)           \
+    m(A1,0,1)           \
+    m(B1,1,1)           \
+    m(C1,2,1)           \
+    m(D1,3,1)           \
+    m(E1,4,1)           \
+    m(F1,5,1)           \
+    m(G1,6,1)           \
+    m(H1,7,1)
 
 #define DEF_SLIDER(n,gx,gy) struct slider box_##n = {.box = {.name = #n, .x = gx*DW, .y = gy*DH, .w=DW, .h=DH, .class = &slider_class }};
 #define REF_SLIDER(n,...)   (struct box*)&box_##n,
@@ -160,6 +201,7 @@ struct control_state {
     struct box *b0;  // box of last click
     int x0;          // coords ..
     int y0;
+    struct box *b1;  // box of last focus
 };
 enum control_event {
     ce_press,
@@ -168,11 +210,23 @@ enum control_event {
 };
 static struct control_state control_state = {};
 
+void update_focus(struct control_state *s, struct box *b) {
+    if (s->b1) {
+        s->b1->focus = false;
+    }
+    if (b) {
+        b->focus = true;
+    }
+    s->b1 = b;
+}
+
 void handle_event(struct control_state *s,
-                  enum control_event e, int x, int y) {
+                  enum control_event e, int x, int y,
+                  int but) {
     struct box *b = find_box(x, y);
     switch(e) {
     case ce_press:
+        if (but != 0) return;
         /* Record state of last press as it determines drag routing. */
         s->b0 = b;
         s->x0 = x;
@@ -185,13 +239,22 @@ void handle_event(struct control_state *s,
             s->b0->class->set_delta(s->b0, dx, dy);
         }
         else {
+            update_focus(s, b);
             // ZL_LOG("motion (%d,%d) %s", x, y, b ? b->name : "<none>");
         }
         break;
     case ce_release:
+        if (but != 0) return;
         /* Commit delta */
-        s->b0->class->commit(s->b0);
-        s->b0 = NULL;
+        if (s->b0) {
+            s->b0->class->commit(s->b0);
+            s->b0 = NULL;
+        }
+        else {
+            /* Shouldn't happen. */
+            ZL_LOG("spurious release");
+        }
+        update_focus(s, b);
         break;
     default:
         break;
@@ -207,14 +270,25 @@ void handle_event(struct control_state *s,
 /* Translate X events to abstract events */
 void handle_XEvent(void *ctx, XEvent *e) {
     enum control_event ce;
+    int but;
     switch(e->type) {
-    case ButtonPress:   ce = ce_press;   break;
-    case MotionNotify:  ce = ce_motion;  break;
-    case ButtonRelease: ce = ce_release; break;
+    case ButtonPress:
+        but = e->xbutton.button - Button1;
+        ce = ce_press;
+        break;
+    case ButtonRelease:
+        but = e->xbutton.button - Button1;
+        ce = ce_release;
+        break;
+    case MotionNotify:
+        but = -1;
+        ce = ce_motion;
+        break;
     default: return;
     }
+
     // FIXME: get height from window, or keep fixed?
-    handle_event(ctx, ce, e->xbutton.x, HEIGHT - e->xbutton.y);
+    handle_event(ctx, ce, e->xbutton.x, HEIGHT - e->xbutton.y, but);
 }
 
 
