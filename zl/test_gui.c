@@ -50,9 +50,11 @@ static inline int clip(int v) {
 */
 
 struct box;
-typedef void (*set_drag_t) (struct box *b, int x0, int y0, int dx, int dy);
-typedef void (*commit_t)   (struct box *b);
-typedef void (*draw_t)     (struct box *b);
+struct box_control;
+
+typedef void (*set_drag_t) (struct box *b, struct box_control *bc, int x0, int y0, int dx, int dy);
+typedef void (*commit_t)   (struct box *b, struct box_control *bc);
+typedef void (*draw_t)     (struct box *b, struct box_control *bc);
 
 /* Abstract the method list in a macro.  This makes it easy to not
    forget to add implementations when the list changes. */
@@ -95,10 +97,8 @@ enum control_event {
     ce_release,
 };
 
-struct box_control box_control;
-
-bool box_control_focus(struct box *b) {
-    return box_control.b1 == b;
+bool box_control_focus(struct box_control *bc, struct box *b) {
+    return bc->b1 == b;
 }
 
 
@@ -209,13 +209,17 @@ struct slider {
     struct box box;
     struct variable *var;
 };
-void slider_set_drag(struct slider *s, int x0, int y0, int dx, int dy) {
+void slider_set_drag(struct slider *s,
+                     struct box_control *bc,
+                     int x0, int y0, int dx, int dy) {
     if (s->var) variable_set_delta(s->var, dy);
 }
-void slider_commit(struct slider *s) {
+void slider_commit(struct slider *s,
+                   struct box_control *bc) {
     if (s->var) variable_commit(s->var);
 }
-void slider_draw(struct slider *s) {
+void slider_draw(struct slider *s,
+                 struct box_control *bc) {
     int v = variable_get(s->var);
 
     glMatrixMode(GL_MODELVIEW);
@@ -224,7 +228,7 @@ void slider_draw(struct slider *s) {
         glTranslatef(s->box.x, s->box.y, 0);
 
         /* Background square */
-        if (box_control_focus(&s->box)) {
+        if (box_control_focus(bc, &s->box)) {
             glColor3f(0.1,0.1,0.1);
             // int v1 = CLIP(v+20);
             // glColor3ub(v1,v,v);
@@ -274,7 +278,8 @@ METHOD_LIST(BOX_SLIDER_MEMBER)
    - collection (array) of leaf objects */
 #define BOX_FOR(p,a) for(p=&a[0]; *p; p++)  // NULL terminated list of pointers
 
-static void box_control_init() {
+static void box_control_init(struct box_control *bc) {
+    bzero(bc, sizeof(*bc));
 
     int nx = SLIDER_NX;
     int ny = SLIDER_NY;
@@ -288,7 +293,7 @@ static void box_control_init() {
         var[x] = calloc(1, sizeof(var[x]));
         var[x]->v = 64;
     }
-    box_control.boxes = calloc(1 + (nx * ny), sizeof(void *));
+    bc->boxes = calloc(1 + (nx * ny), sizeof(void *));
     for (y = 0; y < ny; y++) {
         for (x = 0; x < nx; x++) {
             struct slider *s = calloc(1, sizeof(*s));
@@ -299,7 +304,7 @@ static void box_control_init() {
             s->box.h = DH - 2*SLIDER_MARGIN;
             s->box.class = &slider_class;
             s->var = var[x];
-            box_control.boxes[i++] = &(s->box);
+            bc->boxes[i++] = &(s->box);
         }
     }
 }
@@ -311,70 +316,73 @@ static bool in_range(int point, int start, int range) {
 static bool in_box(struct box *b, int x, int y) {
     return in_range(x, b->x, b->w) && in_range(y, b->y, b->h);
 }
-struct box *find_box(int x, int y) {
+struct box *box_control_find_box(struct box_control *bc, int x, int y) {
     struct box **b;
-    BOX_FOR(b, box_control.boxes) { if (in_box(*b, x, y)) return *b; }
+    BOX_FOR(b, bc->boxes) {
+        if (in_box(*b, x, y)) return *b;
+    }
     return NULL;
 }
-int box_index(struct box *_b) {
+int box_control_box_index(struct box_control *bc, struct box *_b) {
     struct box **b;
-    BOX_FOR(b, box_control.boxes) {
+    BOX_FOR(b, bc->boxes) {
         if (*b == _b)
-            return b - box_control.boxes;
+            return b - bc->boxes;
     }
     return -1;
 }
-void draw_view(void *ctx, int w, int h) {
+void box_control_draw_view(void *ctx, int w, int h) {
+    struct box_control *bc = ctx;
     struct box **b;
     glColor3f(0,0,0);
     gl_rect(0, 0, WINDOW_WIDTH, WINDOW_HEIGHT);
-    BOX_FOR(b, box_control.boxes) { (*b)->class->draw(*b); }
+    BOX_FOR(b, bc->boxes) { (*b)->class->draw(*b, bc); }
 }
 
 
 /**** Abstract event handler */
-void update_focus(struct box_control *s, struct box *b) {
-    if (s->b1) {
-        s->b1->focus = false;
+void box_control_update_focus(struct box_control *bc, struct box *b) {
+    if (bc->b1) {
+        bc->b1->focus = false;
     }
     if (b) {
         b->focus = true;
     }
-    s->b1 = b;
+    bc->b1 = b;
 }
 
-static void box_inc(struct box *b, int inc) {
+static void box_inc(struct box *b, struct box_control *bc, int inc) {
     if (b) {
-        b->class->set_drag(b, 0, 0, 0, inc);
-        b->class->commit(b);
+        b->class->set_drag(b, bc, 0, 0, 0, inc);
+        b->class->commit(b, bc);
     }
 }
 
-void handle_event(struct box_control *s,
-                  enum control_event e, int x, int y,
-                  int but) {
-    struct box *b = find_box(x, y);
+void box_control_handle_event(struct box_control *bc,
+                              enum control_event e, int x, int y,
+                              int but) {
+    struct box *b = box_control_find_box(bc, x, y);
     switch(e) {
     case ce_press:
         switch(but) {
-        case WHEEL_UP:   box_inc(b, +1); return;
-        case WHEEL_DOWN: box_inc(b, -1); return;
+        case WHEEL_UP:   box_inc(b, bc, +1); return;
+        case WHEEL_DOWN: box_inc(b, bc, -1); return;
         default: return;
         case 0:
             /* Record state of last press as it determines drag routing. */
-            s->b0 = b;
-            s->x0 = x;
-            s->y0 = y;
+            bc->b0 = b;
+            bc->x0 = x;
+            bc->y0 = y;
         }
     case ce_motion:
-        if (s->b0) {
-            int dx = x - s->x0;
-            int dy = y - s->y0;
-            // ZL_LOG("drag %s (%d, %d)", s->b0->name, dx, dy);
-            s->b0->class->set_drag(s->b0, s->x0, s->y0, dx, dy);
+        if (bc->b0) {
+            int dx = x - bc->x0;
+            int dy = y - bc->y0;
+            // ZL_LOG("drag %s (%d, %d)", bc->b0->name, dx, dy);
+            bc->b0->class->set_drag(bc->b0, bc, bc->x0, bc->y0, dx, dy);
         }
         else {
-            update_focus(s, b);
+            box_control_update_focus(bc, b);
             // ZL_LOG("motion (%d,%d) %s", x, y, b ? b->name : "<none>");
         }
         break;
@@ -384,15 +392,15 @@ void handle_event(struct box_control *s,
             return;
         }
         /* Commit delta */
-        if (s->b0) {
-            s->b0->class->commit(s->b0);
-            s->b0 = NULL;
+        if (bc->b0) {
+            bc->b0->class->commit(bc->b0, bc);
+            bc->b0 = NULL;
         }
         else {
             /* Shouldn't happen. */
             ZL_LOG("spurious release");
         }
-        update_focus(s, b);
+        box_control_update_focus(bc, b);
         break;
     default:
         break;
@@ -426,7 +434,8 @@ void handle_XEvent(void *ctx, XEvent *e) {
     }
 
     // FIXME: get height from window, or keep fixed?
-    handle_event(ctx, ce, e->xbutton.x, WINDOW_HEIGHT - e->xbutton.y, but);
+    box_control_handle_event(ctx, ce, e->xbutton.x,
+                             WINDOW_HEIGHT - e->xbutton.y, but);
 }
 
 
@@ -436,7 +445,8 @@ void zl_glx_2d_display(zl_glx *x, zl_xwindow_p xwin,
                        void (*draw)(void*,int,int), void *ctx);
 int main(void) {
 
-    box_control_init();
+    struct box_control box_control;
+    box_control_init(&box_control);
 
     zl_xdisplay *xd = zl_xdisplay_new(":0");
     zl_xwindow *xw = zl_xwindow_new();
@@ -469,7 +479,7 @@ int main(void) {
 
         //ZL_LOG("frame %d", frame++);
         //usleep(10000);
-        zl_glx_2d_display(glx, xw, draw_view, NULL);
+        zl_glx_2d_display(glx, xw, box_control_draw_view, &box_control);
         zl_xdisplay_route_events(xd);
         zl_xwindow_for_events(xw, handle_XEvent, &box_control);
     }
