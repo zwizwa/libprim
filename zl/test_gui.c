@@ -17,6 +17,8 @@
 #define WINDOW_WIDTH  512
 #define WINDOW_HEIGHT 256
 
+#define SLIDER_NX 12
+#define SLIDER_NY 2
 #define SLIDER_PIXELS 5
 #define SLIDER_BORDER 10
 #define SLIDER_MARGIN 0
@@ -68,9 +70,9 @@ METHOD_LIST(BOX_CLASS_MEMBER)
 struct box {
 
     /* Static */
-    const struct box_class * const class;
-    const char * const name;
-    const int x,y,w,h;
+    const struct box_class *class;
+    const char * name;
+    int x,y,w,h;
 
     /* Dynamic */
     bool focus;
@@ -150,6 +152,7 @@ static void segment_draw_number(int number, int nb_digits) {
 
 
 /* SLIDER */
+// FIXME: this is model data: slider should be stateless.
 struct slider {
     struct box box;
     int dv;
@@ -220,46 +223,31 @@ METHOD_LIST(BOX_SLIDER_MEMBER)
 
 /* TOP ZONE: static structure */
 
-#define DW (WINDOW_WIDTH/8)
-#define DH (WINDOW_HEIGHT/2)
-
-#define GUI_SLIDERS(m)  \
-    m(A0,0,0)           \
-    m(B0,1,0)           \
-    m(C0,2,0)           \
-    m(D0,3,0)           \
-    m(E0,4,0)           \
-    m(F0,5,0)           \
-    m(G0,6,0)           \
-    m(H0,7,0)           \
-    m(A1,0,1)           \
-    m(B1,1,1)           \
-    m(C1,2,1)           \
-    m(D1,3,1)           \
-    m(E1,4,1)           \
-    m(F1,5,1)           \
-    m(G1,6,1)           \
-    m(H1,7,1)
-
-
-#define DEF_SLIDER(n,gx,gy) \
-struct slider box_##n = {.box = {\
-.name = #n, \
-.x = gx*DW + SLIDER_MARGIN, \
-.y = gy*DH + SLIDER_MARGIN, \
-.w=DW - 2*SLIDER_MARGIN, \
-.h=DH - 2*SLIDER_MARGIN, \
-.class = &slider_class }};
-
-#define REF_SLIDER(n,...)   (struct box*)&box_##n,
-
-GUI_SLIDERS(DEF_SLIDER)
-static struct box *boxes[] = {
-    GUI_SLIDERS(REF_SLIDER)
-    NULL
-};
+struct box **boxes;
 #define BOX_FOR(p,a) for(p=&a[0]; *p; p++)  // NULL terminated list of pointers
 
+static void init_boxes(void) {
+    int nx = SLIDER_NX;
+    int ny = SLIDER_NY;
+    int DW = WINDOW_WIDTH / nx;
+    int DH = WINDOW_HEIGHT / ny;
+
+    boxes = calloc(1 + (nx * ny), sizeof(void *));
+    int x,y;
+    int i = 0;
+    for (y = 0; y < ny; y++) {
+        for (x = 0; x < nx; x++) {
+            struct slider *s = calloc(1, sizeof(*s));
+            s->box.name = "?";
+            s->box.x = x * DW + SLIDER_MARGIN;
+            s->box.y = y * DH + SLIDER_MARGIN;
+            s->box.w = DW - 2*SLIDER_MARGIN;
+            s->box.h = DH - 2*SLIDER_MARGIN;
+            s->box.class = &slider_class;
+            boxes[i++] = &(s->box);
+        }
+    }
+}
 
 // All ranges are low inclusive, high exclusive
 static bool in_range(int point, int start, int range) {
@@ -402,6 +390,8 @@ void handle_XEvent(void *ctx, XEvent *e) {
 void zl_glx_2d_display(zl_glx *x, zl_xwindow_p xwin,
                        void (*draw)(void*,int,int), void *ctx);
 int main(void) {
+
+    init_boxes();
 
     zl_xdisplay *xd = zl_xdisplay_new(":0");
     zl_xwindow *xw = zl_xwindow_new();
