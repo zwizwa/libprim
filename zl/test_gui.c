@@ -20,6 +20,9 @@ static inline int clip(int v) {
           (v < CLIP_LO ? CLIP_LO : v);
 }
 
+#define WHEEL_UP   3
+#define WHEEL_DOWN 4
+
 /* Simplicity is probably more important than efficiency here. */
 
 /* All GUI zones are squares.  Since the GUI layout doesn't change,
@@ -144,14 +147,16 @@ struct slider {
     int v;
 };
 void slider_set_delta(struct slider *s, int dx, int dy) {
-    s->dv = dy;
+    /* Keep v+dv in proper range. */
+    int v = clip(s->v + dy);
+    s->dv = v - s->v;
 }
 void slider_commit(struct slider *s) {
     s->v += s->dv;
     s->dv = 0;
 }
 void slider_draw(struct slider *s) {
-    int v = CLIP(s->v + s->dv);
+    int v = s->v + s->dv;
 
     glMatrixMode(GL_MODELVIEW);
     glPushMatrix();
@@ -160,13 +165,16 @@ void slider_draw(struct slider *s) {
 
         /* Background square */
         if (s->box.focus) {
-            int v1 = CLIP(v+20);
-            glColor3ub(v1,v,v);
+            glColor3f(0.1,0.1,0.1);
+            // int v1 = CLIP(v+20);
+            // glColor3ub(v1,v,v);
         }
         else {
-            glColor3ub(v,v,v);
+            glColor3f(0,0,0);
+            // glColor3ub(v,v,v);
         }
         gl_rect(0,0,s->box.w,s->box.h);
+
 
         /* Slider bar */
         glColor3f(1,1,1);
@@ -268,17 +276,29 @@ void update_focus(struct control_state *s, struct box *b) {
     s->b1 = b;
 }
 
+static void box_inc(struct box *b, int inc) {
+    if (b) {
+        b->class->set_delta(b, 0, inc);
+        b->class->commit(b);
+    }
+}
+
 void handle_event(struct control_state *s,
                   enum control_event e, int x, int y,
                   int but) {
     struct box *b = find_box(x, y);
     switch(e) {
     case ce_press:
-        if (but != 0) return;
-        /* Record state of last press as it determines drag routing. */
-        s->b0 = b;
-        s->x0 = x;
-        s->y0 = y;
+        switch(but) {
+        case WHEEL_UP:   box_inc(b, +1); return;
+        case WHEEL_DOWN: box_inc(b, -1); return;
+        default: return;
+        case 0:
+            /* Record state of last press as it determines drag routing. */
+            s->b0 = b;
+            s->x0 = x;
+            s->y0 = y;
+        }
     case ce_motion:
         if (s->b0) {
             int dx = x - s->x0;
@@ -292,7 +312,10 @@ void handle_event(struct control_state *s,
         }
         break;
     case ce_release:
-        if (but != 0) return;
+        if (but != 0) {
+            // ZL_LOG("ignoring release %d", but);
+            return;
+        }
         /* Commit delta */
         if (s->b0) {
             s->b0->class->commit(s->b0);
