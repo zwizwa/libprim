@@ -15,14 +15,16 @@
 #define S_H  2 // vertical segment height
 
 #define WINDOW_WIDTH  512
-#define WINDOW_HEIGHT 512
+#define WINDOW_HEIGHT 256
 
 #define SLIDER_NX 8
-#define SLIDER_NY 4
+#define SLIDER_NY 2
 
 #define SLIDER_PIXELS 5
 #define SLIDER_BORDER 10
 #define SLIDER_MARGIN 0
+
+#define KNOB_TEXTURE_DIM 256
 
 // stick to MIDI
 #define CLIP_LO 0
@@ -33,6 +35,8 @@ static inline int clip(int v) {
     return v > CLIP_HI ? CLIP_HI :
           (v < CLIP_LO ? CLIP_LO : v);
 }
+
+typedef unsigned char u8;
 
 #define WHEEL_UP   3
 #define WHEEL_DOWN 4
@@ -271,6 +275,32 @@ struct box_class slider_class = {
 #define BOX_SLIDER_MEMBER(m) .m = (m##_t)(slider_##m),
 METHOD_LIST(BOX_SLIDER_MEMBER)
 };
+
+
+
+/* KNOB */
+
+
+/* Generate raw knob image data. */
+u8 *knob_data(void) {
+    int diameter = KNOB_TEXTURE_DIM;
+    u8 *data = malloc(diameter * diameter);
+    u8 *d = data;
+    int x,y;
+    int r = diameter/2;
+    int x0 = r;
+    int y0 = r;
+    for(y = 0; y < diameter; y++) {
+        for(x = 0; x < diameter; x++) {
+            int dx = x-x0;
+            int dy = y-y0;
+            *d++ = (dx * dx) + (dy * dy) <= (r*r) ? 0xFF : 0;
+        }
+    }
+    return data;
+}
+
+
 
 
 /* GUI structure: non-hierarchical to keep it simple.
