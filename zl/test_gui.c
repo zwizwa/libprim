@@ -100,7 +100,8 @@ struct box_control {
     struct box *b1;     // box of last focus
 
     /* Random global stuff. */
-    GLuint knob_texture;
+    GLuint knob_texture_disk;
+    GLuint knob_texture_dial;
 };
 enum control_event {
     ce_press,
@@ -301,43 +302,55 @@ void knob_commit(struct knob *s,
 }
 
 /* Generate raw knob image data. */
-static u8 *knob_make_data(void) {
+static u8 *knob_data_disk(void) {
     int diameter = KNOB_TEXTURE_DIM;
-    u8 *data = malloc(4 * diameter * diameter);
+    u8 *data = malloc(diameter * diameter);
     u8 *d = data;
     int x,y;
-    int r = diameter/2;
+    int r = diameter/2 - 2;
     int x0 = r;
     int y0 = r;
+    float r2 = r*r;
     for(y = 0; y < diameter; y++) {
         for(x = 0; x < diameter; x++) {
-            int dx = x-x0;
-            int dy = y-y0;
-            int v = (dx * dx) + (dy * dy) < (r*r) ? 0xFF : 0;
-
+            float dx = x-x0-0.5;
+            float dy = y-y0-0.5;
+            /* Disk */
+            u8 v = (dx * dx) + (dy * dy) < r2 ? 0xFF : 0;
+            /* Dial */
             if ((dy > 0) && (abs(dx) < 10)) v = 0;
-
-            *d++ = v;  // RGB: white/black
-            *d++ = 0;
-            *d++ = 0;
-            *d++ = v;  // ALPHA: inverted
+            *d++ = v;
         }
     }
     return data;
 }
-static GLuint knob_make_texture(void) {
+static GLuint alpha_texture(int w, int h, const u8 *data) {
     GLuint tex;
-    int w = KNOB_TEXTURE_DIM;
-    int h = KNOB_TEXTURE_DIM;
-
     glGenTextures(1, &tex);
     glBindTexture(GL_TEXTURE_2D, tex);
     glTexParameteri(GL_TEXTURE_2D, GL_GENERATE_MIPMAP, GL_TRUE);
-    u8 *data = knob_make_data();
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, w, h, 0, GL_RGBA, GL_UNSIGNED_BYTE, data);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_ALPHA, w, h, 0, GL_ALPHA, GL_UNSIGNED_BYTE, data);
+    return tex;
+}
+
+static GLuint knob_texture_disk(void) {
+    int w = KNOB_TEXTURE_DIM;
+    int h = KNOB_TEXTURE_DIM;
+    u8 *data = knob_data_disk();
+    GLuint tex = alpha_texture(w, h, data);
     free(data);
     return tex;
 }
+static const u8 dial_data[16] = {
+    0,0xFF,0xFF,0,
+    0,0xFF,0xFF,0,
+    0,0xFF,0xFF,0,
+    0,0xFF,0xFF,0,
+};
+static GLuint knob_texture_dial(void) {
+    return alpha_texture(4, 4, dial_data);
+}
+
 void knob_draw(struct knob *s,
                struct box_control *bc) {
     /* Vertical displacement in pixels. */
@@ -345,11 +358,13 @@ void knob_draw(struct knob *s,
     float angle = (150 - val*300);
 
     /* Enable texture */
-    if (!bc->knob_texture) {
-        bc->knob_texture = knob_make_texture();
-        ZL_LOG("knob_texture = %d", bc->knob_texture);
+    if (!bc->knob_texture_disk) {
+        bc->knob_texture_disk = knob_texture_disk();
+        bc->knob_texture_dial = knob_texture_dial();
+        ZL_LOG("knob_texture_disk = %d", bc->knob_texture_disk);
+        ZL_LOG("knob_texture_dial = %d", bc->knob_texture_dial);
     }
-    glBindTexture(GL_TEXTURE_2D, bc->knob_texture);
+    glBindTexture(GL_TEXTURE_2D, bc->knob_texture_disk);
     glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
     glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
@@ -391,13 +406,12 @@ void knob_draw(struct knob *s,
         glBlendFunc (GL_SRC_ALPHA, GL_ONE);
 
         /* Draw a textured square. */
-        int t = 1;//KNOB_TEXTURE_DIM;
-        glColor4f(1,1,1,1);
+        glColor4f(.7,.2,.1,1);
         glBegin(GL_QUADS);
             glTexCoord2f (0,0); glVertex2i (-r,-r);
-            glTexCoord2f (t,0); glVertex2i (+r,-r);
-            glTexCoord2f (t,t); glVertex2i (+r,+r);
-            glTexCoord2f (0,t); glVertex2i (-r,+r);
+            glTexCoord2f (1,0); glVertex2i (+r,-r);
+            glTexCoord2f (1,1); glVertex2i (+r,+r);
+            glTexCoord2f (0,1); glVertex2i (-r,+r);
         glEnd();
 
         glDisable (GL_BLEND);
