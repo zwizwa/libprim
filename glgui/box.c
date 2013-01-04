@@ -23,7 +23,6 @@
 #define SLIDER_MARGIN 0
 
 #define KNOB_SCALE_PIXELS 200
-#define KNOB_TEXTURE_DIM 64
 #define KNOB_DIAL_WIDTH 20
 
 /* [0-1] float seems safest bet */
@@ -52,11 +51,6 @@ typedef unsigned char u8;
    (drag = delta) and a committed edit.  This popped out naturally.
 
 */
-
-
-
-
-
 
 
 /* OpenGL tools */
@@ -262,9 +256,9 @@ static void knob_drag_commit(struct knob *s,
 
 
 /* Render form specification to raw bitmap and convert to OpenGL texture. */
-static GLuint render_texture(render_spec_fn spec) {
-    int w = KNOB_TEXTURE_DIM;
-    int h = KNOB_TEXTURE_DIM;
+static GLuint render_texture(render_spec_fn spec, int dim) {
+    int w = dim;
+    int h = dim;
     GLuint tex;
     glGenTextures(1, &tex);
     glBindTexture(GL_TEXTURE_2D, tex);
@@ -290,9 +284,9 @@ static void knob_draw(struct knob *s,
 
     /* Enable texture */
     if (!bc->knob_texture_disk) {
-        bc->knob_texture_disk  = render_texture(spec_disk);
-        bc->knob_texture_dial  = render_texture(spec_dial);
-        bc->knob_texture_scale = render_texture(spec_dial_scale);
+        bc->knob_texture_disk  = render_texture(spec_disk, 64);
+        bc->knob_texture_dial  = render_texture(spec_dial, 32);
+        bc->knob_texture_scale = render_texture(spec_scale, 64);
     }
 
     glMatrixMode(GL_MODELVIEW);
@@ -321,34 +315,27 @@ static void knob_draw(struct knob *s,
         glTranslatef(s->box.w/2, s->box.h/2, 0);
         int r = (s->box.w > s->box.h ? s->box.h : s->box.w) / 3;
 
-        /* Scale ticks */
-        if (0) {
+        /* Angle scale */
+        if (1) {
+            int r2 = s->box.w / 2;
             glColor4f(1,1,1,1);
-            glPushMatrix();
-            glRotatef(150,0,0,1);
-            int i;
-            float a;
-            for (i=0,a=-150; i<11; i++,a+=30) {
-                int yoff = r;
-                gl_rect_tex(bc->knob_texture_dial, -r,yoff-r,+r,yoff+r);
-                glRotatef(-30,0,0,1);
-            }
-            glPopMatrix();
+            gl_rect_tex(bc->knob_texture_scale, -r2,-r2,+r2,+r2);
         }
 
-        /* Use the value to rotate. */
         glRotatef(angle,0,0,1);
 
-        glColor4f(.7,.2,.1,1);
-        gl_rect_tex(bc->knob_texture_disk, -r,-r,+r,+r);
-
-        //glColor4f(1,1,1,1);
-        //gl_rect_tex(bc->knob_texture_dial, -r,-r,+r,+r);
-
-        glTranslatef(0,r/2,0);
-        glScalef(.5,.5,1);
-        glColor4f(1,1,1,1);
-        gl_rect_tex(bc->knob_texture_dial, -r,-r,+r,+r);
+        /* Draw disk */
+        if (1) {
+            glColor4f(.7,.2,.1,1);
+            gl_rect_tex(bc->knob_texture_disk, -r,-r,+r,+r);
+        }
+        /* Draw dial */
+        if (1) {
+            glTranslatef(0,r/2,0);
+            glScalef(.5,.5,1);
+            glColor4f(1,1,1,1);
+            gl_rect_tex(bc->knob_texture_dial, -r,-r,+r,+r);
+        }
 
     glPopMatrix();
 

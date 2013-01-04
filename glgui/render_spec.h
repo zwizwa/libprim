@@ -11,7 +11,7 @@
 /* Form specifications. */
 bool spec_disk(double x, double y);
 bool spec_dial(double x, double y);
-bool spec_dial_scale(double x, double y);
+bool spec_scale(double x, double y);
 
 /* Dumb no-nonsense declarative (relational) anti-aliased renderer.
    Creates a bitmap image from a coordinate member function. */
