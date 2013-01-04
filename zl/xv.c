@@ -44,7 +44,6 @@
 /* XvImage image. */
 static void zl_xv_destroy_xvimage(zl_xv_p xvid);
 static void zl_xv_create_xvimage(zl_xv_p xvid, int width, int height);
-static void zl_xv_get_dims(zl_xv_p xvid, unsigned int *w, unsigned int *h);
 
 
 /* this was a local function. */
@@ -295,8 +294,3 @@ int zl_xv_open_on_display(zl_xv_p xvid, zl_xdisplay_p d, int adaptor_start)
     return 1;
 }
 
-
-static void zl_xv_get_dims(zl_xv_p xvid, unsigned int *w, unsigned int *h) {
-    if (w) *w = xvid->width;
-    if (w) *h = xvid->height;
-}

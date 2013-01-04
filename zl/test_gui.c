@@ -9,7 +9,7 @@
 #include <math.h>
 
 #include "segment.h"
-#include "render_spec.h"
+#include <glgui/render_spec.h>
 
 /* 7-segment size */
 #define S_T  1 // thickness

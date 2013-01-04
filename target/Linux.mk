@@ -4,4 +4,5 @@ MODULES := \
 	sc sc_vm1 posix_sc \
 	px pf \
 	cell \
+	glgui \
 	zl

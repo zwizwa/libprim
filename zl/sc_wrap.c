@@ -38,7 +38,7 @@ _ sc_make_window(sc *sc) {
     return _sc_make_aref(sc, zl_xwindow_new());
 }
 _ sc_window_config(sc *sc, _ win, _ disp) {
-    xwindow_config(CAST(zl_xwindow, win),
-                   CAST(zl_xdisplay, disp));
+    zl_xwindow_config(CAST(zl_xwindow, win),
+                      CAST(zl_xdisplay, disp));
     return VOID;
 }
