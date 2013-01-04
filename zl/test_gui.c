@@ -28,6 +28,7 @@
 
 #define KNOB_SCALE_PIXELS 200
 #define KNOB_TEXTURE_DIM 256
+#define KNOB_DIAL_WIDTH 20
 
 /* [0-1] float seems safest bet */
 #define CLIP_LO 0.0f
@@ -310,46 +311,56 @@ static u8 *knob_data_disk(void) {
     int r = diameter/2;
     int x0 = r;
     int y0 = r;
-    float r2 = r*r;
+    int r2 = r*r;
     for(y = 0; y < diameter; y++) {
         for(x = 0; x < diameter; x++) {
-            float dx = x-x0;
-            float dy = y-y0;
+            int dx = x-x0;
+            int dy = y-y0;
             /* Disk */
             u8 v = (dx * dx) + (dy * dy) < r2 ? 0xFF : 0;
             /* Dial */
-            if ((dy > 0) && (abs(dx) < 10)) v = 0;
+            if ((dy > 0) && (abs(dx) < (KNOB_DIAL_WIDTH/2))) v = 0;
             *d++ = v;
         }
     }
     return data;
 }
-static GLuint alpha_texture(int w, int h, const u8 *data) {
+static u8 *knob_data_dial(void) {
+    int diameter = KNOB_TEXTURE_DIM;
+    u8 *data = malloc(diameter * diameter);
+    u8 *d = data;
+    int x,y;
+    int r = diameter/2;
+    int x0 = r;
+    int y0 = r;
+    for(y = 0; y < diameter; y++) {
+        for(x = 0; x < diameter; x++) {
+            int dx = x-x0;
+            int dy = y-y0;
+
+            /* Dial */
+            u8 v = ((dy > 0) && (abs(dx) < (KNOB_DIAL_WIDTH/2))) ? 0xFF : 0;
+            *d++ = v;
+        }
+    }
+    return data;
+}
+typedef u8* (*texgen)(void);
+static GLuint alpha_texture(texgen gen) {
+    int w = KNOB_TEXTURE_DIM;
+    int h = KNOB_TEXTURE_DIM;
     GLuint tex;
     glGenTextures(1, &tex);
     glBindTexture(GL_TEXTURE_2D, tex);
     glTexParameteri(GL_TEXTURE_2D, GL_GENERATE_MIPMAP, GL_TRUE);
+    u8 *data = gen();
     glTexImage2D(GL_TEXTURE_2D, 0, GL_ALPHA, w, h, 0, GL_ALPHA, GL_UNSIGNED_BYTE, data);
-    return tex;
-}
-
-static GLuint knob_texture_disk(void) {
-    int w = KNOB_TEXTURE_DIM;
-    int h = KNOB_TEXTURE_DIM;
-    u8 *data = knob_data_disk();
-    GLuint tex = alpha_texture(w, h, data);
     free(data);
     return tex;
 }
-static const u8 dial_data[16] = {
-    0,0xFF,0xFF,0,
-    0,0xFF,0xFF,0,
-    0,0xFF,0xFF,0,
-    0,0xFF,0xFF,0,
-};
-static GLuint knob_texture_dial(void) {
-    return alpha_texture(4, 4, dial_data);
-}
+
+static GLuint knob_texture_disk(void) { return alpha_texture(knob_data_disk); }
+static GLuint knob_texture_dial(void) { return alpha_texture(knob_data_dial); }
 
 void knob_draw(struct knob *s,
                struct box_control *bc) {
