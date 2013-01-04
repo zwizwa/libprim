@@ -1,23 +1,33 @@
 #ifndef _BOX_H_
 #define _BOX_H_
 
+#include <stdbool.h>
+
 /* A box is a region of the screen that receives mouse/keyboard events
    and presents graphical data. */
 
 struct box;
 struct box_control;
+struct box_class;
+
+/* Box is subclassed.  Since we have a very simple hierarchy, this is
+   all just C and a bunch of red tape macros.  Each object points to a
+   class, which is a (const) struct of member functions. */
+struct box {
+    const struct box_class *class;
+    const char * name;
+    int x,y,w,h;
+};
 
 /* Until view/controller part of MVC actually starts to make sense,
    view and controller are combined in one object: there is too much
    information/context sharing going on. */
-
 typedef void (*box_drag_update_t) (struct box *b, struct box_control *bc, int x0, int y0, int dx, int dy);
 typedef void (*box_drag_commit_t) (struct box *b, struct box_control *bc);
 typedef void (*box_draw_t)        (struct box *b, struct box_control *bc);
 
-/* Abstract the method list in a macro.  This makes it easy to not
-   forget to add implementations when the list changes.  See
-   implementation. */
+/* Abstract the method list in a macro.  This abstracts some
+   compile-time red tape.  See also box.c */
 #define BOX_METHOD_LIST(m)                      \
     m(drag_update)                              \
     m(drag_commit)                              \
@@ -30,22 +40,15 @@ BOX_METHOD_LIST(BOX_CLASS_MEMBER)
 
 
 
-struct box {
-    /* View */
-    const struct box_class *class;
-    const char * name;
-    int x,y,w,h;
-};
 
 
 /* Box controller. */
 
 struct box_control {
-    struct box **boxes; // all boxes
-    struct box *b0;     // box of last click
-    int x0;             // coords ..
-    int y0;
-    struct box *b1;     // box of last focus
+    struct box **boxes;    // all boxes
+    struct box *box_edit;  // box currently being edited (mouse drag)
+    int x, y;              // coords of last click
+    struct box *box_focus; // box of last focus
 
     /* Random global stuff: FIXME */
     int knob_texture_disk;
@@ -88,5 +91,8 @@ void box_control_handle_event(struct box_control *bc,
                               enum control_event e, int x, int y,
                               int but);
 void box_control_draw_view(void *ctx, int w, int h);
+
+/* Box -> box controller queries */
+bool box_control_has_focus(struct box_control *bc, struct box *b);
 
 #endif

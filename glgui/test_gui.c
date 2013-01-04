@@ -1,15 +1,7 @@
 #include <zl/xwindow.h>
 #include <zl/glx.h>
-#include <stdlib.h>
-#include <unistd.h>
-#include <string.h>
-#include <stdbool.h>
 #include <zl/config.h>
 #include <sys/time.h>  // gettimeofday()
-#include <math.h>
-
-#include <glgui/segment.h>
-#include <glgui/render_spec.h>
 #include <glgui/box.h>
 
 

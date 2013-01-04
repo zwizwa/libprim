@@ -43,23 +43,19 @@ typedef unsigned char u8;
 #define WHEEL_UP   3
 #define WHEEL_DOWN 4
 
-/* Simplicity is probably more important than efficiency here. */
+/* Simplicity is probably more important than efficiency here.
 
-/* All GUI zones are squares.  Since the GUI layout doesn't change,
+   All GUI zones are squares.  Since the GUI layout doesn't change,
    the event routing could be implemented as a flat list.
 
    What is interesting here is the difference between an ongoing edit
-   (drag) and a committed edit.  This popped out naturally.
+   (drag = delta) and a committed edit.  This popped out naturally.
 
-   Box is subclassed.  Since we have a very simple hierarchy, this is
-   all just C and a bunch of red tape macros.
 */
 
 
 
-bool box_control_focus(struct box_control *bc, struct box *b) {
-    return bc->b1 == b;
-}
+
 
 
 
@@ -203,7 +199,7 @@ static void slider_draw(struct slider *s,
         glTranslatef(s->box.x, s->box.y, 0);
 
         /* Background square */
-        if (box_control_focus(bc, &s->box)) {
+        if (box_control_has_focus(bc, &s->box)) {
             glColor3f(0.1,0.1,0.1);
             // int v1 = CLIP(v+20);
             // glColor3ub(v1,v,v);
@@ -253,13 +249,13 @@ BOX_METHOD_LIST(BOX_SLIDER_MEMBER)
 
 
 
-void knob_drag_update(struct knob *s,
-                   struct box_control *bc,
-                   int x0, int y0, int dx, int dy) {
+static void knob_drag_update(struct knob *s,
+                             struct box_control *bc,
+                             int x0, int y0, int dx, int dy) {
     if (s->var) variable_set_delta(s->var,  ((value)dy) / KNOB_SCALE_PIXELS);
 }
-void knob_drag_commit(struct knob *s,
-                   struct box_control *bc) {
+static void knob_drag_commit(struct knob *s,
+                             struct box_control *bc) {
     if (s->var) variable_drag_commit(s->var);
 }
 
@@ -286,8 +282,8 @@ static GLuint render_texture(render_spec_fn spec) {
 }
 
 
-void knob_draw(struct knob *s,
-               struct box_control *bc) {
+static void knob_draw(struct knob *s,
+                      struct box_control *bc) {
     /* Vertical displacement in pixels. */
     value val = variable_get(s->var);
     float angle = (150 - val*300);
@@ -305,7 +301,7 @@ void knob_draw(struct knob *s,
         glTranslatef(s->box.x, s->box.y, 0);
 
         /* Background square */
-        if (box_control_focus(bc, &s->box)) {
+        if (box_control_has_focus(bc, &s->box)) {
             glColor3f(0.1,0.1,0.1);
             // int v1 = CLIP(v+20);
             // glColor3ub(v1,v,v);
@@ -416,14 +412,7 @@ struct box *box_control_find_box(struct box_control *bc, int x, int y) {
     }
     return NULL;
 }
-int box_control_box_index(struct box_control *bc, struct box *_b) {
-    struct box **b;
-    BOX_FOR(b, bc->boxes) {
-        if (*b == _b)
-            return b - bc->boxes;
-    }
-    return -1;
-}
+
 void box_control_draw_view(void *ctx, int w, int h) {
     struct box_control *bc = ctx;
     struct box **b;
@@ -434,9 +423,13 @@ void box_control_draw_view(void *ctx, int w, int h) {
 
 
 /**** Abstract event handler */
-void box_control_update_focus(struct box_control *bc, struct box *b) {
-    bc->b1 = b;
+static void box_control_update_focus(struct box_control *bc, struct box *b) {
+    bc->box_focus = b;
 }
+bool box_control_has_focus(struct box_control *bc, struct box *b) {
+    return bc->box_focus == b;
+}
+
 
 static void box_inc(struct box *b, struct box_control *bc, int inc) {
     if (b) {
@@ -457,16 +450,15 @@ void box_control_handle_event(struct box_control *bc,
         default: return;
         case 0:
             /* Record state of last press as it determines drag routing. */
-            bc->b0 = b;
-            bc->x0 = x;
-            bc->y0 = y;
+            bc->box_edit = b;
+            bc->x = x;
+            bc->y = y;
         }
     case ce_motion:
-        if (bc->b0) {
-            int dx = x - bc->x0;
-            int dy = y - bc->y0;
-            // ZL_LOG("drag %s (%d, %d)", bc->b0->name, dx, dy);
-            bc->b0->class->drag_update(bc->b0, bc, bc->x0, bc->y0, dx, dy);
+        if (bc->box_edit) {
+            int dx = x - bc->x;
+            int dy = y - bc->y;
+            bc->box_edit->class->drag_update(bc->box_edit, bc, bc->x, bc->y, dx, dy);
         }
         else {
             box_control_update_focus(bc, b);
@@ -479,9 +471,9 @@ void box_control_handle_event(struct box_control *bc,
             return;
         }
         /* Commit delta */
-        if (bc->b0) {
-            bc->b0->class->drag_commit(bc->b0, bc);
-            bc->b0 = NULL;
+        if (bc->box_edit) {
+            bc->box_edit->class->drag_commit(bc->box_edit, bc);
+            bc->box_edit = NULL;
         }
         else {
             /* Shouldn't happen. */
