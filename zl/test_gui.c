@@ -10,6 +10,7 @@
 
 #include "segment.h"
 #include <glgui/render_spec.h>
+#include <glgui/box.h>
 
 /* 7-segment size */
 #define S_T  1 // thickness
@@ -35,7 +36,6 @@
 /* [0-1] float seems safest bet */
 #define CLIP_LO 0.0f
 #define CLIP_HI 1.0f
-typedef float value;
 
 #define CLIP clip
 static inline value clip(value v) {
@@ -60,58 +60,7 @@ typedef unsigned char u8;
    all just C and a bunch of red tape macros.
 */
 
-struct box;
-struct box_control;
 
-typedef void (*set_drag_t) (struct box *b, struct box_control *bc, int x0, int y0, int dx, int dy);
-typedef void (*commit_t)   (struct box *b, struct box_control *bc);
-typedef void (*draw_t)     (struct box *b, struct box_control *bc);
-
-/* Abstract the method list in a macro.  This makes it easy to not
-   forget to add implementations when the list changes. */
-#define METHOD_LIST(m) \
-    m(set_drag) \
-    m(commit) \
-    m(draw)
-
-struct box_class {
-#define BOX_CLASS_MEMBER(m) m##_t m;
-METHOD_LIST(BOX_CLASS_MEMBER)
-};
-
-
-
-struct box {
-
-    /* View */
-    const struct box_class *class;
-    const char * name;
-    int x,y,w,h;
-
-    /* Control */
-    bool focus;
-};
-
-
-/* Box controller. */
-
-struct box_control {
-    struct box **boxes; // all boxes
-    struct box *b0;     // box of last click
-    int x0;             // coords ..
-    int y0;
-    struct box *b1;     // box of last focus
-
-    /* Random global stuff. */
-    GLuint knob_texture_disk;
-    GLuint knob_texture_dial;
-    GLuint knob_texture_scale;
-};
-enum control_event {
-    ce_press,
-    ce_motion,
-    ce_release,
-};
 
 bool box_control_focus(struct box_control *bc, struct box *b) {
     return bc->b1 == b;
@@ -220,12 +169,6 @@ static void segment_draw_number(int number, int nb_digits) {
 }
 
 
-/* VARIABLE: a simple variable model capable of representing an
-   in-progress edit as v+dv  */
-struct variable {
-    value v;
-    value dv;
-};
 value variable_get(struct variable *var) {
     return var->v + var->dv;
 }
@@ -234,26 +177,24 @@ void variable_set_delta(struct variable *var, value dv) {
     value v = clip(var->v + dv);
     var->dv = v - var->v;
 }
-void variable_commit(struct variable *var) {
+void variable_drag_commit(struct variable *var) {
     var->v += var->dv;
     var->dv = 0;
 }
 
-/* SLIDER == a box connected to a variable model. */
-struct slider {
-    struct box box;
-    struct variable *var;
-};
-void slider_set_drag(struct slider *s,
-                     struct box_control *bc,
-                     int x0, int y0, int dx, int dy) {
+
+/* SLIDER */
+
+static void slider_drag_update(struct slider *s,
+                               struct box_control *bc,
+                               int x0, int y0, int dx, int dy) {
     if (s->var) variable_set_delta(s->var, ((value)dy) / SLIDER_SCALE_PIXELS);
 }
-void slider_commit(struct slider *s,
-                   struct box_control *bc) {
-    if (s->var) variable_commit(s->var);
+static void slider_drag_commit(struct slider *s,
+                               struct box_control *bc) {
+    if (s->var) variable_drag_commit(s->var);
 }
-void slider_draw(struct slider *s,
+static void slider_draw(struct slider *s,
                  struct box_control *bc) {
 
     /* Vertical displacement in pixels. */
@@ -305,24 +246,25 @@ void slider_draw(struct slider *s,
 
     glPopMatrix();
 }
+/* Gather methods in class data structure. */
 struct box_class slider_class = {
-#define BOX_SLIDER_MEMBER(m) .m = (m##_t)(slider_##m),
-METHOD_LIST(BOX_SLIDER_MEMBER)
+#define BOX_SLIDER_MEMBER(m) .m = (box_##m##_t)(slider_##m),
+BOX_METHOD_LIST(BOX_SLIDER_MEMBER)
 };
 
-/* KNOB == a box connected to a variable model. */
-struct knob {
-    struct box box;
-    struct variable *var;
-};
-void knob_set_drag(struct knob *s,
+
+
+
+
+
+void knob_drag_update(struct knob *s,
                    struct box_control *bc,
                    int x0, int y0, int dx, int dy) {
     if (s->var) variable_set_delta(s->var,  ((value)dy) / KNOB_SCALE_PIXELS);
 }
-void knob_commit(struct knob *s,
+void knob_drag_commit(struct knob *s,
                    struct box_control *bc) {
-    if (s->var) variable_commit(s->var);
+    if (s->var) variable_drag_commit(s->var);
 }
 
 
@@ -415,15 +357,16 @@ void knob_draw(struct knob *s,
         glScalef(.5,.5,1);
         glColor4f(1,1,1,1);
         gl_rect_tex(bc->knob_texture_dial, -r,-r,+r,+r);
-        
 
     glPopMatrix();
 
 }
+/* Gather methods in class data structure. */
 struct box_class knob_class = {
-#define BOX_KNOB_MEMBER(m) .m = (m##_t)(knob_##m),
-METHOD_LIST(BOX_KNOB_MEMBER)
+#define BOX_KNOB_MEMBER(m) .m = (box_##m##_t)(knob_##m),
+BOX_METHOD_LIST(BOX_KNOB_MEMBER)
 };
+
 
 
 
@@ -508,8 +451,8 @@ void box_control_update_focus(struct box_control *bc, struct box *b) {
 
 static void box_inc(struct box *b, struct box_control *bc, int inc) {
     if (b) {
-        b->class->set_drag(b, bc, 0, 0, 0, inc);
-        b->class->commit(b, bc);
+        b->class->drag_update(b, bc, 0, 0, 0, inc);
+        b->class->drag_commit(b, bc);
     }
 }
 
@@ -534,7 +477,7 @@ void box_control_handle_event(struct box_control *bc,
             int dx = x - bc->x0;
             int dy = y - bc->y0;
             // ZL_LOG("drag %s (%d, %d)", bc->b0->name, dx, dy);
-            bc->b0->class->set_drag(bc->b0, bc, bc->x0, bc->y0, dx, dy);
+            bc->b0->class->drag_update(bc->b0, bc, bc->x0, bc->y0, dx, dy);
         }
         else {
             box_control_update_focus(bc, b);
@@ -548,7 +491,7 @@ void box_control_handle_event(struct box_control *bc,
         }
         /* Commit delta */
         if (bc->b0) {
-            bc->b0->class->commit(bc->b0, bc);
+            bc->b0->class->drag_commit(bc->b0, bc);
             bc->b0 = NULL;
         }
         else {
