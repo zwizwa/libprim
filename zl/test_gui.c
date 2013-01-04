@@ -20,18 +20,22 @@
 #define SLIDER_NX 8
 #define SLIDER_NY 2
 
+#define SLIDER_SCALE_PIXELS 200
+
 #define SLIDER_PIXELS 5
 #define SLIDER_BORDER 10
 #define SLIDER_MARGIN 0
 
+#define KNOB_SCALE_PIXELS 200
 #define KNOB_TEXTURE_DIM 256
 
-// stick to MIDI
-#define CLIP_LO 0
-#define CLIP_HI 127
+/* [0-1] float seems safest bet */
+#define CLIP_LO 0.0f
+#define CLIP_HI 1.0f
+typedef float value;
 
 #define CLIP clip
-static inline int clip(int v) {
+static inline value clip(value v) {
     return v > CLIP_HI ? CLIP_HI :
           (v < CLIP_LO ? CLIP_LO : v);
 }
@@ -194,15 +198,15 @@ static void segment_draw_number(int number, int nb_digits) {
 /* VARIABLE: a simple variable model capable of representing an
    in-progress edit as v+dv  */
 struct variable {
-    int v;
-    int dv;
+    value v;
+    value dv;
 };
-int variable_get(struct variable *var) {
+value variable_get(struct variable *var) {
     return var->v + var->dv;
 }
-void variable_set_delta(struct variable *var, int dv) {
+void variable_set_delta(struct variable *var, value dv) {
     /* Keep v+dv in proper range. */
-    int v = clip(var->v + dv);
+    value v = clip(var->v + dv);
     var->dv = v - var->v;
 }
 void variable_commit(struct variable *var) {
@@ -218,7 +222,7 @@ struct slider {
 void slider_set_drag(struct slider *s,
                      struct box_control *bc,
                      int x0, int y0, int dx, int dy) {
-    if (s->var) variable_set_delta(s->var, dy);
+    if (s->var) variable_set_delta(s->var, ((value)dy) / SLIDER_SCALE_PIXELS);
 }
 void slider_commit(struct slider *s,
                    struct box_control *bc) {
@@ -226,7 +230,10 @@ void slider_commit(struct slider *s,
 }
 void slider_draw(struct slider *s,
                  struct box_control *bc) {
-    int v = variable_get(s->var);
+
+    /* Vertical displacement in pixels. */
+    value val = variable_get(s->var);
+    int v = s->box.h * val;
 
     glMatrixMode(GL_MODELVIEW);
     glPushMatrix();
@@ -267,7 +274,7 @@ void slider_draw(struct slider *s,
 
         /* Numbers */
         if (1) {
-            segment_draw_number(v, 3);
+            segment_draw_number(val * 100, 3);
         }
 
 
@@ -286,7 +293,7 @@ struct knob {
 void knob_set_drag(struct knob *s,
                    struct box_control *bc,
                    int x0, int y0, int dx, int dy) {
-    if (s->var) variable_set_delta(s->var, dy);
+    if (s->var) variable_set_delta(s->var,  ((value)dy) / KNOB_SCALE_PIXELS);
 }
 void knob_commit(struct knob *s,
                    struct box_control *bc) {
@@ -306,7 +313,7 @@ static u8 *knob_make_data(void) {
         for(x = 0; x < diameter; x++) {
             int dx = x-x0;
             int dy = y-y0;
-            int v = (dx * dx) + (dy * dy) <= (r*r) ? 0xFF : 0;
+            int v = (dx * dx) + (dy * dy) < (r*r) ? 0xFF : 0;
 
             if ((dy > 0) && (abs(dx) < 10)) v = 0;
 
@@ -333,7 +340,9 @@ static GLuint knob_make_texture(void) {
 }
 void knob_draw(struct knob *s,
                struct box_control *bc) {
-    int v = variable_get(s->var);
+    /* Vertical displacement in pixels. */
+    value val = variable_get(s->var);
+    float angle = (150 - val*300);
 
     /* Enable texture */
     if (!bc->knob_texture) {
@@ -365,12 +374,17 @@ void knob_draw(struct knob *s,
         }
         gl_rect(0,0,s->box.w,s->box.h);
 
+        /* Numbers */
+        if (1) {
+            segment_draw_number(val * 100, 3);
+        }
+
         /* Move to the center of the box. */
         glTranslatef(s->box.w/2, s->box.h/2, 0);
         int r = (s->box.w > s->box.h ? s->box.h : s->box.w) / 3;
 
         /* Use the value to rotate. */
-        glRotatef(-v,0,0,1);
+        glRotatef(angle,0,0,1);
 
         glEnable(GL_TEXTURE_2D);
         glEnable (GL_BLEND);
@@ -418,7 +432,7 @@ static void box_control_init(struct box_control *bc) {
     struct variable *var[nx];
     for (x = 0; x < nx; x++) {
         var[x] = calloc(1, sizeof(var[x]));
-        var[x]->v = 64;
+        var[x]->v = 0.5;
     }
     bc->boxes = calloc(1 + (nx * ny), sizeof(void *));
     for (y = 0; y < ny; y++) {
