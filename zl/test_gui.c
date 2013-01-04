@@ -307,14 +307,14 @@ static u8 *knob_data_disk(void) {
     u8 *data = malloc(diameter * diameter);
     u8 *d = data;
     int x,y;
-    int r = diameter/2 - 2;
+    int r = diameter/2;
     int x0 = r;
     int y0 = r;
     float r2 = r*r;
     for(y = 0; y < diameter; y++) {
         for(x = 0; x < diameter; x++) {
-            float dx = x-x0-0.5;
-            float dy = y-y0-0.5;
+            float dx = x-x0;
+            float dy = y-y0;
             /* Disk */
             u8 v = (dx * dx) + (dy * dy) < r2 ? 0xFF : 0;
             /* Dial */
@@ -364,12 +364,6 @@ void knob_draw(struct knob *s,
         ZL_LOG("knob_texture_disk = %d", bc->knob_texture_disk);
         ZL_LOG("knob_texture_dial = %d", bc->knob_texture_dial);
     }
-    glBindTexture(GL_TEXTURE_2D, bc->knob_texture_disk);
-    glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
-    glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-    glTexEnvi(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_MODULATE);
 
 
     glMatrixMode(GL_MODELVIEW);
@@ -402,6 +396,13 @@ void knob_draw(struct knob *s,
         glRotatef(angle,0,0,1);
 
         glEnable(GL_TEXTURE_2D);
+        glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+        glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+        glTexEnvi(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_MODULATE);
+        glBindTexture(GL_TEXTURE_2D, bc->knob_texture_disk);
+
         glEnable (GL_BLEND);
         glBlendFunc (GL_SRC_ALPHA, GL_ONE);
 
