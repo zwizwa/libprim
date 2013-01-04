@@ -56,14 +56,49 @@ bool spec_disk_1(double x, double y) {
         && (fabs(y) < 0.8);
 }
 
+static double pos_deg(double deg) {
+    while (deg >= 360) deg -= 360;
+    while (deg < 0)    deg += 360;
+    return deg;
+}
+
+/* Rotary knob tick dials + outer border. */
 
 bool spec_scale(double x, double y) {
-    double r2 = (x*x) + (y*y);
-    if ((r2 > 1) || (r2 < 0.25)) return false;
+    double r = sqrt((x*x) + (y*y));
 
-    int n_seg = 24;
-    double seg = 0.5 + atan2(y,x) / (2 * M_PI);
-    seg *= n_seg;
-    int iseg = seg;
-    return (iseg % 2) == 0;
+    /* All marks are inside annulus */
+    if (r < .70) return false;
+    if (r > .90) return false;
+
+    /* Angle from [-180,180] degrees. */
+    double deg = atan2(y,x) * (180 / M_PI);
+
+    /* Rotate the coordinate system such that the "0" position at
+       7 o'clock is 0 degrees, and angles inrement in clockwise
+       direction. */
+    double deg_0 = 240;
+    deg = deg_0 - deg;
+
+    /* Slight rotation for half of the tick width so we can use
+       positive numbers below. */
+    double tick_deg = 4;
+    deg += tick_deg/2;
+
+    /* Cut out the 2 bottom segments of the scale, except the 2 halves
+       of the tick marks that stick out. */
+    int nb_segments = 10;
+    double segm_deg = 300 / nb_segments;
+    if (!(pos_deg(deg) < (nb_segments * segm_deg + tick_deg))) return false;
+
+    /* Paint the outer ring */
+    if (r > .85) return true;
+
+    /* Strip off the "real" part of the angle == modulo operation. */
+    int segment = pos_deg(deg)/segm_deg;
+    deg -= segment * segm_deg;
+
+    /* Only paint the tick width. */
+    return pos_deg(deg) < tick_deg;
+
 }
