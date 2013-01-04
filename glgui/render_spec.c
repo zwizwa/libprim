@@ -1,14 +1,12 @@
 #include "render_spec.h"
 #include <math.h>
 #include <string.h>
-#include <stdbool.h>
 
 
 typedef unsigned char u8;
 
 /* Dumb no-nonsense declarative (relational) anti-aliased renderer.
    Creates a bitmap image from a coordinate member function. */
-typedef bool (*render_spec_fn)(double x, double y);
 void render_spec(u8 *data, int max_x, int max_y, render_spec_fn spec, bool accu) {
     if (!accu) bzero(data, max_x * max_y);
 

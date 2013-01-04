@@ -1,25 +1,18 @@
-#include "xwindow.h"
-#include "glx.h"
-#include <stdlib.h>
-#include <unistd.h>
-#include <string.h>
-#include <stdbool.h>
-#include <zl/config.h>
-#include <sys/time.h>  // gettimeofday()
-#include <math.h>
 
-#include "segment.h"
-#include <glgui/render_spec.h>
+
+#include <stdlib.h>
+#include <string.h>
+
+#include <GL/gl.h>  // Just OpenGL (no GLX/GLU)
+
 #include <glgui/box.h>
+#include <glgui/render_spec.h>
+#include <glgui/segment.h>
 
 /* 7-segment size */
 #define S_T  1 // thickness
 #define S_W  3 // horizontal segment width
 #define S_H  2 // vertical segment height
-
-#define WINDOW_WIDTH  512
-#define WINDOW_HEIGHT 256
-
 #define SLIDER_NX 8
 #define SLIDER_NY 2
 
@@ -43,6 +36,8 @@ static inline value clip(value v) {
           (v < CLIP_LO ? CLIP_LO : v);
 }
 
+
+
 typedef unsigned char u8;
 
 #define WHEEL_UP   3
@@ -65,6 +60,7 @@ typedef unsigned char u8;
 bool box_control_focus(struct box_control *bc, struct box *b) {
     return bc->b1 == b;
 }
+
 
 
 /* OpenGL tools */
@@ -370,19 +366,18 @@ BOX_METHOD_LIST(BOX_KNOB_MEMBER)
 
 
 
-
 /* GUI structure: non-hierarchical to keep it simple.
    - global object
    - collection (array) of leaf objects */
 #define BOX_FOR(p,a) for(p=&a[0]; *p; p++)  // NULL terminated list of pointers
 
-static void box_control_init(struct box_control *bc) {
+void box_control_init(struct box_control *bc, int w, int h) {
     bzero(bc, sizeof(*bc));
 
     int nx = SLIDER_NX;
     int ny = SLIDER_NY;
-    int DW = WINDOW_WIDTH / nx;
-    int DH = WINDOW_HEIGHT / ny;
+    int DW = w / nx;
+    int DH = h / ny;
     int x,y;
     int i = 0;
 
@@ -433,19 +428,13 @@ void box_control_draw_view(void *ctx, int w, int h) {
     struct box_control *bc = ctx;
     struct box **b;
     glColor3f(0,0,0);
-    gl_rect(0, 0, WINDOW_WIDTH, WINDOW_HEIGHT);
+    gl_rect(0, 0, w, h);
     BOX_FOR(b, bc->boxes) { (*b)->class->draw(*b, bc); }
 }
 
 
 /**** Abstract event handler */
 void box_control_update_focus(struct box_control *bc, struct box *b) {
-    if (bc->b1) {
-        bc->b1->focus = false;
-    }
-    if (b) {
-        b->focus = true;
-    }
     bc->b1 = b;
 }
 
@@ -496,95 +485,11 @@ void box_control_handle_event(struct box_control *bc,
         }
         else {
             /* Shouldn't happen. */
-            ZL_LOG("spurious release");
+            // ZL_LOG("spurious release");
         }
         box_control_update_focus(bc, b);
         break;
     default:
         break;
     }
-}
-
-
-
-/**** X EVENT HANDLER ****/
-
-// FIXME: decouple drag state and button routing from X event.
-
-/* Translate X events to abstract events */
-void handle_XEvent(void *ctx, XEvent *e) {
-    enum control_event ce;
-    int but;
-    switch(e->type) {
-    case ButtonPress:
-        but = e->xbutton.button - Button1;
-        ce = ce_press;
-        break;
-    case ButtonRelease:
-        but = e->xbutton.button - Button1;
-        ce = ce_release;
-        break;
-    case MotionNotify:
-        but = -1;
-        ce = ce_motion;
-        break;
-    default: return;
-    }
-
-    // FIXME: get height from window, or keep fixed?
-    box_control_handle_event(ctx, ce, e->xbutton.x,
-                             WINDOW_HEIGHT - e->xbutton.y, but);
-}
-
-
-/**** ZL objects ****/
-
-void zl_glx_2d_display(zl_glx *x, zl_xwindow_p xwin,
-                       void (*draw)(void*,int,int), void *ctx);
-int main(void) {
-
-    struct box_control box_control;
-    box_control_init(&box_control);
-
-    zl_xdisplay *xd = zl_xdisplay_new(":0");
-    zl_xwindow *xw = zl_xwindow_new();
-    zl_xwindow_resize(xw, WINDOW_WIDTH, WINDOW_HEIGHT);
-    zl_xwindow_cursor(xw, 1);
-    zl_glx *glx = zl_glx_new();
-
-    // Order is important!
-    if (!zl_glx_open_on_display(glx, xw, xd)) {
-        ZL_LOG("Can't open GLX");
-        exit(1);
-    }
-    zl_xwindow_config(xw, xd);
-    // zl_glx_vsync(glx, false);
-
-    // int frame = 0;
-    struct timeval tv_last = {};
-    while (1) {
-        struct timeval tv_current = {};
-        gettimeofday(&tv_current, NULL);
-        int sec  = tv_current.tv_sec  - tv_last.tv_sec;
-        int usec = tv_current.tv_usec - tv_last.tv_usec;
-        tv_last = tv_current;
-        if (usec < 0) {
-            sec--;
-            usec += 1000000;
-        }
-        usec += sec * 1000000;
-        // fprintf(stderr, "%7d us  \r", usec);
-
-        //ZL_LOG("frame %d", frame++);
-        //usleep(10000);
-        zl_glx_2d_display(glx, xw, box_control_draw_view, &box_control);
-        zl_xdisplay_route_events(xd);
-        zl_xwindow_for_events(xw, handle_XEvent, &box_control);
-    }
-
-    zl_xdisplay_unregister_window(xd, xw);
-    zl_xwindow_free(xw);
-    zl_xdisplay_free(xd);
-    zl_glx_free(glx);
-    return 0;
 }

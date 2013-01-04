@@ -47,10 +47,10 @@ struct box_control {
     int y0;
     struct box *b1;     // box of last focus
 
-    /* Random global stuff. */
-    GLuint knob_texture_disk;
-    GLuint knob_texture_dial;
-    GLuint knob_texture_scale;
+    /* Random global stuff: FIXME */
+    int knob_texture_disk;
+    int knob_texture_dial;
+    int knob_texture_scale;
 };
 enum control_event {
     ce_press,
@@ -82,5 +82,11 @@ struct knob {
 };
 
 
+/* Global controller: called from windowing system. */
+void box_control_init(struct box_control *bc, int w, int h);
+void box_control_handle_event(struct box_control *bc,
+                              enum control_event e, int x, int y,
+                              int but);
+void box_control_draw_view(void *ctx, int w, int h);
 
 #endif
