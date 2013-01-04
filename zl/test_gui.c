@@ -6,8 +6,13 @@
 #include <stdbool.h>
 #include <zl/config.h>
 #include <sys/time.h>  // gettimeofday()
+#include <math.h>
 
 #include "segment.h"
+
+/* Bitmap renderer */
+#define RENDER_OVERSAMPLE_X 8
+#define RENDER_OVERSAMPLE_Y 8
 
 /* 7-segment size */
 #define S_T  1 // thickness
@@ -27,7 +32,7 @@
 #define SLIDER_MARGIN 0
 
 #define KNOB_SCALE_PIXELS 200
-#define KNOB_TEXTURE_DIM 256
+#define KNOB_TEXTURE_DIM 64
 #define KNOB_DIAL_WIDTH 20
 
 /* [0-1] float seems safest bet */
@@ -125,6 +130,26 @@ static void gl_rect(int x0, int y0, int x1, int y1) {
         glVertex2i(x0, y1);
     glEnd();
 }
+
+static void gl_rect_tex(GLuint tex, int x0, int y0, int x1, int y1) {
+    // ZL_LOG("gl_rect(%d,%d,%d,%d)", x0, y0, x1, y1);
+    glEnable(GL_TEXTURE_2D);
+    glEnable (GL_BLEND);
+    glBlendFunc (GL_SRC_ALPHA, GL_ONE);
+    glBindTexture(GL_TEXTURE_2D, tex);
+
+    glBegin(GL_QUADS);
+        glTexCoord2f (0,0); glVertex2i(x0, y0);
+        glTexCoord2f (1,0); glVertex2i(x1, y0);
+        glTexCoord2f (1,1); glVertex2i(x1, y1);
+        glTexCoord2f (0,1); glVertex2i(x0, y1);
+    glEnd();
+
+    glDisable (GL_BLEND);
+    glDisable (GL_TEXTURE_2D);
+}
+
+
 static void gl_rect_w(int x, int y, int w, int h) {
     gl_rect(x,y,x+w,y+h);
 }
@@ -302,65 +327,70 @@ void knob_commit(struct knob *s,
     if (s->var) variable_commit(s->var);
 }
 
-/* Generate raw knob image data. */
-static u8 *knob_data_disk(void) {
-    int diameter = KNOB_TEXTURE_DIM;
-    u8 *data = malloc(diameter * diameter);
-    u8 *d = data;
-    int x,y;
-    int r = diameter/2;
-    int x0 = r;
-    int y0 = r;
-    int r2 = r*r;
-    for(y = 0; y < diameter; y++) {
-        for(x = 0; x < diameter; x++) {
-            int dx = x-x0;
-            int dy = y-y0;
-            /* Disk */
-            u8 v = (dx * dx) + (dy * dy) < r2 ? 0xFF : 0;
-            /* Dial */
-            if ((dy > 0) && (abs(dx) < (KNOB_DIAL_WIDTH/2))) v = 0;
-            *d++ = v;
-        }
-    }
-    return data;
-}
-static u8 *knob_data_dial(void) {
-    int diameter = KNOB_TEXTURE_DIM;
-    u8 *data = malloc(diameter * diameter);
-    u8 *d = data;
-    int x,y;
-    int r = diameter/2;
-    int x0 = r;
-    int y0 = r;
-    for(y = 0; y < diameter; y++) {
-        for(x = 0; x < diameter; x++) {
-            int dx = x-x0;
-            int dy = y-y0;
 
-            /* Dial */
-            u8 v = ((dy > 0) && (abs(dx) < (KNOB_DIAL_WIDTH/2))) ? 0xFF : 0;
-            *d++ = v;
-        }
-    }
-    return data;
+/* Dumb no-nonsense declarative (relational) anti-aliased renderer.
+   Creates a bitmap image from a coordinate member function. */
+typedef bool (*render_member_fn)(double x, double y);
+static void render_spec(u8 *data, int max_x, int max_y, render_member_fn member, bool accu) {
+    if (!accu) bzero(data, max_x * max_y);
+
+    /* Coordinates passed to member function are square [-1,1] x [-1,1] */
+    double scale_x = 2.0 / ((double)(RENDER_OVERSAMPLE_X * max_x));
+    double scale_y = 2.0 / ((double)(RENDER_OVERSAMPLE_Y * max_y));
+
+    u8 *d = data;
+    for(int y = 0; y < max_y; y++) {
+    for(int x = 0; x < max_x; x++) {
+        int acc = 0;
+        for (int ys = 0; ys < RENDER_OVERSAMPLE_Y; ys++) {
+        for (int xs = 0; xs < RENDER_OVERSAMPLE_X; xs++) {
+            int xi = (xs + (x * RENDER_OVERSAMPLE_X));
+            int yi = (ys + (y * RENDER_OVERSAMPLE_Y));
+            double xf = scale_x * ((float)xi) - 1;
+            double yf = scale_y * ((float)yi) - 1;
+            acc += member(xf,yf) ? 1 : 0;
+        }}
+        /* Store pixel with saturation. */
+        int out_levels = 1 << (8 * sizeof(*data));
+        int acc_levels = (RENDER_OVERSAMPLE_X * RENDER_OVERSAMPLE_Y);
+        if      (acc_levels > out_levels) { acc /= (acc_levels / out_levels); }
+        else if (acc_levels < out_levels) { acc *= (out_levels / acc_levels); }
+
+        acc += *d;
+        if (acc > 0xFF) acc = 0xFF;
+        *d++ = acc;
+    }}
 }
-typedef u8* (*texgen)(void);
-static GLuint alpha_texture(texgen gen) {
+
+/* Render form specification to raw bitmap and convert to OpenGL texture. */
+static GLuint render_texture(render_member_fn member) {
     int w = KNOB_TEXTURE_DIM;
     int h = KNOB_TEXTURE_DIM;
     GLuint tex;
     glGenTextures(1, &tex);
     glBindTexture(GL_TEXTURE_2D, tex);
+    glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+    glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
     glTexParameteri(GL_TEXTURE_2D, GL_GENERATE_MIPMAP, GL_TRUE);
-    u8 *data = gen();
+    glTexEnvi(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_MODULATE);
+    u8 *data = malloc(w*h);
+    render_spec(data, w, h, member, false);
     glTexImage2D(GL_TEXTURE_2D, 0, GL_ALPHA, w, h, 0, GL_ALPHA, GL_UNSIGNED_BYTE, data);
     free(data);
     return tex;
 }
 
-static GLuint knob_texture_disk(void) { return alpha_texture(knob_data_disk); }
-static GLuint knob_texture_dial(void) { return alpha_texture(knob_data_dial); }
+/* Form specifications. */
+static bool spec_disk(double x, double y) { return (x*x) + (y*y) < 1.0; }
+static bool spec_dial(double x, double y) { return fabs(x) < 0.1; }
+
+
+/* Generate textures from specs. */
+static GLuint knob_texture_disk(void) { return render_texture(spec_disk); }
+static GLuint knob_texture_dial(void) { return render_texture(spec_dial); }
+
 
 void knob_draw(struct knob *s,
                struct box_control *bc) {
@@ -375,7 +405,6 @@ void knob_draw(struct knob *s,
         ZL_LOG("knob_texture_disk = %d", bc->knob_texture_disk);
         ZL_LOG("knob_texture_dial = %d", bc->knob_texture_dial);
     }
-
 
     glMatrixMode(GL_MODELVIEW);
     glPushMatrix();
@@ -403,31 +432,35 @@ void knob_draw(struct knob *s,
         glTranslatef(s->box.w/2, s->box.h/2, 0);
         int r = (s->box.w > s->box.h ? s->box.h : s->box.w) / 3;
 
+        /* Scale ticks */
+        if (0) {
+            glColor4f(1,1,1,1);
+            glPushMatrix();
+            glRotatef(150,0,0,1);
+            int i;
+            float a;
+            for (i=0,a=-150; i<11; i++,a+=30) {
+                int yoff = r;
+                gl_rect_tex(bc->knob_texture_dial, -r,yoff-r,+r,yoff+r);
+                glRotatef(-30,0,0,1);
+            }
+            glPopMatrix();
+        }
+
         /* Use the value to rotate. */
         glRotatef(angle,0,0,1);
 
-        glEnable(GL_TEXTURE_2D);
-        glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
-        glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-        glTexEnvi(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_MODULATE);
-        glBindTexture(GL_TEXTURE_2D, bc->knob_texture_disk);
-
-        glEnable (GL_BLEND);
-        glBlendFunc (GL_SRC_ALPHA, GL_ONE);
-
-        /* Draw a textured square. */
         glColor4f(.7,.2,.1,1);
-        glBegin(GL_QUADS);
-            glTexCoord2f (0,0); glVertex2i (-r,-r);
-            glTexCoord2f (1,0); glVertex2i (+r,-r);
-            glTexCoord2f (1,1); glVertex2i (+r,+r);
-            glTexCoord2f (0,1); glVertex2i (-r,+r);
-        glEnd();
+        gl_rect_tex(bc->knob_texture_disk, -r,-r,+r,+r);
 
-        glDisable (GL_BLEND);
-        glDisable (GL_TEXTURE_2D);
+        //glColor4f(1,1,1,1);
+        //gl_rect_tex(bc->knob_texture_dial, -r,-r,+r,+r);
+
+        glTranslatef(0,r/2,0);
+        glScalef(.5,.5,1);
+        glColor4f(1,1,1,1);
+        gl_rect_tex(bc->knob_texture_dial, -r,-r,+r,+r);
+        
 
     glPopMatrix();
 
@@ -642,7 +675,7 @@ int main(void) {
             usec += 1000000;
         }
         usec += sec * 1000000;
-        fprintf(stderr, "%7d us  \r", usec);
+        // fprintf(stderr, "%7d us  \r", usec);
 
         //ZL_LOG("frame %d", frame++);
         //usleep(10000);
