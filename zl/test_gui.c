@@ -9,10 +9,7 @@
 #include <math.h>
 
 #include "segment.h"
-
-/* Bitmap renderer */
-#define RENDER_OVERSAMPLE_X 8
-#define RENDER_OVERSAMPLE_Y 8
+#include "render_spec.h"
 
 /* 7-segment size */
 #define S_T  1 // thickness
@@ -108,6 +105,7 @@ struct box_control {
     /* Random global stuff. */
     GLuint knob_texture_disk;
     GLuint knob_texture_dial;
+    GLuint knob_texture_scale;
 };
 enum control_event {
     ce_press,
@@ -328,42 +326,9 @@ void knob_commit(struct knob *s,
 }
 
 
-/* Dumb no-nonsense declarative (relational) anti-aliased renderer.
-   Creates a bitmap image from a coordinate member function. */
-typedef bool (*render_member_fn)(double x, double y);
-static void render_spec(u8 *data, int max_x, int max_y, render_member_fn member, bool accu) {
-    if (!accu) bzero(data, max_x * max_y);
-
-    /* Coordinates passed to member function are square [-1,1] x [-1,1] */
-    double scale_x = 2.0 / ((double)(RENDER_OVERSAMPLE_X * max_x));
-    double scale_y = 2.0 / ((double)(RENDER_OVERSAMPLE_Y * max_y));
-
-    u8 *d = data;
-    for(int y = 0; y < max_y; y++) {
-    for(int x = 0; x < max_x; x++) {
-        int acc = 0;
-        for (int ys = 0; ys < RENDER_OVERSAMPLE_Y; ys++) {
-        for (int xs = 0; xs < RENDER_OVERSAMPLE_X; xs++) {
-            int xi = (xs + (x * RENDER_OVERSAMPLE_X));
-            int yi = (ys + (y * RENDER_OVERSAMPLE_Y));
-            double xf = scale_x * ((float)xi) - 1;
-            double yf = scale_y * ((float)yi) - 1;
-            acc += member(xf,yf) ? 1 : 0;
-        }}
-        /* Store pixel with saturation. */
-        int out_levels = 1 << (8 * sizeof(*data));
-        int acc_levels = (RENDER_OVERSAMPLE_X * RENDER_OVERSAMPLE_Y);
-        if      (acc_levels > out_levels) { acc /= (acc_levels / out_levels); }
-        else if (acc_levels < out_levels) { acc *= (out_levels / acc_levels); }
-
-        acc += *d;
-        if (acc > 0xFF) acc = 0xFF;
-        *d++ = acc;
-    }}
-}
 
 /* Render form specification to raw bitmap and convert to OpenGL texture. */
-static GLuint render_texture(render_member_fn member) {
+static GLuint render_texture(render_spec_fn spec) {
     int w = KNOB_TEXTURE_DIM;
     int h = KNOB_TEXTURE_DIM;
     GLuint tex;
@@ -373,23 +338,14 @@ static GLuint render_texture(render_member_fn member) {
     glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-    glTexParameteri(GL_TEXTURE_2D, GL_GENERATE_MIPMAP, GL_TRUE);
+    glTexParameteri(GL_TEXTURE_2D, GL_GENERATE_MIPMAP, GL_TRUE); /* Needs OpenGL 1.4 */
     glTexEnvi(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_MODULATE);
     u8 *data = malloc(w*h);
-    render_spec(data, w, h, member, false);
+    render_spec(data, w, h, spec, false);
     glTexImage2D(GL_TEXTURE_2D, 0, GL_ALPHA, w, h, 0, GL_ALPHA, GL_UNSIGNED_BYTE, data);
     free(data);
     return tex;
 }
-
-/* Form specifications. */
-static bool spec_disk(double x, double y) { return (x*x) + (y*y) < 1.0; }
-static bool spec_dial(double x, double y) { return fabs(x) < 0.1; }
-
-
-/* Generate textures from specs. */
-static GLuint knob_texture_disk(void) { return render_texture(spec_disk); }
-static GLuint knob_texture_dial(void) { return render_texture(spec_dial); }
 
 
 void knob_draw(struct knob *s,
@@ -400,10 +356,9 @@ void knob_draw(struct knob *s,
 
     /* Enable texture */
     if (!bc->knob_texture_disk) {
-        bc->knob_texture_disk = knob_texture_disk();
-        bc->knob_texture_dial = knob_texture_dial();
-        ZL_LOG("knob_texture_disk = %d", bc->knob_texture_disk);
-        ZL_LOG("knob_texture_dial = %d", bc->knob_texture_dial);
+        bc->knob_texture_disk  = render_texture(spec_disk);
+        bc->knob_texture_dial  = render_texture(spec_dial);
+        bc->knob_texture_scale = render_texture(spec_dial_scale);
     }
 
     glMatrixMode(GL_MODELVIEW);
