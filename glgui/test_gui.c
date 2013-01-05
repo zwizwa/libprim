@@ -5,9 +5,13 @@
 #include <glgui/box.h>
 
 
+#if 1
 #define WINDOW_WIDTH  512
 #define WINDOW_HEIGHT 256
-
+#else
+#define WINDOW_WIDTH  1024
+#define WINDOW_HEIGHT 512
+#endif
 
 
 /**** X EVENT HANDLER ****/
