@@ -9,6 +9,8 @@
 #include <glgui/render_spec.h>
 #include <glgui/segment.h>
 
+#include <zl/config.h>
+
 /* 7-segment size */
 #define S_T  1 // thickness
 #define S_W  3 // horizontal segment width
@@ -19,8 +21,7 @@
 #define SLIDER_SCALE_PIXELS 200
 
 #define SLIDER_PIXELS 5
-#define SLIDER_BORDER 10
-#define SLIDER_MARGIN 0
+
 
 #define KNOB_SCALE_PIXELS 200
 #define KNOB_DIAL_WIDTH 20
@@ -68,7 +69,7 @@ static void gl_rect_tex(GLuint tex, int x0, int y0, int x1, int y1) {
     // ZL_LOG("gl_rect(%d,%d,%d,%d)", x0, y0, x1, y1);
     glEnable(GL_TEXTURE_2D);
     glEnable (GL_BLEND);
-    glBlendFunc (GL_SRC_ALPHA, GL_ONE);
+    glBlendFunc (GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
     glBindTexture(GL_TEXTURE_2D, tex);
 
     glBegin(GL_QUADS);
@@ -169,6 +170,18 @@ void variable_drag_commit(struct variable *var) {
 }
 
 
+/* BOX: shared drawing code */
+static void box_draw_background(struct box *b, struct box_control *bc) {
+    if (box_control_has_focus(bc, b)) {
+        glColor3f(0.1,0.1,0.1);
+    }
+    else {
+        glColor3f(0,0,0);
+    }
+    gl_rect(0,0,b->w,b->h);
+}
+
+
 /* SLIDER */
 
 static void slider_drag_update(struct slider *s,
@@ -181,11 +194,10 @@ static void slider_drag_commit(struct slider *s,
     if (s->var) variable_drag_commit(s->var);
 }
 static void slider_draw(struct slider *s,
-                 struct box_control *bc) {
+                        struct box_control *bc) {
 
     /* Vertical displacement in pixels. */
     value val = variable_get(s->var);
-    int v = s->box.h * val;
 
     glMatrixMode(GL_MODELVIEW);
     glPushMatrix();
@@ -193,41 +205,32 @@ static void slider_draw(struct slider *s,
         glTranslatef(s->box.x, s->box.y, 0);
 
         /* Background square */
-        if (box_control_has_focus(bc, &s->box)) {
-            glColor3f(0.1,0.1,0.1);
-            // int v1 = CLIP(v+20);
-            // glColor3ub(v1,v,v);
-        }
-        else {
-            glColor3f(0,0,0);
-            // glColor3ub(v,v,v);
-        }
-        gl_rect(0,0,s->box.w,s->box.h);
+        box_draw_background(&s->box, bc);
 
-        /* Level marks */
-        int i;
-        glColor3f(.3,.3,.3);
-        for (i=0; i<11; i++) {
-            int b = 15;
-            int y = i*13;
-            b -= ((i % 5) == 0) ? 5 : 0;
-            gl_rect(b,            y,
-                    s->box.w - b, y+2);
-        }
-
-        /* Slider bar */
-        if (1) {
-            glColor3f(.7,.7,.7);
-            int p = SLIDER_PIXELS/2;
-            int b = SLIDER_BORDER;
-            gl_rect(b,            v - p,
-                    s->box.w - b, v + p);
-        }
+        /* Tick marks */
+        glColor4f(1,1,1,1);
+        gl_rect_tex(bc->texture_slider_ticks,
+                    0,0,s->box.w,s->box.h);
 
         /* Numbers */
         if (1) {
             segment_draw_number(val * 100, 3);
         }
+
+        /* Move to center */
+        glTranslatef(s->box.w/2, s->box.h/2, 0);
+
+        /* Slider bar */
+        if (1) {
+            float v = val - 0.5; // [-0.5 - 0.5]
+            v *= s->box.h * (1.0 - SLIDER_BORDER); // tick rendering param
+            glColor3f(.7,.7,.7);
+            float w = s->box.w/4;
+            float h = 4;
+            gl_rect(-w, -h + v,
+                     w,  h + v);
+        }
+
 
 
     glPopMatrix();
@@ -256,9 +259,8 @@ static void knob_drag_commit(struct knob *s,
 
 
 /* Render form specification to raw bitmap and convert to OpenGL texture. */
-static GLuint render_texture(render_spec_fn spec, int dim) {
-    int w = dim;
-    int h = dim;
+static GLuint render_texture(render_spec_fn spec, int w, int h) {
+    double aspect = ((double)w) / ((double)h);
     GLuint tex;
     glGenTextures(1, &tex);
     glBindTexture(GL_TEXTURE_2D, tex);
@@ -269,7 +271,7 @@ static GLuint render_texture(render_spec_fn spec, int dim) {
     glTexParameteri(GL_TEXTURE_2D, GL_GENERATE_MIPMAP, GL_TRUE); /* Needs OpenGL 1.4 */
     glTexEnvi(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_MODULATE);
     u8 *data = malloc(w*h);
-    render_spec(data, w, h, spec, false);
+    render_spec(data, w, h, aspect, spec, false);
     glTexImage2D(GL_TEXTURE_2D, 0, GL_ALPHA, w, h, 0, GL_ALPHA, GL_UNSIGNED_BYTE, data);
     free(data);
     return tex;
@@ -282,29 +284,13 @@ static void knob_draw(struct knob *s,
     value val = variable_get(s->var);
     float angle = (150 - val*300);
 
-    /* Enable texture */
-    if (!bc->knob_texture_disk) {
-        bc->knob_texture_disk  = render_texture(spec_disk, 64);
-        bc->knob_texture_dial  = render_texture(spec_dial, 32);
-        bc->knob_texture_scale = render_texture(spec_scale, 64);
-    }
-
     glMatrixMode(GL_MODELVIEW);
     glPushMatrix();
 
         glTranslatef(s->box.x, s->box.y, 0);
 
         /* Background square */
-        if (box_control_has_focus(bc, &s->box)) {
-            glColor3f(0.1,0.1,0.1);
-            // int v1 = CLIP(v+20);
-            // glColor3ub(v1,v,v);
-        }
-        else {
-            glColor3f(0,0,0);
-            // glColor3ub(v,v,v);
-        }
-        gl_rect(0,0,s->box.w,s->box.h);
+        box_draw_background(&s->box, bc);
 
         /* Numbers */
         if (1) {
@@ -313,28 +299,33 @@ static void knob_draw(struct knob *s,
 
         /* Move to the center of the box. */
         glTranslatef(s->box.w/2, s->box.h/2, 0);
-        int r = (s->box.w > s->box.h ? s->box.h : s->box.w) / 3;
+        float r = (s->box.w > s->box.h ? s->box.h : s->box.w) / 3;
 
         /* Angle scale */
         if (1) {
-            int r2 = s->box.w / 2;
+            float r2 = s->box.w / 2;
             glColor4f(1,1,1,1);
-            gl_rect_tex(bc->knob_texture_scale, -r2,-r2,+r2,+r2);
+            gl_rect_tex(bc->texture_knob_ticks, -r2,-r2,+r2,+r2);
         }
 
         glRotatef(angle,0,0,1);
 
         /* Draw disk */
         if (1) {
-            glColor4f(.7,.2,.1,1);
-            gl_rect_tex(bc->knob_texture_disk, -r,-r,+r,+r);
+            glColor4f(.2,.3,.6,1);
+            gl_rect_tex(bc->texture_knob_disk, -r,-r,+r,+r);
+
+            float r0 = r * 0.9;
+            glColor4f(.3,.4,.7,1);
+            gl_rect_tex(bc->texture_knob_disk, -r0,-r0,+r0,+r0);
+
         }
         /* Draw dial */
         if (1) {
             glTranslatef(0,r/2,0);
             glScalef(.5,.5,1);
             glColor4f(1,1,1,1);
-            gl_rect_tex(bc->knob_texture_dial, -r,-r,+r,+r);
+            gl_rect_tex(bc->texture_knob_notch, -r,-r,+r,+r);
         }
 
     glPopMatrix();
@@ -374,10 +365,10 @@ void box_control_init(struct box_control *bc, int w, int h) {
         for (x = 0; x < nx; x++) {
             struct slider *s = calloc(1, sizeof(*s));
             s->box.name = "?";
-            s->box.x = x * DW + SLIDER_MARGIN;
-            s->box.y = y * DH + SLIDER_MARGIN;
-            s->box.w = DW - 2*SLIDER_MARGIN;
-            s->box.h = DH - 2*SLIDER_MARGIN;
+            s->box.x = x * DW;
+            s->box.y = y * DH;
+            s->box.w = DW;
+            s->box.h = DH;
             s->box.class = (y > 0) ? &knob_class : &slider_class;
             s->var = var[x];
             bc->boxes[i++] = &(s->box);
@@ -403,6 +394,18 @@ struct box *box_control_find_box(struct box_control *bc, int x, int y) {
 void box_control_draw_view(void *ctx, int w, int h) {
     struct box_control *bc = ctx;
     struct box **b;
+
+    /* Create textures.  This needs to be done with the GL context
+       active, so just do it the first time the global draw() function
+       is called. */
+    if (!bc->texture_knob_disk) {
+        ZL_LOG("generating textures");
+        bc->texture_knob_disk     = render_texture(spec_knob_disk,  64, 64);
+        bc->texture_knob_notch    = render_texture(spec_knob_notch, 32, 32);
+        bc->texture_knob_ticks    = render_texture(spec_knob_ticks, 64 ,64);
+        bc->texture_slider_ticks  = render_texture(spec_slider_ticks, 64, 128);
+    }
+
     glColor3f(0,0,0);
     gl_rect(0, 0, w, h);
     BOX_FOR(b, bc->boxes) { (*b)->class->draw(*b, bc); }

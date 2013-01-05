@@ -50,10 +50,11 @@ struct box_control {
     int x, y;              // coords of last click
     struct box *box_focus; // box of last focus
 
-    /* Random global stuff: FIXME */
-    int knob_texture_disk;
-    int knob_texture_dial;
-    int knob_texture_scale;
+    /* Global view data. */
+    int texture_knob_disk;
+    int texture_knob_notch;
+    int texture_knob_ticks;
+    int texture_slider_ticks;
 };
 enum control_event {
     ce_press,

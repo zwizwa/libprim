@@ -7,12 +7,19 @@
 typedef unsigned char u8;
 
 /* Dumb no-nonsense declarative (relational) anti-aliased renderer.
-   Creates a bitmap image from a coordinate member function. */
-void render_spec(u8 *data, int max_x, int max_y, render_spec_fn spec, bool accu) {
+   Creates a bitmap image from a coordinate member function.
+
+   While simple, this approach suffers from the 'square pixel'
+   effect. It might help to smooth the output data a bit more, or use
+   overlapping pixels in the first place, e.g. implemented using a
+   random sampling method with PDF == convolution shape?  */
+
+void render_spec(u8 *data, int max_x, int max_y, double aspect,
+                 render_spec_fn spec, bool accu) {
     if (!accu) bzero(data, max_x * max_y);
 
     /* Coordinates passed to member function are square [-1,1] x [-1,1] */
-    double scale_x = 2.0 / ((double)(RENDER_OVERSAMPLE_X * max_x));
+    double scale_x = 2.0 / ((double)(RENDER_OVERSAMPLE_X * max_x)) * aspect;
     double scale_y = 2.0 / ((double)(RENDER_OVERSAMPLE_Y * max_y));
 
     u8 *d = data;
@@ -23,7 +30,7 @@ void render_spec(u8 *data, int max_x, int max_y, render_spec_fn spec, bool accu)
         for (int xs = 0; xs < RENDER_OVERSAMPLE_X; xs++) {
             int xi = (xs + (x * RENDER_OVERSAMPLE_X));
             int yi = (ys + (y * RENDER_OVERSAMPLE_Y));
-            double xf = scale_x * ((float)xi) - 1;
+            double xf = scale_x * ((float)xi) - aspect;
             double yf = scale_y * ((float)yi) - 1;
             acc += spec(xf,yf) ? 1 : 0;
         }}
@@ -40,20 +47,27 @@ void render_spec(u8 *data, int max_x, int max_y, render_spec_fn spec, bool accu)
 }
 
 
-/* Form specifications. */
-bool spec_disk(double x, double y) {
+/* Form specifications.
+
+   Since the whole approach isn't particulary fast, it helps if these
+   predicates fail early.  I.e. put the coarsest bounding shape checks
+   first.
+*/
+
+
+bool spec_knob_disk(double x, double y) {
     return (x*x) + (y*y) < 1.0;
 }
-bool spec_dial(double x, double y) {
+bool spec_knob_notch(double x, double y) {
     return (fabs(x) < 0.1)
         && (fabs(y) < 0.9);
 }
 
 
-bool spec_disk_1(double x, double y) {
+bool spec_knob_disk_1(double x, double y) {
     return ((x*x) + (y*y) < 1.0)
-        && (fabs(x) < 0.8)
-        && (fabs(y) < 0.8);
+        && (fabs(x) < 0.9)
+        && (fabs(y) < 0.9);
 }
 
 static double pos_deg(double deg) {
@@ -62,14 +76,13 @@ static double pos_deg(double deg) {
     return deg;
 }
 
-/* Rotary knob tick dials + outer border. */
 
-bool spec_scale(double x, double y) {
+bool spec_knob_ticks(double x, double y) {
     double r = sqrt((x*x) + (y*y));
 
     /* All marks are inside annulus */
-    if (r < .70) return false;
-    if (r > .90) return false;
+    if (r < SCALE_R_INNER) return false;
+    if (r > SCALE_R_OUTER) return false;
 
     /* Angle from [-180,180] degrees. */
     double deg = atan2(y,x) * (180 / M_PI);
@@ -87,12 +100,12 @@ bool spec_scale(double x, double y) {
 
     /* Cut out the 2 bottom segments of the scale, except the 2 halves
        of the tick marks that stick out. */
-    int nb_segments = 10;
+    int nb_segments = SCALE_TICKS;
     double segm_deg = 300 / nb_segments;
     if (!(pos_deg(deg) < (nb_segments * segm_deg + tick_deg))) return false;
 
     /* Paint the outer ring */
-    if (r > .85) return true;
+    if (r > SCALE_R_RING) return true;
 
     /* Strip off the "real" part of the angle == modulo operation. */
     int segment = pos_deg(deg)/segm_deg;
@@ -100,5 +113,28 @@ bool spec_scale(double x, double y) {
 
     /* Only paint the tick width. */
     return pos_deg(deg) < tick_deg;
+
+}
+
+
+
+bool spec_slider_ticks(double x, double y) {
+    /* Coarse bounding box. */
+    if (fabs(y) > (1 - SLIDER_BORDER + SLIDER_THICKNESS/2)) return false;
+    if (fabs(x) > SLIDER_WITH_COARSE) return false;
+
+    /* Translate to tick mark coordinates, compensated for slider thickness. */
+    double tick_spacing = (1 - (2 * SLIDER_BORDER)) / (SLIDER_TICKS / 2);
+    double mark_frac = 5.0 + (y + (SLIDER_THICKNESS/2)) / tick_spacing;
+
+    /* Separate in coarse/fine tick-relative coordinates. */
+    int mark = mark_frac;
+    mark_frac -= mark;
+
+    /* Only 0,5,10,... are wider */
+    if ((mark % (SLIDER_TICKS / 2) != 0) &&
+        (fabs(x) > SLIDER_WITH_FINE)) return false;
+
+    return (mark_frac < SLIDER_THICKNESS);
 
 }
