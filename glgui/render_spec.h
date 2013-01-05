@@ -36,7 +36,7 @@ bool spec_knob_ticks(double x, double y);
    - aspect = 0.5  ->  x \in [-0.5,0.5]  y \in [-1,1]
 */
 #define SLIDER_BORDER      0.10
-#define SLIDER_THICKNESS   0.10
+#define SLIDER_THICKNESS   0.25
 #define SLIDER_TICKS       10
 #define SLIDER_WITH_COARSE 0.30
 #define SLIDER_WITH_FINE   0.20

@@ -123,9 +123,12 @@ bool spec_slider_ticks(double x, double y) {
     if (fabs(y) > (1 - SLIDER_BORDER + SLIDER_THICKNESS/2)) return false;
     if (fabs(x) > SLIDER_WITH_COARSE) return false;
 
+    /* Slot line line */
+    if (fabs(x) < 0.06) { return fabs(x) > 0.05; }
+
     /* Translate to tick mark coordinates, compensated for slider thickness. */
-    double tick_spacing = (1 - (2 * SLIDER_BORDER)) / (SLIDER_TICKS / 2);
-    double mark_frac = 5.0 + (y + (SLIDER_THICKNESS/2)) / tick_spacing;
+    double tick_spacing = (1 - SLIDER_BORDER) / (SLIDER_TICKS/2);
+    double mark_frac = 5.0 + (y / tick_spacing);
 
     /* Separate in coarse/fine tick-relative coordinates. */
     int mark = mark_frac;
@@ -135,6 +138,5 @@ bool spec_slider_ticks(double x, double y) {
     if ((mark % (SLIDER_TICKS / 2) != 0) &&
         (fabs(x) > SLIDER_WITH_FINE)) return false;
 
-    return (mark_frac < SLIDER_THICKNESS);
-
+    return fabs(mark_frac) < SLIDER_THICKNESS/2;
 }
