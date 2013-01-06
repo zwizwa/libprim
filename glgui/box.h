@@ -70,9 +70,6 @@ struct box_control {
 
     enum button_event current_button;
 
-    /* GUI editing */
-    box_drag_update_t gui_edit;
-
     /* Global view data. */
     int texture_knob_disk;
     int texture_knob_notch;

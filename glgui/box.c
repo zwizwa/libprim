@@ -441,7 +441,6 @@ static void box_edit_move(struct box *b, struct box_control *bc,
 void box_control_handle_event(struct box_control *bc,
                               enum control_event e, int x, int y,
                               enum button_event but) {
-    ZL_LOG("%d %d", e, but);
     switch(e) {
     case ce_press:
         /* We don't do multiple button presses. */
@@ -459,8 +458,7 @@ void box_control_handle_event(struct box_control *bc,
         bc->x = x;
         bc->y = y;
         bc->current_button = but;
-
-        /* Fallthrough */
+        break;
 
     case ce_motion:
         if (bc->box_edit) {
@@ -471,6 +469,7 @@ void box_control_handle_event(struct box_control *bc,
                 /* Normal GUI drag operation: parameter adjust. */
                 bc->box_edit->class->drag_update(bc->box_edit, bc, bc->x, bc->y, dx, dy);
                 break;
+                /* GUI editing. */
             case button_right:
                 box_edit_move(bc->box_edit, bc, bc->x, bc->y, dx, dy);
                 break;
@@ -490,12 +489,13 @@ void box_control_handle_event(struct box_control *bc,
 
         /* Commit delta */
         if (bc->box_edit) {
-            if (bc->gui_edit) {
-                bc->gui_edit = NULL;
-            }
-            else {
+            switch(bc->current_button) {
+            case button_left:
                 bc->box_edit->class->drag_commit(bc->box_edit, bc);
                 bc->box_edit = NULL;
+                break;
+            default:
+                break;
             }
         }
         bc->current_button = button_none;
