@@ -170,14 +170,14 @@ void variable_drag_commit(struct variable *var) {
 
 /* BOX: shared drawing code */
 static void box_draw_background(struct box *b, struct box_control *bc) {
-    if (0) {
+    if (1) {
         if (box_control_has_focus(bc, b)) {
-            glColor3f(0.1,0.1,0.1);
+            glColor4f(0.1,0.1,0.1,1);
+            glEnable (GL_BLEND);
+            glBlendFunc (GL_SRC_ALPHA, GL_ONE);
+            gl_rect(0,0,b->w,b->h);
+            glDisable (GL_BLEND);
         }
-        else {
-            glColor3f(0,0,0);
-        }
-        gl_rect(0,0,b->w,b->h);
     }
 }
 
@@ -355,11 +355,13 @@ void box_control_init(struct box_control *bc, int w, int h) {
     int x,y;
     int i = 0;
 
+    /* Model */
     struct variable *var[nx];
     for (x = 0; x < nx; x++) {
         var[x] = calloc(1, sizeof(var[x]));
         var[x]->v = 0.5;
     }
+    /* View/Controller */
     bc->boxes = calloc(1 + (nx * ny), sizeof(void *));
     for (y = 0; y < ny; y++) {
         for (x = 0; x < nx; x++) {
@@ -368,8 +370,14 @@ void box_control_init(struct box_control *bc, int w, int h) {
             s->box.x = x * DW;
             s->box.y = y * DH;
             s->box.w = DW;
-            s->box.h = DH;
-            s->box.class = (y > 0) ? &knob_class : &slider_class;
+            if (y > 0) {
+                s->box.h = DH/2;
+                s->box.class = &knob_class;
+            }
+            else {
+                s->box.h = DH;
+                s->box.class = &slider_class;
+            }
             s->var = var[x];
             bc->boxes[i++] = &(s->box);
         }
@@ -412,7 +420,18 @@ void box_control_draw_view(void *ctx, int w, int h) {
 
     glColor3f(0,0,0);
     gl_rect(0, 0, w, h);
-    BOX_FOR(b, bc->boxes) { (*b)->class->draw(*b, bc); }
+
+    /* Draw boxes in no particular order; they should not overlap. */
+    BOX_FOR(b, bc->boxes) {
+        if (*b != bc->box_focus) {
+            (*b)->class->draw(*b, bc);
+        }
+    }
+    /* Always draw focused box on top.  This is to fix temporary
+       overlap during GUI editing. */
+    if (bc->box_focus) {
+        bc->box_focus->class->draw(bc->box_focus, bc);
+    }
 }
 
 
