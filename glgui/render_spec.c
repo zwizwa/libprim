@@ -70,10 +70,22 @@ bool spec_knob_disk_1(double x, double y) {
         && (fabs(y) < 0.9);
 }
 
+/* Positive/negative float modulo */
+static double fmod_pos(double x, double m) {
+    while (x >= m) x -= m;
+    while (x <  0) x += m;
+    return x;
+}
+
+/* Positive float modulo */
+static double fmod_pos_neg(double x, double m) {
+    double m2 = m/2;
+    while (x >= m2) x -= m;
+    while (x < -m2) x += m;
+    return x;
+}
 static double pos_deg(double deg) {
-    while (deg >= 360) deg -= 360;
-    while (deg < 0)    deg += 360;
-    return deg;
+    return fmod_pos(deg, 360);
 }
 
 
@@ -115,6 +127,7 @@ bool spec_knob_ticks(double x, double y) {
     return pos_deg(deg) < tick_deg;
 
 }
+
 
 
 

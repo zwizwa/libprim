@@ -43,6 +43,24 @@ BOX_METHOD_LIST(BOX_CLASS_MEMBER)
 
 
 /* Box controller. */
+enum control_event {
+    /* GUI operation events. */
+    ce_press,
+    ce_motion,
+    ce_release,
+};
+enum button_event {
+    button_none       = 0,
+    button_left       = 1,
+    button_middle     = 2,
+    button_right      = 3,
+    button_wheel_up   = 4,
+    button_wheel_down = 5,
+
+    /* For editing: keyboard behaves as mouse buttons. */
+    button_move,
+
+};
 
 struct box_control {
     struct box **boxes;    // all boxes
@@ -50,16 +68,16 @@ struct box_control {
     int x, y;              // coords of last click
     struct box *box_focus; // box of last focus
 
+    enum button_event current_button;
+
+    /* GUI editing */
+    box_drag_update_t gui_edit;
+
     /* Global view data. */
     int texture_knob_disk;
     int texture_knob_notch;
     int texture_knob_ticks;
     int texture_slider_ticks;
-};
-enum control_event {
-    ce_press,
-    ce_motion,
-    ce_release,
 };
 
 
@@ -90,7 +108,7 @@ struct knob {
 void box_control_init(struct box_control *bc, int w, int h);
 void box_control_handle_event(struct box_control *bc,
                               enum control_event e, int x, int y,
-                              int but);
+                              enum button_event but);
 void box_control_draw_view(void *ctx, int w, int h);
 
 /* Box -> box controller queries */

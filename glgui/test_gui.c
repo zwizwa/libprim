@@ -21,19 +21,29 @@
 /* Translate X events to abstract events */
 void handle_XEvent(void *ctx, XEvent *e) {
     enum control_event ce;
-    int but;
+    int but = button_none;
     switch(e->type) {
     case ButtonPress:
-        but = e->xbutton.button - Button1;
+        but = button_left + (e->xbutton.button - Button1);
         ce = ce_press;
         break;
     case ButtonRelease:
-        but = e->xbutton.button - Button1;
+        but = button_left + (e->xbutton.button - Button1);
         ce = ce_release;
         break;
     case MotionNotify:
-        but = -1;
         ce = ce_motion;
+        break;
+    case KeyRelease:
+    case KeyPress:
+        ce = (e->type == KeyPress) ? ce_press : ce_release;
+        switch(e->xkey.keycode) {
+        case 58:
+            but = button_move;
+            break;
+        default:
+            return;
+        }
         break;
     default: return;
     }

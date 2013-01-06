@@ -40,8 +40,6 @@ static inline value clip(value v) {
 
 typedef unsigned char u8;
 
-#define WHEEL_UP   3
-#define WHEEL_DOWN 4
 
 /* Simplicity is probably more important than efficiency here.
 
@@ -172,13 +170,15 @@ void variable_drag_commit(struct variable *var) {
 
 /* BOX: shared drawing code */
 static void box_draw_background(struct box *b, struct box_control *bc) {
-    if (box_control_has_focus(bc, b)) {
-        glColor3f(0.1,0.1,0.1);
+    if (0) {
+        if (box_control_has_focus(bc, b)) {
+            glColor3f(0.1,0.1,0.1);
+        }
+        else {
+            glColor3f(0,0,0);
+        }
+        gl_rect(0,0,b->w,b->h);
     }
-    else {
-        glColor3f(0,0,0);
-    }
-    gl_rect(0,0,b->w,b->h);
 }
 
 
@@ -391,6 +391,10 @@ struct box *box_control_find_box(struct box_control *bc, int x, int y) {
     return NULL;
 }
 
+/* Fixme: it would be good to limit this to only a particular
+   rectangle to allow for incremental updates on different composition
+   engines. */
+
 void box_control_draw_view(void *ctx, int w, int h) {
     struct box_control *bc = ctx;
     struct box **b;
@@ -428,48 +432,77 @@ static void box_inc(struct box *b, struct box_control *bc, int inc) {
     }
 }
 
+static void box_edit_move(struct box *b, struct box_control *bc,
+                          int x0, int y0, int dx, int dy) {
+    b->x = x0+dx - b->w/2;
+    b->y = y0+dy - b->h/2;
+}
+
 void box_control_handle_event(struct box_control *bc,
                               enum control_event e, int x, int y,
-                              int but) {
-    struct box *b = box_control_find_box(bc, x, y);
+                              enum button_event but) {
+    ZL_LOG("%d %d", e, but);
     switch(e) {
     case ce_press:
+        /* We don't do multiple button presses. */
+        if (bc->current_button != button_none) return;
+
         switch(but) {
-        case WHEEL_UP:   box_inc(b, bc, +1); return;
-        case WHEEL_DOWN: box_inc(b, bc, -1); return;
-        default: return;
-        case 0:
-            /* Record state of last press as it determines drag routing. */
-            bc->box_edit = b;
-            bc->x = x;
-            bc->y = y;
+        case button_wheel_up:   box_inc(box_control_find_box(bc, x, y), bc, +1); return;
+        case button_wheel_down: box_inc(box_control_find_box(bc, x, y), bc, -1); return;
+        default: break;
         }
+
+        /* Record state of last press as it determines drag routing. */
+        bc->box_edit = box_control_find_box(bc, x, y);
+        box_control_update_focus(bc, bc->box_edit);
+        bc->x = x;
+        bc->y = y;
+        bc->current_button = but;
+
+        /* Fallthrough */
+
     case ce_motion:
         if (bc->box_edit) {
             int dx = x - bc->x;
             int dy = y - bc->y;
-            bc->box_edit->class->drag_update(bc->box_edit, bc, bc->x, bc->y, dx, dy);
+            switch(bc->current_button) {
+            case button_left:
+                /* Normal GUI drag operation: parameter adjust. */
+                bc->box_edit->class->drag_update(bc->box_edit, bc, bc->x, bc->y, dx, dy);
+                break;
+            case button_right:
+                box_edit_move(bc->box_edit, bc, bc->x, bc->y, dx, dy);
+                break;
+            default:
+                break;
+            }
         }
         else {
-            box_control_update_focus(bc, b);
-            // ZL_LOG("motion (%d,%d) %s", x, y, b ? b->name : "<none>");
+            /* No edit in progress, allow change of focus. */
+            box_control_update_focus(bc, box_control_find_box(bc, x, y));
         }
         break;
     case ce_release:
-        if (but != 0) {
-            // ZL_LOG("ignoring release %d", but);
-            return;
-        }
+        /* If it's not the same button as the one that's currently
+           down, ignore it */
+        if (bc->current_button != but) return;
+
         /* Commit delta */
         if (bc->box_edit) {
-            bc->box_edit->class->drag_commit(bc->box_edit, bc);
-            bc->box_edit = NULL;
+            if (bc->gui_edit) {
+                bc->gui_edit = NULL;
+            }
+            else {
+                bc->box_edit->class->drag_commit(bc->box_edit, bc);
+                bc->box_edit = NULL;
+            }
         }
-        else {
-            /* Shouldn't happen. */
-            // ZL_LOG("spurious release");
-        }
-        box_control_update_focus(bc, b);
+        bc->current_button = button_none;
+
+        /* Release might change focus. */
+        box_control_update_focus(bc, box_control_find_box(bc, x, y));
+
         break;
     default:
         break;
