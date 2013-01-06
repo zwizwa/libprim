@@ -1,5 +1,3 @@
 #lang scheme/base
-
-;; Bootstrap primitive init from C file.
-(require "../prim-tools.ss")
+(require prim-tools)
 (ex-gen "sc")

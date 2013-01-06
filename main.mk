@@ -24,22 +24,26 @@ SRC      = $(shell readlink -f ..)
 BUILD    = $(shell readlink -f .)
 TARGET 	 = Linux
 
--include $(SRC)/target/$(TARGET).mk
 
+LDFLAGS  :=
+CFLAGS   := -g -O0 -Wall -std=gnu99
 CPPFLAGS := \
 	-I$(BUILD) \
 	-I$(SRC) \
 	-DTARGET=\"$(TARGET)\" \
 	-DPRIM_HOME=\"$(SRC)/\" \
 	-DHAVE_LEAF
-CFLAGS   := -g -O0 -Wall -std=gnu99
-LDFLAGS  :=
+
+-include $(SRC)/target/$(TARGET).mk
+
+
+
 GCC      := $(TOOL_PREFIX)gcc
 AS       := $(TOOL_PREFIX)as
 AR       := $(TOOL_PREFIX)ar
 LD       := $(TOOL_PREFIX)ld
 CC       := $(GCC)
-MZSCHEME := mzscheme
+MZSCHEME := mzscheme -S $(SRC)/rkt
 
 .PHONY: all
 all: g_ELF

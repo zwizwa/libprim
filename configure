@@ -18,7 +18,7 @@ BUILD:=$BUILD
 TARGET:=$TARGET
 .PHONY: all
 all:
-	make -f \$(SRC)/main.mk TARGET="\$(TARGET)" SRC="\$(SRC)" BUILD="\$(BUILD)" -j6
+	+make -f \$(SRC)/main.mk TARGET="\$(TARGET)" SRC="\$(SRC)" BUILD="\$(BUILD)"
 EOF
 
 echo "Now run 'make'"

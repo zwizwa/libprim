@@ -1,6 +1,6 @@
 #lang scheme/base
 
-(require "../prim-tools.ss")
+(require prim-tools)
 
 ;; Bootstrap primitive init from C file.
 (parameterize

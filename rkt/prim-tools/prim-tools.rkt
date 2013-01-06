@@ -1,7 +1,7 @@
 #lang scheme/base
 
 (require "tools.ss"
-         "sc/mangle.ss")
+         "mangle.ss")
 (provide (all-defined-out))
 
 (define re-def (make-parameter #f))
