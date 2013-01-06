@@ -24,7 +24,6 @@ SRC      = $(shell readlink -f ..)
 BUILD    = $(shell readlink -f .)
 TARGET 	 = Linux
 
-
 LDFLAGS  :=
 CFLAGS   := -g -O0 -Wall -std=gnu99
 CPPFLAGS := \
@@ -34,16 +33,27 @@ CPPFLAGS := \
 	-DPRIM_HOME=\"$(SRC)/\" \
 	-DHAVE_LEAF
 
+# To use the libprim build system with libprim source tree embedded in
+# a larger tree, this variable needs to be set.  Note that $(SRC) then
+# refers to the larger source tree.
+
 -include $(SRC)/target/$(TARGET).mk
 
 
+# $(TARGET).mk can define LIBPRIM_SUBTREE, which allows libprim
+# extensions, re-using the libprim build system.
+LIBPRIM_SRC   := $(SRC)/$(LIBPRIM_SUBTREE)
+LIBPRIM_BUILD := $(BUILD)/$(LIBPRIM_SUBTREE)
+CPPFLAGS      += -I$(LIBPRIM_SRC) -I$(LIBPRIM_BUILD)
 
 GCC      := $(TOOL_PREFIX)gcc
 AS       := $(TOOL_PREFIX)as
 AR       := $(TOOL_PREFIX)ar
 LD       := $(TOOL_PREFIX)ld
 CC       := $(GCC)
-MZSCHEME := mzscheme -S $(SRC)/rkt
+
+MZSCHEME := mzscheme -S $(LIBPRIM_SRC)/rkt
+
 
 .PHONY: all
 all: g_ELF
@@ -102,7 +112,7 @@ GENERATED_H := $(g_H) $(BUILD)/config.h
 compile = @mkdir -p $(dir $(1)) ; echo [$(2)] $(notdir $(1)) ; $(3)
 
 # Gather dependencies from .c file
-depstx := sed -r 's,\s(\w+/), $(BUILD)/\1,g'
+depstx := sed -r 's,\s(\w+/), $(LIBPRIM_BUILD)/\1,g'
 $(g_D) $(g_ELF_D): $(BUILD)/%.d: $(SRC)/%.c $(GENERATED_H)
 	$(call compile,$@,d,$(CC) $(CPPFLAGS) -M -MG -MT $(@:.d=.o) $< | $(depstx) >$@)
 

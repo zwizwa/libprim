@@ -1,7 +1,7 @@
 #ifndef _ZL_CONFIG_H_
 #define _ZL_CONFIG_H_
 
-#ifdef PD
+#if 0
 
 /* Tie ZL into mothership. */
 void post(const char *msg, ...);
