@@ -18,7 +18,7 @@ void render_spec(u8 *data, int max_x, int max_y, double aspect,
                  render_spec_fn spec, bool accu) {
     if (!accu) bzero(data, max_x * max_y);
 
-    /* Coordinates passed to member function are square [-1,1] x [-1,1] */
+    /* Coordinates passed to member function are rectangular [-a,a] x [-1,1] */
     double scale_x = 2.0 / ((double)(RENDER_OVERSAMPLE_X * max_x)) * aspect;
     double scale_y = 2.0 / ((double)(RENDER_OVERSAMPLE_Y * max_y));
 
