@@ -1,3 +1,6 @@
+#ifndef _ZL_XWINDOW_H_
+#define _ZL_XWINDOW_H_
+
 
 /*
  *   Pure Data Packet header file: zl_xwindow glue code
@@ -149,4 +152,5 @@ zl_xdisplay_p zl_xdisplay_new(char_p dpy);
 zl_xwindow_class *zl_xwindow_type(void);
 zl_xdisplay_class *zl_xdisplay_type(void);
 
+#endif
 #endif

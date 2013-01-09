@@ -1,5 +1,5 @@
 # Library
-m_C   := render_spec.c box.c
+m_C   := render_spec.c box.c glxgui.c
 
 # Test & util code
 m_ELF := spec2bin.elf test_gui.elf

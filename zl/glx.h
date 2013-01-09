@@ -1,3 +1,6 @@
+#ifndef _ZL_GLX_H_
+#define _ZL_GLX_H_
+
 
 /*
  *   Pure Data Packet header file: glx glue code
@@ -85,6 +88,9 @@ void *zl_glx_image_data(zl_glx *x, zl_xwindow_p xwin,
 /* display the texture */
 void zl_glx_image_display(zl_glx *x, zl_xwindow_p xwin);
 
+/* call an OpenGL rendering function */
+void zl_glx_2d_display(zl_glx *x, zl_xwindow_p xwin,
+                       void (*draw)(void*,int,int), void *ctx);
 
 /* opengl specific stuff*/
 void zl_glx_swapbuffers(zl_glx *x, zl_xwindow_p xwin);
@@ -106,3 +112,5 @@ void zl_glx_vsync(zl_glx *x, bool sync);
 // oid glx_sync_free(glx_sync_t *x);
 // void glx_sync_wait(glx_sync_t *x);
 // int glx_sync_open_on_display(glx_sync_t *x, xdisplay *xdpy);
+
+#endif
