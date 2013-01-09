@@ -31,3 +31,8 @@ int leaf_write(leaf_object *x, port *p) {
         return port_printf(p, "#<null>");
     }
 }
+
+
+/* For debugging */
+void leaf_trap(void) {}
+

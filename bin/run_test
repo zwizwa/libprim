@@ -1,0 +1,22 @@
+#!/bin/bash
+[ -z "$2" ] && echo "usage: $0 <elf> <output>" && exit 1
+
+TEST="$1"
+LOG="$2"
+
+$TEST &>$LOG
+RV=$?
+
+# echo TEST returns $RV
+
+if [ $RV == 0 ] ; then
+    echo PASS >>$LOG
+else
+    echo FAIL >>$LOG
+    cat $LOG
+    # Probably best to remove the failing test log so test re-runs.
+    rm $LOG
+fi
+
+
+

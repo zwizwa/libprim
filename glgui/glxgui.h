@@ -6,7 +6,9 @@
 #include <zl/config.h>
 #include <glgui/box.h>
 #include <sys/time.h>  // struct timeval
-#include <pthread.h>
+#include <config.h>
+
+typedef char atomic_t;  // FIXME
 
 /* Connect some ZL / Posix objects to box_control */
 struct glxgui {
@@ -15,8 +17,9 @@ struct glxgui {
     zl_glx *glx;
     struct timeval tv_last;
     struct box_control box_control;
-    pthread_t thread;
+    thread_t thread;
     int w, h;
+    atomic_t shutdown;
 };
 
 

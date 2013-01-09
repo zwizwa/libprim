@@ -57,13 +57,19 @@ static void glxgui_handle_XEvent(void *ctx, XEvent *e) {
 /**** ZL objects ****/
 
 void glxgui_init(struct glxgui *x, int w, int h) {
+    /* Clean this up a bit.  Thea idea is to be able to run the non-RT
+       part of initialization in a LP thread. */
     bzero(x, sizeof(*x));
     x->w = w;
     x->h = h;
-    box_control_init(&x->box_control, w, h);
+
+}
+
+void glxgui_start(struct glxgui *x) {
+    box_control_init(&x->box_control, x->w, x->h);
     x->xd = zl_xdisplay_new(":0");
     x->xw = zl_xwindow_new();
-    zl_xwindow_resize(x->xw, w, h);
+    zl_xwindow_resize(x->xw, x->w, x->h);
     zl_xwindow_cursor(x->xw, 1);
     x->glx = zl_glx_new();
 
@@ -93,27 +99,38 @@ void glxgui_tick(struct glxgui *x) {
     zl_xdisplay_route_events(x->xd);
     zl_xwindow_for_events(x->xw, glxgui_handle_XEvent, x);
 }
-void glxgui_cleanup(struct glxgui *x) {
+void glxgui_stop(struct glxgui *x) {
+    int w = x->w;
+    int h = x->h;
     zl_xdisplay_unregister_window(x->xd, x->xw);
     zl_xwindow_free(x->xw);
     zl_xdisplay_free(x->xd);
     zl_glx_free(x->glx);
     bzero(x,sizeof(*x));
+    x->w = w;
+    x->h = h;
 }
 
 void *glxgui_thread(void *ctx) {
     struct glxgui *x = ctx;
-    while (1) glxgui_tick(x);
+    glxgui_start(x);
+    while (!x->shutdown) glxgui_tick(x);
+    glxgui_stop(x);
+    free(x);
+    return NULL;
 }
 
 struct glxgui *glxgui_open(int w, int h) {
     struct glxgui *x = malloc(sizeof(*x));
     glxgui_init(x, w, h);
-    const pthread_attr_t *attr = NULL;
-    pthread_create(&x->thread, attr, glxgui_thread, x);
+
+    /* Start thread in detached state: we don't want to wait in the
+       procesing thread. */
+    thread_create_detached(&x->thread, glxgui_thread, x);
     return x;
 }
 
 void glxgui_close(struct glxgui *x) {
-    // FIXME
+    x->shutdown = 1;
+    // pthread_join(&x->thread); // DONT BLOCK!
 }
