@@ -498,7 +498,12 @@ struct box_control *box_control_new(int w, int h) {
     return bc;
 }
 
-void box_control_free(struct box_control *bc) {
-    // FIXME: constructed by superclass
-    LEAF_LOG("box_control_free() : don't know how to clean up..");
+void box_control_cleanup_opengl(struct box_control *bc) {
+    bc->texture_knob_disk = 0;
+    bc->texture_knob_notch = 0;
+    bc->texture_knob_ticks = 0;
+    bc->texture_slider_ticks = 0;
+    bc->current_button = button_none;
+    bc->box_edit = NULL;
+    bc->box_focus = NULL;
 }

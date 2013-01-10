@@ -103,7 +103,9 @@ struct knob {
 
 /* Global controller: called from windowing system. */
 struct box_control *box_control_new(int w, int h);
-void box_control_free(struct box_control *bc);
+
+/* Clean up OpenGL state before closing window. */
+void box_control_cleanup_opengl(struct box_control *bc);
 
 void box_control_handle_event(struct box_control *bc,
                               enum control_event e, int x, int y,
