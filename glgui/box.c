@@ -11,12 +11,12 @@
 
 #include <zl/config.h>
 
+#include <leaf/leaf.h>
+
 /* 7-segment size */
 #define S_T  1 // thickness
 #define S_W  3 // horizontal segment width
 #define S_H  2 // vertical segment height
-#define SLIDER_NX 8
-#define SLIDER_NY 2
 
 #define SLIDER_SCALE_PIXELS 200
 
@@ -236,7 +236,7 @@ static void slider_draw(struct slider *s,
     glPopMatrix();
 }
 /* Gather methods in class data structure. */
-struct box_class slider_class = {
+struct box_class box_slider_class = {
 #define BOX_SLIDER_MEMBER(m) .m = (box_##m##_t)(slider_##m),
 BOX_METHOD_LIST(BOX_SLIDER_MEMBER)
 };
@@ -332,7 +332,7 @@ static void knob_draw(struct knob *s,
 
 }
 /* Gather methods in class data structure. */
-struct box_class knob_class = {
+struct box_class box_knob_class = {
 #define BOX_KNOB_MEMBER(m) .m = (box_##m##_t)(knob_##m),
 BOX_METHOD_LIST(BOX_KNOB_MEMBER)
 };
@@ -345,44 +345,7 @@ BOX_METHOD_LIST(BOX_KNOB_MEMBER)
    - collection (array) of leaf objects */
 #define BOX_FOR(p,a) for(p=&a[0]; *p; p++)  // NULL terminated list of pointers
 
-void box_control_init(struct box_control *bc, int w, int h) {
-    bzero(bc, sizeof(*bc));
 
-    int nx = SLIDER_NX;
-    int ny = SLIDER_NY;
-    int DW = w / nx;
-    int DH = h / ny;
-    int x,y;
-    int i = 0;
-
-    /* Model */
-    struct variable *var[nx];
-    for (x = 0; x < nx; x++) {
-        var[x] = calloc(1, sizeof(var[x]));
-        var[x]->v = 0.5;
-    }
-    /* View/Controller */
-    bc->boxes = calloc(1 + (nx * ny), sizeof(void *));
-    for (y = 0; y < ny; y++) {
-        for (x = 0; x < nx; x++) {
-            struct slider *s = calloc(1, sizeof(*s));
-            s->box.name = "?";
-            s->box.x = x * DW;
-            s->box.y = y * DH;
-            s->box.w = DW;
-            if (y > 0) {
-                s->box.h = DH/2;
-                s->box.class = &knob_class;
-            }
-            else {
-                s->box.h = DH;
-                s->box.class = &slider_class;
-            }
-            s->var = var[x];
-            bc->boxes[i++] = &(s->box);
-        }
-    }
-}
 
 // All ranges are low inclusive, high exclusive
 static bool in_range(int point, int start, int range) {
@@ -526,4 +489,16 @@ void box_control_handle_event(struct box_control *bc,
     default:
         break;
     }
+}
+
+struct box_control *box_control_new(int w, int h) {
+    struct box_control *bc = calloc(1,sizeof(*bc));
+    bc->w = w;
+    bc->h = h;
+    return bc;
+}
+
+void box_control_free(struct box_control *bc) {
+    // FIXME: constructed by superclass
+    LEAF_LOG("box_control_free() : don't know how to clean up..");
 }

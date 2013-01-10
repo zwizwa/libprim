@@ -16,14 +16,16 @@ struct glxgui {
     zl_xwindow *xw;
     zl_glx *glx;
     struct timeval tv_last;
-    struct box_control box_control;
     thread_t thread;
-    int w, h;
     atomic_t shutdown;
+
+    /* This object is managed elsewhere.  We don't have a pointer to
+       its destructor.  FIXME: Use LEAF RC. */
+    struct box_control *box_control;
 };
 
 
-struct glxgui *glxgui_open(int w, int h);
+struct glxgui *glxgui_open(struct box_control *bc);
 void glxgui_close(struct glxgui *x);
 
 #endif // _GLXGUI_H_

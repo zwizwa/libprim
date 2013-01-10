@@ -38,9 +38,8 @@ struct box_class {
 BOX_METHOD_LIST(BOX_CLASS_MEMBER)
 };
 
-
-
-
+extern struct box_class box_knob_class;
+extern struct box_class box_slider_class;
 
 /* Box controller. */
 enum control_event {
@@ -63,6 +62,7 @@ enum button_event {
 };
 
 struct box_control {
+    int w, h;              // window dimensions
     struct box **boxes;    // all boxes
     struct box *box_edit;  // box currently being edited (mouse drag)
     int x, y;              // coords of last click
@@ -102,7 +102,9 @@ struct knob {
 
 
 /* Global controller: called from windowing system. */
-void box_control_init(struct box_control *bc, int w, int h);
+struct box_control *box_control_new(int w, int h);
+void box_control_free(struct box_control *bc);
+
 void box_control_handle_event(struct box_control *bc,
                               enum control_event e, int x, int y,
                               enum button_event but);

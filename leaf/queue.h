@@ -25,8 +25,9 @@ struct queue {
     queue_index index_read;
     queue_index index_write;
 
-    /* Read transaction state */
-    queue_index index_consume;
+    /* Read/write transaction state */
+    queue_size size_build;
+    queue_size size_consume;
 };
 typedef struct queue queue;
 
@@ -39,7 +40,7 @@ queue *queue_new(queue_size bytes);
    writes will just abort. */
 
 int  queue_write_open(queue *q);
-int  queue_write_chunk(queue *q, const void *buf, queue_size bytes);
+int  queue_write_append(queue *q, const void *buf, queue_size bytes);
 void queue_write_close(queue *q);
 
 /* Single-function transaction */
@@ -50,7 +51,7 @@ int queue_write(queue *q, void *buf, queue_size bytes);
 
 int  queue_read_size(queue *q);
 int  queue_read_open(queue *q);
-int  queue_read_chunk(queue *q, void *buf, queue_size bytes);
+int  queue_read_consume(queue *q, void *buf, queue_size bytes);
 void queue_read_close(queue *q);
 
 /* Single-function transaction */

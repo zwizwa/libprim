@@ -48,28 +48,27 @@ static void glxgui_handle_XEvent(void *ctx, XEvent *e) {
     default: return;
     }
 
-    box_control_handle_event(&x->box_control, ce,
-                             e->xbutton.x, x->h - e->xbutton.y,
+    box_control_handle_event(x->box_control, ce,
+                             e->xbutton.x, x->box_control->h - e->xbutton.y,
                              but);
 }
 
 
 /**** ZL objects ****/
 
-void glxgui_init(struct glxgui *x, int w, int h) {
+void glxgui_init(struct glxgui *x, struct box_control *bc) {
     /* Clean this up a bit.  Thea idea is to be able to run the non-RT
        part of initialization in a LP thread. */
     bzero(x, sizeof(*x));
-    x->w = w;
-    x->h = h;
-
+    x->box_control = bc;
 }
 
 void glxgui_start(struct glxgui *x) {
-    box_control_init(&x->box_control, x->w, x->h);
+    LEAF_ASSERT(x->box_control);
+    LEAF_ASSERT(x->box_control->boxes);
     x->xd = zl_xdisplay_new(":0");
     x->xw = zl_xwindow_new();
-    zl_xwindow_resize(x->xw, x->w, x->h);
+    zl_xwindow_resize(x->xw, x->box_control->w, x->box_control->h);
     zl_xwindow_cursor(x->xw, 1);
     x->glx = zl_glx_new();
 
@@ -95,20 +94,15 @@ void glxgui_tick(struct glxgui *x) {
     //fprintf(stderr, "%7d us  \r", usec);
     //ZL_LOG("frame %d", frame++);
     //usleep(10000);
-    zl_glx_2d_display(x->glx, x->xw, box_control_draw_view, &x->box_control);
+    zl_glx_2d_display(x->glx, x->xw, box_control_draw_view, x->box_control);
     zl_xdisplay_route_events(x->xd);
     zl_xwindow_for_events(x->xw, glxgui_handle_XEvent, x);
 }
 void glxgui_stop(struct glxgui *x) {
-    int w = x->w;
-    int h = x->h;
     zl_xdisplay_unregister_window(x->xd, x->xw);
-    zl_xwindow_free(x->xw);
-    zl_xdisplay_free(x->xd);
-    zl_glx_free(x->glx);
-    bzero(x,sizeof(*x));
-    x->w = w;
-    x->h = h;
+    zl_xwindow_free(x->xw);  x->xw  = NULL;
+    zl_xdisplay_free(x->xd); x->xd  = NULL;
+    zl_glx_free(x->glx);     x->glx = NULL;
 }
 
 void *glxgui_thread(void *ctx) {
@@ -120,9 +114,9 @@ void *glxgui_thread(void *ctx) {
     return NULL;
 }
 
-struct glxgui *glxgui_open(int w, int h) {
+struct glxgui *glxgui_open(struct box_control *bc) {
     struct glxgui *x = malloc(sizeof(*x));
-    glxgui_init(x, w, h);
+    glxgui_init(x, bc);
 
     /* Start thread in detached state: we don't want to wait in the
        procesing thread. */

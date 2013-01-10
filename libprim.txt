@@ -11241,3 +11241,10 @@ measurements.  Weird, it does take a lot of CPU.
 [1] http://cgit.freedesktop.org/nouveau/xf86-video-nouveau/commit/?id=70f0d2c886ceaa965ca4864788f4dd8e8f757a92
 [2] http://fossies.org/dox/MesaDemos-7.8.2/glxgears_8c_source.html
 [3] http://forum.openframeworks.cc/index.php?topic=561.0
+
+
+
+Entry: Clean objects / stack based allocation
+Date: Thu Jan 10 09:14:42 EST 2013
+
+
