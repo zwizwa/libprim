@@ -89,11 +89,15 @@ struct box_control {
 };
 
 
-/* VARIABLE: a simple variable model capable of representing an
-   in-progress edit as v+dv  */
+/* VARIABLE: cached model variables with in-progress edit state. */
 typedef float value;
 struct variable {
+    /* State as seen by CORE / VIEW.
+       This is what appears on the screen. */
     value v;
+    /* State as seen by controller: ongoing edit reference point and
+       difference, periodically sent to CORE. */
+    value v0;
     value dv;
 };
 
@@ -145,6 +149,10 @@ struct message_array {
     float el[0];
 }  __attribute__((packed));
 
+
+// CORE -> GUI
+void box_control_update_gui(struct box_control *bc,
+                            int nb_p, const float *p);
 
 
 #endif

@@ -121,7 +121,10 @@ int queue_read_open(queue *x) {
 
 int queue_read_consume(queue *x, void *_buf, queue_size bytes) {
     queue_size msg_size = read_queue_size(x, x->index_read);
-    if (bytes + x->size_consume > msg_size) return QUEUE_ERR_SIZE;
+    if (bytes + x->size_consume > msg_size) {
+        LOG("QUEUE_ERR_SIZE: %d %d %d", bytes, x->size_consume, msg_size);
+        return QUEUE_ERR_SIZE;
+    }
 
     unsigned char *buf = _buf;
     while (bytes > 0) {

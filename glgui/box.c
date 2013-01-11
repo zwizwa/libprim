@@ -160,15 +160,16 @@ static void segment_draw_number(int number, int nb_digits) {
 
 
 value variable_get(struct variable *var) {
-    return var->v + var->dv;
+    // FIXME: how to synchronize?
+    return var->v0 + var->dv;
 }
 void variable_set_delta(struct variable *var, value dv) {
     /* Keep v+dv in proper range. */
-    value v = clip(var->v + dv);
-    var->dv = v - var->v;
+    value v = clip(var->v0 + dv);
+    var->dv = v - var->v0;
 }
 void variable_drag_commit(struct variable *var) {
-    var->v += var->dv;
+    var->v0 += var->dv;
     var->dv = 0;
 }
 
@@ -505,15 +506,39 @@ void box_control_handle_event(struct box_control *bc,
 
 /* Communication between controller and core. */
 
+
+
+#define TRY(x) if (0 != (err = (x))) goto error;
+
+// CORE -> GUI: CORE side
+static void queue_send_params(struct queue *q, int nb_p, const float *p) {
+    int err = 0;
+    ASSERT(q);
+    struct message_array hdr = {
+        .msg = { .id = message_id_params },
+        .nb_el = nb_p,
+    };
+    TRY(queue_write_open(q));
+    TRY(queue_write_append(q, &hdr, sizeof(hdr)));
+    TRY(queue_write_append(q, p, sizeof(float)*nb_p));
+    queue_write_close(q);
+    return;
+
+  error:
+    /* Other side is not reading. */
+    // LOG("queue_write(to_gui) failed: err %d", err);
+    return;
+}
+typedef void (*receive_params_fn)(void *ctx, int nb_p, const float *p);
 static void q_read(queue *q, void *buf, int size) {
-    if (QUEUE_ERR_OK != queue_read_consume(q, buf, size)) {
+    int err;
+    if (QUEUE_ERR_OK != (err = queue_read_consume(q, buf, size))) {
         /* Should not happen.  There is no recovery. */
+        LOG("q_read() -> %d", err);
         ASSERT(0);
     }
 }
-
-static void box_control_update_from_core(struct box_control *bc) {
-    struct queue *q = bc->to_gui;
+static void queue_receive_params(struct queue *q, receive_params_fn fn, void *ctx) {
     ASSERT(q);
     while(1) {
         /* Read until end. */
@@ -527,21 +552,40 @@ static void box_control_update_from_core(struct box_control *bc) {
         /* Interpret body */
         if (a.msg.id == message_id_params) {
             float p[a.nb_el];
-            q_read(q, &p, sizeof(float) * a.nb_el);
-            for (int i = 0; i< a.nb_el; i++) {
-                /* Don't update edits! */
-                if (bc->var[i].dv == 0) {
-                    bc->var[i].v = p[i];
-                }
-            }
+            q_read(q, p, sizeof(float) * a.nb_el);
+            fn(ctx, a.nb_el, p);
         }
 
         /* Acknowledge */
         queue_read_close(q);
-
     }
 }
+
+
+static void receive_vars(void *ctx, int nb_p, const float *p) {
+    struct box_control *bc = ctx;
+    for (int i = 0; i< nb_p; i++) {
+        /* Don't update edits! */
+        if (bc->var[i].dv == 0) {
+            bc->var[i].v = p[i];
+        }
+    }
+}
+
+void box_control_update_gui(struct box_control *bc, int nb_p, const float *p) {
+    queue_send_params(bc->to_gui, nb_p, p);
+}
+
+// CORE -> GUI: GUI side
+static void box_control_update_from_core(struct box_control *bc) {
+    queue_receive_params(bc->to_gui, receive_vars, bc);
+}
 static void box_control_update_core(struct box_control *bc) {
+    float p[bc->nb_vars];
+    for (int i = 0; i < bc->nb_vars; i++) {
+        p[i] = bc->var[i].v0 + bc->var[i].dv;
+    }
+    queue_send_params(bc->to_core, bc->nb_vars, p);
 }
 
 static void box_control_update(struct box_control *bc) {
@@ -549,6 +593,13 @@ static void box_control_update(struct box_control *bc) {
     box_control_update_from_core(bc);
 }
 
+
+/* Parameter cache synchronization. */
+
+
+
+
+/* MISC */
 
 
 struct box_control *box_control_new(int w, int h) {
