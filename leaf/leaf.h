@@ -119,39 +119,29 @@ int leaf_write(leaf_object *x, port *p);
 
 typedef int (*leaf_predicate)(leaf_object *o, void *ctx);
 
+/* DEBUG
 
-/* Logging/assert is useful in low-level code so we support it here.
-   User can define LEAF_LOG to override this implementation. */
+   Logging/assert is useful in low-level leaf code.
+   There are 2 mechanisms to override the defaults:
+
+   - compile time: define LEAF_LOG and LEAF_ASSERT
+   - link time: provide leaf_log and leaf_assert functions in the main .c file
+*/
 
 #ifndef LEAF_LOG
-#include <stdlib.h>
-#include <stdio.h>
-#include <stdarg.h>
-static inline void leaf_log(const char *msg, ...) {
-    va_list vl;
-    va_start(vl,msg);
-    vfprintf(stderr, msg, vl);
-    fprintf(stderr, "\n");
-    va_end(vl);
-}
+void leaf_log(const char *msg, ...);
 #define LEAF_LOG leaf_log
 #endif
 
-#ifndef LEAF_ASSERT
-#include <stdlib.h>
-#include <stdio.h>
-#include <stdarg.h>
+#ifndef LEAF_ASSSERT
 #include <stdbool.h>
-void leaf_trap(void);
-static inline void leaf_assert(bool b, const char *file, int line, const char *msg) {
-    if (!b) {
-        LEAF_LOG("%s:%d: LEAF_ASSERT(%s) failed", file, line, msg);
-        leaf_trap(); // For breakpoint
-        exit(1);
-    }
-}
+void leaf_assert(bool b, const char *file, int line, const char *msg);
 #define LEAF_ASSERT(x) leaf_assert(x,__FILE__,__LINE__,#x)
 #endif
 
+#ifndef LEAF_TRAP
+void leaf_trap(void);
+#define LEAF_TRAP leaf_trap
+#endif
 
 #endif

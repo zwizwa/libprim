@@ -299,19 +299,20 @@ static void knob_draw(struct knob *s,
 
         /* Move to the center of the box. */
         glTranslatef(s->box.w/2, s->box.h/2, 0);
-        float r = (s->box.w > s->box.h ? s->box.h : s->box.w) / 3;
+        float b_square = s->box.w > s->box.h ? s->box.h : s->box.w;
 
         /* Angle scale */
         if (1) {
-            float r2 = s->box.w / 2;
+            float r = b_square / 2;
             glColor4f(1,1,1,1);
-            gl_rect_tex(bc->texture_knob_ticks, -r2,-r2,+r2,+r2);
+            gl_rect_tex(bc->texture_knob_ticks, -r,-r,+r,+r);
         }
 
         glRotatef(angle,0,0,1);
 
         /* Draw disk */
         if (1) {
+            float r = b_square / 3;
             glColor4f(.2,.3,.6,1);
             gl_rect_tex(bc->texture_knob_disk, -r,-r,+r,+r);
 
@@ -322,6 +323,7 @@ static void knob_draw(struct knob *s,
         }
         /* Draw dial */
         if (1) {
+            float r = b_square / 3;
             glTranslatef(0,r/2,0);
             glScalef(.5,.5,1);
             glColor4f(1,1,1,1);
