@@ -13,6 +13,9 @@
 
 #include <leaf/leaf.h>
 
+#define ASSERT LEAF_ASSERT
+#define LOG    LEAF_LOG
+
 /* 7-segment size */
 #define S_T  1 // thickness
 #define S_W  3 // horizontal segment width
@@ -425,6 +428,8 @@ static void box_edit_move(struct box *b, struct box_control *bc,
     b->y = y0+dy - b->h/2;
 }
 
+static void box_control_update(struct box_control *bc);
+
 void box_control_handle_event(struct box_control *bc,
                               enum control_event e, int x, int y,
                               enum button_event but) {
@@ -494,7 +499,57 @@ void box_control_handle_event(struct box_control *bc,
     default:
         break;
     }
+
+    box_control_update(bc);
 }
+
+/* Communication between controller and core. */
+
+static void q_read(queue *q, void *buf, int size) {
+    if (QUEUE_ERR_OK != queue_read_consume(q, buf, size)) {
+        /* Should not happen.  There is no recovery. */
+        ASSERT(0);
+    }
+}
+
+static void box_control_update_from_core(struct box_control *bc) {
+    struct queue *q = bc->to_gui;
+    ASSERT(q);
+    while(1) {
+        /* Read until end. */
+        if (QUEUE_ERR_OK != queue_read_open(q)) return;
+
+        /* Get header.  Assume it's a msg_array since we don't support
+           anything else. */
+        struct message_array a;
+        q_read(q, &a, sizeof(a));
+
+        /* Interpret body */
+        if (a.msg.id == message_id_params) {
+            float p[a.nb_el];
+            q_read(q, &p, sizeof(float) * a.nb_el);
+            for (int i = 0; i< a.nb_el; i++) {
+                /* Don't update edits! */
+                if (bc->var[i].dv == 0) {
+                    bc->var[i].v = p[i];
+                }
+            }
+        }
+
+        /* Acknowledge */
+        queue_read_close(q);
+
+    }
+}
+static void box_control_update_core(struct box_control *bc) {
+}
+
+static void box_control_update(struct box_control *bc) {
+    box_control_update_core(bc);
+    box_control_update_from_core(bc);
+}
+
+
 
 struct box_control *box_control_new(int w, int h) {
     struct box_control *bc = calloc(1,sizeof(*bc));

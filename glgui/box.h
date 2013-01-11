@@ -2,6 +2,7 @@
 #define _BOX_H_
 
 #include <stdbool.h>
+#include <leaf/queue.h>
 
 /* A box is a region of the screen that receives mouse/keyboard events
    and presents graphical data. */
@@ -62,13 +63,23 @@ enum button_event {
 };
 
 struct box_control {
+    /* Layout */
     int w, h;              // window dimensions
     struct box **boxes;    // all boxes
+
+    /* Current control state */
     struct box *box_edit;  // box currently being edited (mouse drag)
     int x, y;              // coords of last click
     struct box *box_focus; // box of last focus
-
     enum button_event current_button;
+
+    /* Most recent model state.
+       Model is real-time, decoupled from GUI control */
+    int nb_vars;
+    struct variable *var;
+
+    /* Control pipes to real model state. */
+    queue *to_gui, *to_core;
 
     /* Global view data. */
     int texture_knob_disk;
@@ -114,5 +125,26 @@ void box_control_draw_view(void *ctx, int w, int h);
 
 /* Box -> box controller queries */
 bool box_control_has_focus(struct box_control *bc, struct box *b);
+
+
+/* CORE <-> GUI messages */
+
+
+/* CORE <-> GUI messages */
+enum message_id {
+    message_id_none = 0,
+    message_id_params,
+    message_id_waveform,
+};
+struct message {
+    enum message_id id;
+}  __attribute__((packed));
+struct message_array {
+    struct message msg;
+    int nb_el;
+    float el[0];
+}  __attribute__((packed));
+
+
 
 #endif

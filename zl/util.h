@@ -23,13 +23,6 @@ typedef struct {
 } buf_t;
 
 
-// fixed 2^n size queue object
-typedef struct {
-    void **data;
-    unsigned int mask;
-    unsigned int read;
-    unsigned int write;
-} queue_t;
 
 
 typedef buf_t fifo_t; // same
@@ -58,14 +51,6 @@ INLINE void *stack_pop(fifo_t *x);
 INLINE void stack_clear(fifo_t *x);
 INLINE void stack_free(fifo_t *x);
 INLINE fifo_t *stack_new(int elements);
-
-INLINE queue_t *queue_new(int logsize);
-INLINE void queue_free(queue_t *queue);
-INLINE void queue_write(queue_t *queue, void *thing);
-INLINE void *queue_read(queue_t *queue);
-INLINE unsigned int queue_elements(queue_t *queue);
-INLINE int queue_full(queue_t *queue);
-
 
 
 
@@ -140,6 +125,25 @@ INLINE void stack_clear(fifo_t *x){buf_clear(x);}
 INLINE void stack_free(fifo_t *x){buf_free(x);}
 
 
+
+
+#if 0 // see leaf/queue.h
+
+// fixed 2^n size queue object
+typedef struct {
+    void **data;
+    unsigned int mask;
+    unsigned int read;
+    unsigned int write;
+} queue_t;
+
+INLINE queue_t *queue_new(int logsize);
+INLINE void queue_free(queue_t *queue);
+INLINE void queue_write(queue_t *queue, void *thing);
+INLINE void *queue_read(queue_t *queue);
+INLINE unsigned int queue_elements(queue_t *queue);
+INLINE int queue_full(queue_t *queue);
+
 INLINE queue_t *queue_new(int logsize){
     queue_t *x = malloc(sizeof(*x));
     x->data = malloc(1<<logsize * sizeof(void *));
@@ -173,6 +177,8 @@ INLINE void *queue_read(queue_t *x){
     return thing;
 }
 
+
+#endif
 
 
 #endif

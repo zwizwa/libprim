@@ -44,7 +44,7 @@ int  queue_write_append(queue *q, const void *buf, queue_size bytes);
 void queue_write_close(queue *q);
 
 /* Single-function transaction */
-int queue_write(queue *q, void *buf, queue_size bytes);
+int queue_write(queue *q, const void *buf, queue_size bytes);
 
 
 /* READ END */
@@ -53,6 +53,7 @@ int  queue_read_size(queue *q);
 int  queue_read_open(queue *q);
 int  queue_read_consume(queue *q, void *buf, queue_size bytes);
 void queue_read_close(queue *q);
+bool queue_read_ready(queue *q);
 
 /* Single-function transaction */
 int queue_read(queue *q, void *buf, queue_size bytes);

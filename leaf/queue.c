@@ -25,12 +25,6 @@ static queue_index queue_index_distance(struct queue *x, queue_index begin, queu
     return room;
 }
 
-/* Leave 1 bytes room to remove empty/full ambiguity. */
-#define QUEUE_SPACER 1
-static queue_size queue_write_room(struct queue *x, queue_size message_bytes) {
-    return queue_index_distance(x, x->index_write
-        + sizeof(queue_index) + message_bytes + QUEUE_SPACER, x->index_read);
-}
 
 static queue_index queue_until_buf_end(struct queue *x, queue_index i) {
     ASSERT(i < x->buf_size);
@@ -42,6 +36,16 @@ static void queue_index_increment(struct queue *x,
     queue_index i_inc = *i + inc;
     while (i_inc >= x->buf_size) i_inc -= x->buf_size;
     *i = i_inc;
+}
+
+/* WRITE */
+
+
+/* Leave 1 bytes room to remove empty/full ambiguity. */
+#define QUEUE_SPACER 1
+static queue_size queue_write_room(struct queue *x, queue_size message_bytes) {
+    return queue_index_distance(x, x->index_write
+        + sizeof(queue_index) + message_bytes + QUEUE_SPACER, x->index_read);
 }
 
 /* Read/write indices into queue */
@@ -97,6 +101,16 @@ void queue_write_close(queue *x) {
     x->size_build = 0;
 }
 
+#define TRY(x) if (QUEUE_ERR_OK != (err = x)) return err
+int queue_write(queue *x, const void *buf, queue_size bytes) {
+    int err;
+    TRY(queue_write_open(x));
+    TRY(queue_write_append(x, buf, bytes));
+    queue_write_close(x);
+    return QUEUE_ERR_OK;
+}
+
+/* READ */
 
 
 int queue_read_open(queue *x) {
@@ -137,4 +151,8 @@ void queue_read_close(queue *x) {
     }
     queue_index_increment(x, &x->index_read, sizeof(queue_size) + msg_size);
     x->size_consume = 0;
+}
+
+bool queue_read_ready(queue *x) {
+    return (x->index_read != x->index_write);
 }
