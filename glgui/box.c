@@ -25,6 +25,8 @@
 
 #define KNOB_SCALE_PIXELS 200
 #define KNOB_DIAL_WIDTH 20
+#define KNOB_TEX_DIM 128
+
 
 /* [0-1] float seems safest bet */
 #define CLIP_LO 0.0f
@@ -263,7 +265,7 @@ static GLuint render_texture(render_spec_fn spec, int w, int h) {
     double aspect = ((double)w) / ((double)h);
     GLuint tex;
     glGenTextures(1, &tex);
-    ZL_LOG("texture %d", tex);
+    // ZL_LOG("texture %d", tex);
     glBindTexture(GL_TEXTURE_2D, tex);
     glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
     glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
@@ -378,9 +380,9 @@ void box_control_draw_view(void *ctx, int w, int h) {
        is called. */
     if (!bc->texture_knob_disk) {
         ZL_LOG("generating textures");
-        bc->texture_knob_disk     = render_texture(spec_knob_disk,  64, 64);
-        bc->texture_knob_notch    = render_texture(spec_knob_notch, 32, 32);
-        bc->texture_knob_ticks    = render_texture(spec_knob_ticks, 64 ,64);
+        bc->texture_knob_disk     = render_texture(spec_knob_disk,  KNOB_TEX_DIM, KNOB_TEX_DIM);
+        bc->texture_knob_notch    = render_texture(spec_knob_notch, KNOB_TEX_DIM/2, KNOB_TEX_DIM/2);
+        bc->texture_knob_ticks    = render_texture(spec_knob_ticks, KNOB_TEX_DIM, KNOB_TEX_DIM);
         bc->texture_slider_ticks  = render_texture(spec_slider_ticks, 64, 128);
     }
 
