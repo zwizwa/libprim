@@ -44,8 +44,24 @@ static void glxgui_handle_XEvent(void *ctx, XEvent *e) {
         default:
             return;
         }
-        break;
-    default: return;
+    case ConfigureNotify:
+        if (0) {
+            x->box_control->w = e->xconfigure.width;
+            x->box_control->h = e->xconfigure.height;
+        }
+        else {
+            int w = x->box_control->w;
+            int h = x->box_control->h;
+            if (!(w == e->xconfigure.width &&
+                  h == e->xconfigure.height)) {
+                /* Window manager should really play nice and respect our
+                   resize hints.  Just put it back as it was. */
+                zl_xwindow_resize(x->xw, w, h);
+            }
+        }
+        return;
+    default:
+        return;
     }
 
     box_control_handle_event(x->box_control, ce,

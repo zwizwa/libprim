@@ -263,6 +263,7 @@ static GLuint render_texture(render_spec_fn spec, int w, int h) {
     double aspect = ((double)w) / ((double)h);
     GLuint tex;
     glGenTextures(1, &tex);
+    ZL_LOG("texture %d", tex);
     glBindTexture(GL_TEXTURE_2D, tex);
     glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
     glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
