@@ -5,7 +5,7 @@
 
 struct dparam *dparam_new(int nb_par) {
     struct dparam *x = calloc(nb_par, sizeof(*x));
-    x->in = queue_new(30 * nb_par);
+    x->in = queue_new(300 * nb_par);
     x->nb_par = nb_par;
     x->cur  = malloc(sizeof(float) * nb_par);
     x->prev = malloc(sizeof(float) * nb_par);
@@ -112,15 +112,18 @@ void dparam_send_array(struct dparam *x, int id, int nb, value *val) {
     struct queue *q = x->out;
     int err = 0;
     ASSERT(q);
-    struct dparam_hdr hdr = { .id = id };
-    /* Begin transaction */
+    /* Main header */
+    struct dparam_hdr hdr = { .id = dparam_msg_id_array };
     TRY(queue_write_open(q));
     TRY(queue_write_append(q, &hdr, sizeof(hdr)));
-    struct dparam_arr arr = { .nb_el = nb };
+    /* Array header */
+    struct dparam_arr arr = { .id = id, .nb_el = nb };
     TRY(queue_write_append(q, &arr, sizeof(arr)));
+    /* Array body */
     TRY(queue_write_append(q, val, sizeof(*val) * nb));
     queue_write_close(q);
     return;
   error:
+    LOG("error %d sending array %d", err, id);
     return;
 }

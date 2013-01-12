@@ -4,9 +4,21 @@
 #include <leaf/queue.h>
 
 /* Synchronize array of parameters between two threads, serving
-   updates at both ends. */
+   updates at both ends.
+
+   This also contains some other pure message functionality like
+   sending/receiving raw float arrays.
+
+   FIXME: Find a good way to organize this functionality.  It feels a
+   bit ad-hoc. */
+
 typedef float value;
-typedef void (*dparam_handle_fn)(void *ctx, queue *in, int id);
+enum dparam_msg_id {
+    dparam_msg_id_none         = 0,
+    dparam_msg_id_param_update = 1,
+    dparam_msg_id_array        = 2,
+};
+typedef void (*dparam_handle_fn)(void *ctx, queue *in, enum dparam_msg_id id);
 struct dparam {
     int nb_par;
     value *prev;
@@ -19,11 +31,6 @@ struct dparam {
     dparam_handle_fn fn; void *ctx;
 };
 
-enum dparam_msg_id {
-    dparam_msg_id_none         = 0,
-    dparam_msg_id_param_update = 1,
-    dparam_msg_id_array        = 2,
-};
 
 /* For param updates a sentinel is easier to use than a count in the
    header.  The sender doesn't know the length before iteration
@@ -39,6 +46,8 @@ struct dparam_par {
     value val;
 };
 
+/* Fixed size float arrays use a count in the header since the size is
+   known before sending. */
 struct dparam_arr {
     int id; // array identifier
     int nb_el;
