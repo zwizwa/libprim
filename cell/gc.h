@@ -110,8 +110,9 @@ void heap_set_roots(cell **r);
 #define CDR_SHIFT (4*sizeof(pair))
 #define CELL_MASK ((((pair)1)<<CDR_SHIFT)-1)
 
-typedef int assert_cell_1[-1+(CELL_MASK == 0xFFFFFFFF)];
-typedef int assert_cell_2[-1+(CDR_SHIFT == 32)];
+// Only for 64bit:
+//typedef int assert_cell_1[-1+(CELL_MASK == 0xFFFFFFFF)];
+//typedef int assert_cell_2[-1+(CDR_SHIFT == 32)];
 
 #define TAG_INDEX(i, itag, ishift)                         \
     int itag   = i / cells_per_tag_word;                   \
