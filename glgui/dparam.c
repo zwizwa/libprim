@@ -39,7 +39,7 @@ void dparam_send(struct dparam *x) {
             struct dparam_par par = {.id = i, .val = f};
             TRY(queue_write_append(q, &par, sizeof(par)));
             nb_queued++;
-            LOG("send %d %f", i, f);
+            LOG("%p send %d %f", x, i, f);
         }
     }
     if (nb_queued) {
@@ -82,7 +82,7 @@ void dparam_recv(struct dparam *x) {
                 ASSERT(par.id >= 0);
                 ASSERT(par.id < x->nb_par);
                 x->cur[par.id] = par.val;
-                LOG("recv %d %f", par.id, par.val);
+                LOG("%p recv %d %f", x, par.id, par.val);
             }
         }
         else {
