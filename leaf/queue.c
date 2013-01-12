@@ -101,6 +101,9 @@ void queue_write_close(queue *x) {
     x->size_build = 0;
 }
 
+#if 0
+/* Not used in practice, and too easily confused with
+   queue_write_append() */
 #define TRY(x) if (QUEUE_ERR_OK != (err = x)) return err
 int queue_write(queue *x, const void *buf, queue_size bytes) {
     int err;
@@ -109,6 +112,7 @@ int queue_write(queue *x, const void *buf, queue_size bytes) {
     queue_write_close(x);
     return QUEUE_ERR_OK;
 }
+#endif
 
 /* READ */
 

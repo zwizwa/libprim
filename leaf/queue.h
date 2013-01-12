@@ -2,7 +2,24 @@
 #define _QUEUE_H_
 
 /* Flat queue for real-time one-directional thread to thread message
-   passing.  Only supports 1 read and 1 writer thread. */
+   passing.  Only supports 1 read and 1 writer thread.  The main
+   purpose of this is the communication between a high and low
+   priority thread (i.e. audio synth core and gui).
+
+   Why yet another queue implementation?
+   The devil is in the details..
+
+   - No locks: this is a 1->1 queue with synchronization based on
+     atomic read/write of the index_read and index_write fields.
+
+   - No need for multiple data passes: _write allows multiple appends
+     without needing to know the size; the message just has to fit.
+     Writes that are not closed will be discarded.
+
+   Especially the combination of incremental streaming writes (no
+   multiple passes, no need for large buffers to hold intermediate
+   messages) and no-hassle abort is quite useful in practice: it keeps
+   the use side very simple.  */
 
 
 #include <leaf/leaf.h>
@@ -43,10 +60,6 @@ int  queue_write_open(queue *q);
 int  queue_write_append(queue *q, const void *buf, queue_size bytes);
 void queue_write_close(queue *q);
 
-/* Single-function transaction */
-int queue_write(queue *q, const void *buf, queue_size bytes);
-
-
 /* READ END */
 
 int  queue_read_size(queue *q);
@@ -54,9 +67,5 @@ int  queue_read_open(queue *q);
 int  queue_read_consume(queue *q, void *buf, queue_size bytes);
 void queue_read_close(queue *q);
 bool queue_read_ready(queue *q);
-
-/* Single-function transaction */
-int queue_read(queue *q, void *buf, queue_size bytes);
-
 
 #endif
