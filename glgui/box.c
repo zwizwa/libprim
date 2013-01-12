@@ -383,6 +383,8 @@ struct box *box_control_find_box(struct box_control *bc, int x, int y) {
    engines. */
 
 void box_control_draw_view(void *ctx, int w, int h) {
+
+
     struct box_control *bc = ctx;
     struct box **b;
 
@@ -397,6 +399,10 @@ void box_control_draw_view(void *ctx, int w, int h) {
         bc->texture_slider_ticks  = render_texture(spec_slider_ticks, 64, 128);
     }
 
+    /* Poll current model state right before drawing. */
+    dparam_recv(bc->p);
+
+    /* Clear screen */
     glColor3f(0,0,0);
     gl_rect(0, 0, w, h);
 

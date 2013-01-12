@@ -93,3 +93,8 @@ void dparam_recv(struct dparam *x) {
         queue_read_close(q);
     }
 }
+
+void dparam_set(struct dparam *x, int param, value value) {
+    if ((param < 0) || (param > x->nb_par)) return;
+    x->cur[param] = value;
+}

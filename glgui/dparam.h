@@ -29,5 +29,6 @@ void dparam_connect(struct dparam *a, struct dparam *b);
 void dparam_send(struct dparam *x);
 void dparam_recv(struct dparam *x);
 
+void dparam_set(struct dparam *x, int param, value value);
 
 #endif
