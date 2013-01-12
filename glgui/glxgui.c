@@ -18,16 +18,30 @@
 // FIXME: decouple drag state and button routing from X event.
 
 /* Translate X events to abstract events */
+
+/* Doesn't feel right.. Warpint the point is a bit disorenting.  See
+   how it's solved by other frameworks... */
+#define FUDGE_POINTER 0
+
 static void glxgui_handle_XEvent(void *ctx, XEvent *e) {
     struct glxgui *x = ctx;
     enum control_event ce;
     int but = button_none;
     switch(e->type) {
     case ButtonPress:
+        if (FUDGE_POINTER) {
+            x->x0 = e->xbutton.x;
+            x->y0 = e->xbutton.y;
+            zl_xwindow_cursor(x->xw, 0);
+        }
         but = button_left + (e->xbutton.button - Button1);
         ce = ce_press;
         break;
     case ButtonRelease:
+        if (FUDGE_POINTER) {
+            zl_xwindow_warppointer(x->xw, x->x0, x->y0);
+            zl_xwindow_cursor(x->xw, 1);
+        }
         but = button_left + (e->xbutton.button - Button1);
         ce = ce_release;
         break;

@@ -18,6 +18,7 @@ struct glxgui {
     struct timeval tv_last;
     thread_t thread;
     atomic_t shutdown;
+    int x0,y0;  // location of last click
 
     /* This object is managed elsewhere.  We don't have a pointer to
        its destructor.  FIXME: Use LEAF RC. */
