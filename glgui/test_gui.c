@@ -14,11 +14,8 @@ void box_control_config(struct box_control *bc) {
     int i = 0;
 
     /* Model */
-    struct variable *var[nx];
-    for (x = 0; x < nx; x++) {
-        var[x] = calloc(1, sizeof(var[x]));
-        var[x]->v = 0.5;
-    }
+    bc->p = dparam_new(SLIDER_NX);
+
     /* View/Controller */
     bc->boxes = calloc(1 + (nx * ny), sizeof(void *));
     for (y = 0; y < ny; y++) {
@@ -36,7 +33,7 @@ void box_control_config(struct box_control *bc) {
                 s->box.h = DH;
                 s->box.class = &box_slider_class;
             }
-            s->var = var[x];
+            s->param = x;
             bc->boxes[i++] = &(s->box);
         }
     }

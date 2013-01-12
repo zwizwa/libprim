@@ -159,18 +159,25 @@ static void segment_draw_number(int number, int nb_digits) {
 }
 
 
-value variable_get(struct variable *var) {
-    // FIXME: how to synchronize?
-    return var->v0 + var->dv;
+/* Param value access. */
+value box_control_get_param(struct box_control *bc, int param) {
+    ASSERT(param >= 0);
+    ASSERT(param < bc->p->nb_par);
+    return bc->p->cur[param];
 }
-void variable_set_delta(struct variable *var, value dv) {
-    /* Keep v+dv in proper range. */
-    value v = clip(var->v0 + dv);
-    var->dv = v - var->v0;
+void box_control_set_param(struct box_control *bc, int param, value v) {
+    ASSERT(param >= 0);
+    ASSERT(param < bc->p->nb_par);
+    bc->p->cur[param] = v;
 }
-void variable_drag_commit(struct variable *var) {
-    var->v0 += var->dv;
-    var->dv = 0;
+
+
+/* Current edit */
+void box_control_edit_click(struct box_control *bc, int param) {
+    bc->v0 = box_control_get_param(bc, param);
+}
+void box_control_edit_drag(struct box_control *bc, int param, value dv) {
+    box_control_set_param(bc, param, bc->v0 + dv);
 }
 
 
@@ -190,20 +197,21 @@ static void box_draw_background(struct box *b, struct box_control *bc) {
 
 /* SLIDER */
 
-static void slider_drag_update(struct slider *s,
-                               struct box_control *bc,
-                               int x0, int y0, int dx, int dy) {
-    if (s->var) variable_set_delta(s->var, ((value)dy) / SLIDER_SCALE_PIXELS);
+static void slider_edit_click(struct slider *s,
+                              struct box_control *bc,
+                              int x0, int y0) {
+    box_control_edit_click(bc, s->param);
 }
-static void slider_drag_commit(struct slider *s,
-                               struct box_control *bc) {
-    if (s->var) variable_drag_commit(s->var);
+static void slider_edit_drag(struct slider *s,
+                             struct box_control *bc,
+                             int x0, int y0, int dx, int dy) {
+    box_control_edit_drag(bc, s->param, ((value)dy) / SLIDER_SCALE_PIXELS);
 }
 static void slider_draw(struct slider *s,
                         struct box_control *bc) {
 
     /* Vertical displacement in pixels. */
-    value val = variable_get(s->var);
+    value val = box_control_get_param(bc, s->param);
 
     glMatrixMode(GL_MODELVIEW);
     glPushMatrix();
@@ -251,17 +259,16 @@ BOX_METHOD_LIST(BOX_SLIDER_MEMBER)
 
 
 
-
-static void knob_drag_update(struct knob *s,
-                             struct box_control *bc,
-                             int x0, int y0, int dx, int dy) {
-    if (s->var) variable_set_delta(s->var,  ((value)dy) / KNOB_SCALE_PIXELS);
+static void knob_edit_drag(struct knob *s,
+                           struct box_control *bc,
+                           int x0, int y0, int dx, int dy) {
+    box_control_edit_drag(bc, s->param, ((value)dy) / KNOB_SCALE_PIXELS);
 }
-static void knob_drag_commit(struct knob *s,
-                             struct box_control *bc) {
-    if (s->var) variable_drag_commit(s->var);
+static void knob_edit_click(struct knob *s,
+                            struct box_control *bc,
+                            int x0, int y0) {
+    box_control_edit_click(bc, s->param);
 }
-
 
 
 /* Render form specification to raw bitmap and convert to OpenGL texture. */
@@ -288,7 +295,7 @@ static GLuint render_texture(render_spec_fn spec, int w, int h) {
 static void knob_draw(struct knob *s,
                       struct box_control *bc) {
     /* Vertical displacement in pixels. */
-    value val = variable_get(s->var);
+    value val = box_control_get_param(bc, s->param);
     float angle = (150 - val*300);
 
     glMatrixMode(GL_MODELVIEW);
@@ -418,8 +425,8 @@ bool box_control_has_focus(struct box_control *bc, struct box *b) {
 
 static void box_inc(struct box *b, struct box_control *bc, int inc) {
     if (b) {
-        b->class->drag_update(b, bc, 0, 0, 0, inc);
-        b->class->drag_commit(b, bc);
+        b->class->edit_click(b, bc, 0, 0);
+        b->class->edit_drag (b, bc, 0, 0, 0, inc);
     }
 }
 
@@ -429,7 +436,6 @@ static void box_edit_move(struct box *b, struct box_control *bc,
     b->y = y0+dy - b->h/2;
 }
 
-static void box_control_update(struct box_control *bc);
 
 void box_control_handle_event(struct box_control *bc,
                               enum control_event e, int x, int y,
@@ -451,6 +457,7 @@ void box_control_handle_event(struct box_control *bc,
         bc->x = x;
         bc->y = y;
         bc->current_button = but;
+        bc->box_edit->class->edit_click(bc->box_edit, bc, bc->x, bc->y);
         break;
 
     case ce_motion:
@@ -460,7 +467,7 @@ void box_control_handle_event(struct box_control *bc,
             switch(bc->current_button) {
             case button_left:
                 /* Normal GUI drag operation: parameter adjust. */
-                bc->box_edit->class->drag_update(bc->box_edit, bc, bc->x, bc->y, dx, dy);
+                bc->box_edit->class->edit_drag(bc->box_edit, bc, bc->x, bc->y, dx, dy);
                 break;
                 /* GUI editing. */
             case button_right:
@@ -484,8 +491,7 @@ void box_control_handle_event(struct box_control *bc,
         if (bc->box_edit) {
             switch(bc->current_button) {
             case button_left:
-                bc->box_edit->class->drag_commit(bc->box_edit, bc);
-                bc->box_edit = NULL;
+                 bc->box_edit = NULL;
                 break;
             default:
                 break;
@@ -500,102 +506,7 @@ void box_control_handle_event(struct box_control *bc,
     default:
         break;
     }
-
-    box_control_update(bc);
 }
-
-/* Communication between controller and core. */
-
-
-
-#define TRY(x) if (0 != (err = (x))) goto error;
-
-// CORE -> GUI: CORE side
-static void queue_send_params(struct queue *q, int nb_p, const float *p) {
-    int err = 0;
-    ASSERT(q);
-    struct message_array hdr = {
-        .msg = { .id = message_id_params },
-        .nb_el = nb_p,
-    };
-    TRY(queue_write_open(q));
-    TRY(queue_write_append(q, &hdr, sizeof(hdr)));
-    TRY(queue_write_append(q, p, sizeof(float)*nb_p));
-    queue_write_close(q);
-    return;
-
-  error:
-    /* Other side is not reading. */
-    // LOG("queue_write(to_gui) failed: err %d", err);
-    return;
-}
-typedef void (*receive_params_fn)(void *ctx, int nb_p, const float *p);
-static void q_read(queue *q, void *buf, int size) {
-    int err;
-    if (QUEUE_ERR_OK != (err = queue_read_consume(q, buf, size))) {
-        /* Should not happen.  There is no recovery. */
-        LOG("q_read() -> %d", err);
-        ASSERT(0);
-    }
-}
-static void queue_receive_params(struct queue *q, receive_params_fn fn, void *ctx) {
-    ASSERT(q);
-    while(1) {
-        /* Read until end. */
-        if (QUEUE_ERR_OK != queue_read_open(q)) return;
-
-        /* Get header.  Assume it's a msg_array since we don't support
-           anything else. */
-        struct message_array a;
-        q_read(q, &a, sizeof(a));
-
-        /* Interpret body */
-        if (a.msg.id == message_id_params) {
-            float p[a.nb_el];
-            q_read(q, p, sizeof(float) * a.nb_el);
-            fn(ctx, a.nb_el, p);
-        }
-
-        /* Acknowledge */
-        queue_read_close(q);
-    }
-}
-
-
-static void receive_vars(void *ctx, int nb_p, const float *p) {
-    struct box_control *bc = ctx;
-    for (int i = 0; i< nb_p; i++) {
-        /* Don't update edits! */
-        if (bc->var[i].dv == 0) {
-            bc->var[i].v = p[i];
-        }
-    }
-}
-
-void box_control_update_gui(struct box_control *bc, int nb_p, const float *p) {
-    queue_send_params(bc->to_gui, nb_p, p);
-}
-
-// CORE -> GUI: GUI side
-static void box_control_update_from_core(struct box_control *bc) {
-    queue_receive_params(bc->to_gui, receive_vars, bc);
-}
-static void box_control_update_core(struct box_control *bc) {
-    float p[bc->nb_vars];
-    for (int i = 0; i < bc->nb_vars; i++) {
-        p[i] = bc->var[i].v0 + bc->var[i].dv;
-    }
-    queue_send_params(bc->to_core, bc->nb_vars, p);
-}
-
-static void box_control_update(struct box_control *bc) {
-    box_control_update_core(bc);
-    box_control_update_from_core(bc);
-}
-
-
-/* Parameter cache synchronization. */
-
 
 
 

@@ -5,10 +5,11 @@
 
 /* Synchronize array of parameters between two threads, serving
    updates at both ends. */
+typedef float value;
 struct dparam {
     int nb_par;
-    float *old;
-    float *new;
+    value *prev;
+    value *cur;
     queue *in, *out;
 };
 
@@ -20,11 +21,13 @@ struct dparam_hdr {
 
 struct dparam_par {
     int id; // -1 is sentinel
-    float val;
+    value val;
 };
 
-
-
+struct dparam *dparam_new(int nb_par);
+void dparam_connect(struct dparam *a, struct dparam *b);
+void dparam_send(struct dparam *x);
+void dparam_recv(struct dparam *x);
 
 
 #endif

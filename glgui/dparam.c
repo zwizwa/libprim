@@ -5,25 +5,21 @@
 
 struct dparam *dparam_new(int nb_par) {
     struct dparam *x = malloc(sizeof(*x) * nb_par);
+    x->out = NULL;
+    x->in = queue_new(30 * nb_par);
     x->nb_par = nb_par;
-    x->new = malloc(sizeof(float) * nb_par);
-    x->old = malloc(sizeof(float) * nb_par);
+    x->cur = malloc(sizeof(float) * nb_par);
+    x->prev = malloc(sizeof(float) * nb_par);
     for (int i; i<nb_par; i++) {
-        x->new[i] = 0.0f;
-        x->old[i] = 0.0f;
+        x->cur[i] = 0.0f;
+        x->prev[i] = 0.0f;
     }
     return x;
 }
-void dparam_pair_new(int nb_par, struct dparam **a, struct dparam **b) {
-    /* FIXME: Pick some good sizes. */
-    queue *a2b = queue_new(30 * nb_par);
-    queue *b2a = queue_new(30 * nb_par);
-    *a = dparam_new(nb_par);
-    (*a)->in = b2a;
-    (*a)->out = a2b;
-    *b = dparam_new(nb_par);
-    (*b)->in = a2b;
-    (*b)->out = b2a;
+
+void dparam_connect(struct dparam *a, struct dparam *b) {
+    a->out = b->in;
+    b->out = a->in;
 }
 
 #define TRY(x) if (0 != (err = (x))) goto error;
@@ -36,9 +32,9 @@ void dparam_send(struct dparam *x) {
     TRY(queue_write_open(q));
     TRY(queue_write_append(q, &hdr, sizeof(hdr)));
     for (int i = 0; i < x->nb_par; i++) {
-        float f = x->new[i];
-        if (x->old[i] != f) {
-            x->old[i] = f;
+        float f = x->cur[i];
+        if (x->prev[i] != f) {
+            x->prev[i] = f;
             struct dparam_par par = {.id = i, .val = f};
             TRY(queue_write_append(q, &par, sizeof(par)));
         }
@@ -77,7 +73,7 @@ void dparam_recv(struct dparam *x) {
                 if (par.id == DPARAM_SENTINEL) break;
                 ASSERT(par.id >= 0);
                 ASSERT(par.id < x->nb_par);
-                x->new[par.id] = par.val;
+                x->cur[par.id] = par.val;
             }
         }
         else {

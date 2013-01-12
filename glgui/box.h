@@ -3,6 +3,7 @@
 
 #include <stdbool.h>
 #include <leaf/queue.h>
+#include <glgui/dparam.h>
 
 /* A box is a region of the screen that receives mouse/keyboard events
    and presents graphical data. */
@@ -23,15 +24,15 @@ struct box {
 /* Until view/controller part of MVC actually starts to make sense,
    view and controller are combined in one object: there is too much
    information/context sharing going on. */
-typedef void (*box_drag_update_t) (struct box *b, struct box_control *bc, int x0, int y0, int dx, int dy);
-typedef void (*box_drag_commit_t) (struct box *b, struct box_control *bc);
+typedef void (*box_edit_click_t)  (struct box *b, struct box_control *bc, int x0, int y0);
+typedef void (*box_edit_drag_t)   (struct box *b, struct box_control *bc, int x0, int y0, int dx, int dy);
 typedef void (*box_draw_t)        (struct box *b, struct box_control *bc);
 
 /* Abstract the method list in a macro.  This abstracts some
    compile-time red tape.  See also box.c */
 #define BOX_METHOD_LIST(m)                      \
-    m(drag_update)                              \
-    m(drag_commit)                              \
+    m(edit_click)                               \
+    m(edit_drag)                                \
     m(draw)
 
 struct box_class {
@@ -70,16 +71,12 @@ struct box_control {
     /* Current control state */
     struct box *box_edit;  // box currently being edited (mouse drag)
     int x, y;              // coords of last click
+    value v0;              // param value at last click
     struct box *box_focus; // box of last focus
     enum button_event current_button;
 
-    /* Most recent model state.
-       Model is real-time, decoupled from GUI control */
-    int nb_vars;
-    struct variable *var;
-
     /* Control pipes to real model state. */
-    queue *to_gui, *to_core;
+    struct dparam *p;
 
     /* Global view data. */
     int texture_knob_disk;
@@ -89,30 +86,18 @@ struct box_control {
 };
 
 
-/* VARIABLE: cached model variables with in-progress edit state. */
-typedef float value;
-struct variable {
-    /* State as seen by CORE / VIEW.
-       This is what appears on the screen. */
-    value v;
-    /* State as seen by controller: ongoing edit reference point and
-       difference, periodically sent to CORE. */
-    value v0;
-    value dv;
-};
-
 
 /* SLIDER == a box view/controller connected to a variable model. */
 struct slider {
     struct box box;
-    struct variable *var;
+    int param;
 };
 
 
 /* KNOB == a box view/controller connected to a variable model. */
 struct knob {
     struct box box;
-    struct variable *var;
+    int param;
 };
 
 
