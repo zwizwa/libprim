@@ -115,28 +115,10 @@ void box_control_draw_view(void *ctx, int w, int h);
 bool box_control_has_focus(struct box_control *bc, struct box *b);
 
 
-/* CORE <-> GUI messages */
 
 
-/* CORE <-> GUI messages */
-enum message_id {
-    message_id_none = 0,
-    message_id_params,
-    message_id_waveform,
-};
-struct message {
-    enum message_id id;
-}  __attribute__((packed));
-struct message_array {
-    struct message msg;
-    int nb_el;
-    float el[0];
-}  __attribute__((packed));
+void box_control_handle_message(void *ctx, queue *q, enum dparam_msg_id id);
 
-
-// CORE -> GUI
-void box_control_update_gui(struct box_control *bc,
-                            int nb_p, const float *p);
 
 
 #endif

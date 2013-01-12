@@ -4,8 +4,7 @@
 #define LOG LEAF_LOG
 
 struct dparam *dparam_new(int nb_par) {
-    struct dparam *x = malloc(sizeof(*x) * nb_par);
-    x->out = NULL;
+    struct dparam *x = calloc(nb_par, sizeof(*x));
     x->in = queue_new(30 * nb_par);
     x->nb_par = nb_par;
     x->cur  = malloc(sizeof(float) * nb_par);
@@ -28,7 +27,8 @@ void dparam_send(struct dparam *x) {
     struct queue *q = x->out;
     int err = 0;
     ASSERT(q);
-    struct dparam_hdr hdr = { .id = DPARAM_HDR_ID };
+    struct dparam_hdr hdr = { .id = dparam_msg_id_param_update };
+    /* Begin transaction */
     TRY(queue_write_open(q));
     TRY(queue_write_append(q, &hdr, sizeof(hdr)));
     int nb_queued = 0;
@@ -43,10 +43,15 @@ void dparam_send(struct dparam *x) {
         }
     }
     if (nb_queued) {
-        /* Commit message.  Not calling this aborts. */
-        struct dparam_par par = {.id = DPARAM_SENTINEL};
+        /* Finalize transaction. */
+        struct dparam_par par = {.id = DPARAM_PARAM_UPDATE_SENTINEL};
         TRY(queue_write_append(q, &par, sizeof(par)));
         queue_write_close(q);
+    }
+    else {
+        /* Abort transaction.  If there is nothing to send we don't
+           send a header either. */
+        queue_write_abort(q);
     }
     return;
 
@@ -74,11 +79,11 @@ void dparam_recv(struct dparam *x) {
         /* Check header */
         struct dparam_hdr hdr;
         q_read(q, &hdr, sizeof(hdr));
-        if (hdr.id == DPARAM_HDR_ID) {
+        if (hdr.id == dparam_msg_id_param_update) {
             while (1) {
                 struct dparam_par par;
                 q_read(q, &par, sizeof(par));
-                if (par.id == DPARAM_SENTINEL) break;
+                if (par.id == DPARAM_PARAM_UPDATE_SENTINEL) break;
                 ASSERT(par.id >= 0);
                 ASSERT(par.id < x->nb_par);
                 x->cur[par.id] = par.val;
@@ -86,7 +91,10 @@ void dparam_recv(struct dparam *x) {
             }
         }
         else {
-            /* Plugin? */
+            /* Other data is passed to abstract handler. */
+            if (x->fn) {
+                x->fn(x->ctx, q, hdr.id);
+            }
         }
 
         /* Acknowledge */
@@ -97,4 +105,22 @@ void dparam_recv(struct dparam *x) {
 void dparam_set(struct dparam *x, int param, value value) {
     if ((param < 0) || (param > x->nb_par)) return;
     x->cur[param] = value;
+}
+
+
+void dparam_send_array(struct dparam *x, int id, int nb, value *val) {
+    struct queue *q = x->out;
+    int err = 0;
+    ASSERT(q);
+    struct dparam_hdr hdr = { .id = id };
+    /* Begin transaction */
+    TRY(queue_write_open(q));
+    TRY(queue_write_append(q, &hdr, sizeof(hdr)));
+    struct dparam_arr arr = { .nb_el = nb };
+    TRY(queue_write_append(q, &arr, sizeof(arr)));
+    TRY(queue_write_append(q, val, sizeof(*val) * nb));
+    queue_write_close(q);
+    return;
+  error:
+    return;
 }

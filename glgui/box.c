@@ -443,6 +443,7 @@ static void box_edit_move(struct box *b, struct box_control *bc,
 }
 
 
+/* Console event handler */
 void box_control_handle_event(struct box_control *bc,
                               enum control_event e, int x, int y,
                               enum button_event but) {
@@ -523,8 +524,15 @@ void box_control_handle_event(struct box_control *bc,
 }
 
 
-
-/* MISC */
+/* Core event handler */
+void box_control_handle_message(void *ctx, queue *q, enum dparam_msg_id id) {
+    // struct box_control *bc = ctx;
+    switch(id) {
+    default:
+        LOG("unknown core message id %d", id);
+        break;
+    }
+}
 
 
 struct box_control *box_control_new(int w, int h) {

@@ -96,10 +96,18 @@ int queue_write_append(queue *x, const void *_buf, queue_size bytes) {
     return QUEUE_ERR_OK;
 }
 void queue_write_close(queue *x) {
+    if (x->size_build == 0) {
+        /* Make _close() a no-op after _abort() */
+    }
     write_queue_size(x, x->index_write, x->size_build);
     queue_index_increment(x, &x->index_write, sizeof(queue_size) + x->size_build);
     x->size_build = 0;
 }
+
+void queue_write_abort(queue *x) {
+    x->size_build = 0;
+}
+
 
 #if 0
 /* Not used in practice, and too easily confused with

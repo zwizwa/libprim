@@ -42,7 +42,9 @@ struct queue {
     queue_index index_read;
     queue_index index_write;
 
-    /* Read/write transaction state */
+    /* Read/write transaction state.  These are embedded in the main
+       qeueu object because there is only ever one current read and/or
+       one current write. */
     queue_size size_build;
     queue_size size_consume;
 };
@@ -53,12 +55,13 @@ queue *queue_new(queue_size bytes);
 /* WRITE END */
 
 /* Messages can be streamed, i.e. the writer doesn't need to know the
-   size, but needs to check if a write is successful.  Unsuccessful
-   writes will just abort. */
-
+   size, but needs to check if a write is successful.  Messages can
+   also be aborted: call _abort() instead of _close() */
 int  queue_write_open(queue *q);
 int  queue_write_append(queue *q, const void *buf, queue_size bytes);
 void queue_write_close(queue *q);
+void queue_write_abort(queue *q);
+
 
 /* READ END */
 
