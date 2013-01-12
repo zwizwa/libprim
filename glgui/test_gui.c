@@ -21,7 +21,6 @@ void box_control_config(struct box_control *bc) {
     for (y = 0; y < ny; y++) {
         for (x = 0; x < nx; x++) {
             struct slider *s = calloc(1, sizeof(*s));
-            s->box.name = "?";
             s->box.x = x * DW;
             s->box.y = y * DH;
             s->box.w = DW;

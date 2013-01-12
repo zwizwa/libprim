@@ -168,7 +168,7 @@ value box_control_get_param(struct box_control *bc, int param) {
 void box_control_set_param(struct box_control *bc, int param, value v) {
     ASSERT(param >= 0);
     ASSERT(param < bc->p->nb_par);
-    bc->p->cur[param] = v;
+    bc->p->cur[param] = clip(v);
 }
 
 
@@ -440,14 +440,18 @@ static void box_edit_move(struct box *b, struct box_control *bc,
 void box_control_handle_event(struct box_control *bc,
                               enum control_event e, int x, int y,
                               enum button_event but) {
+
+    /* Get param updates from core. */
+    dparam_recv(bc->p);
+
     switch(e) {
     case ce_press:
         /* We don't do multiple button presses. */
-        if (bc->current_button != button_none) return;
+        if (bc->current_button != button_none) goto exit;
 
         switch(but) {
-        case button_wheel_up:   box_inc(box_control_find_box(bc, x, y), bc, +1); return;
-        case button_wheel_down: box_inc(box_control_find_box(bc, x, y), bc, -1); return;
+        case button_wheel_up:   box_inc(box_control_find_box(bc, x, y), bc, +1); goto exit;
+        case button_wheel_down: box_inc(box_control_find_box(bc, x, y), bc, -1); goto exit;
         default: break;
         }
 
@@ -485,7 +489,7 @@ void box_control_handle_event(struct box_control *bc,
     case ce_release:
         /* If it's not the same button as the one that's currently
            down, ignore it */
-        if (bc->current_button != but) return;
+        if (bc->current_button != but) break;
 
         /* Commit delta */
         if (bc->box_edit) {
@@ -506,6 +510,10 @@ void box_control_handle_event(struct box_control *bc,
     default:
         break;
     }
+  exit:
+
+    /* Send param updates from core. */
+    dparam_send(bc->p);
 }
 
 

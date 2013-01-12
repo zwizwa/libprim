@@ -8,9 +8,9 @@ struct dparam *dparam_new(int nb_par) {
     x->out = NULL;
     x->in = queue_new(30 * nb_par);
     x->nb_par = nb_par;
-    x->cur = malloc(sizeof(float) * nb_par);
+    x->cur  = malloc(sizeof(float) * nb_par);
     x->prev = malloc(sizeof(float) * nb_par);
-    for (int i; i<nb_par; i++) {
+    for (int i = 0; i<nb_par; i++) {
         x->cur[i] = 0.0f;
         x->prev[i] = 0.0f;
     }
@@ -31,15 +31,23 @@ void dparam_send(struct dparam *x) {
     struct dparam_hdr hdr = { .id = DPARAM_HDR_ID };
     TRY(queue_write_open(q));
     TRY(queue_write_append(q, &hdr, sizeof(hdr)));
+    int nb_queued = 0;
     for (int i = 0; i < x->nb_par; i++) {
         float f = x->cur[i];
         if (x->prev[i] != f) {
             x->prev[i] = f;
             struct dparam_par par = {.id = i, .val = f};
             TRY(queue_write_append(q, &par, sizeof(par)));
+            nb_queued++;
+            LOG("send %d %f", i, f);
         }
     }
-    queue_write_close(q);
+    if (nb_queued) {
+        /* Commit message.  Not calling this aborts. */
+        struct dparam_par par = {.id = DPARAM_SENTINEL};
+        TRY(queue_write_append(q, &par, sizeof(par)));
+        queue_write_close(q);
+    }
     return;
 
   error:
@@ -74,6 +82,7 @@ void dparam_recv(struct dparam *x) {
                 ASSERT(par.id >= 0);
                 ASSERT(par.id < x->nb_par);
                 x->cur[par.id] = par.val;
+                LOG("recv %d %f", par.id, par.val);
             }
         }
         else {

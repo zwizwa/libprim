@@ -17,7 +17,6 @@ struct box_class;
    class, which is a (const) struct of member functions. */
 struct box {
     const struct box_class *class;
-    const char * name;
     int x,y,w,h;
 };
 
