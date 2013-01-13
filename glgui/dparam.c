@@ -5,7 +5,7 @@
 
 struct dparam *dparam_new(int nb_par) {
     struct dparam *x = calloc(nb_par, sizeof(*x));
-    x->in = queue_new(300 * nb_par);
+    x->in = queue_new(3000 * nb_par);
     x->nb_par = nb_par;
     x->cur  = malloc(sizeof(float) * nb_par);
     x->prev = malloc(sizeof(float) * nb_par);
@@ -79,7 +79,8 @@ void dparam_recv(struct dparam *x) {
         /* Check header */
         struct dparam_hdr hdr;
         q_read(q, &hdr, sizeof(hdr));
-        if (hdr.id == dparam_msg_id_param_update) {
+        switch(hdr.id) {
+        case dparam_msg_id_param_update:
             while (1) {
                 struct dparam_par par;
                 q_read(q, &par, sizeof(par));
@@ -87,14 +88,31 @@ void dparam_recv(struct dparam *x) {
                 ASSERT(par.id >= 0);
                 ASSERT(par.id < x->nb_par);
                 x->cur[par.id] = par.val;
+                if (!x->propagate) {
+                    /* Changes that come in over the channel will not
+                       be sent back.  If one side has this set and the
+                       other side does not, it disambiguates
+                       simultaneous edits. */
+                    x->prev[par.id] = par.val;
+                }
                 LOG("%p recv %d %f", x, par.id, par.val);
             }
+            break;
+        case dparam_msg_id_array: {
+            struct dparam_arr arr;
+            q_read(q, &arr, sizeof(arr));
+            for (int i = 0; i < arr.nb_el; i++) {
+                value val;
+                q_read(q, &val, sizeof(val));
+            }
+            break;
         }
-        else {
+        default:
             /* Other data is passed to abstract handler. */
             if (x->fn) {
                 x->fn(x->ctx, q, hdr.id);
             }
+            break;
         }
 
         /* Acknowledge */

@@ -10,7 +10,8 @@
    sending/receiving raw float arrays.
 
    FIXME: Find a good way to organize this functionality.  It feels a
-   bit ad-hoc. */
+   bit ad-hoc.  The only reason it is bundled is because the receiver
+   is a pain to implement otherwize. */
 
 typedef float value;
 enum dparam_msg_id {
@@ -24,6 +25,11 @@ struct dparam {
     value *prev;
     value *cur;
     queue *in, *out;
+
+    /* Only the master side will propagate changes that come over the
+       queue.  This is to avoid update loops in case of simultaneous
+       value changes. */
+    bool propagate;
 
     /* Handler for data found in the queue other than DPARAM_HDR_ID
        This function can use only queue_read_consume() to access the
