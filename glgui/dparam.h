@@ -3,35 +3,44 @@
 
 #include <leaf/queue.h>
 
-/* Synchronize array of parameters between two threads, serving
-   updates at both ends.
+/* Communication tools for real-time GUI.
 
-   This also contains some other pure message functionality like
-   sending/receiving raw float arrays.
+   This is mostly for implementing audio/video processing parameter
+   editors and monitors, but might be useful for other tools.  The
+   communication mechanism is leaf/queue.h but could be any sequential
+   binary stream like a set of unix pipes or a TCP socket.
 
-   FIXME: Find a good way to organize this functionality.  It feels a
-   bit ad-hoc.  The only reason it is bundled is because the receiver
-   is a pain to implement otherwize. */
+   - Synchronize array of parameters between two threads, mutable on
+     both sides.
 
-typedef float value;
+   - Allow for user-defined one-way messages (tagged value arrays) */
+
+#ifndef VALUE_TYPE
+#define VALUE_TYPE float
+typedef VALUE_TYPE value;
+#endif
+
 enum dparam_msg_id {
     dparam_msg_id_none         = 0,
     dparam_msg_id_param_update = 1,
     dparam_msg_id_array        = 2,
 };
+
+
 typedef void (*dparam_handle_fn)(void *ctx, queue *in, enum dparam_msg_id id);
+
 struct dparam {
     int nb_par;
     value *prev;
     value *cur;
     queue *in, *out;
 
-    /* Only the master side will propagate changes that come over the
-       queue.  This is to avoid update loops in case of simultaneous
-       value changes. */
+    /* Only the master side will propagate parameter changes that come
+       over the queue.  This is to avoid update loops in case of
+       simultaneous value changes. */
     bool propagate;
 
-    /* Handler for data found in the queue other than DPARAM_HDR_ID
+    /* Handler for data found in the queue other than dparam_msg_id
        This function can use only queue_read_consume() to access the
        current message. */
     dparam_handle_fn fn; void *ctx;
