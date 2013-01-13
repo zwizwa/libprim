@@ -11251,3 +11251,6 @@ Date: Sun Jan 13 14:26:01 EST 2013
 The makefile doesn't support build rules for c++ files used in final
 targets.  For library it should work to add some extra rules; let's
 try that first.
+
+Hmm.. this requires some makefile restructuring.
+
