@@ -142,6 +142,6 @@ void dparam_send_array(struct dparam *x, int id, int nb, value *val) {
     queue_write_close(q);
     return;
   error:
-    LOG("error %d sending array %d", err, id);
+    // LOG("error %d sending array %d", err, id);
     return;
 }

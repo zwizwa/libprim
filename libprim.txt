@@ -11244,7 +11244,10 @@ measurements.  Weird, it does take a lot of CPU.
 
 
 
-Entry: Clean objects / stack based allocation
-Date: Thu Jan 10 09:14:42 EST 2013
 
+Entry: c++ build rules
+Date: Sun Jan 13 14:26:01 EST 2013
 
+The makefile doesn't support build rules for c++ files used in final
+targets.  For library it should work to add some extra rules; let's
+try that first.
