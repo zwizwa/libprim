@@ -101,6 +101,7 @@ g_ELF      :=
 g_TEST     :=
 g_SO       :=
 g_LDFLAGS  := 
+g_MISC     :=
 $(foreach prog,$(MODULES),$(eval $(call module_template,$(prog))))
 
 # g_D / g_O is only for the .o in lib.a
@@ -110,7 +111,8 @@ g_OUT_O := $(g_OUT_D:.d=.o)
 g_ELF += $(g_TEST:.test=.elf)
 
 .PHONY: g_OUT
-g_OUT: $(g_ELF) $(g_SO) $(g_TEST)
+g_OUT: $(g_ELF) $(g_SO) $(g_TEST) $(g_MISC)
+
 
 -include $(g_D)
 -include $(g_OUT_D)
