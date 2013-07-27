@@ -46,7 +46,7 @@ LD_DEPS  := $(LD_LIBS) $(LD_SCRIPT)
 LDFLAGS  := -nostartfiles -T $(LD_SCRIPT) --gc-sections -g
 
 # Remove the '@' character for more verbose compilation.
-compile = @mkdir -p $(dir $(1)) ; echo [$(2)] $(notdir $(1)) ; $(3)
+compile = mkdir -p $(dir $(1)) ; echo [$(2)] $(notdir $(1)) ; $(3)
 
 .PHONY: clean
 clean:
