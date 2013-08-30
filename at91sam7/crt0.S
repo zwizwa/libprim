@@ -48,7 +48,7 @@ _irq:
         sub     lr, lr, #4
         stmfd   sp!, {lr}
         mrs     lr, SPSR
-        stmfd   sp!, {r0, rl}
+        stmfd   sp!, {r0, lr}
 
         /* Read of IVR signals entry point of interrupt handling to
 	AIC.  Write in the IVR to support Protect Mode */
@@ -114,7 +114,7 @@ _reset0:
         alloc_stack ARM_MODE_SVC r0 0x10
         alloc_stack ARM_MODE_FIQ r0 0x100
         alloc_stack ARM_MODE_IRQ r0 0x400
-        alloc_stack ARM_MODE_SYS r0 -1 /* Don't care: rest is for us */
+        alloc_stack ARM_MODE_SYS r0 0 /* Don't care: rest is for us */
 
 	/* copy initialized variables .data section  (Copy from ROM to RAM) */
         ldr     R1, =_etext

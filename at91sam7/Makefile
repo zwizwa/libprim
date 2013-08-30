@@ -1,7 +1,8 @@
 # This Makefile builds a standalone minimal C application for ARM
 # boards.  Supported targets are in targets/*.h
 
-TARGET := at91sam7s256
+# TARGET := at91sam7s256  ## needs __ASSEMBLY__ fix in Atmel header
+TARGET := at91sam7x256
 TOOL_PREFIX := arm-none-eabi-
 
 # Shared code repository.  Apps will be linked against this.

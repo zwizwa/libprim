@@ -11254,3 +11254,21 @@ try that first.
 
 Hmm.. this requires some makefile restructuring.
 
+
+
+Entry: Weird crt0.S problem:
+Date: Fri Aug 30 18:18:18 EDT 2013
+
+FIX in crt0.S
+-       stmfd   sp!, {r0, rl}
++       stmfd   sp!, {r0, lr}
+
+I wonder, why did it accept rl in the first place?
+How did this end up in the code, since it worked before?
+
+
+
+Entry: AT91SAM7S256.h not annotated with __ASSEMBLY__
+Date: Fri Aug 30 18:28:23 EDT 2013
+
+Looks like I only ran this on AT91SAM7X256.h ?
