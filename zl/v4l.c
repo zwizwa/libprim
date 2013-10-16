@@ -17,7 +17,7 @@
  *   Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
  *   2012-10-29 : V4L2 support from Pidip's pdp_v4l2 (= fork of pdp_v4l)
- *                Thanks to Yves Degoyon, Lluis Gomez i Bigorda, Gerd Knorr)
+ *                Thanks to Yves Degoyon, Lluis Gomez i Bigorda, Gerd Knorr
  *
  */
 
@@ -26,8 +26,10 @@
    do for now.  I kept most of it as is during porting from pdp_v4l /
    pdp_v4l2
 
-   This code is not tested on V4L1, and probably broken.
-   I'm not sure if it makes sense to keep it alive..
+   This code is probably broken on V4L1.  If you need it, drop me an
+   email at <pdp@zwizwa.be> 
+
+   Overall I'm not sure if it makes sense to keep V4L1 alive..
 */
 
 #include <stdio.h>
@@ -66,6 +68,9 @@
 
 /* FIXME: V4L2: add raw PWC MJPEG decompressor for format [0x32435750]
    'PWC2' (Raw Philips Webcam) */
+
+static void v4l_notify_frame(struct zl_v4l *x);
+static void *v4l_thread(void *_x);
 
 
 /* V4L1 */
@@ -454,8 +459,8 @@ static void v4l1_audio (struct zl_v4l *x) {
 
 
 #else // !HAVE_V4L1
-static void v4l1_unmap(struct zl_v4l *x) {}
-static void v4l1_capture_frame(struct zl_v4l *x) {}
+static inline void v4l1_unmap(struct zl_v4l *x __attribute__((__unused__))) {}
+static inline void v4l1_capture_frame(struct zl_v4l *x __attribute__((__unused__))) {}
 #endif
 
 /* V4L2 */
@@ -1012,7 +1017,9 @@ int zl_v4l_close(struct zl_v4l *x) {
 
     /* Unmap memory */
     switch (x->x_v4l_api) {
+#ifdef HAVE_V4L1
     case V4L1: v4l1_unmap(x); break;
+#endif
     case V4L2: v4l2_unmap(x); break;
     }
 
@@ -1035,7 +1042,9 @@ void zl_v4l_close_error(struct zl_v4l *x) {
 
 void zl_v4l_capture_frame(struct zl_v4l *x) {
     switch(x->x_v4l_api) {
+#ifdef HAVE_V4L1
     case V4L1: v4l1_capture_frame(x); break;
+#endif
     case V4L2: v4l2_capture_frame(x); break;
     }
 }
@@ -1043,7 +1052,9 @@ void zl_v4l_capture_frame(struct zl_v4l *x) {
 static void *v4l_thread(void *_x) {
     struct zl_v4l *x = _x;
     switch(x->x_v4l_api) {
+#ifdef HAVE_V4L1
     case V4L1: v4l1_thread_loop(x); break;
+#endif
     case V4L2: v4l2_thread_loop(x); break;
     }
     x->x_continue_thread = 0; // make sure we won't wait for thread
@@ -1055,9 +1066,11 @@ static void *v4l_thread(void *_x) {
 
 #define NOT_SUPPORTED() if(0){}
 
-void zl_v4l_pwc_agc(struct zl_v4l *x, float gain) {
+void zl_v4l_pwc_agc(struct zl_v4l *x, float gain __attribute__((__unused__))) {
     switch(x->x_v4l_api) {
+#ifdef HAVE_V4L1
     case V4L1: return v4l1_pwc_agc(x, gain);
+#endif
     default: NOT_SUPPORTED();
     }
 }
@@ -1077,7 +1090,7 @@ void zl_v4l_open_if_necessary(struct zl_v4l *x) {
 
 const char *zl_v4l_card(struct zl_v4l *x) {
     switch(x->x_v4l_api) {
-    case V4L2: return zl_v4l_card(x);
+    case V4L2: return v4l2_card(x);
     default:
         NOT_SUPPORTED();
         return "unknown";
@@ -1109,7 +1122,9 @@ void zl_v4l_open(struct zl_v4l *x, const char *name, bool start_thread) {
 
     v4l2_open(x, name, start_thread);
     if (!x->x_initialized) {
+#ifdef HAVE_V4L1
         v4l1_open(x, name);
+#endif
     }
 }
 void zl_v4l_input(struct zl_v4l *x, int inpt) {
@@ -1139,12 +1154,14 @@ void zl_v4l_freq(struct zl_v4l *x, int freq /* 1/16th of MHz */) {
     }
 
     switch(x->x_v4l_api) {
+#ifdef HAVE_V4l1
     case V4L1:
         if (ioctl(x->x_tvfd, VIDIOCSFREQ, &x->x_freq) < 0) {
             perror("couldn't set frequency:");
             return;
         }
         break;
+#endif
 #ifdef HAVE_V4L2
     case V4L2:
         if (ioctl(x->x_tvfd, VIDIOC_S_FREQUENCY, &x->x_freq) < 0) {
@@ -1178,7 +1195,9 @@ void zl_v4l_next(struct zl_v4l *x, unsigned char **newimage) {
 
     /* Get the raw data + set the fourcc tag. */
     switch(x->x_v4l_api) {
+#ifdef HAVE_V4L1
     case V4L1: *newimage = v4l1_image_dequeue(x); break;
+#endif
     case V4L2: *newimage = v4l2_image_dequeue(x); break;
     }
 
@@ -1192,6 +1211,7 @@ void zl_v4l_get_format(struct zl_v4l *x, unsigned int *fourcc,
     *height = x->x_height;
     *fourcc = 0;
     switch(x->x_v4l_api) {
+#ifdef HAVE_V4L1
     case V4L1:
         switch (x->x_api.v4l1.palette) {
         case VIDEO_PALETTE_YUV420P: *fourcc = V4L2_PIX_FMT_YUV420; break;
@@ -1201,6 +1221,7 @@ void zl_v4l_get_format(struct zl_v4l *x, unsigned int *fourcc,
         default: break;
         }
         break;
+#endif
 #ifdef HAVE_V4L2
     case V4L2:
         *fourcc = x->x_api.v4l2.format.fmt.pix.pixelformat;

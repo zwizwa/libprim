@@ -64,7 +64,7 @@ struct zl_xv
 };
 #endif
 
-zl_xv_p zl_xv_new(void);
+zl_xv_p zl_xv_new(int fourcc);
 
 // image formats for communication with the X Server
 #define FOURCC_YV12 0x32315659  /* YV12   YUV420P */

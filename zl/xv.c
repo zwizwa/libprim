@@ -44,6 +44,7 @@
 /* XvImage image. */
 static void zl_xv_destroy_xvimage(zl_xv_p xvid);
 static void zl_xv_create_xvimage(zl_xv_p xvid, int width, int height);
+// static void zl_xv_get_dims(zl_xv_p xvid, unsigned int *w, unsigned int *h);
 
 
 /* this was a local function. */
@@ -215,14 +216,15 @@ void zl_xv_free(zl_xv_p xvid){
     free(xvid);
 }
 
-void zl_xv_init(zl_xv_p xvid)
+void zl_xv_init(zl_xv_p xvid, int format)
 {
 
     xvid->xdpy = 0;
 
     // xvid->xv_format = FOURCC_I420; // used to be FOURCC_YV12.  veejay compat.
-    xvid->xv_format = FOURCC_YV12; // PDP uses this
+    // xvid->xv_format = FOURCC_YV12; // PDP uses this
     // xvid->xv_format = 0x32595559; // Microsoft webcam hack
+    xvid->xv_format = format;
 
     xvid->xv_port = 0;
 
@@ -240,10 +242,10 @@ void zl_xv_init(zl_xv_p xvid)
     xvid->last_encoding = -1;
 
 }
-zl_xv_p zl_xv_new(void)
+zl_xv_p zl_xv_new(int format)
 {
     zl_xv_p xvid = malloc(sizeof(*xvid));
-    zl_xv_init(xvid);
+    zl_xv_init(xvid, format);
     return xvid;
 }
 
@@ -294,3 +296,8 @@ int zl_xv_open_on_display(zl_xv_p xvid, zl_xdisplay_p d, int adaptor_start)
     return 1;
 }
 
+
+//static void zl_xv_get_dims(zl_xv_p xvid, unsigned int *w, unsigned int *h) {
+//    if (w) *w = xvid->width;
+//    if (w) *h = xvid->height;
+//}

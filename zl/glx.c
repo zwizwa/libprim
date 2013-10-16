@@ -74,9 +74,11 @@ void zl_glx_cleanup(zl_glx* x)
     }
 }
 void zl_glx_free(zl_glx* x){
-    
-    // fprintf(stderr, "zl_glx_free: FIXME: free texture\n");
-    if (glIsTexture(x->texture)){glDeleteTextures(1, &(x->texture));}
+    if (glIsTexture(x->texture)){
+        glDeleteTextures(1, &(x->texture));
+        x->texture = 0;
+    }
+    zl_glx_cleanup(x);
     free(x);
 }
 
@@ -85,9 +87,14 @@ void zl_glx_swapbuffers(zl_glx *x, zl_xwindow_p xwin)
 {
     glXSwapBuffers(x->xdpy->dpy, xwin->win);
 }
+
+// FIXME: pbufs?
 void zl_glx_makecurrent(zl_glx *x, zl_xwindow_p xwin)
 {
-    if (x != current_context){
+    if (NULL == xwin) {
+	glXMakeCurrent(x->xdpy->dpy, None, x->glx_context);
+    }
+    else if (x != current_context){
 
 	D fprintf(stderr, "glXMakeCurrent(%p,%p,%p)\n", 
                   (void*)x->xdpy->dpy, 
@@ -108,7 +115,7 @@ void *zl_glx_image_data(zl_glx* x, zl_xwindow_p xwin,
 
     x->image_width = w;
     x->image_height = h;
-
+    
     int tex_width = x->tex_width;
     int tex_height = x->tex_height;
 

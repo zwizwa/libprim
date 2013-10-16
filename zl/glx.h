@@ -39,8 +39,7 @@
 //#include <GL/glxext.h>
 
 /* glx class */
-typedef struct zl_glx
-{
+typedef struct zl_glx {
 
     zl_xdisplay_p xdpy; //mother display object
     int  initialized;

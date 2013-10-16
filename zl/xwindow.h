@@ -22,8 +22,16 @@
  *
  */
 
-#ifndef __zl_xwindow_h__
-#define __zl_xwindow_h__
+#ifndef ZL_XWINDOW_H
+#define ZL_XWINDOW_H
+
+
+#ifdef HAVE_LEAF
+#include <leaf/leaf.h>
+#else
+// Stand-alone
+#define LEAF_CLASS(member) int member[0]
+#endif
 
 
 // x stuff
@@ -33,12 +41,6 @@
 #include "zl.h"
 #include "util.h" // small utility library
 
-#ifdef HAVE_LEAF
-#include <leaf/leaf.h>
-#else
-// Stand-alone
-#define LEAF_CLASS(member) int member[0]
-#endif
 
 /* x display class */
 typedef struct {

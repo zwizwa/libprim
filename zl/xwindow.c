@@ -106,12 +106,12 @@ zl_xdisplay_p zl_xdisplay_new(char *dpy_string) {
     /* open display */
     d->type = zl_xdisplay_type();
     if (!(d->dpy = XOpenDisplay(dpy_string))) {
-        fprintf(stderr, "x11: can't open display %s\n", dpy_string);
+        ZL_LOG("x11: can't open display %s\n", dpy_string);
         free(d);
         return NULL;
     }
     else {
-        fprintf(stderr, "x11: open %s OK\n", dpy_string);
+        ZL_LOG("x11: open %s OK\n", dpy_string);
     }
 
     /* install error handler */
@@ -567,6 +567,7 @@ int zl_xwindow_config(zl_xwindow_p xwin, zl_xdisplay_p d)
     /* catch events until MapNotify */
     for(;;){
         XNextEvent(xwin->xdisplay->dpy, &e);
+        fprintf(stderr, "ev: %d\n", e.type);
         if (e.type == MapNotify) break;
         if (e.type == ConfigureNotify) {
             xwin->winwidth  = e.xconfigure.width;
@@ -664,5 +665,10 @@ void zl_xwindow_free(zl_xwindow_p xwin)
     zl_xwindow_cleanup(xwin);
     free(xwin);
 }
+
+int zl_xwindow_winwidth(zl_xwindow *x)   { return x->winwidth; }
+int zl_xwindow_winheight(zl_xwindow *x)  { return x->winheight; }
+int zl_xwindow_winxoffset(zl_xwindow *x) { return x->winxoffset; }
+int zl_xwindow_winyoffset(zl_xwindow *x) { return x->winyoffset; }
 
 

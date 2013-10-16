@@ -6,7 +6,9 @@
    the C preprocessor to generate declarations and wrappers. */
 
 /* Cons / Des */
-FUN(void, init)     END
+FUN(void, init)     
+    ARG(int, fourcc)
+END
 FUN(void, free)     END
 FUN(void, cleanup)  END
 

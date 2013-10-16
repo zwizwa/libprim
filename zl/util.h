@@ -7,8 +7,8 @@
 */
 
 
-#ifndef __util_h__
-#define __util_h__
+#ifndef ZL_UTIL_H
+#define ZL_UTIL_H
 
 #include <stdlib.h>
 
@@ -23,6 +23,13 @@ typedef struct {
 } buf_t;
 
 
+// fixed 2^n size queue object
+typedef struct {
+    void **data;
+    unsigned int mask;
+    unsigned int read;
+    unsigned int write;
+} queue_t;
 
 
 typedef buf_t fifo_t; // same
@@ -51,6 +58,7 @@ INLINE void *stack_pop(fifo_t *x);
 INLINE void stack_clear(fifo_t *x);
 INLINE void stack_free(fifo_t *x);
 INLINE fifo_t *stack_new(int elements);
+
 
 
 
@@ -127,16 +135,8 @@ INLINE void stack_free(fifo_t *x){buf_free(x);}
 
 
 
-#if 0 // see leaf/queue.h
 
-// fixed 2^n size queue object
-typedef struct {
-    void **data;
-    unsigned int mask;
-    unsigned int read;
-    unsigned int write;
-} queue_t;
-
+#if 0  // FIXME: name conflicts with queue in leaf/queue.h
 INLINE queue_t *queue_new(int logsize);
 INLINE void queue_free(queue_t *queue);
 INLINE void queue_write(queue_t *queue, void *thing);
@@ -177,9 +177,9 @@ INLINE void *queue_read(queue_t *x){
     return thing;
 }
 
+#endif
 
 #endif
 
 
-#endif
 

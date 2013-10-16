@@ -1,3 +1,5 @@
+#if 0 // not currently working
+
 #include "ffmpeg.h"
 #include "../leaf/bytes.h"
 #include <stdio.h>
@@ -220,3 +222,6 @@ void codec_context_info(codec_context *c, port *p) {
     port_printf(p, " chan: %d\n", c->context->channels);
     port_printf(p, " blk:  %d\n", c->context->frame_size);    
 }
+
+
+#endif

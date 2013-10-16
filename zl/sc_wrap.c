@@ -11,6 +11,7 @@
 
  */
 
+
 // #include "scheme.h"
 #include <zl/ffmpeg.h>
 #include <leaf/bytes.h>
@@ -42,3 +43,4 @@ _ sc_window_config(sc *sc, _ win, _ disp) {
                       CAST(zl_xdisplay, disp));
     return VOID;
 }
+

@@ -87,3 +87,13 @@ FUN(void, for_parsed_events)
     ARG(zl_receiver, handle)
     ARG(void_p, context)
 END
+
+
+FUN(int, winwidth)
+END
+FUN(int, winheight)
+END
+FUN(int, winxoffset)
+END
+FUN(int, winyoffset)
+END

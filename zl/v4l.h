@@ -14,7 +14,7 @@
 #include <semaphore.h>
 
 // FIXME
-#define HAVE_V4L1
+// #define HAVE_V4L1
 #define HAVE_V4L2
 
 #ifdef HAVE_V4L2
@@ -102,9 +102,16 @@ struct zl_v4l {
     /* This uses V4L2 format descs, also for the V4L1 */
     unsigned long fourcc;
 
-    enum { V4L1, V4L2 } x_v4l_api;
-    union {
+    enum {
+#ifdef HAVE_V4L1
+        V4L1,
+#endif
 #ifdef HAVE_V4L2
+        V4L2,
+#endif
+    } x_v4l_api;
+    union {
+#ifdef HAVE_V4L1
         struct {
             int palette;
             struct video_tuner      tuner;
