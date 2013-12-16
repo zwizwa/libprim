@@ -11272,3 +11272,34 @@ Entry: AT91SAM7S256.h not annotated with __ASSEMBLY__
 Date: Fri Aug 30 18:28:23 EDT 2013
 
 Looks like I only ran this on AT91SAM7X256.h ?
+
+
+
+Entry: simple pdp / forth
+Date: Fri Dec 13 14:31:59 EST 2013
+
+So, basic idea is to revive some of the "patching logic" in pdp to
+embed in a mobile app.  Basic ideas:
+
+- The "linear" part in Forth makes it easy to use RC-based memory
+  management and keep some form of locality, though not enough.
+
+- Core DSP doesn't need memory management.  Can be implemented in any
+  language.
+
+- Speed: core problem is still memory localtiy.
+
+
+
+So the core problem is not solved: how to compact code such that
+locality is preserved.  This is a loop transformation problem.  To
+tackle this, an intermediate structure is necessary.  I.e. an
+algebra..
+
+
+Is there a way to have a canoncial representation?
+
+I'm guessing that IRL this is the "use a lot of memory" approach.
+
+
+
