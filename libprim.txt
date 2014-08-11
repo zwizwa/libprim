@@ -11303,3 +11303,17 @@ I'm guessing that IRL this is the "use a lot of memory" approach.
 
 
 
+Entry: containers
+Date: Sat Aug  9 15:02:56 EDT 2014
+
+It seems that replacing containers with iterators is an interesting
+way to avoid language bridging.  Running into a problem with libsigrok
+using glib containers and having to find a way to translate them to
+python containers.
+
+Why not just have an iterator object that produces native C types that
+are easily handled using standard wrappers?
+
+
+
+

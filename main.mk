@@ -127,7 +127,7 @@ GENERATED_H := $(g_H) $(BUILD)/config.h
 # necessary, abstract the subproject in a library dependency.
 
 # Remove the '@' character for more verbose compilation.
-compile = @mkdir -p $(dir $(1)) ; echo [$(2)] $(notdir $(1)) ; $(3)
+compile = mkdir -p $(dir $(1)) ; echo [$(2)] $(notdir $(1)) ; $(3)
 
 # Gather dependencies from .c file
 depstx := sed -r 's,\s(\w+/), $(LIBPRIM_BUILD)/\1,g'
