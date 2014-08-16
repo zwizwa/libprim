@@ -193,8 +193,6 @@ const char *zl_v4l_control_name(int id);
     ZL_V4L_CTRL(GAIN) \
     ZL_V4L_CTRL(HFLIP) \
     ZL_V4L_CTRL(VFLIP) \
-    ZL_V4L_CTRL(HCENTER) \
-    ZL_V4L_CTRL(VCENTER) \
     ZL_V4L_CTRL(POWER_LINE_FREQUENCY) \
     ZL_V4L_CTRL(HUE_AUTO) \
     ZL_V4L_CTRL(WHITE_BALANCE_TEMPERATURE) \
@@ -221,5 +219,10 @@ const char *zl_v4l_control_name(int id);
     ZL_V4L_CTRL(ZOOM_RELATIVE) \
     ZL_V4L_CTRL(ZOOM_CONTINUOUS) \
     ZL_V4L_CTRL(PRIVACY)
+
+
+#define ZL_V4L_CTRL_LIST_REMOVED                \
+    ZL_V4L_CTRL(HCENTER) \
+    ZL_V4L_CTRL(VCENTER) \
 
 #endif
