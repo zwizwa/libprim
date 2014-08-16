@@ -449,6 +449,7 @@ void box_control_handle_event(struct box_control *bc,
                               enum button_event but) {
 
     /* Get param updates from core. */
+    ASSERT(bc->p);
     dparam_recv(bc->p);
 
     switch(e) {
@@ -464,11 +465,13 @@ void box_control_handle_event(struct box_control *bc,
 
         /* Record state of last press as it determines drag routing. */
         bc->box_edit = box_control_find_box(bc, x, y);
-        box_control_update_focus(bc, bc->box_edit);
-        bc->x = x;
-        bc->y = y;
-        bc->current_button = but;
-        bc->box_edit->class->edit_click(bc->box_edit, bc, bc->x, bc->y);
+        if (bc->box_edit) {
+            box_control_update_focus(bc, bc->box_edit);
+            bc->x = x;
+            bc->y = y;
+            bc->current_button = but;
+            bc->box_edit->class->edit_click(bc->box_edit, bc, bc->x, bc->y);
+        }
         break;
 
     case ce_motion:
@@ -520,6 +523,7 @@ void box_control_handle_event(struct box_control *bc,
   exit:
 
     /* Send param updates from core. */
+    ASSERT(bc->p);
     dparam_send(bc->p);
 }
 

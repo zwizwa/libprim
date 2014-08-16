@@ -5,7 +5,7 @@
 
 struct dparam *dparam_new(int nb_par) {
     struct dparam *x = calloc(nb_par, sizeof(*x));
-    x->in = queue_new(3000 * nb_par);
+    x->in  = queue_new(3000 * nb_par);
     x->nb_par = nb_par;
     x->cur  = malloc(sizeof(float) * nb_par);
     x->prev = malloc(sizeof(float) * nb_par);
@@ -26,6 +26,10 @@ void dparam_connect(struct dparam *a, struct dparam *b) {
 void dparam_send(struct dparam *x) {
     struct queue *q = x->out;
     int err = 0;
+    if (!q) {
+        // LOG("No out queue.");
+        return;
+    }
     ASSERT(q);
     struct dparam_hdr hdr = { .id = dparam_msg_id_param_update };
     /* Begin transaction */
