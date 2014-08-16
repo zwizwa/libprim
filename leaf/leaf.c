@@ -33,6 +33,3 @@ int leaf_write(leaf_object *x, port *p) {
 }
 
 
-/* For debugging */
-void leaf_trap(void) {}
-

@@ -663,7 +663,7 @@ static void v4l2_set_format(struct zl_v4l *x, int index) {
 }
 
 static void v4l2_set_timeperframe(struct zl_v4l *x, int tpf_num, int tpf_den) {
-    struct v4l2_streamparm streamparm;
+    struct v4l2_streamparm streamparm = {};
     streamparm.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
     streamparm.parm.capture.timeperframe.numerator   = tpf_num;
     streamparm.parm.capture.timeperframe.denominator = tpf_den;

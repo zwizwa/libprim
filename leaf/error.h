@@ -22,6 +22,7 @@ struct _leaf_ctx {
 #define leaf_catch(x) setjmp(((leaf_ctx*)x)->buf)
 
 static inline void leaf_raise(leaf_ctx *ctx, int rv, void *data) {
+    LEAF_ASSERT(ctx);
     if (data) ctx->set_error(ctx, rv, data);
     longjmp(ctx->buf, rv);
 }
