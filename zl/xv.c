@@ -49,7 +49,11 @@ static void zl_xv_create_xvimage(zl_xv_p xvid, int width, int height);
 
 /* this was a local function. */
 static int errors;
-static int error_handler(Display *dpy, XErrorEvent *e){errors++; return 0;}
+static int error_handler(Display __attribute__((unused)) *dpy,
+                         XErrorEvent __attribute__((unused)) *e){
+  errors++;
+  return 0;
+}
 
 static void zl_xv_create_xvimage(zl_xv_p xvid, int width, int height)
 {
@@ -172,7 +176,7 @@ void zl_xv_image_display(zl_xv_p xvid, zl_xwindow_p xwin){
 }
 
 
-void *zl_xv_image_data(zl_xv_p xvid, zl_xwindow_p xwin, 
+void *zl_xv_image_data(zl_xv_p xvid, zl_xwindow_p __attribute__((unused)) xwin, 
                         unsigned int width, unsigned int height){
 
     if (!xvid->initialized) return 0;

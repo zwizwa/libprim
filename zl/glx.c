@@ -68,6 +68,7 @@ void zl_glx_cleanup(zl_glx* x)
     // XEvent e;
 
     if (x->initialized){
+        ZL_LOG("glXDestroyContext()\n");
 	glXDestroyContext(x->xdpy->dpy, x->glx_context);
 	x->xdpy = 0;
 	x->initialized = 0;
@@ -85,6 +86,8 @@ void zl_glx_free(zl_glx* x){
 
 void zl_glx_swapbuffers(zl_glx *x, zl_xwindow_p xwin)
 {
+    // ZL_LOG("swapbuffers %x %x", x, xwin);
+    // ZL_LOG("glXSwapBuffers(%p,%p)\n",x->xdpy->dpy, xwin->win);
     glXSwapBuffers(x->xdpy->dpy, xwin->win);
 }
 
@@ -256,7 +259,7 @@ void zl_glx_vsync(zl_glx *x, bool sync) {
         glXSwapIntervalSGI = (glXSwapIntervalSGIFunc)
             glXGetProcAddressARB((const GLubyte *)"glXSwapIntervalSGI");
         if (glXSwapIntervalSGI) {
-            ZL_LOG("glXSwapIntervalSGI(%d)", interval, glXSwapIntervalSGI);
+            ZL_LOG("glXSwapIntervalSGI(%d,%p)", interval, glXSwapIntervalSGI);
             glXSwapIntervalSGI (interval);
         }
         else {

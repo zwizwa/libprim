@@ -924,7 +924,7 @@ static void v4l2_open(struct zl_v4l *x, const char *name, bool start_thread) {
         x->x_continue_thread = 1;
         sem_init(&x->x_frame_ready_sem, 0, 0);
         pthread_create(&x->x_thread_id, 0, v4l_thread, x);
-        ZL_LOG("v4l: created thread: %p", x->x_thread_id );
+        ZL_LOG("v4l: created thread: %p", (void*)x->x_thread_id );
     }
 
     return;
@@ -1178,18 +1178,24 @@ void zl_v4l_freq(struct zl_v4l *x, int freq /* 1/16th of MHz */) {
 
 
 
-void zl_v4l_next(struct zl_v4l *x, unsigned char **newimage) {
+void zl_v4l_next(struct zl_v4l *x,
+                 unsigned char **newimage,
+                 int block) {
+                 
     *newimage = NULL;
 
     /* If you want auto-open, call zl_v4l_open_if_necessary() before _next () */
     if (!(x->x_initialized)) return;
 
-    /* do nothing if there is no frame ready */
-    int val = 0;
-    sem_getvalue(&x->x_frame_ready_sem, &val);
-    if (val == 0) return;
+    if (!block) {
+      /* do nothing if there is no frame ready */
+      int val = 0;
+      sem_getvalue(&x->x_frame_ready_sem, &val);
+      if (val == 0) return;
 
-    /* Because of the previous check, this does not block. */
+      /* Because of the previous check, next does not block. */
+    }
+
     sem_wait(&x->x_frame_ready_sem);
     // ZL_LOG("sem_wait: %d", x->x_frame_rd);
 

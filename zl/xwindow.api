@@ -97,3 +97,7 @@ FUN(int, winxoffset)
 END
 FUN(int, winyoffset)
 END
+
+/* delegates to zl_xwdiwsplay_route_events() */
+FUN(void, route_events)
+END

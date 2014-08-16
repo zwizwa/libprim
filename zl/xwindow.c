@@ -95,12 +95,13 @@ zl_xdisplay_class *zl_xdisplay_type(void) { return NULL; }
 zl_xwindow_class *zl_xwindow_type(void) { return NULL; }
 #endif
 
-int zl_xdisplay_errorhandler(Display *dpy, XErrorEvent *ev){
+int zl_xdisplay_errorhandler(Display __attribute__((unused)) *dpy,
+                             XErrorEvent __attribute__((unused)) *ev){
     fprintf(stderr, "zl_xdisplay_errorhandler\n");
     return 0xdeadf00d;
 }
 
-zl_xdisplay_p zl_xdisplay_new(char *dpy_string) {
+zl_xdisplay_p zl_xdisplay_new(const char *dpy_string) {
     zl_xdisplay_p d = malloc(sizeof(*d));
 
     /* open display */
@@ -111,11 +112,11 @@ zl_xdisplay_p zl_xdisplay_new(char *dpy_string) {
         return NULL;
     }
     else {
-        ZL_LOG("x11: open %s OK\n", dpy_string);
+        //ZL_LOG("x11: open %s OK\n", dpy_string);
     }
 
     /* install error handler */
-    // XSetErrorHandler(&zl_xdisplay_errorhandler);
+    //XSetErrorHandler(&zl_xdisplay_errorhandler);
 
     d->windowlist = buf_new(16);
     d->screen = DefaultScreen(d->dpy);
@@ -174,7 +175,7 @@ void zl_xdisplay_route_events(zl_xdisplay_p d) {
     while (XPending(d->dpy)){
         if (!e) e = malloc(sizeof(XEvent));
         XNextEvent(d->dpy, e);        
-
+	// ZL_LOG("event %x", e);
         // find zl_xwindow instance
 
         for (i = 0; i<d->windowlist->elements; i++){
@@ -183,7 +184,9 @@ void zl_xdisplay_route_events(zl_xdisplay_p d) {
                 if (e->type == ConfigureNotify){
                     w->winwidth  = e->xconfigure.width;
                     w->winheight = e->xconfigure.height;
-                    D fprintf(stderr, "win: %d x %d\n", w->winwidth, w->winheight);
+
+		    // ZL_LOG("ConfigureNotify %d %d\n", w->winwidth, w->winheight);
+
                     /* Workaround for weird window sizes 42592x42379
                        that cause BadValue for XV. */
                     int max = 4000;
@@ -191,6 +194,7 @@ void zl_xdisplay_route_events(zl_xdisplay_p d) {
                     if (w->winheight> max) w->winheight = max;
                 }
                 zl_xwindow_queue_event(w, e);
+		// ZL_LOG("queue w:%x e:%x", w, e);
                 e = 0; // moved
             }
         }
@@ -252,6 +256,9 @@ void zl_xwindow_for_parsed_events(zl_xwindow_p xwin,
 	| Button5Mask;
 
     while ((e = stack_pop(xwin->events))) {
+
+	// ZL_LOG("pop w:%x e:%x", xwin, e);
+
         /* handle event */
         double x = inv_x * (double)e->xbutton.x;
         double y = inv_y * (double)e->xbutton.y;
@@ -307,13 +314,24 @@ void zl_xwindow_for_parsed_events(zl_xwindow_p xwin,
 	    }
             break;
         }
+        // FIXME: should these even get here?
+        case UnmapNotify: {
+            break;
+        }
+        case ConfigureNotify: {
+            break;
+        }
+        default:
+            ZL_LOG("unknown event type %d\n", e->type);
+            break;
         }
         free(e);
     }
 }
 
 void zl_xwindow_drop_events(zl_xwindow_p x) {
-    void handle(void *x, XEvent *e) {}
+    void handle(void __attribute__((unused)) *x,
+                XEvent __attribute__((unused)) *e) {}
     zl_xwindow_for_events(x, handle, NULL);
 }
 
@@ -545,7 +563,7 @@ int zl_xwindow_config(zl_xwindow_p xwin, zl_xdisplay_p d)
     XSetClassHint(xwin->xdisplay->dpy, xwin->win, &chint);
     XSetCommand(xwin->xdisplay->dpy, xwin->win, 0, 0);
 
-#if 1
+#if 0 // FIXME: Not sure what to do here...
     int w = xwin->winwidth;
     int h = xwin->winheight;
     ZL_LOG("XSizeHints %dx%d", w, h);
@@ -573,7 +591,9 @@ int zl_xwindow_config(zl_xwindow_p xwin, zl_xdisplay_p d)
             xwin->winwidth  = e.xconfigure.width;
             xwin->winheight = e.xconfigure.height;
             // fprintf(stderr, "_win: %d x %d\n", e.xconfigure.width, e.xconfigure.height);
+            continue;
         }
+        ZL_LOG("drop event type %d\n", e.type);
     }
 
     D fprintf(stderr, "mapped window %x\n", (unsigned int)xwin->win);
@@ -649,7 +669,6 @@ void zl_xwindow_close(zl_xwindow_p xwin)
         xwin->xdisplay = 0;
         xwin->initialized = 0;
     }
-
 }
 
 void zl_xwindow_cleanup(zl_xwindow_p x)
@@ -672,3 +691,7 @@ int zl_xwindow_winxoffset(zl_xwindow *x) { return x->winxoffset; }
 int zl_xwindow_winyoffset(zl_xwindow *x) { return x->winyoffset; }
 
 
+// Delegate to display
+void zl_xwindow_route_events(zl_xwindow *x) {
+    zl_xdisplay_route_events(x->xdisplay);
+}

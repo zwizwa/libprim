@@ -133,7 +133,7 @@ typedef XEvent *XEvent_p;
 ZL_XDISPLAY_EV_LIST(_ZL_XDISPLAY_EV_DECL)
 
 zl_xwindow_p zl_xwindow_new(void);
-zl_xdisplay_p zl_xdisplay_new(char_p dpy);
+zl_xdisplay_p zl_xdisplay_new(const char *dpy);
 
 #define FUN(t,f) t zl_xdisplay_##f(zl_xdisplay_p
 #define ARG(t,a) , t a

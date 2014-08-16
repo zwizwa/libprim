@@ -155,7 +155,7 @@ void zl_v4l_open_if_necessary(struct zl_v4l *x);
 void zl_v4l_input(struct zl_v4l *x, int inpt);
 void zl_v4l_standard(struct zl_v4l *x, int standrd);
 void zl_v4l_freq(struct zl_v4l *x, int freq /* 1/16th of MHz */);
-void zl_v4l_next(struct zl_v4l *x, unsigned char **newimage);
+void zl_v4l_next(struct zl_v4l *x, unsigned char **newimage, int block);
 void zl_v4l_get_format(struct zl_v4l *x, unsigned int *fourcc,
                        unsigned int *width, unsigned int *height);
 

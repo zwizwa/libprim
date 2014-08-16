@@ -11316,4 +11316,28 @@ are easily handled using standard wrappers?
 
 
 
+Entry: Merging libprim from eyes
+Date: Sat Aug 16 11:31:39 EDT 2014
+
+[master] tom@zoo:~/libprim/zl$ git pull ~/git/zl
+remote: Counting objects: 67, done.        
+remote: Compressing objects: 100% (52/52), done.        
+remote: Total 54 (delta 34), reused 0 (delta 0)        
+Unpacking objects: 100% (54/54), done.
+From /home/tom/git/zl
+ * branch            HEAD       -> FETCH_HEAD
+Auto-merging zl.mk
+CONFLICT (content): Merge conflict in zl.mk
+Auto-merging xwindow.h
+Auto-merging xwindow.c
+CONFLICT (content): Merge conflict in xwindow.c
+Auto-merging xwindow.api
+CONFLICT (content): Merge conflict in xwindow.api
+CONFLICT (modify/delete): test deleted in f9e8d1fec6b9f269d2a1ea79613bff7b312e4b18 and modified in HEAD. Version HEAD of test left in tree.
+Auto-merging glx.c
+Auto-merging 3Dcontext_glx.c
+CONFLICT (add/add): Merge conflict in 3Dcontext_glx.c
+Auto-merging 3Dcontext.h
+CONFLICT (add/add): Merge conflict in 3Dcontext.h
+Automatic merge failed; fix conflicts and then commit the result.
 
