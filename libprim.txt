@@ -11341,3 +11341,9 @@ Auto-merging 3Dcontext.h
 CONFLICT (add/add): Merge conflict in 3Dcontext.h
 Automatic merge failed; fix conflicts and then commit the result.
 
+
+
+Entry: swig
+Date: Sun Aug 17 01:08:26 EDT 2014
+
+tom@tx:~/libprim/build$ make -f ../main.mk /home/tom/pub/darcs/libprim/build/swig/wrap_python.c
