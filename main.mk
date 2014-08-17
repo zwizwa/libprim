@@ -110,6 +110,8 @@ g_OUT_O := $(g_OUT_D:.d=.o)
 
 g_ELF += $(g_TEST:.test=.elf)
 
+
+
 .PHONY: g_OUT
 g_OUT: $(g_ELF) $(g_SO) $(g_TEST) $(g_MISC)
 
@@ -141,6 +143,8 @@ _CC := $(CC) $(CPPFLAGS) $(CFLAGS)
 $(g_O) $(g_OUT_O): $(BUILD)/%.o: $(SRC)/%.c $(BUILD)/%.d
 	$(call compile,$@,o,$(_CC) -o $@ -c $<)
 
+
+
 # Executable
 $(g_ELF): $(BUILD)/%.elf: $(BUILD)/%.o $(BUILD)/lib.a
 	$(call compile,$@,elf,$(_CC) $*.o $(BUILD)/lib.a $(g_LDFLAGS) -o $@)
@@ -166,6 +170,14 @@ $(BUILD)/%.E.c: $(SRC)/%.c $(GENERATED_H)
 # Test
 $(g_TEST): $(BUILD)/%.test: $(BUILD)/%.elf
 	$(call compile,$@,test,$(LIBPRIM_SRC)/bin/run_test $< $@)
+
+# Swig
+$(BUILD)/swig/python/wrap.c: $(SRC)/swig/libprim.i
+	$(call compile,$@,i,cd $(SRC) ; swig -python -py3 -o $@ $<)
+$(BUILD)/swig/python/wrap.o: $(BUILD)/swig/python/wrap.c
+	$(call compile,$@,o,$(_CC) $(shell pkg-config python-3.3 --cflags) -o $@ -c $<)
+$(BUILD)/swig/python/_libprim.so: $(BUILD)/swig/python/wrap.o $(BUILD)/lib.a
+	$(call compile,$@,so,$(_CC) $(BUILD)/swig/python/wrap.o  $(BUILD)/lib.a $(g_LDFLAGS) $(shell pkg-config python-3.3 --libs) -rdynamic -shared -o $@)
 
 
 
