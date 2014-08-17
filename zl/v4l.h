@@ -1,10 +1,3 @@
-#ifdef SWIG
-%module v4l
-%{
-#include "v4l.h"
-%}
-#endif
-
 #ifndef _ZL_V4L_
 #define _ZL_V4L_
 
@@ -225,4 +218,8 @@ const char *zl_v4l_control_name(int id);
     ZL_V4L_CTRL(HCENTER) \
     ZL_V4L_CTRL(VCENTER) \
 
+
+struct zl_v4l *zl_v4l_new(bool start_thread);
+
 #endif
+

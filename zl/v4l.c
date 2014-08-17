@@ -1305,4 +1305,9 @@ void zl_v4l_init(struct zl_v4l *x, bool start_thread) {
 }
 
 
+struct zl_v4l *zl_v4l_new(bool start_thread) {
+  struct zl_v4l *x = malloc(sizeof(*x));
+  zl_v4l_init(x, start_thread);
+  return x;
+}
 
