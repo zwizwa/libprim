@@ -5,5 +5,7 @@ MODULES := \
 	px pf \
 	cell \
 	glgui \
-	zl
+	zl leaf_zl
+
+
 

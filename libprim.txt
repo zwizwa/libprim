@@ -11347,3 +11347,19 @@ Entry: swig
 Date: Sun Aug 17 01:08:26 EDT 2014
 
 tom@tx:~/libprim/build$ make -f ../main.mk /home/tom/pub/darcs/libprim/build/swig/wrap_python.c
+
+
+
+Entry: Functional interface
+Date: Wed Aug 20 14:49:25 EDT 2014
+
+From the C side, it's easier to let the client do the memory
+management, i.e. do things like this:
+
+    zl_v4l_get_format(&v4l, &fourcc, &w, &h);
+    zl_v4l_next(&v4l, &video_data);
+
+However, making swig wrappers this does complicate things.
+
+So I guess that's the whole point of libprim, but the impedance match
+isn't there yet.

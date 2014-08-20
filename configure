@@ -19,6 +19,8 @@ TARGET:=$TARGET
 .PHONY: all
 all:
 	+make -f \$(SRC)/main.mk TARGET="\$(TARGET)" SRC="\$(SRC)" BUILD="\$(BUILD)"
+clean:
+	rm -rf \$\$(find -type f | grep -v Makefile)
 EOF
 
 echo "Now run 'make'"

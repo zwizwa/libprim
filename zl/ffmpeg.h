@@ -18,10 +18,12 @@ typedef struct _codec_context codec_context;
 typedef struct _vframe vframe;
 typedef struct _aframe aframe;
 
+#ifndef SWIG
 typedef struct { LEAF_CLASS(super); } codec_class;
 typedef struct { LEAF_CLASS(super); } codec_context_class;
 typedef struct { LEAF_CLASS(super); } vframe_class;
 typedef struct { LEAF_CLASS(super); } aframe_class;
+#endif
 
 struct _codec {
     codec_class *type;

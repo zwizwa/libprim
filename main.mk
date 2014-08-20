@@ -28,7 +28,7 @@ BUILD    = $(shell readlink -f .)
 TARGET 	 = Linux
 
 LDFLAGS  :=
-CFLAGS   := -g -O0 -Wall -std=gnu99 -fPIC
+CFLAGS   := -g -O0 -Wall -std=gnu99 -fPIC # -Wno-deprecated-declarations
 CPPFLAGS := \
 	-I$(BUILD) \
 	-I$(SRC) \
@@ -60,7 +60,7 @@ MZSCHEME := mzscheme -S $(LIBPRIM_SRC)/rkt
 
 
 .PHONY: all
-all: g_OUT
+all: g_OUT swig
 
 # Makefile template for the module.mk context. Once expanded, it
 # gathers module-specific data from the local m_ variables and
@@ -129,8 +129,8 @@ GENERATED_H := $(g_H) $(BUILD)/config.h
 # necessary, abstract the subproject in a library dependency.
 
 # Remove the '@' character for more verbose compilation.
-# compile = @mkdir -p $(dir $(1)) ; echo [$(2)] $(notdir $(1)) ; $(3)
-compile = echo $(3); mkdir -p $(dir $(1)) ; echo [$(2)] $(notdir $(1)) ; $(3)
+compile = @mkdir -p $(dir $(1)) ; echo [$(2)] $(notdir $(1)) ; $(3)
+# compile = echo $(3); mkdir -p $(dir $(1)) ; echo [$(2)] $(notdir $(1)) ; $(3)
 
 # Gather dependencies from .c file
 depstx := sed -r 's,\s(\w+/), $(LIBPRIM_BUILD)/\1,g'
@@ -172,12 +172,19 @@ $(g_TEST): $(BUILD)/%.test: $(BUILD)/%.elf
 	$(call compile,$@,test,$(LIBPRIM_SRC)/bin/run_test $< $@)
 
 # Swig
-$(BUILD)/swig/python/wrap.c: $(SRC)/swig/libprim.i
+PYTHON_SO     := $(BUILD)/swig/python/_libprim.so
+PYTHON_O      := $(BUILD)/swig/python/_libprim.o
+PYTHON_C      := $(BUILD)/swig/python/_libprim.c
+PYTHON_CFLAGS := $(shell pkg-config python-3.3 --cflags)
+PYTHON_LIBS   := $(shell pkg-config python-3.3 --libs)
+$(PYTHON_C): $(SRC)/swig/libprim.i
 	$(call compile,$@,i,cd $(SRC) ; swig -python -py3 -o $@ $<)
-$(BUILD)/swig/python/wrap.o: $(BUILD)/swig/python/wrap.c
-	$(call compile,$@,o,$(_CC) $(shell pkg-config python-3.3 --cflags) -o $@ -c $<)
-$(BUILD)/swig/python/_libprim.so: $(BUILD)/swig/python/wrap.o $(BUILD)/lib.a
-	$(call compile,$@,so,$(_CC) $(BUILD)/swig/python/wrap.o  $(BUILD)/lib.a $(g_LDFLAGS) $(shell pkg-config python-3.3 --libs) -rdynamic -shared -o $@)
+$(PYTHON_O): $(PYTHON_C)
+	$(call compile,$@,o,$(_CC) $(PYTHON_CFLAGS) -o $@ -c $<)
+$(PYTHON_SO): $(PYTHON_O) $(BUILD)/lib.a
+	$(call compile,$@,so,$(_CC) $(PYTHON_O) $(BUILD)/lib.a $(g_LDFLAGS) $(PYTHON_LIBS) -rdynamic -shared -o $@)
+
+swig: $(PYTHON_SO)
 
 
 

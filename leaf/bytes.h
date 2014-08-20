@@ -12,22 +12,24 @@ typedef struct {
     leaf_class super;
 } bytes_class;
 
-
+#ifndef SWIG
 struct _bytes {
     LEAF_OBJECT(base);
     char *bytes;
     size_t size;     // nb of used bytes
     size_t bufsize;  // max bytes in buffer (const == 0)
 };
+int bytes_vprintf(bytes *b, const char *fmt, va_list ap);
+/* FIXME: Deprecated.  This is confusing: it allocates an
+   un-initialize buffer.  Use bytes_buffer_new() and bytes_allot()
+   instead. */
+bytes *bytes_new(size_t size, size_t bufsize);
+#endif
 
 bytes *bytes_copy(bytes* b);
 bytes* bytes_buffer_new(size_t bufsize);  // same, with size = 0
 bytes *bytes_const_new(const char *str, size_t size);
 
-/* FIXME: Deprecated.  This is confusing: it allocates an
-   un-initialize buffer.  Use bytes_buffer_new() and bytes_allot()
-   instead. */
-bytes *bytes_new(size_t size, size_t bufsize);
 
 
 // void *bytes_realloc(bytes *b, size_t size);
@@ -53,6 +55,5 @@ int bytes_hexdump(bytes *b, port *p);  // human-readable
 /* Allocate a buffer segment + return pointer. */
 char *bytes_allot(bytes *b, size_t size);
 
-int bytes_vprintf(bytes *b, const char *fmt, va_list ap);
 
 #endif
