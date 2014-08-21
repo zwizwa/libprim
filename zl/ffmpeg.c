@@ -56,7 +56,7 @@ codec_context_class *codec_context_type(void) {
 codec_context *codec_context_new(void){
     codec_context *x = malloc(sizeof(*x));
     x->type = codec_context_type();
-    x->context = avcodec_alloc_context3(NULL);
+    x->context = avcodec_alloc_context();
 
     /* FIXME: parameterize */
 
