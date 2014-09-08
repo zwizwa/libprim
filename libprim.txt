@@ -11363,3 +11363,17 @@ However, making swig wrappers this does complicate things.
 
 So I guess that's the whole point of libprim, but the impedance match
 isn't there yet.
+
+
+Entry: Future of libprim
+Date: Sun Sep  7 09:26:31 CEST 2014
+
+Am I still interested in building scripting languages?
+Does this library still solve a problem?
+
+The biggest problem I've encountered in recent practical use is
+building it without all dependencies installed.  So fixing
+cross-complation is probably the way to go.
+
+
+
