@@ -11377,3 +11377,15 @@ cross-complation is probably the way to go.
 
 
 
+Entry: Inspired by UBF
+Date: Sat Jul 18 11:09:12 EDT 2015
+
+Making things work together:
+
+- libprim: a new core for PF
+- rust: write ad-hoc glue for PF
+- rai: write signal processing primitives for PF
+
+Set this all up so it *BUILDS* !
+
+[1] entry://../staapl-blog/20150718-105036
