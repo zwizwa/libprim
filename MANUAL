@@ -72,3 +72,22 @@ A limited amount of red-tape can be automatically generated.
 Currently this consists mostly of the EX -> SC/PF function wrapping.
 Automatic LEAF -> EX data wrapping will follow in the future.
 
+
+5 PF: bridging linear and nonlinear memory
+
+The main purpose of PF is to expose a simple interface to MIMO
+dataflow primitives, embedded in a memory management stategy that is:
+
+- exposed as linear memory with explicit 'dup' and 'drop'
+
+- reference-count based to avoid unnecessary copy
+
+- local-biased, attempting to reuse most recently used memory to work
+  better with LRU-style caches.
+
+PF uses EX CONS lists for code.  I've found it really difficult to
+write a pure linear language, so the approach taken is to have a
+linear core for data processing, and a nonlinear core for any other
+kind of "preprocessing", which essentially takes the step of code
+compilation.
+

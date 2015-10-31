@@ -49,7 +49,7 @@ http://piumarta.com/software/peg/
 
 `ffmpeg' for the media library.  Last tested: svn rev 20455 (2009/11/5).
 
-on Debian: apt-get install build-essential libavcodec-dev
+on Debian: apt-get install build-essential libavcodec-dev libavformat-dev
 
 
 History

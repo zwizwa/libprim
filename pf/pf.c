@@ -9,13 +9,13 @@
 #include <px/px.g.h>
 #include <config.h>
 
-/* 
+/*
    PF: VM interpreter and Stack primitive functions.
 
    The code in this file is partitioned in two classes:
 
    pf_   linear stack words (written in terms of _px_ and px_)
-   _px_  misc functions (not respecting px_ nor pf_ API) 
+   _px_  misc functions (not respecting px_ nor pf_ API)
 
 */
 
@@ -29,7 +29,7 @@
 
       SEQ   = (SUB : SUB)            ;; `:' is graph CONS
       SUB   = PRIM | QUOTE | SEQ
- 
+
       K     = NIL | (SUB . K)        ;; `.' is linear CONS
 */
 typedef void (*pf_prim)(pf*);
@@ -63,14 +63,14 @@ void _px_run(pf *pf) {
 
   top_loop:
     switch(ex_id = leaf_catch(pf)) {
-    case EXCEPT_TRY: 
+    case EXCEPT_TRY:
     inner_loop:
     {
 
-        
+
         /* By default, run each step in LINEAR mode (GC allocation
            switched off).
-           
+
            A primitive is allowed to switch to PURE mode as long
            as there are no side effects performed between this
            LINEAR() call and the PURE() invocation in the
@@ -87,11 +87,11 @@ void _px_run(pf *pf) {
 
         /* Consume next instruction: pop K. */
         else {
-            
+
             rs = object_to_lnext(EX, pf->k);
             if (unlikely(!rs)) goto halt;
             _ ip = rs->car;
-            
+
             /* Unpack code sequence, push K. */
             if ((s = object_to_seq(EX, ip))) {
                 DROP_K(); // (*)
@@ -109,7 +109,7 @@ void _px_run(pf *pf) {
                     /* Check memory + allow restart */
                     EX->stateful_context = 0;
                     if (gc_available(EX->gc) < 20) gc_collect(EX->gc);
-                        
+
                     /* Disallow restart by default for primitives.
                        Non-bounded allocation needs to explictly
                        re-enable restart. */
@@ -163,7 +163,7 @@ void _px_run(pf *pf) {
             /* Exit condition. */
             return;
         }
-        
+
         /* Reset state. */
         pf->m.prim = NULL;
         goto top_loop;
@@ -239,18 +239,18 @@ void pf_pd(pf *pf) {  // print dict
 }
 
 
-/* Implementing (conservative) tree transformations. 
+/* Implementing (conservative) tree transformations.
 
    A tree transformer can be derived using the following manual
    compilation approach:
 
        1. Write down the transform in a high level dotted pair form:
           LHS -> RHS
-    
+
        2. Following the structure in LHS, bind the nodes (and
           deconstructed dot pairs) to C lexical variables using
           type-checking casts for the pairs.  This makes sure
-          exceptions happen before we mutate anything.  
+          exceptions happen before we mutate anything.
 
        3. Rebuild the tree by re-using the pairs to create the dotted
           tree in the RHS.
@@ -264,7 +264,7 @@ void pf_pd(pf *pf) {  // print dict
 /*  D = datum
     L = list
     P = parameter stack
-    
+
       (L . (D . P)) -> ((D . L) . P)
 */
 void pf_cons(pf *pf) {
@@ -320,15 +320,15 @@ void pf_stack(pf *pf) {
 }
 void pf_print_error(pf *pf) {
     _ex_printf(EX, "ERROR: ");
-    if (NIL == pf->p) PUSH_P(SYMBOL("unknown")); 
+    if (NIL == pf->p) PUSH_P(SYMBOL("unknown"));
     _WRITE();
-    if (NIL == pf->p) PUSH_P(VOID); 
-    if (TOP == VOID) { 
-        _DROP(); 
+    if (NIL == pf->p) PUSH_P(VOID);
+    if (TOP == VOID) {
+        _DROP();
     }
-    else { 
-        _ex_printf(EX, ": "); 
-        _WRITE(); 
+    else {
+        _ex_printf(EX, ": ");
+        _WRITE();
     }
     _ex_printf(EX, "\n");
 }
@@ -367,12 +367,12 @@ void pf_find(pf *pf)      { _TOP = FIND(pf->dict, TOP); }
 
 void pf_add(pf *pf)       { _TOP = ADD(TOP, SECOND); _SWAP(); _DROP(); }
 
-void pf_display(pf *pf)   { px_display(pf, TOP); _DROP(); } 
+void pf_display(pf *pf)   { px_display(pf, TOP); _DROP(); }
 
 void pf_words(pf *pf) {
     _ d = pf->dict;
     while (NIL != d) {
-        px_write(pf, CAAR(d)); 
+        px_write(pf, CAAR(d));
         _SPACE();
         d = CDR(d);
     }
@@ -394,7 +394,7 @@ void pf_interpret(pf *pf) {
         return;
     }
     if (object_to_lpair(EX, v)) {
-        if (pf->s_quote == _CAR(v)) { 
+        if (pf->s_quote == _CAR(v)) {
             pair *dp = CAST(lpair, _CDR(v));
             _ datum = dp->car;
             dp->car = VOID;
@@ -402,7 +402,7 @@ void pf_interpret(pf *pf) {
             PUSH_P(datum);
             return;
         }
-        /* Compile quotation (nonlinearly). 
+        /* Compile quotation (nonlinearly).
            FIXME: this could be linear.
          */
         _TO_NL();
@@ -424,16 +424,16 @@ void pf_interpret(pf *pf) {
 
 
 /* FIXME: properly switch mode! */
-void pf_make_loop(pf *pf) { 
+void pf_make_loop(pf *pf) {
     _TOP = MAKE_LOOP(TOP);
 }
 
-void pf_nl_compile(pf *pf) { 
+void pf_nl_compile(pf *pf) {
     _TOP = COMPILE_PROGRAM(TOP);
 }
 
-void pf_nl_definitions(pf *pf) { 
-    px_define(pf, TOP); 
+void pf_nl_definitions(pf *pf) {
+    px_define(pf, TOP);
     _DROP();
 }
 
@@ -466,7 +466,7 @@ static inline int is_lcode(_ ob, ex* ex) {
 }
 
 
-void pf_run(pf *pf){ 
+void pf_run(pf *pf){
     _ v = TOP;
     if (is_lcode(v, EX)) {
 
@@ -519,7 +519,7 @@ void pf_map_next(pf *pf) {
     PUSH_P(_px_link(pf, code));
     _RUN();
 }
-// ( lst code -- ) 
+// ( lst code -- )
 void pf_map(pf *pf) {
     _ code = TOP; _TO_K_DATA();
     _ lst  = TOP;
@@ -529,7 +529,7 @@ void pf_map(pf *pf) {
     }
     _TO_K_DATA();
     PUSH_K_DATA(NIL); // result
-        
+
     _px_from_to(pf, &(_CADR(pf->k)), &pf->p);
     PUSH_K_NEXT(pf->ip_map_next);
     PUSH_P(_px_link(pf, code));
@@ -561,7 +561,7 @@ void pf_each(pf *pf) {
         return;
     }
     _TO_K_DATA();
-        
+
     _px_from_to(pf, &(_CAR(pf->k)), &pf->p);
     PUSH_K_NEXT(pf->ip_each_next);
     PUSH_P(_px_link(pf, code));
@@ -597,7 +597,7 @@ void pf_lcompose(pf *pf) {
 
 
 /* Delimited continuations. */
-void pf_prompt_tag(pf *pf) { 
+void pf_prompt_tag(pf *pf) {
 /* This primitive's continuation frame is used as a marker. */
 }
 void pf_reset(pf *pf) {
@@ -619,7 +619,7 @@ static inline pair *_px_kframe(pf *pf, _ ob) {
 
 // FIXME: restarts
 void pf_transfer_upto_prompt(pf *pf) {
-    _ tail = TOP; 
+    _ tail = TOP;
     if (!is_lcode(tail, EX)) TYPE_ERROR(tail);
     /* Move cells from pk->k to k upto the prompt tag. */
     _ *pk = &(_CAR(pf->p));
@@ -661,7 +661,7 @@ void pf_call_with_cc(pf *pf) {
 }
 
 void pf_bang_lunrun_and_compose(pf *pf) {
-    _ k = TOP;  
+    _ k = TOP;
     if (!(is_lcode(k, EX))) {
         TYPE_ERROR(k);
     }
@@ -726,10 +726,10 @@ static void _px_mark_roots(pf *pf, gc_finalize fin) {
     MARK(ip_repl);
     MARK(ip_nop);
     MARK(dict);
-    if (fin) { 
-        fin(GC); 
+    if (fin) {
+        fin(GC);
         _GC_STAT();
-        _ex_restart(EX); 
+        _ex_restart(EX);
     }
     else return;  // we're in gc_grow() -> return
 }
@@ -777,19 +777,19 @@ pf* _px_new(int argc, char **argv) {
     pf *pf = calloc(1, sizeof(*pf));
 
     // Garbage collector.
-    pf->m.gc = 
-        gc_new(10000, pf, 
+    pf->m.gc =
+        gc_new(10000, pf,
                (gc_mark_roots)_px_mark_roots,
                (gc_overflow)_ex_overflow);
-    
+
     // Leaf types.
     // pf->m.p = malloc(sizeof(*(pf->m.p)));
     // TYPES->ck_type = ck_type();
     // TYPES->symbol_type = symbol_type();
     // TYPES->port_type = port_type();
     // TYPES->bytes_type = bytes_type();
-    // TYPES->prim_type = (void*)0xF001; 
-    // TYPES->rc_type = (void*)0xF002; 
+    // TYPES->prim_type = (void*)0xF001;
+    // TYPES->rc_type = (void*)0xF002;
 
     // Read/Write delegate
     pf->m.write = (ex_m_write)px_write;
@@ -798,7 +798,7 @@ pf* _px_new(int argc, char **argv) {
     pf->m.leaf_to_object = (_ex_m_leaf_to_object)_px_make_rc;
     pf->m.object_to_leaf = (_ex_m_object_to_leaf)_px_object_to_leaf;
     pf->m.object_ref_struct = (_ex_m_object_ref_struct)object_rc_struct;
-    
+
 
     // Symbol cache
     pf->s_underflow = SYMBOL("underflow");
@@ -818,10 +818,10 @@ pf* _px_new(int argc, char **argv) {
 
     // Bootstrap repl and abort code.
     _px_def_all_prims(pf);
-    _ rep = 
+    _ rep =
         SEQ(QUOTE(LIN(_px_make_string(pf, "> "))),
             SEQ(WORD("display"),
-                SEQ(WORD("read"), 
+                SEQ(WORD("read"),
                     WORD("interpret"))));
     _ repl = MAKE_LOOP(rep);
 

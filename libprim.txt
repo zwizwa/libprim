@@ -11420,4 +11420,43 @@ To integrate libprim, zl, pdp, pf, do the following:
 
 
 Next step?  Get PF up.
+Goal: get video in, do some minimal processing, and send it out over the network.
+
+
+Entry: PF revisited
+Date: Sat Oct 31 12:02:11 EDT 2015
+
+PF uses both nonlinear and linear memory.
+Code is stored in nonlinear memory.
+Data should reause linear memory.
+
+The missing part is a bridge between:
+- MIMO dataflow primitives
+- buffer allocation and reuse
+
+Assuming the multiple-dispatch is handled elsewhere, the main problem
+is per type buffer allocation and reuse.
+
+In an application, there are ususually not a lot of "packet" types
+involved, so it might be good to make a registry.
+
+The magic happens in _px_unlink()
+
+Currently, it supports rc objects.  What is needed, is to extend rc,
+or make a similar class that performs malloc-like reuse.
+
+That's it.
+
+
+Entry: Data buffers
+Date: Sat Oct 31 12:58:41 EDT 2015
+
+Incongruency:
+_leaf_object has _rc field
+rc has rc field
+
+what happened?
+
+seems that pf got out of sync.
+let's remove rc.h
 
