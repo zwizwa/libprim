@@ -19,6 +19,7 @@ static int ck_write(ck *x, port *p) {
 static ck_class *ck_class_new(void) {
     ck_class *x  = malloc(sizeof(*x));
     leaf_class_init((leaf_class*)x,
+                    "ck",
                     (leaf_free_m)ck_free,
                     (leaf_write_m)ck_write);
     x->base      = NULL; /* filled in on first invoke */

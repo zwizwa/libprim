@@ -187,14 +187,8 @@ _ _px_link(pf *pf, _ ob) {
     }
 }
 /* Whenever data is exported to the GC-managed side (graph memory or
-   outer memory), CONS cells are copied and RC structs are wrapped.
-   This performs a _copy_ instead of a an in-place move, which
-   would interact badly with GC aborts due to mutation.
-
-   There are 2 kinds of data structures hold linear values: a mutable
-   box, and an immutable value.  BOX values are treated as graph
-   values (constants), while LIN values are always unpacked into
-   linear memory. */
+   outer memory), CONS cells are copied and ref counts are
+   incremented. */
 static void _gc_unlink(_ ob, pf *pf) { _px_unlink(pf, ob); }
 static void *unlink_fin = _gc_unlink;
 _ px_box(pf *pf, _ ob) {

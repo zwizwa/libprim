@@ -14,7 +14,7 @@ static void prim_free(prim *s) {
 static prim_class *type = NULL;
 static prim_class *prim_class_new(void) {
     prim_class *p = calloc(1, sizeof(*p));
-    leaf_class_init((leaf_class*)p, (leaf_free_m)prim_free, (leaf_write_m)prim_write);
+    leaf_class_init((leaf_class*)p, "prim", (leaf_free_m)prim_free, (leaf_write_m)prim_write);
     return p;
 }
 leaf_class *prim_type(void) {

@@ -10,6 +10,7 @@ void leaf_free(leaf_object *x) {
     if (x) {
         int rc = leaf_rc(x);
         if (rc == 1) {
+            //printf("_free(%p,%s)\n", x, x->__type->name);
             leaf_type(x)->_free(x);
         }
         else if (rc > 1) {

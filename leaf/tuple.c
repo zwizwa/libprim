@@ -35,7 +35,7 @@ static tuple_class *type = NULL;
 leaf_class *tuple_type(void) {
     if (!type) {
         type = calloc(1, sizeof(*type));
-        leaf_class_init((leaf_class*)type, (leaf_free_m)tuple_free, (leaf_write_m)tuple_write);
+        leaf_class_init((leaf_class*)type, "tuple", (leaf_free_m)tuple_free, (leaf_write_m)tuple_write);
     }
     return (leaf_class*)type;
 }

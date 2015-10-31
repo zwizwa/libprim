@@ -20,7 +20,7 @@ codec_class *codec_type(void) {
     static codec_class *x = NULL;
     if (!x) {
         codec_class *x = calloc(1, sizeof(*x)); 
-        leaf_class_init((leaf_class*)x, (leaf_free_m)free, (leaf_write_m)codec_write);
+        leaf_class_init((leaf_class*)x, "codec", (leaf_free_m)free, (leaf_write_m)codec_write);
     }
     return x; 
 }
@@ -48,6 +48,7 @@ codec_context_class *codec_context_type(void) {
     if (!x) {
         x = calloc(1, sizeof(*x));
         leaf_class_init((leaf_class*)x,
+                        "codec_context",
                         (leaf_free_m)codec_context_free,
                         (leaf_write_m)codec_context_write);
     }
@@ -97,6 +98,7 @@ vframe_class *vframe_type(void) {
     if (!x) {
         x = calloc(1, sizeof(*x)); 
         leaf_class_init((leaf_class*)x,
+                        "vframe",
                         (leaf_free_m)vframe_free,
                         (leaf_write_m)vframe_write);
     }
@@ -137,6 +139,7 @@ aframe_class *aframe_type(void) {
     if (!x) {
         x = calloc(1, sizeof(*x)); 
         leaf_class_init((leaf_class*)x,
+                        "aframe",
                         (leaf_free_m)aframe_free,
                         (leaf_write_m)aframe_write);
     }

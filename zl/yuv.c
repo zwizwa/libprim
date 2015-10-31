@@ -20,6 +20,7 @@ yuv_class *yuv_type(void) {
     if (!x) {
         x = calloc(1, sizeof(*x));
         leaf_class_init((leaf_class*)x,
+                        "yuv",
                         (leaf_free_m)yuv_free,
                         (leaf_write_m)yuv_write);
         x->super.dump  = (leaf_write_m)yuv_dump;

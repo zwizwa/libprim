@@ -50,16 +50,20 @@ struct _leaf_class {
 
     /* Dump raw data without metadata. */
     leaf_write_m dump;
+
+    /* For debugging */
+    const char *name;
 };
 
 /* FIXME: make class access abstract also. */
 static inline void
 leaf_class_init(leaf_class *t,
+                const char *name,
                 leaf_free_m free,
                 leaf_write_m write) {
     t->_free = free;
     t->_write = write;
-
+    t->name = name;
     t->dump = NULL;
 }
 
@@ -111,6 +115,7 @@ int leaf_write(leaf_object *x, port *p);
     if (!x) {\
     x = calloc(1, sizeof(*x)); \
     leaf_class_init((leaf_class*)x, \
+                    #name, \
                     (leaf_free_m)name##_free, \
                     (leaf_write_m)name##_write);        \
     } return (leaf_class*)x; }

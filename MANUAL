@@ -85,9 +85,9 @@ dataflow primitives, embedded in a memory management stategy that is:
 - local-biased, attempting to reuse most recently used memory to work
   better with LRU-style caches.
 
-PF uses EX CONS lists for code.  I've found it really difficult to
-write a pure linear language, so the approach taken is to have a
-linear core for data processing, and a nonlinear core for any other
-kind of "preprocessing", which essentially takes the step of code
-compilation.
+PF's data operations are linear to allow the kind of fast memory reuse
+menitioned above.  However, it's code core is comprised on non-linear
+memory.
+
+
 

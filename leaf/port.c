@@ -213,7 +213,7 @@ static port_methods *methods_bytes = NULL;
 leaf_class *port_type(void) {
     if (!type) {
         type = calloc(1, sizeof(*type));
-        leaf_class_init((leaf_class*)type, (leaf_free_m)port_free, (leaf_write_m)port_write_info);
+        leaf_class_init((leaf_class*)type, "port", (leaf_free_m)port_free, (leaf_write_m)port_write_info);
 
         methods_file = calloc(1, sizeof(*methods_file));
         port_methods_file_init(methods_file);

@@ -72,6 +72,7 @@ zl_xdisplay_class *zl_xdisplay_type(void) {
     if (!type) {
         type = calloc(1, sizeof(*type));
         leaf_class_init((leaf_class*)type,
+                        "zl_xdisplay",
                         (leaf_free_m)zl_xdisplay_free,
                         (leaf_write_m)zl_xdisplay_write);
     }
@@ -85,6 +86,7 @@ zl_xwindow_class *zl_xwindow_type(void) {
     if (!type) {
         type = calloc(1, sizeof(*type));
         leaf_class_init((leaf_class*)type,
+                        "zl_xwindow",
                         (leaf_free_m)zl_xwindow_free,
                         (leaf_write_m)zl_xwindow_write);
     }

@@ -11536,7 +11536,20 @@ Entry: lin types
 Date: Sat Oct 31 17:05:31 EDT 2015
 
 What are lin wrappers for?
-Find this out later.
+I no longer understand the point of this.
+
+It seems that moving between graph and lin memory is very straightforward:
+- convert cell type
+- adjust ref counts?
+
+Note that the graph memory only needs one RC increment.  Decrement
+happens on GC.
+
+
+
+
+Entry: Prim types: free
+Date: Sat Oct 31 17:52:00 EDT 2015
 
 Main problem at this point is to properly encode values that are not
 supposed to be managed with reference counting:
@@ -11544,5 +11557,7 @@ supposed to be managed with reference counting:
 - primitives
 
 Currently, prim class is set to 0xF001, but the free method is called.
+
+Solved by adding a prim class with a nop for free.
 
 

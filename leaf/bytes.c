@@ -15,7 +15,7 @@ int bytes_dump(bytes *x, port *p) {
 static bytes_class *type = NULL;
 static bytes_class *bytes_class_new(void) {
     bytes_class *x = calloc(1, sizeof(*x));
-    leaf_class_init((leaf_class*)x, (leaf_free_m)_bytes_free, (leaf_write_m)bytes_write_string);
+    leaf_class_init((leaf_class*)x, "bytes", (leaf_free_m)_bytes_free, (leaf_write_m)bytes_write_string);
     x->super.dump  = (leaf_write_m)bytes_dump;
     return x;
 }
