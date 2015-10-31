@@ -67,7 +67,6 @@ void _px_run(pf *pf) {
     inner_loop:
     {
 
-
         /* By default, run each step in LINEAR mode (GC allocation
            switched off).
 
@@ -89,7 +88,10 @@ void _px_run(pf *pf) {
         else {
 
             rs = object_to_lnext(EX, pf->k);
-            if (unlikely(!rs)) goto halt;
+            if (unlikely(!rs)) {
+                printf("!lnext\n");
+                goto halt;
+            }
             _ ip = rs->car;
 
             /* Unpack code sequence, push K. */
@@ -134,11 +136,13 @@ void _px_run(pf *pf) {
                 }
                 /* Result of popping an empty continuation. */
                 else if (HALT == ip) {
+                    printf("HALT == ip\n");
                     DROP_K();  // (*)
                     goto halt;
                 }
                 /* Unknown non-seq. */
                 else {
+                    printf("unknown non-seq\n");
                     /* Because a type different from the cases above
                        _can_ be linear, we postponed the DROP_K()
                        until after ip was determined to be nonliner:
@@ -795,9 +799,9 @@ pf* _px_new(int argc, char **argv) {
     pf->m.write = (ex_m_write)px_write;
     pf->m.port  = (_ex_m_port)_px_port;
     pf->m.make_pair = (ex_m_make_pair)px_linear_cons;
-    pf->m.leaf_to_object = (_ex_m_leaf_to_object)_px_make_rc;
+    pf->m.leaf_to_object = (_ex_m_leaf_to_object)_px_leaf_to_object;
     pf->m.object_to_leaf = (_ex_m_object_to_leaf)_px_object_to_leaf;
-    pf->m.object_ref_struct = (_ex_m_object_ref_struct)object_rc_struct;
+    pf->m.object_ref_struct = (_ex_m_object_ref_struct)_px_ref_struct;
 
 
     // Symbol cache

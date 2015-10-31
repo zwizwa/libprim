@@ -3,7 +3,7 @@
    memory) use primitives from this expression language EX, which is
    essentially C with dynamic type checking and GC.
 
-   Note that these only work inside 
+   Note that these only work inside
      - setjump(ex->top) for GC restarts
      - setjump(ex->r.step) for primitive exceptions.
 */
@@ -95,31 +95,31 @@ object _ex_write(ex *ex, object o) {
     if ((v = object_to_vector(ex, o))) {
         object_to is_obj;
         long flags = object_get_vector_flags(o);
-        if (TAG_VECTOR == flags) { 
+        if (TAG_VECTOR == flags) {
             return _ex_write_vector(ex, NULL, v);
         }
 
         // FIXME: handle one type consed to another!
-        if ((TAG_PAIR  == flags) || 
+        if ((TAG_PAIR  == flags) ||
             (TAG_LPAIR == flags) ||
             (TAG_LDATA == flags) ||
             (TAG_LNEXT == flags)) {
             char *LP,*RP;
             if ((TAG_PAIR == flags)) {
-                LP="("; RP=")"; 
-                is_obj = (object_to)object_to_pair; 
+                LP="("; RP=")";
+                is_obj = (object_to)object_to_pair;
             }
             else if ((TAG_LPAIR == flags)) {
-                LP="{"; RP="}"; 
-                is_obj = (object_to)object_to_lpair; 
+                LP="{"; RP="}";
+                is_obj = (object_to)object_to_lpair;
             }
             else {
-                LP="<"; RP=">"; 
-                is_obj = (object_to)object_to_lk; 
+                LP="<"; RP=">";
+                is_obj = (object_to)object_to_lk;
             }
             port_printf(p, LP);
             for(;;) {
-                
+
                 _ex_prefix_k(ex, o);
                 ex->write(ex, _CAR(o));
                 o = _CDR(o);
@@ -168,13 +168,6 @@ object _ex_write(ex *ex, object o) {
         port_printf(p, "#<prim:%p:%ld>", (void*)(pr->fn),pr->nargs);
         return VOID;
     }
-    if ((x = object_struct(ex, o, rc_type()))) {
-        rc *r = (rc*)x;
-        port_printf(p, "#<rc:");
-        ex->write(ex, const_to_object(r->ctx));  // foefelare
-        port_printf(p, ":%d>", (int)(r->rc));
-        return VOID;
-    }
     if ((x = object_to_fin(ex, o))) {
         port_printf(p, "#fin");
         // port_printf(p, "#<fin:%p:%p>", x, *((void**)x)); // do we care?
@@ -192,7 +185,7 @@ _ _ex_printf(ex *ex, const char *fmt, ...) {
     port *p = ex->port(ex);
     if (p) {
         va_list ap; va_start(ap, fmt);
-        // rv = 
+        // rv =
         port_vprintf(p, fmt, ap);
         va_end(ap);
     }
@@ -227,7 +220,7 @@ _ ex_gensym(ex *ex) {
 }
 
 long _ex_unwrap_integer(ex *ex, object o) {
-    if ((FALSE == ex_is_integer(ex, o))) 
+    if ((FALSE == ex_is_integer(ex, o)))
         return ex_raise_type_error(ex, o);
     return object_to_integer(ex, o);
 }
@@ -240,14 +233,14 @@ void _ex_overflow(ex *ex, long extra) {
     GC_DEBUG { _ex_printf(ex, ";; gc-overflow %ld:%ld\n", extra, request); }
     gc_grow(ex->gc, request);
     _ex_restart(ex);
-}   
+}
 
 /* Primitive map to make some primitives easier.  In these functions
    ex_list_clone() will enable restarts before any primitive code is
    executed, making it safe for it to have side effect if allocation
    is bounded. */
 _ _ex_map1_prim(ex *ex, ex_1 fn, _ l_in) {
-    _ res = ex_list_clone(ex, l_in);  
+    _ res = ex_list_clone(ex, l_in);
     _ l_out = res;
     pair *in, *out;
     for(;;) {
@@ -260,7 +253,7 @@ _ _ex_map1_prim(ex *ex, ex_1 fn, _ l_in) {
     }
 }
 _ _ex_map2_prim(ex *ex, ex_2 fn, _ l_in1, _ l_in2) {
-    _ res = ex_list_clone(ex, l_in1); 
+    _ res = ex_list_clone(ex, l_in1);
     _ l_out = res;
     pair *in1, *in2, *out;
     for(;;) {
@@ -320,7 +313,7 @@ _ ex_is_inexact(ex *ex, _ o) {
 #define OBJECT_PREDICATE(cast) \
     {if (cast(ex, o)) return TRUE; else return FALSE;}
 
-_ ex_is_symbol(ex *ex, _ o) { 
+_ ex_is_symbol(ex *ex, _ o) {
     if ((object_to_symbol(ex, o)) ||
         (object_to_gensym(ex, o))) return TRUE; else return FALSE;
 }
@@ -416,7 +409,7 @@ _ _ex_make_bytes_port(ex *ex, bytes *b) {
 }
 _ ex_port_name(ex *ex, _ ob) {
     port *p = CAST(port, ob);
-    return _ex_make_string(ex, p->name); 
+    return _ex_make_string(ex, p->name);
 }
 _ ex_delete_file(ex *ex, _ ob) {
     return (-1 == remove(CAST(cstring, ob))) ? FALSE : TRUE;
@@ -490,7 +483,7 @@ double object_to_double(ex *ex, _ ob) {
 
 _ _ex_binop(ex *ex, _ a, _ b, enum binop_tag op) {
     int zb = 0;
-    int is_int_a = IS_INT(a); 
+    int is_int_a = IS_INT(a);
     int is_int_b = IS_INT(b);
     if (is_int_a && is_int_b) {
         int ia = object_to_integer(ex, a);
@@ -517,7 +510,7 @@ _ ex_mul(ex *ex, _ a, _ b) { return _ex_binop(ex, a, b, MUL); }
 /* This isn't completely standard since there are no rationals, but I
    prefer to get a consistent return type based on input types (as
    opposed to input values). */
-_ ex_div(ex *ex, _ a, _ b) { 
+_ ex_div(ex *ex, _ a, _ b) {
     double rv = object_to_double(ex, a) / object_to_double(ex, b);
     return _ex_leaf_to_object(ex, (leaf_object*)inexact_new(rv));
 }
@@ -542,7 +535,7 @@ enum unop_tag {SIN,COS,TAN, ASIN,ACOS,ATAN, EXP,LOG, SQRT};
 _ _ex_unop(ex *ex, _ a, enum unop_tag op) {
     inexact *inexact_a = object_to_inexact(ex, a);
     double da = inexact_a ? inexact_a->value :
-               (IS_INT(a) ? (double)(object_to_integer(ex, a)) : 
+               (IS_INT(a) ? (double)(object_to_integer(ex, a)) :
                 ERROR("type", a));
     double dz = 0;
     switch (op) {
@@ -557,7 +550,7 @@ _ _ex_unop(ex *ex, _ a, enum unop_tag op) {
     case EXP: dz = exp(da); break;
     case LOG: dz = log(da); break;
     case SQRT: dz = sqrt(da); break;
-    default: ERROR("unop", integer_to_object(op)); 
+    default: ERROR("unop", integer_to_object(op));
     }
     return _ex_leaf_to_object(ex, (leaf_object*)(inexact_new(dz)));
 }
@@ -586,8 +579,8 @@ _ ex_bytes_vector_append(ex *ex, _ ob) {
     vector *v = CAST(vector, ob);
     int len = vector_size(v), total = 0, i;
     bytes *b[len];
-    for (i=0; i<len; i++) { 
-        b[i] = CAST(bytes, v->slot[i]); 
+    for (i=0; i<len; i++) {
+        b[i] = CAST(bytes, v->slot[i]);
         total += b[i]->size;
     }
     bytes *out = bytes_buffer_new(1+total);
@@ -886,8 +879,8 @@ static void _ex_print_stack(ex *ex, _ ob, int n) {
         ex->write(ex, _CAR(ob));
     }
 }
-_ ex_post_stack(ex *ex, _ ob) { 
-    _ex_print_stack(ex, ob, 0); 
+_ ex_post_stack(ex *ex, _ ob) {
+    _ex_print_stack(ex, ob, 0);
     _ex_printf(ex, "\n");
     return VOID;
 }
@@ -897,7 +890,7 @@ _ ex_post_stack(ex *ex, _ ob) {
 /* ERRORS */
 
 _ ex_trap(ex *ex) {
-#ifdef POSIX    
+#ifdef POSIX
     kill(getpid(), SIGTRAP);
 #endif
     return VOID;
@@ -967,6 +960,3 @@ _ _ex_boot_string(ex *ex,  struct ex_bootinfo *boot) {
     port *bootport = port_bytes_new(bytes_const_new(boot->source, boot->size));
     return _ex_boot_port(ex, bootport);
 }
-
-
-

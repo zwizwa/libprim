@@ -5,7 +5,7 @@
 
 /* primitive function wrapper */
 typedef struct {
-    // void *free;
+    //void *free;
 } prim_class;
 typedef struct {
     LEAF_OBJECT(base); // FIXME: implement leaf object api
@@ -17,14 +17,11 @@ typedef struct {
     object var;
 } prim;
 
-/* FIXME: turn this into a proper class object. */
-static inline leaf_class* prim_type(void) {
-    return (leaf_class*)0xF001; // dummy class
-}
 
 static inline long prim_nargs(prim *p){ return p->nargs; }
 static inline void *prim_fn(prim *p)  { return p->fn; }
 
+leaf_class* prim_type(void);
 
 
 #endif

@@ -11460,3 +11460,89 @@ what happened?
 seems that pf got out of sync.
 let's remove rc.h
 
+
+
+Entry: bug
+Date: Sat Oct 31 16:22:27 EDT 2015
+
+old:
+
+tom@pt:~/libprim/build$ pf/pf.elf
+<,['{{i . {compile . {run}}} . {{compose . {{>lcode} . {dip . {>lcode . {lcompose}}}}} . {{pa . {{abstract} . {dip . {>lcode . {lcompose}}}}} . {{see . {find \
+. {post}}} . {{unrun! . {{quote . {()}} . {lunrun-and-compose!}}} . {{prompt . {reset}} . {{compile . {>nl . {nl-compile}}} . {{+ . {add}} . {{list->stream . \
+{{{{cons} . {shift}} . {each . {{quote . {()}}}}} . {reset}}}}}}}}}}}} definitions '"libprim/PF" display cr repl]>
+<,['{{i . {compile . {run}}} . {{compose . {{>lcode} . {dip . {>lcode . {lcompose}}}}} . {{pa . {{abstract} . {dip . {>lcode . {lcompose}}}}} . {{see . {find \
+. {post}}} . {{unrun! . {{quote . {()}} . {lunrun-and-compose!}}} . {{prompt . {reset}} . {{compile . {>nl . {nl-compile}}} . {{+ . {add}} . {{list->stream . \
+{{{{cons} . {shift}} . {each . {{quote . {()}}}}} . {reset}}}}}}}}}}}}] . <,[definitions '"libprim/PF" display cr repl]>>
+<,[definitions '"libprim/PF" display cr repl]>
+<,[>nl nl-definitions] . <,['"libprim/PF" display cr repl]>>
+<,[>nl] . <,[nl-definitions] . <,['"libprim/PF" display cr repl]>>>
+<,[nl-definitions] . <,['"libprim/PF" display cr repl]>>
+<,['"libprim/PF" display cr repl]>
+<,['"libprim/PF"] . <,[display cr repl]>>
+<,[display cr repl]>
+<,[display] . <,[cr repl]>>
+libprim/PF<,[cr repl]>
+<,[cr] . <,[rep repl]>>
+
+<,[rep repl]>
+<,['"> " display read interpret] . <,[rep repl]>>
+<,['"> "] . <,[display read interpret] . <,[rep repl]>>>
+<,[display read interpret] . <,[rep repl]>>
+<,[display] . <,[read interpret] . <,[rep repl]>>>
+> <,[read interpret] . <,[rep repl]>>
+<,[read] . <,[interpret] . <,[rep repl]>>>
+
+
+new:
+
+tom@tp:~/libprim/build/pf$ ./pf.elf 
+<,[['quote [['i 'compile 'run] ['compose ['>lcode] 'dip '>lcode 'lcompose] ['pa ['abstract] 'dip '>lcode 'lcompose] ['see 'find 'post] ['unrun! ['quote [nop]] 'lunrun-and-compose!] ['prompt 'reset] ['compile '>nl 'nl-compile] ['+ 'add] ['list->stream [[['cons] 'shift] 'each ['quote [nop]]] 'reset]]] 'definitions '"libprim/PF" 'display 'cr 'repl]>
+<,[['quote [['i 'compile 'run] ['compose ['>lcode] 'dip '>lcode 'lcompose] ['pa ['abstract] 'dip '>lcode 'lcompose] ['see 'find 'post] ['unrun! ['quote [nop]] 'lunrun-and-compose!] ['prompt 'reset] ['compile '>nl 'nl-compile] ['+ 'add] ['list->stream [[['cons] 'shift] 'each ['quote [nop]]] 'reset]]]] . <,['definitions '"libprim/PF" 'display 'cr 'repl]>>
+<,['definitions '"libprim/PF" 'display 'cr 'repl]>
+<,['definitions] . <,['"libprim/PF" 'display 'cr 'repl]>>
+<,['"libprim/PF" 'display 'cr 'repl]>
+<,['"libprim/PF"] . <,['display 'cr 'repl]>>
+<,['display 'cr 'repl]>
+<,['display] . <,['cr 'repl]>>
+<,['cr 'repl]>
+<,['cr] . <,['repl]>>
+<,['repl]>
+()
+!lnext
+()
+!lnext
+tom@tp:~/libprim/build/pf$ 
+
+
+new:
+px_compile_program: ((#<lin:#fin quote> . (((#<lin:#fin i> . 
+
+old:
+px_compile_program: ((quote . (((i . (compile . (run)))
+
+
+
+So there's something wrong with the lin/fin thing...
+I don't understand it at this point, so let's see where it breaks.
+
+Maybe these "lin" boxes are no longer necessary? Look into this.
+
+The problem causing the current bug is that symbols are now handled as
+RC boxes.
+
+
+Entry: lin types
+Date: Sat Oct 31 17:05:31 EDT 2015
+
+What are lin wrappers for?
+Find this out later.
+
+Main problem at this point is to properly encode values that are not
+supposed to be managed with reference counting:
+- symbols
+- primitives
+
+Currently, prim class is set to 0xF001, but the free method is called.
+
+

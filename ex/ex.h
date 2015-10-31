@@ -14,7 +14,7 @@
 #include <leaf/port.h>
 #include <leaf/bytes.h>
 #include <leaf/prim.h>
-#include <leaf/rc.h>
+//#include <leaf/rc.h>
 #include <leaf/inexact.h>
 #include <leaf/error.h>
 #include <leaf/task.h>
@@ -47,7 +47,7 @@ struct _ex {
     void *ctx;           // any other user context associated with VM (i.e. JNIEnv)
 
     mutex_t machine_lock; // unlock machine struct during select() call
-    
+
     long stateful_context; // if set, GC restarts are illegal
     int fatal;             // if set, all errors are fatal (i.e. during boot)
 
@@ -143,10 +143,10 @@ void _ex_overflow(ex *ex, long extra);
 // _ ex_is_pair(ex *ex, _ o);
 static inline void _ex_length_rest(ex *ex, _ lst, _ *length, _ *rest) {
     long nb = 0;
-    while (object_to_lpair(ex, lst) || 
-           object_to_pair(ex, lst)) { 
+    while (object_to_lpair(ex, lst) ||
+           object_to_pair(ex, lst)) {
         nb++;
-        lst = _CDR(lst); 
+        lst = _CDR(lst);
     }
     *rest = lst;
     *length = integer_to_object(nb);
@@ -259,4 +259,3 @@ typedef struct {
 
 
 #endif
-

@@ -1,7 +1,8 @@
 ;; -*- scheme -*- 
 ;; Bootstrap using s-expression syntax.
 
-( '((i        . (compile run))
+(
+  '((i        . (compile run))
     (compose  . ((>lcode) dip >lcode lcompose))
     (pa       . ((abstract) dip >lcode lcompose))
     (see      . (find post))

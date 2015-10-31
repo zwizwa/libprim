@@ -21,7 +21,7 @@
 /* Base objects have a 2-bit tag. */
 #define GC_TAG_SHIFT 2
 static inline long GC_TAG(long x) { return x&((1<<GC_TAG_SHIFT)-1); }
-static inline void* GC_POINTER(long x) { 
+static inline void* GC_POINTER(long x) {
     long mask = -1;
     mask <<= GC_TAG_SHIFT;
     return (void*)(x&mask);
@@ -34,7 +34,7 @@ static inline void* GC_POINTER(long x) {
 
 /* The vector is the basis of the (transparent) object
    representation. */
-typedef unsigned long object;   
+typedef unsigned long object;
 typedef object _; // this alias reduces noise a lot.
 typedef long integer;
 typedef void (*fin)(object, void *gc_ctx);
@@ -76,7 +76,7 @@ static inline unsigned long VECTOR_TAG(unsigned long x) {
 
 /* List polymorphy is handled using tag ranges.
 
-   List structures (read-only polymorphy): 8-15 
+   List structures (read-only polymorphy): 8-15
    Linear list structures: 12-15 */
 
 #define TAG_PAIR      VECTOR_TAG(8)   /* The CONS cell. */
@@ -173,8 +173,8 @@ static inline long object_to_integer(void* dummy, object o) {
 }
 
 /* Vector size field has room for additional tag bits. */
-static inline long object_to_vector_size(void* dummy, object o) { 
-    return object_to_integer(NULL, o & GC_VECTOR_TAG_MASK); 
+static inline long object_to_vector_size(void* dummy, object o) {
+    return object_to_integer(NULL, o & GC_VECTOR_TAG_MASK);
 }
 
 

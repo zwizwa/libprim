@@ -5,6 +5,9 @@
 #include <leaf/symbol.h>
 #include <leaf/port.h>
 
+#define unlikely(x) __builtin_expect((long)(x),0)
+#define likely(x) __builtin_expect((long)(x),1)
+
 static int symbol_write(symbol *s, port *p) {
     return port_printf(p, "%s", s->name);
 }
@@ -22,7 +25,7 @@ static symbol_class *symbol_class_new(int total) {
     return s;
 }
 symbol_class *symbol_type(void) {
-    if (!type) type = symbol_class_new(1000);
+    if (unlikely(!type)) type = symbol_class_new(1000);
     return type;
 }
 

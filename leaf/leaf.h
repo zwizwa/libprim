@@ -1,6 +1,6 @@
 /* libprim leaf object model
 
-The libprim project is structured mainly in two parts: 
+The libprim project is structured mainly in two parts:
 
 * a collection of basic objects implemented in C, on top of a minimal
   interface to promote reuse without introducing many dependencies
@@ -68,7 +68,7 @@ leaf_class_init(leaf_class *t,
    have an RC, as it is not used in GCd languages.
 
    The answer is yes for the following reasons:
-   
+
      - explicitly wrapping objects in an RC struct is cumbersome
 
      - linearity (RC always == 1) is too great a constraint on

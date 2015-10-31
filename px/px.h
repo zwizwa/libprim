@@ -4,6 +4,14 @@
 #include <pf/pf.g.h>
 #include <px/px.g.h>
 
+
+#define POST_TAG(msg, ob)                       \
+    if(1) {                                     \
+        _ex_printf(EX, "%s: ", msg);            \
+        POST(ob);                               \
+    }
+
+
 static inline void _exch(_*a, _*b) {
     _ tmp = *a;
     *a = *b;
@@ -11,9 +19,9 @@ static inline void _exch(_*a, _*b) {
 }
 
 _ static inline _move(_ *ob, _ filler) {
-    _ o = *ob; 
-    *ob = filler; 
-    return o; 
+    _ o = *ob;
+    *ob = filler;
+    return o;
 }
 #define EXCH(a,b) _exch(&a, &b)
 #define MOVE(from,filler) _move(&from,filler)
@@ -62,25 +70,10 @@ static inline void _px_need_free(pf *pf) {
     }
 }
 
-
-/* Constant types are embedded in GC_CONST pointers, and can be
-   identified by their first field (void*). */
-DEF_ATOM(rc)
-static inline void *object_rc_struct(ex *ex, object ob, void *type) {
-    rc *x = object_to_rc(ex, ob);
-    if (!x) return NULL;
-    void *x_type = *((void**)x->ctx);
-    if (x_type != type) return NULL;
-    return x->ctx;
-}
-
-leaf_object *_px_object_to_leaf(pf *pf, _ ob);
-object _px_make_rc(pf *pf, leaf_object *x);
-
-/* RC types are const types wrapped in a RC struct. */
-#define DEF_RC_TYPE(name)                                              \
-    name *object_to_##name(object ob) {                                \
-        return (name*)object_rc_struct(ob,name##_type()); }
+// Don't perform any wrapping.
+object _px_leaf_to_object(pf *pf, leaf_object *l);
+leaf_object* _px_object_to_leaf(pf *pf, object ob);
+void* _px_ref_struct(pf *pf, object ob, void *type);
 
 port *_px_port(pf *pf);
 _ _px_make_port(pf *pf, FILE *f, const char *name);

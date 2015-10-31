@@ -5,7 +5,7 @@
    The code in this file is partitioned in two classes:
 
    px_   non-linear expression primitives
-   _px_  misc functions (not respecting px_ nor pf_ API) 
+   _px_  misc functions (not respecting px_ nor pf_ API)
 
    Note that the px_ functions are *NOT LINEAR*.  They respect the API
    of the EX language: a mostly functional dynamically typed
@@ -64,33 +64,31 @@ _ px_error_underflow(pf *pf) {
     return px_abort(pf, pf->s_underflow, VOID);
 }
 
-_ _px_make_rc(pf *pf, leaf_object *ob) {
-    rc *rc = malloc(sizeof(*rc));
-    leaf_init(&rc->base, rc_type());
-    rc->free = (rc_free)leaf_free;
-    rc->ctx = ob;
-    rc->rc = 1;
-    return const_to_object(rc);
+_ _px_leaf_to_object(pf *pf, leaf_object *l) {
+    return const_to_object(l);
 }
-leaf_object *_px_object_to_leaf(pf *pf, object ob) {
-    rc *x = object_to_rc(EX, ob);
-    if (!x) return NULL;
-    return x->ctx;
+leaf_object* _px_object_to_leaf(pf *pf, object ob) {
+    return object_to_const(NULL, ob);
 }
+void* _px_ref_struct(pf *pf, object ob, void *type) {
+    return _px_object_to_leaf(pf, ob);
+}
+
+
 _ _px_make_port(pf *pf, FILE *f, const char *name) {
-    return _px_make_rc(pf, (leaf_object*)port_file_new(stdout, name));
+    return _px_leaf_to_object(pf, (leaf_object*)port_file_new(stdout, name));
 }
 _ _px_make_string(pf *pf, const char *name) {
-    return _px_make_rc(pf, (leaf_object*)bytes_from_cstring(name));
+    return _px_leaf_to_object(pf, (leaf_object*)bytes_from_cstring(name));
 }
 _ _px_make_qstring(pf *pf, const char *name) {
-    return _px_make_rc(pf, (leaf_object*)bytes_from_qcstring(name));
+    return _px_leaf_to_object(pf, (leaf_object*)bytes_from_qcstring(name));
 }
 _ _px_make_symbol(pf *pf, const char *str){
     return const_to_object(symbol_from_cstring(str));
 }
 
-_ px_display(pf *pf, _ ob) { 
+_ px_display(pf *pf, _ ob) {
     bytes *b = CAST(bytes, ob);
     port_write(_px_port(pf), b->bytes, strlen(b->bytes));
     return VOID;
@@ -149,37 +147,30 @@ static _ _px_unlink_pop(pf *pf, _ lst) {
     _px_to_free(pf, &lst);
     return lst;
 }
-static void _rc_unlink(rc *x) {
-    if (!(x->rc--)) {
-        x->free(x->ctx);
-        free(x);
-    }
-}
 void _px_unlink(pf* pf, _ ob) {
-    rc *x;
   again:
-    /* RC objects: dec RC and possibly free */
-    if ((x = object_to_rc(EX, ob))) {
-        _rc_unlink(x);
-    }
     /* Lists: recurse. */
-    else if (object_to_lpair(EX, ob) ||
-             object_to_ldata(EX, ob) ||
-             object_to_lnext(EX, ob)) {
+    if (object_to_lpair(EX, ob) ||
+        object_to_ldata(EX, ob) ||
+        object_to_lnext(EX, ob)) {
         ob = _px_unlink_pop(pf, ob);
         goto again;
+    }
+    else {
+        leaf_object *l = _px_object_to_leaf(pf, ob);
+        if (l) leaf_free(l);
     }
 }
 /* Link will RC++ objects and recursively copy pair structures, using
    pairs from the freelist.. */
 _ _px_link(pf *pf, _ ob) {
-    rc *x = object_to_rc(EX, ob);
-    pair *p;
-    if (x) { 
-        x->rc++;
+    leaf_object *l = _px_object_to_leaf(pf, ob);
+    if (l) {
+        leaf_dup(l);
         return ob;
     }
-    else if ((p = object_to_lpair(EX, ob))) {
+    pair *p;
+    if ((p = object_to_lpair(EX, ob))) {
         return LINEAR_CONS(_px_link(pf, p->car),
                            _px_link(pf, p->cdr));
     }
@@ -191,7 +182,9 @@ _ _px_link(pf *pf, _ ob) {
         return LINEAR_DATA(_px_link(pf, p->car),
                            _px_link(pf, p->cdr));
     }
-    else return ob;
+    else {
+        return ob;
+    }
 }
 /* Whenever data is exported to the GC-managed side (graph memory or
    outer memory), CONS cells are copied and RC structs are wrapped.
@@ -205,20 +198,27 @@ _ _px_link(pf *pf, _ ob) {
 static void _gc_unlink(_ ob, pf *pf) { _px_unlink(pf, ob); }
 static void *unlink_fin = _gc_unlink;
 _ px_box(pf *pf, _ ob) {
-    return gc_make_tagged(GC, TAG_BOX, 2, 
+    return gc_make_tagged(GC, TAG_BOX, 2,
                           fin_to_object((void*)(&unlink_fin)), ob);
 }
 _ px_lin(pf *pf, _ ob) {
-    return gc_make_tagged(GC, TAG_LIN, 2, 
+    return gc_make_tagged(GC, TAG_LIN, 2,
                           fin_to_object((void*)(&unlink_fin)), ob);
 }
 _ px_copy_to_graph(pf *pf, _ ob) {
-    rc *x;
     pair *p;
-    /* Wrap all RC objects in a LIN struct */
-    if ((x = object_to_rc(EX, ob))) {
-        x->rc++;
-        return LIN(ob);
+    leaf_object *l;
+
+    if ((l = _px_object_to_leaf(pf, ob))) {
+        leaf_dup(l);
+        /* These leaf objects are special, treated as constants. */
+        if (object_to_symbol(pf, ob)) {
+            return ob;
+        }
+        /* Wrap all other objects in a LIN struct. */
+        else {
+            return LIN(ob);
+        }
     }
     /* Recursively copy the tree. */
     else if ((p = object_to_lpair(EX, ob))) {
@@ -239,7 +239,7 @@ _ px_copy_from_graph(pf *pf, _ ob) {
     pair *p;
     lin *l;
     /* Unwrap LIN objects. */
-    if ((l = object_to_lin(EX, ob))) { 
+    if ((l = object_to_lin(EX, ob))) {
         return _px_link(pf, l->object);
     }
     /* Recursive copy. */
@@ -253,7 +253,7 @@ _ px_copy_from_graph(pf *pf, _ ob) {
 
 
 
-/* EXPRESSIONS 
+/* EXPRESSIONS
 
    It's simpler to factor out primitives as N -> 1 expressions, and
    then couple them (automatically?) to the parameter stack.  This
@@ -338,12 +338,12 @@ _ px_write(pf *pf, _ ob) {
             _ sym = UNFIND(pf->dict, ob);
             if (FALSE != sym) {
                 px_write(pf, sym);
-                return _ex_printf(EX, CR); 
+                return _ex_printf(EX, CR);
             }
             /* Prevent loops from generating too much output. */
             if (!(--max)) {
-                _ex_printf(EX, "..."); 
-                return _ex_printf(EX, CR); 
+                _ex_printf(EX, "...");
+                return _ex_printf(EX, CR);
             }
         }
     }
@@ -395,7 +395,7 @@ _ px_compile_defs(pf *pf, _ E_top, _ defs) {
     _ penv  = E_local;
     _ pdefs = defs;
     /* Translate to code graph. */
-    while (NIL != penv) { 
+    while (NIL != penv) {
         _ entry = CAR(penv);
         _ src   = CDAR(pdefs);
         _CDR(entry) = px_compile_program_env(pf, E_top, E_local, src);
@@ -553,7 +553,7 @@ _ px_define(pf *pf, _ defs) {
     while (NIL != E) {
         _ var = _CAAR(E);
         _ val = _CDAR(E);
-        // _ex_printf(EX, "define: "); POST(var);
+        //POST_TAG("define",var);
         pf->dict = ENV_DEF(pf->dict, var, val);
         E = _CDR(E);
     }
