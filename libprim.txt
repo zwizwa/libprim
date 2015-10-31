@@ -11545,7 +11545,11 @@ It seems that moving between graph and lin memory is very straightforward:
 Note that the graph memory only needs one RC increment.  Decrement
 happens on GC.
 
+Tried to remove, but there are all kinds of assumptions.
 
+Needs a lot of attention to understand the basic point, and find a new
+invariant.  With RC counts inside the types it shouldn't be so hard to
+copy between GRAPH and LIN memory.
 
 
 Entry: Prim types: free
