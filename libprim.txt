@@ -11389,3 +11389,35 @@ Making things work together:
 Set this all up so it *BUILDS* !
 
 [1] entry://../staapl-blog/20150718-105036
+
+
+Entry: Linear engine
+Date: Sat Oct 31 11:16:39 EDT 2015
+
+Boiling down the basic ideas behind PDP and PF:
+- most audio/video processing executes as data flow graphs (DFGs)
+- RPN is a good way to encode DFGs, exposing usage patterns and locality
+- exposed dup and drop make refcount management simple (lazy copy).
+
+There isn't much else to it..
+
+
+To integrate libprim, zl, pdp, pf, do the following:
+
+- "new" pdp is a shell to data flow graphs running inside of pf, so it
+  can just be called "pf"
+
+- pf is an intermediate language engine to represent data flow graphs
+  as linear programs.  it can be used stand-alone, or as a pd
+  component.
+
+- libprim implements pf's object system
+
+- zl implements pf's media bindings
+
+- erlang bindings for sensor network
+
+
+
+Next step?  Get PF up.
+

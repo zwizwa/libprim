@@ -1,4 +1,4 @@
-libprim (c) 2003-2012 Tom Schouten
+libprim (c) 2003-2015 Tom Schouten
 
 An application core library for multimedia applications.
 
@@ -49,6 +49,7 @@ http://piumarta.com/software/peg/
 
 `ffmpeg' for the media library.  Last tested: svn rev 20455 (2009/11/5).
 
+on Debian: apt-get install build-essential libavcodec-dev
 
 
 History
