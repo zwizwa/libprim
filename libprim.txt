@@ -11651,6 +11651,12 @@ GRAPH -> LIN:   RC++
 It's ok to unpack the lin.
 
 
+Entry: Renamed LIN -> UNIQ
+Date: Sat Oct 31 22:11:33 EDT 2015
+
+Since that's its only function now.
+
+
 
 
 
