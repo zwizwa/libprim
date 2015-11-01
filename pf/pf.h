@@ -40,8 +40,8 @@ typedef struct {
 /* MEMORY */
 
 typedef aref box;
-typedef aref lin;
-DEF_STRUCT(lin,   TAG_LIN)
+typedef aref uniq;
+DEF_STRUCT(uniq,  TAG_UNIQ)
 DEF_STRUCT(box,   TAG_BOX)
 
 /* CODE */

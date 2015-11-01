@@ -68,7 +68,10 @@ _ _px_leaf_to_object(pf *pf, leaf_object *l) {
     return const_to_object(l);
 }
 leaf_object* _px_object_to_leaf(pf *pf, object ob) {
-    return object_to_const(NULL, ob);
+    void *x = object_to_const(NULL, ob);
+    if (!const_struct(x)) return NULL;
+    // all other constants are pointers to leaf objects.
+    return x;
 }
 void* _px_ref_struct(pf *pf, object ob, void *type) {
     // FIXME: should this unpack LIN?
@@ -198,8 +201,8 @@ _ px_box(pf *pf, _ ob) {
     return gc_make_tagged(GC, TAG_BOX, 2,
                           fin_to_object((void*)(&unlink_fin)), ob);
 }
-_ px_lin(pf *pf, _ ob) {
-    return gc_make_tagged(GC, TAG_LIN, 2,
+_ px_uniq(pf *pf, _ ob) {
+    return gc_make_tagged(GC, TAG_UNIQ, 2,
                           fin_to_object((void*)(&unlink_fin)), ob);
 }
 _ px_copy_to_graph(pf *pf, _ ob) {
@@ -208,14 +211,16 @@ _ px_copy_to_graph(pf *pf, _ ob) {
 
     if ((l = _px_object_to_leaf(pf, ob))) {
 
-        /* These leaf objects are special, treated as constants. */
-        if (object_to_symbol(EX, ob)) {
+        /* These leaf objects are special: never freed. */
+        if (object_to_symbol(EX, ob) ||
+            object_to_prim(EX,ob)) {
             return ob;
         }
-        /* Wrap all other objects in a LIN struct. */
+        /* Wrap all other objects in a UNIQ struct to ensure each
+           _px_link() corresponds to a _px_unlink() on collection. */
         else {
             _px_link(pf, ob);
-            return LIN(ob);
+            return UNIQ(ob);
         }
     }
     /* Recursively copy the tree. */
@@ -235,10 +240,13 @@ _ px_copy_to_graph(pf *pf, _ ob) {
 }
 _ px_copy_from_graph(pf *pf, _ ob) {
     pair *p;
-    lin *l;
-    /* Unwrap LIN objects. */
-    if ((l = object_to_lin(EX, ob))) {
+    uniq *l;
+    /* Unwrap UNIQ objects. */
+    if ((l = object_to_uniq(EX, ob))) {
         return _px_link(pf, l->object);
+    }
+    else if (_px_object_to_leaf(pf, ob)) {
+        return _px_link(pf, ob);
     }
     /* Recursive copy. */
     else if ((p = object_to_pair(EX, ob))) {
@@ -276,7 +284,7 @@ port *_px_port(pf *pf) {
 /* Print as part of code sequence. */
 _ px_write_name_or_quotation(pf *pf, _ ob) {
     quote *q;
-    lin *l;
+    uniq *l;
     /* Try to resolve the name. */
     _ sym = UNFIND(pf->dict, ob);
 
@@ -292,8 +300,8 @@ _ px_write_name_or_quotation(pf *pf, _ ob) {
             return px_write(pf, q->object);
         } else {
             _ex_printf(EX, "'");
-            /* Don't print the LIN wrapper. */
-            if ((l = object_to_lin(EX, q->object))) {
+            /* Don't print the UNIQ wrapper. */
+            if ((l = object_to_uniq(EX, q->object))) {
                 return px_write(pf, l->object);
             }
             else {
@@ -314,8 +322,8 @@ _ px_write(pf *pf, _ ob) {
     if ((x = object_to_box(EX, ob))) {
         return _ex_write_vector(EX, "box", object_to_vector(EX, ob));
     }
-    else if ((x = object_to_lin(EX, ob))) {
-        return _ex_write_vector(EX, "lin", object_to_vector(EX, ob));
+    else if ((x = object_to_uniq(EX, ob))) {
+        return _ex_write_vector(EX, "uniq", object_to_vector(EX, ob));
     }
     /* SEQ and QUOTE are decompiled.  Use square brackets to
        distinguish from lists. */
@@ -424,7 +432,7 @@ _ px_seq(pf *pf, _ sub, _ next)  { return STRUCT(TAG_SEQ, 2, sub, next); }
 
 _ px_quote_source_datum(pf *pf, _ datum) {
     if ((object_to_pair(EX, datum))) {
-        return QUOTE(LIN(COPY_FROM_GRAPH(datum)));
+        return QUOTE(COPY_FROM_GRAPH(datum));
     }
     else {
         return QUOTE(datum);

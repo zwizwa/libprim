@@ -97,7 +97,7 @@ static inline long flags_is_linear_pair(long flag) {
 }
 
 /* PF code tags. */
-#define TAG_LIN   VECTOR_TAG(16)
+#define TAG_UNIQ  VECTOR_TAG(16)
 #define TAG_BOX   VECTOR_TAG(17)
 #define TAG_QUOTE VECTOR_TAG(18)
 #define TAG_SEQ   VECTOR_TAG(19)
@@ -215,12 +215,14 @@ static inline long vector_size(vector *v) {
 #define EOF_OBJECT CONSTANT(3)
 
 
-
+static inline int const_struct(void *x) {
+    return !(((((long)x) & (~GC_CONST_MASK)) == 0));
+}
 
 /* If the object is a leaf object, this will return a non-null pointer. */
 static inline void *object_struct(void *dummy, object ob, void *type){
     void *x = object_to_const(NULL, ob);
-    if ((((long)x) & (~GC_CONST_MASK)) == 0) return NULL; // constant
+    if (!const_struct(x)) return NULL;
     if (type != *((void**)x)) return NULL;
     return x;
 }

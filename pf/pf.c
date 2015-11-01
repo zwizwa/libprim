@@ -54,7 +54,7 @@ void _px_run(pf *pf) {
     prim *p;
     quote *q;
     // box *b;
-    lin *l;
+    uniq *l;
 
     pf_prim fn = NULL;
     int ex_id;
@@ -114,7 +114,7 @@ void _px_run(pf *pf) {
                 else if ((q = object_to_quote(EX, ip))) {
                     DROP_K(); // (*)
                     _ ob;
-                    if ((l = object_to_lin(EX, q->object))) {
+                    if ((l = object_to_uniq(EX, q->object))) {
                         ob = _px_link(pf, l->object);
                     }
                     else {
@@ -811,7 +811,7 @@ pf* _px_new(int argc, char **argv) {
     // Bootstrap repl and abort code.
     _px_def_all_prims(pf);
     _ rep =
-        SEQ(QUOTE(LIN(_px_make_string(pf, "> "))),
+        SEQ(QUOTE(_px_make_string(pf, "> ")),
             SEQ(WORD("display"),
                 SEQ(WORD("read"),
                     WORD("interpret"))));
