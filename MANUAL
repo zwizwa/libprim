@@ -73,21 +73,32 @@ Currently this consists mostly of the EX -> SC/PF function wrapping.
 Automatic LEAF -> EX data wrapping will follow in the future.
 
 
-5 PF: bridging linear and nonlinear memory
+5 PF: bridging tree and graph memory
 
-The main purpose of PF is to expose a simple interface to MIMO
-dataflow primitives, embedded in a memory management stategy that is:
+PF implements a tree memory core embedded in a graph memory core,
+based on these properties:
 
-- exposed as linear memory with explicit 'dup' and 'drop'
+  - Tree memory can be restructured without performing allocation.
+    E.g. 'drop' moves a cons cell from the stack to the freelist.
 
-- reference-count based to avoid unnecessary copy
+  - Leaf nodes have a reference-counting (RC) memory manager, and each
+    occurance in the tree counts as one reference.
 
-- local-biased, attempting to reuse most recently used memory to work
-  better with LRU-style caches.
+As a consequence, if the graph memory does not have a reference to a
+leaf node (e.g. for intermediate data), leaf nodes will be freed as
+soon as possible, and the use of a LIFO freelist (freestack) ensures
+data locality.
 
-PF's data operations are linear to allow the kind of fast memory reuse
-menitioned above.  However, it's code core is comprised on non-linear
-memory.
+Tree operations do not create garbage, so the GC can be switched off.
 
+Doing the embedding inside a graph memory is a matter of convenience:
+it allows code to be represented as graph memory, and allows a program
+to be split into two phases:
 
+  - boot: compile code, call GC when done
 
+  - loop: perform only tree operations (GC switched off)
+
+Implementing this as a stack language is a sure way of keeping the
+language itself simple, while keeping semantics close to funciton
+evaluation (as opposed to a register machine).

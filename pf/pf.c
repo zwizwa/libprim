@@ -113,14 +113,7 @@ void _px_run(pf *pf) {
                 /* Quoted object */
                 else if ((q = object_to_quote(EX, ip))) {
                     DROP_K(); // (*)
-                    _ ob;
-                    if ((l = object_to_uniq(EX, q->object))) {
-                        ob = _px_link(pf, l->object);
-                    }
-                    else {
-                        ob = _px_link(pf, q->object);
-                    }
-                    PUSH_P(ob);
+                    PUSH_P(COPY_FROM_GRAPH(q->object));
                 }
                 /* Result of popping an empty continuation. */
                 else if (HALT == ip) {
