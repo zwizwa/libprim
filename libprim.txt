@@ -11636,9 +11636,20 @@ refcount on GC.
 Entry: What did we learn?
 Date: Sat Oct 31 20:39:24 EDT 2015
 
-Because code is graph memory, and data memory can reference code
+Because code is graph memory, and linear memory can reference code
 (dispatch tables), there is the problem that data memory can't be
 isolated from graph memory.  I.e. needs to be embedded in it.
+
+
+
+Entry: Copying
+Date: Sat Oct 31 21:21:40 EDT 2015
+
+LIN -> GRAPH:   wrap in LIN object, sets RC-- on GC
+GRAPH -> LIN:   RC++
+
+It's ok to unpack the lin.
+
 
 
 

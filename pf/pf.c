@@ -67,15 +67,6 @@ void _px_run(pf *pf) {
     inner_loop:
     {
 
-        /* By default, run each step in LINEAR mode (GC allocation
-           switched off).
-
-           A primitive is allowed to switch to PURE mode as long
-           as there are no side effects performed between this
-           LINEAR() call and the PURE() invocation in the
-           primitive.
-        */
-
         /* Quote linear datum (Implement the `dip' continuation.) */
         pair *rs = object_to_ldata(EX, pf->k);
         if (unlikely(rs)) {
@@ -124,13 +115,10 @@ void _px_run(pf *pf) {
                     DROP_K(); // (*)
                     _ ob;
                     if ((l = object_to_lin(EX, q->object))) {
-                        /* Unpack + link linear objects */
                         ob = _px_link(pf, l->object);
                     }
                     else {
-                        /* All other objects behave as constants to the
-                           linear memory manager. */
-                        ob = q->object;
+                        ob = _px_link(pf, q->object);
                     }
                     PUSH_P(ob);
                 }
