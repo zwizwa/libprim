@@ -80,4 +80,6 @@ _ _px_make_port(pf *pf, FILE *f, const char *name);
 _ _px_make_string(pf *pf, const char *name);
 _ _px_make_qstring(pf *pf, const char *name);
 
+_ px_unpack_uniq(pf *pf, _ ob);
+
 #endif

@@ -11656,8 +11656,15 @@ Date: Sat Oct 31 22:11:33 EDT 2015
 
 Since that's its only function now.
 
+Still there are some problems.  GC will not touch leaf objects; they
+are treated as constants. The UNIQ wrapper is actually necessary for
+data to be freed by GC at all.
 
 
+Entry: Next
+Date: Sun Nov  1 08:57:35 EST 2015
 
-
+Use it for a bit to see if there are any obvious bugs, then later it
+should become clear how to implement the ref/const mangement more
+transparantly.
 

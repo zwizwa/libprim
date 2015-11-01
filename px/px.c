@@ -152,24 +152,24 @@ static _ _px_unlink_pop(pf *pf, _ lst) {
     return lst;
 }
 void _px_unlink(pf* pf, _ ob) {
-  again:
+  next:
     /* Lists: recurse. */
     if (object_to_lpair(EX, ob) ||
         object_to_ldata(EX, ob) ||
         object_to_lnext(EX, ob)) {
         ob = _px_unlink_pop(pf, ob);
-        goto again;
+        goto next;
     }
     else {
-        leaf_object *l = _px_object_to_leaf(pf, ob);
-        if (l) leaf_free(l);
+        leaf_object *l;
+        if ((l = _px_object_to_leaf(pf, ob))) leaf_free(l);
     }
 }
 /* Link will RC++ objects and recursively copy pair structures, using
    pairs from the freelist.. */
 _ _px_link(pf *pf, _ ob) {
-    leaf_object *l = _px_object_to_leaf(pf, ob);
-    if (l) {
+    leaf_object *l;
+    if ((l = _px_object_to_leaf(pf, ob))) {
         leaf_dup(l);
         return ob;
     }
@@ -193,8 +193,8 @@ _ _px_link(pf *pf, _ ob) {
 /* Whenever data is exported to the GC-managed side (graph memory or
    outer memory), CONS cells are copied and ref counts are incremented
    on leaf objects.  Additionally, leaf objects need to be wrapped in
-   a unique LIN object to ensure that each RC++ in copy to graph
-   corresponds to one RC-- per wrapper on GC */
+   a UNIQ object to ensure that each RC++ in copy to graph corresponds
+   to one RC-- per wrapper on GC */
 static void _gc_unlink(_ ob, pf *pf) { _px_unlink(pf, ob); }
 static void *unlink_fin = _gc_unlink;
 _ px_box(pf *pf, _ ob) {
@@ -205,19 +205,18 @@ _ px_uniq(pf *pf, _ ob) {
     return gc_make_tagged(GC, TAG_UNIQ, 2,
                           fin_to_object((void*)(&unlink_fin)), ob);
 }
+
 _ px_copy_to_graph(pf *pf, _ ob) {
     pair *p;
     leaf_object *l;
 
     if ((l = _px_object_to_leaf(pf, ob))) {
-
-        /* These leaf objects are special: never freed. */
-        if (object_to_symbol(EX, ob) ||
-            object_to_prim(EX,ob)) {
+        /* Don't wrap these non-managed constants.  Compiler expects
+           them to not be wrapped. */
+        if ((l->__type == prim_type()) ||
+            (l->__type == symbol_type())) {
             return ob;
         }
-        /* Wrap all other objects in a UNIQ struct to ensure each
-           _px_link() corresponds to a _px_unlink() on collection. */
         else {
             _px_link(pf, ob);
             return UNIQ(ob);
@@ -238,21 +237,32 @@ _ px_copy_to_graph(pf *pf, _ ob) {
     }
     else return ob;
 }
+
+_ px_unpack_uniq(pf *pf, _ ob) {
+    uniq *l;
+    if ((l = object_to_uniq(EX, ob))) {
+        return l->object;
+    }
+    else {
+        return ob;
+    }
+}
+
 _ px_copy_from_graph(pf *pf, _ ob) {
     pair *p;
-    uniq *l;
     /* Unwrap UNIQ objects. */
-    if ((l = object_to_uniq(EX, ob))) {
-        return _px_link(pf, l->object);
+    ob = px_unpack_uniq(pf, ob);
+
+    /* Leaf object */
+    if (_px_object_to_leaf(pf, ob)) {
+        return _px_link(pf, px_unpack_uniq(pf, ob));
     }
-    else if (_px_object_to_leaf(pf, ob)) {
-        return _px_link(pf, ob);
-    }
-    /* Recursive copy. */
+    /* CONS cells: recursive copy into linear cells. */
     else if ((p = object_to_pair(EX, ob))) {
         return LINEAR_CONS(COPY_FROM_GRAPH(p->car),
                            COPY_FROM_GRAPH(p->cdr));
     }
+    /* Anything else is treated as constant. */
     else return ob;
 }
 
@@ -445,6 +455,7 @@ _ px_compile_program_env(pf *pf, _ E_top, _ E_local, _ src) {
     /* Compile with proper tail calls. */
     for(;;) {
         _ compiled, datum = CAR(src);
+
         /* Quoted empty program. */
         if (NIL == datum) {
             compiled = QUOTE(pf->ip_nop);
