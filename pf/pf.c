@@ -53,8 +53,6 @@ void _px_run(pf *pf) {
     seq *s;
     prim *p;
     quote *q;
-    // box *b;
-    uniq *l;
 
     pf_prim fn = NULL;
     int ex_id;
@@ -670,6 +668,13 @@ void pf_bang_abort(pf *pf) {
     _px_unlink(pf, pf->k);
     pf->k = v;
     _TOP = VOID; _DROP();
+}
+
+
+void pf_bytes(pf *pf) {
+    long i = CAST_INTEGER(TOP);
+    _DROP();
+    PUSH_P(_px_leaf_to_object(pf, bytes_new(0,i)));
 }
 
 /* Exit + make sure all the finalizers get called. */

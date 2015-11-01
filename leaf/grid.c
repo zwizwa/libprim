@@ -37,7 +37,7 @@ static grid *grid_proto(int rank) {
 }
 static void grid_alloc(grid *x, grid_atom init) {
     int i, total = grid_total(x);
-    x->buf = malloc(sizeof(grid_atom) * grid_total(x));    
+    x->buf = malloc(sizeof(grid_atom) * grid_total(x));
     for (i=0; i<total; i++) x->buf[i] = init;
 }
 
@@ -94,7 +94,7 @@ int grid_for_each(grid_proc *p, int argc, grid **argv) {
     for (j = 1; j < argc; j++) total = MIN(grid_total(argv[j]), total);
 
     switch(argc) {
-    case 1: 
+    case 1:
     {
         fn_1 f = (fn_1)p->fn;
         grid_atom *g0 = argv[0]->buf;
@@ -207,7 +207,7 @@ int grid_write_short(grid *g, port *p) {
         short int sbuf[chans];
         for(j=0; j<chans; j++) {
             double x = *a++;
-            sbuf[j] = 
+            sbuf[j] =
                 (x > 0x7FFF) ? 0x7FFF :
                 (x < -0x8000) ? -0x8000 : x;
         }
