@@ -71,6 +71,7 @@ leaf_object* _px_object_to_leaf(pf *pf, object ob) {
     return object_to_const(NULL, ob);
 }
 void* _px_ref_struct(pf *pf, object ob, void *type) {
+    // FIXME: should this unpack LIN?
     return _px_object_to_leaf(pf, ob);
 }
 
@@ -187,8 +188,10 @@ _ _px_link(pf *pf, _ ob) {
     }
 }
 /* Whenever data is exported to the GC-managed side (graph memory or
-   outer memory), CONS cells are copied and ref counts are
-   incremented. */
+   outer memory), CONS cells are copied and ref counts are incremented
+   on leaf objects.  Additionally, leaf objects need to be wrapped in
+   a unique LIN object to ensure that each RC++ in copy to graph
+   corresponds to one RC-- per wrapper on GC */
 static void _gc_unlink(_ ob, pf *pf) { _px_unlink(pf, ob); }
 static void *unlink_fin = _gc_unlink;
 _ px_box(pf *pf, _ ob) {
@@ -204,13 +207,14 @@ _ px_copy_to_graph(pf *pf, _ ob) {
     leaf_object *l;
 
     if ((l = _px_object_to_leaf(pf, ob))) {
-        leaf_dup(l);
+
         /* These leaf objects are special, treated as constants. */
-        if (object_to_symbol(pf, ob)) {
+        if (object_to_symbol(EX, ob)) {
             return ob;
         }
         /* Wrap all other objects in a LIN struct. */
         else {
+            _px_link(pf, ob);
             return LIN(ob);
         }
     }

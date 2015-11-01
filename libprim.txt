@@ -11565,3 +11565,82 @@ Currently, prim class is set to 0xF001, but the free method is called.
 Solved by adding a prim class with a nop for free.
 
 
+Entry: The point of LIN
+Date: Sat Oct 31 19:04:50 EDT 2015
+
+* The linear machine's data tree is visible by the main GC, meaning
+  that it can contain references to nonlinear data.  This is useful.
+
+* The linear machine manages its own cons cells in a free list.  These
+  are regular GC objects, but are tagged differently to manage the
+  _contents_ differently.
+
+* Leaf objects that are moved around in the linear tree use refcounted
+  copy.  The consequence of this, is that _if_ the nonlinear tree does
+  not have a reference to data that is contained in the linear tree,
+  the free operation is instantaneous.
+
+
+There needs to be a way to distinguish between objects that are
+linear, and objects that are nonlinear.  By removing the RC wrapper,
+this has become impossible.
+
+Which means that all objects need to be treated as linear, which
+completely removes the need for implementing the linear cells as part
+of EX.
+
+The latter might be the most important part: pf needs its own cons
+cells, separate from vectors.  The proper way to structure this is:
+
+PF data: LEAF + LCONS
+   code: EX
+
+And leave it such that PF data cannot reference EX data.
+
+The latter is problematic for code pointers.
+
+So... pf data should be EX.
+
+
+
+Entry: A linear core
+Date: Sat Oct 31 19:15:19 EDT 2015
+
+The basic idea is to embed a linear core inside a nonlinear one.
+
+- For variables "seen" by the nonlinear core, the linear RC management
+  has no effect.
+
+- For priviate variables, the RC management accomplishes early release
+  and locality.
+
+
+The main question is: which types are RC-managed?
+
+
+RC++ on copy to graph has another problem: an object might already be
+in graph memory, so it's possible to multi-increment RCs.
+
+
+It seems this idea is quite flawed..
+
+It's probably best to completely separate the memory models, and copy
+data on the boundaries.
+
+
+The previous implementation for RCs was correct: one wrapper per copy,
+so multiple copies have multiple wrappers, and each will decrement
+refcount on GC.
+
+
+Entry: What did we learn?
+Date: Sat Oct 31 20:39:24 EDT 2015
+
+Because code is graph memory, and data memory can reference code
+(dispatch tables), there is the problem that data memory can't be
+isolated from graph memory.  I.e. needs to be embedded in it.
+
+
+
+
+

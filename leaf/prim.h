@@ -5,7 +5,7 @@
 
 /* primitive function wrapper */
 typedef struct {
-    //void *free;
+    leaf_class c;
 } prim_class;
 typedef struct {
     LEAF_OBJECT(base); // FIXME: implement leaf object api

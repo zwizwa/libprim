@@ -89,7 +89,7 @@ void _px_run(pf *pf) {
 
             rs = object_to_lnext(EX, pf->k);
             if (unlikely(!rs)) {
-                printf("!lnext\n");
+                //printf("!lnext\n");
                 goto halt;
             }
             _ ip = rs->car;
