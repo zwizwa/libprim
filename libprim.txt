@@ -11668,3 +11668,54 @@ Use it for a bit to see if there are any obvious bugs, then later it
 should become clear how to implement the ref/const mangement more
 transparantly.
 
+
+Possible next steps:
+
+  - integrate zl with pf (start with video capture + network comm).
+  
+  - integrate pf with Erlang
+
+  - integrate cauterize
+    https://github.com/cauterize-tools/cauterize
+
+
+
+Just from gut feeling, what is really missing is a way to cut through
+all the red tape.  One reason I'm thinking about cauterize..
+
+What is cessary to get access to zl object methods in pf?
+
+
+
+Entry: Next, be serious
+Date: Tue Nov  3 07:22:08 EST 2015
+
+- get v4l to work in pf through automatic binding
+
+- add some image processing code
+
+
+
+Entry: API coupling
+Date: Tue Nov  3 07:30:24 EST 2015
+
+The *.api files are not a good idea.
+
+It is better to keep those in C, possibly stylized C, and parse them
+in racket, just as is done with the other.
+
+Next goal: zl api distiller.
+
+Use a packrat parser in racket:
+
+http://bford.info/packrat/
+https://github.com/kazzmir/Pegs
+http://www.lshift.net/blog/2005/08/11/extensible-parsing-systems/
+
+
+But it's probably best to avoid parsing, and specify the api in s-expressions.
+Maybe in a way that is compatible with cauterize?
+At least, once it is available in s-exp it is easy to translate to something else.
+
+
+
