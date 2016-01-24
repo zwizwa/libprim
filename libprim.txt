@@ -11719,3 +11719,20 @@ At least, once it is available in s-exp it is easy to translate to something els
 
 
 
+Entry: Binary tree rewriter
+Date: Sun Jan 24 14:13:43 EST 2016
+
+The idea is to factor out the implementation of libprim, which has
+opaque primitive objects, and a tree memory consisting of:
+
+- data stack
+- return stack
+- freelist
+
+Operations involve motion between these 3 stacks, or between the
+freelist and the tree on top of the data stack.
+
+Internally, there will be aliasing, but at the pf level this can be
+completely hidden behind primitive operations.
+
+
