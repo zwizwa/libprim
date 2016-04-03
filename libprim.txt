@@ -11736,3 +11736,16 @@ Internally, there will be aliasing, but at the pf level this can be
 completely hidden behind primitive operations.
 
 
+
+
+Entry: linear language
+Date: Sun Apr  3 15:29:24 EDT 2016
+
+I've been playing a bit with Erlang lately, trying out the Erlang on
+Linux, small state machines on microcontrollers approach.  What I miss
+is a way to run something more erlang-like on the uC.  E.g. spawnable
+tasks, high level data structures.
+
+libprim/PF might be a good candidate for this.  that is, the linear
+machine.
+
