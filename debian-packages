@@ -1,0 +1,12 @@
+build-essential
+libavcodec-dev
+libavformat-dev
+libgl1-mesa-dev
+libglu1-mesa-dev
+libgsl0-dev
+libxv-dev
+mesa-common-dev
+python3.5-dev
+swig
+x11-dev
+x11proto-video-dev
