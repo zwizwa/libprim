@@ -11749,3 +11749,18 @@ tasks, high level data structures.
 libprim/PF might be a good candidate for this.  that is, the linear
 machine.
 
+
+
+Entry: Erlang marriage
+Date: Sat Aug 27 09:30:59 EDT 2016
+
+Marrying this to Erlang would be interesting.  Some thoughts:
+
+- Control / Process separation in Erlang is natural.  A PF instance
+  could be run as a port process or as a C node.
+
+- Adding the processing NIFs to Erlang is another straightforward
+  extension.  Types would be lost, but could be represented as a
+  {atom(), binary()} tuple.
+
+
