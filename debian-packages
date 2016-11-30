@@ -8,5 +8,6 @@ libxv-dev
 mesa-common-dev
 python3.5-dev
 swig
-x11-dev
+libx11-dev
 x11proto-video-dev
+libpython3-dev
