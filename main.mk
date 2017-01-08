@@ -172,11 +172,12 @@ $(g_TEST): $(BUILD)/%.test: $(BUILD)/%.elf
 	$(call compile,$@,test,$(LIBPRIM_SRC)/bin/run_test $< $@)
 
 # Swig
+PYTHON_VER    := 3.5
 PYTHON_SO     := $(BUILD)/swig/python/_libprim.so
 PYTHON_O      := $(BUILD)/swig/python/_libprim.o
 PYTHON_C      := $(BUILD)/swig/python/_libprim.c
-PYTHON_CFLAGS := $(shell pkg-config python-3.4 --cflags)
-PYTHON_LIBS   := $(shell pkg-config python-3.4 --libs)
+PYTHON_CFLAGS := $(shell pkg-config python-$(PYTHON_VER) --cflags)
+PYTHON_LIBS   := $(shell pkg-config python-$(PYTHON_VER) --libs)
 $(PYTHON_C): $(SRC)/swig/libprim.i
 	$(call compile,$@,i,cd $(SRC) ; swig -python -py3 -o $@ $<)
 $(PYTHON_O): $(PYTHON_C)

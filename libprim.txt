@@ -11764,3 +11764,32 @@ Marrying this to Erlang would be interesting.  Some thoughts:
   {atom(), binary()} tuple.
 
 
+
+Entry: Erlang cont
+Date: Sat Jan  7 14:05:15 EST 2017
+
+Basic design decision is NIF vs external process.  Leaning towards the
+latter because of asynchronous events.
+
+That requires a protocol.  Some options:
+- raw PF
+- BERT
+- UBF
+
+I find UBF interesting, so let's make a layer that is a direct
+translation between UBF and PF.
+
+To bootstrap the application, it is ok to send PF and e.g. receive
+UBF.  PF doesn't support tuples, but tuples could be used to represent
+binary leaf objects as tagged tuples.
+
+One thing I do not like about PF/PDP is the representation of types as
+symbols that flatten internal structure, such as image pixel format,
+pixel layout and dimensions.  Is it worth doing this differently?
+
+But UBF is now tagged unmaintained.  That doesn't look like a good
+sign...
+
+
+
+
